@@ -5,6 +5,15 @@ echo ==================================================
 echo PH Origins Deploy
 echo ==================================================
 
+echo This will build, commit, and push to origin/main.
+echo.
+set /p CONFIRM=Type DEPLOY and press Enter to continue: 
+if /I not "%CONFIRM%"=="DEPLOY" (
+  echo Cancelled.
+  exit /b 0
+)
+
+echo.
 echo 1/3 Building production version...
 call build.bat
 if errorlevel 1 (
@@ -20,6 +29,9 @@ git add .
 set TIMESTAMP=%DATE% %TIME%
 set MESSAGE=Deploy %TIMESTAMP%
 
+echo Commit message: %MESSAGE%
+
+echo.
 echo 3/3 Committing and pushing to main branch...
 git commit -m "%MESSAGE%"
 if errorlevel 1 (
