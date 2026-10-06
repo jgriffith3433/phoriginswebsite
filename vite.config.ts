@@ -5,6 +5,11 @@ export default defineConfig({
   build: {
     outDir: 'play',
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        index: 'game.html',
+      },
+    },
   },
   server: {
     host: '0.0.0.0',

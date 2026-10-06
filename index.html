@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#08131d" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>PH Origins</title>
     <style>
       :root {
@@ -86,8 +87,12 @@
       <h1>Ready to play?</h1>
       <p>Launch the 3D game and dive straight into the arena.</p>
       <div class="button-wrap">
-        <a class="play-btn" href="./play/index.html">Play now</a>
+        <a id="playButton" class="play-btn" href="/game.html">Play now</a>
       </div>
     </main>
+    <script>
+      const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      document.getElementById('playButton').href = isLocal ? '/game.html' : '/play/index.html';
+    </script>
   </body>
 </html>
