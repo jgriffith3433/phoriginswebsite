@@ -32,10 +32,18 @@ set MESSAGE=Deploy %TIMESTAMP%
 echo Commit message: %MESSAGE%
 
 echo.
-echo 3/3 Committing and pushing to main branch...
+echo 3/3 Committing and updating with the remote before pushing...
 git commit -m "%MESSAGE%"
 if errorlevel 1 (
-  echo No changes to commit. Continuing to push if remote is up to date.
+  echo No changes to commit. Continuing with remote sync.
+)
+
+git fetch origin
+git pull --rebase origin main
+if errorlevel 1 (
+  echo Rebase conflict detected. Resolve the conflicts and run git push origin main manually.
+  pause
+  exit /b %errorlevel%
 )
 
 git push origin main
