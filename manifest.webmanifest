@@ -1,0 +1,17 @@
+{
+  "name": "PH Origins 3D",
+  "short_name": "PHOrigins",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#07141e",
+  "theme_color": "#07141e",
+  "description": "3D arcade game prototype for PH Origins",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

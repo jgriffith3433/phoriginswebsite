@@ -1,345 +1,308 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>PH Origins</title>
-    <meta name="description" content="PH Origins — Discover where your story begins.">
-
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#08131d" />
+    <meta name="description" content="PH Origins 3D game" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>PH Origins 3D</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+      :root {
+        --bg: #07141e;
+        --panel: rgba(10, 18, 28, 0.82);
+        --panel-border: rgba(255,255,255,0.12);
+        --text: #eefaff;
+        --muted: #9bb0c1;
+        --accent: #67d2ff;
+        --good: #7af0c9;
+        --warning: #ffd86a;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #game-root {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(180deg, #091722 0%, #040b11 100%);
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hud {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .brand {
+        padding: 10px 16px;
+        border-radius: 999px;
+        background: rgba(10, 20, 31, 0.48);
+        border: 1px solid var(--panel-border);
+        backdrop-filter: blur(8px);
+        letter-spacing: 0.28rem;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--muted);
+      }
+
+      .stats {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .stat {
+        min-width: 110px;
+        text-align: center;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(10, 20, 31, 0.48);
+        border: 1px solid var(--panel-border);
+        backdrop-filter: blur(8px);
+      }
+
+      .label {
+        display: block;
+        font-size: 9px;
+        letter-spacing: 0.18rem;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 2px;
+      }
+
+      .value {
+        display: block;
+        font-size: 22px;
+        font-weight: 800;
+      }
+
+      .controls {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        padding: 0 18px;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .touch-pad {
+        display: flex;
+        gap: 14px;
+        pointer-events: auto;
+      }
+
+      .touch-btn {
+        width: 74px;
+        height: 74px;
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 50%;
+        background: rgba(13, 20, 31, 0.52);
+        color: var(--text);
+        font-size: 28px;
+        font-weight: 700;
+        touch-action: manipulation;
+        user-select: none;
+      }
+
+      .touch-btn:active {
+        transform: scale(0.97);
+      }
+
+      .action-btn {
+        width: 98px;
+        height: 98px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: linear-gradient(135deg, var(--accent), var(--good));
+        color: #07141e;
+        font-weight: 900;
+        font-size: 30px;
+        pointer-events: auto;
+      }
+
+      .message {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(3, 8, 14, 0.4);
+        z-index: 3;
+      }
+
+      .message.hidden {
+        display: none;
+      }
+
+      .panel {
+        max-width: 440px;
+        padding: 28px 24px;
+        border-radius: 24px;
+        border: 1px solid var(--panel-border);
+        background: rgba(5, 10, 16, 0.8);
+        text-align: center;
+        box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.32rem;
+        text-transform: uppercase;
+        color: var(--good);
+        margin-bottom: 10px;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(36px, 5vw, 56px);
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      button {
+        appearance: none;
+        border: none;
+        border-radius: 999px;
+        padding: 12px 18px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18rem;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: transform 0.15s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      .primary {
+        background: linear-gradient(135deg, var(--accent), var(--good));
+        color: #07141e;
+      }
+
+      .secondary {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text);
+      }
+
+      @media (max-width: 600px) {
+        .brand {
+          letter-spacing: 0.18rem;
+          font-size: 10px;
         }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #050608;
-            color: #fff;
-            font-family: Arial, Helvetica, sans-serif;
+        .stat {
+          min-width: 92px;
         }
 
-        body {
-            position: relative;
+        .touch-btn {
+          width: 62px;
+          height: 62px;
+          font-size: 22px;
         }
 
-        /* Background */
-        .background {
-            position: fixed;
-            inset: 0;
-            background:
-                radial-gradient(
-                    circle at 50% 45%,
-                    rgba(78, 116, 145, 0.18),
-                    transparent 38%
-                ),
-                linear-gradient(
-                    180deg,
-                    #080b10 0%,
-                    #050608 55%,
-                    #020304 100%
-                );
+        .action-btn {
+          width: 80px;
+          height: 80px;
+          font-size: 22px;
         }
-
-        /* Atmospheric glow */
-        .glow {
-            position: absolute;
-            width: 55vw;
-            height: 55vw;
-            max-width: 800px;
-            max-height: 800px;
-            left: 50%;
-            top: 42%;
-            transform: translate(-50%, -50%);
-            border-radius: 50%;
-            background: rgba(90, 145, 180, 0.08);
-            filter: blur(100px);
-            animation: breathe 5s ease-in-out infinite;
-        }
-
-        @keyframes breathe {
-            0%, 100% {
-                opacity: .45;
-                transform: translate(-50%, -50%) scale(.95);
-            }
-
-            50% {
-                opacity: .8;
-                transform: translate(-50%, -50%) scale(1.05);
-            }
-        }
-
-        /* Stars */
-        .stars,
-        .stars::before,
-        .stars::after {
-            position: absolute;
-            inset: 0;
-            content: "";
-            background-image:
-                radial-gradient(circle, rgba(255,255,255,.7) 1px, transparent 1px),
-                radial-gradient(circle, rgba(255,255,255,.35) 1px, transparent 1px);
-            background-size: 180px 180px, 310px 310px;
-            background-position: 20px 40px, 100px 160px;
-            opacity: .22;
-        }
-
-        .stars::before {
-            transform: scale(1.5);
-            opacity: .12;
-        }
-
-        /* Main */
-        .container {
-            position: relative;
-            z-index: 2;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 30px;
-        }
-
-        .content {
-            width: min(900px, 100%);
-            animation: appear 1.5s ease forwards;
-        }
-
-        @keyframes appear {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .eyebrow {
-            font-size: 12px;
-            letter-spacing: 7px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,.5);
-            margin-bottom: 24px;
-        }
-
-        .logo {
-            font-size: clamp(58px, 12vw, 150px);
-            line-height: .85;
-            font-weight: 900;
-            letter-spacing: -7px;
-            text-transform: uppercase;
-
-            background: linear-gradient(
-                180deg,
-                #ffffff 0%,
-                #cbd3d8 45%,
-                #6e7b83 100%
-            );
-
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-
-            text-shadow:
-                0 0 40px rgba(150,190,210,.12);
-
-            margin-bottom: 26px;
-        }
-
-        .subtitle {
-            font-size: clamp(16px, 2vw, 23px);
-            letter-spacing: 5px;
-            text-transform: uppercase;
-            color: #aeb9bf;
-            margin-bottom: 50px;
-        }
-
-        .description {
-            max-width: 570px;
-            margin: 0 auto 42px;
-            font-size: 15px;
-            line-height: 1.8;
-            color: rgba(255,255,255,.52);
-        }
-
-        /* Button */
-        .play-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-
-            min-width: 210px;
-            height: 58px;
-
-            border: 1px solid rgba(255,255,255,.4);
-            background: rgba(255,255,255,.05);
-            color: white;
-
-            text-decoration: none;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            font-size: 12px;
-            font-weight: bold;
-
-            transition:
-                background .25s ease,
-                border-color .25s ease,
-                transform .25s ease,
-                box-shadow .25s ease;
-        }
-
-        .play-button:hover {
-            background: rgba(255,255,255,.13);
-            border-color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 40px rgba(100,160,190,.12);
-        }
-
-        .play-button span {
-            margin-left: 12px;
-            font-size: 15px;
-        }
-
-        /* Bottom */
-        .footer {
-            position: fixed;
-            z-index: 3;
-            left: 0;
-            right: 0;
-            bottom: 24px;
-
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            font-size: 10px;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-
-            color: rgba(255,255,255,.25);
-        }
-
-        /* Corner UI */
-        .corner {
-            position: fixed;
-            z-index: 3;
-            width: 45px;
-            height: 45px;
-            opacity: .3;
-        }
-
-        .corner::before,
-        .corner::after {
-            content: "";
-            position: absolute;
-            background: white;
-        }
-
-        .corner::before {
-            width: 45px;
-            height: 1px;
-        }
-
-        .corner::after {
-            width: 1px;
-            height: 45px;
-        }
-
-        .top-left {
-            top: 25px;
-            left: 25px;
-        }
-
-        .top-right {
-            top: 25px;
-            right: 25px;
-            transform: rotate(90deg);
-        }
-
-        .bottom-left {
-            bottom: 25px;
-            left: 25px;
-            transform: rotate(-90deg);
-        }
-
-        .bottom-right {
-            bottom: 25px;
-            right: 25px;
-            transform: rotate(180deg);
-        }
-
-        /* Mobile */
-        @media (max-width: 600px) {
-            .logo {
-                letter-spacing: -4px;
-            }
-
-            .subtitle {
-                letter-spacing: 3px;
-            }
-
-            .description {
-                font-size: 14px;
-            }
-
-            .corner {
-                display: none;
-            }
-        }
+      }
     </style>
-</head>
-
-<body>
-
-    <div class="background"></div>
-    <div class="glow"></div>
-    <div class="stars"></div>
-
-    <div class="corner top-left"></div>
-    <div class="corner top-right"></div>
-    <div class="corner bottom-left"></div>
-    <div class="corner bottom-right"></div>
-
-    <main class="container">
-        <div class="content">
-
-            <div class="eyebrow">
-                A New Story Begins
-            </div>
-
-            <h1 class="logo">
-                PH
-            </h1>
-
-            <div class="subtitle">
-                Origins
-            </div>
-
-            <p class="description">
-                Before the legends. Before the kingdoms.
-                Before anyone knew your name.
-                There was an origin.
-            </p>
-
-            <a class="play-button" href="game.html">
-                Enter the Game
-                <span>›</span>
-            </a>
-
+  </head>
+  <body>
+    <div id="game-root">
+      <div class="hud">
+        <div class="brand">PH ORIGINS</div>
+        <div class="stats">
+          <div class="stat">
+            <span class="label">Score</span>
+            <span class="value" id="score">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Best</span>
+            <span class="value" id="best">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Health</span>
+            <span class="value" id="health">3</span>
+          </div>
+          <div class="stat">
+            <span class="label">Level</span>
+            <span class="value" id="level">1</span>
+          </div>
         </div>
-    </main>
+      </div>
 
-    <div class="footer">
-        PH ORIGINS &nbsp;•&nbsp; © 2026
+      <div class="controls">
+        <div class="touch-pad" aria-label="Move left and right">
+          <button class="touch-btn" id="leftBtn" aria-label="Move left">◀</button>
+          <button class="touch-btn" id="rightBtn" aria-label="Move right">▶</button>
+        </div>
+        <button class="action-btn" id="jumpBtn" aria-label="Jump">△</button>
+      </div>
+
+      <div class="message" id="messageBox">
+        <div class="panel">
+          <div class="eyebrow">3D adventure</div>
+          <h1 id="messageTitle">Star Drift</h1>
+          <p class="subtitle" id="messageText">Dodge the incoming hazards and grab the energy cores.</p>
+          <div class="button-row">
+            <button class="primary" id="startBtn">Start</button>
+            <button class="secondary" id="resetBtn">Reset</button>
+          </div>
+        </div>
+      </div>
     </div>
 
-</body>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>
