@@ -64,20 +64,32 @@
         margin-top: 26px;
         display: flex;
         justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
       }
 
-      .play-btn {
+      .play-btn,
+      .dev-btn {
         display: inline-block;
         padding: 16px 26px;
         border-radius: 999px;
-        background: linear-gradient(135deg, var(--accent), var(--good));
-        color: #07141e;
         text-decoration: none;
         font-size: 12px;
         font-weight: 900;
         letter-spacing: 0.2rem;
         text-transform: uppercase;
+      }
+
+      .play-btn {
+        background: linear-gradient(135deg, var(--accent), var(--good));
+        color: #07141e;
         box-shadow: 0 16px 34px rgba(103, 210, 255, 0.28);
+      }
+
+      .dev-btn {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text);
       }
     </style>
   </head>
@@ -88,6 +100,7 @@
       <p>Launch the 3D game and dive straight into the arena.</p>
       <div class="button-wrap">
         <a id="playButton" class="play-btn" href="/game.html">Play now</a>
+        <a class="dev-btn" href="/devtools.html">Dev tools</a>
       </div>
     </main>
     <script>

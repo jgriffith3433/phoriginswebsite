@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#08131d" />
     <meta name="description" content="PH Origins 3D game" />
     <link rel="manifest" href="/manifest.webmanifest" />
@@ -30,6 +30,12 @@
         background: var(--bg);
         color: var(--text);
         font-family: Arial, Helvetica, sans-serif;
+        overscroll-behavior: none;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
       }
 
       body {
@@ -43,17 +49,171 @@
         width: 100vw;
         height: 100vh;
         background: linear-gradient(180deg, #091722 0%, #040b11 100%);
+        --ui-scale: 1;
+        --safe-top: 0px;
+        --safe-bottom: 0px;
       }
 
       canvas {
         display: block;
         width: 100%;
         height: 100%;
+        touch-action: none;
+        user-select: none;
+      }
+
+      #crosshair {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 26px;
+        height: 26px;
+        transform: translate(-50%, -50%);
+        z-index: 5;
+        pointer-events: none;
+      }
+
+      #devToggle {
+        position: absolute;
+        top: calc(var(--safe-top) + 18px);
+        right: 18px;
+        z-index: 11;
+        border: 1px solid rgba(255,255,255,0.16);
+        border-radius: 999px;
+        background: rgba(10, 20, 31, 0.72);
+        color: var(--text);
+        font-size: 10px;
+        letter-spacing: 0.18rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 10px 14px;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+      }
+
+      #devPanel {
+        position: absolute;
+        top: calc(var(--safe-top) + 64px);
+        right: 18px;
+        z-index: 12;
+        width: min(320px, calc(100vw - 36px));
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(5, 10, 16, 0.88);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text);
+        box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+        display: none;
+      }
+
+      #devPanel.visible {
+        display: block;
+      }
+
+      .dev-title {
+        margin: 0 0 10px;
+        font-size: 11px;
+        letter-spacing: 0.2rem;
+        text-transform: uppercase;
+        color: var(--good);
+      }
+
+      .dev-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+
+      .dev-stat {
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.02);
+        padding: 8px 10px;
+      }
+
+      .dev-stat .label {
+        display: block;
+        font-size: 9px;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .dev-stat .value {
+        display: block;
+        margin-top: 4px;
+        font-size: 18px;
+        font-weight: 800;
+      }
+
+      .dev-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .dev-actions button,
+      .dev-actions a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1 1 calc(50% - 8px);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.1rem;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: var(--text);
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        cursor: pointer;
+      }
+
+      .dev-actions .primary {
+        background: linear-gradient(135deg, var(--accent), var(--good));
+        color: #07141e;
+      }
+
+      .dev-output {
+        margin-top: 12px;
+        width: 100%;
+        min-height: 96px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        resize: vertical;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
+      }
+
+      #crosshair::before,
+      #crosshair::after {
+        content: "";
+        position: absolute;
+        background: rgba(255,255,255,0.9);
+        box-shadow: 0 0 12px rgba(103, 210, 255, 0.7);
+      }
+
+      #crosshair::before {
+        left: 12px;
+        top: 0;
+        width: 2px;
+        height: 26px;
+      }
+
+      #crosshair::after {
+        left: 0;
+        top: 12px;
+        width: 26px;
+        height: 2px;
       }
 
       .hud {
         position: absolute;
-        top: 16px;
+        top: calc(var(--safe-top) + 16px);
         left: 16px;
         right: 16px;
         display: flex;
@@ -112,24 +272,68 @@
         position: absolute;
         left: 0;
         right: 0;
-        bottom: 20px;
+        bottom: calc(var(--safe-bottom) + 18px);
         display: flex;
         justify-content: space-between;
         align-items: end;
-        padding: 0 18px;
+        padding: 0 14px;
         pointer-events: none;
         z-index: 2;
       }
 
-      .touch-pad {
+      .left-stick-zone {
+        position: relative;
+        width: 150px;
+        height: 150px;
         display: flex;
-        gap: 14px;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+        touch-action: none;
+      }
+
+      .stick-ring {
+        position: relative;
+        width: 118px;
+        height: 118px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(13, 20, 31, 0.42);
+        box-shadow: inset 0 0 18px rgba(255,255,255,0.04);
+      }
+
+      .stick-ring::before {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.08);
+      }
+
+      .stick-knob {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, rgba(103, 210, 255, 0.9), rgba(122, 240, 201, 0.8));
+        border: 1px solid rgba(255,255,255,0.22);
+        box-shadow: 0 0 20px rgba(103, 210, 255, 0.45);
+      }
+
+      .right-action-zone {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
         pointer-events: auto;
       }
 
       .touch-btn {
-        width: 74px;
-        height: 74px;
+        width: 72px;
+        height: 72px;
         border: 1px solid rgba(255,255,255,0.16);
         border-radius: 50%;
         background: rgba(13, 20, 31, 0.52);
@@ -145,15 +349,20 @@
       }
 
       .action-btn {
-        width: 98px;
-        height: 98px;
+        width: 90px;
+        height: 90px;
         border-radius: 50%;
         border: 1px solid rgba(255,255,255,0.16);
         background: linear-gradient(135deg, var(--accent), var(--good));
         color: #07141e;
         font-weight: 900;
-        font-size: 30px;
+        font-size: 24px;
         pointer-events: auto;
+      }
+
+      .action-btn.fire {
+        background: linear-gradient(135deg, #ffbf69, #ff7a59);
+        color: #23120d;
       }
 
       .message {
@@ -235,6 +444,83 @@
         color: var(--text);
       }
 
+      body[data-device='mobile'] .hud,
+      body[data-device='tablet'] .hud {
+        left: 10px;
+        right: 10px;
+        top: calc(var(--safe-top) + 10px);
+      }
+
+      body[data-device='mobile'] .stats,
+      body[data-device='tablet'] .stats {
+        gap: 6px;
+      }
+
+      body[data-device='mobile'] .stat,
+      body[data-device='tablet'] .stat {
+        min-width: 76px;
+        padding: 8px 10px;
+      }
+
+      body[data-device='mobile'] .brand,
+      body[data-device='tablet'] .brand {
+        letter-spacing: 0.12rem;
+        font-size: 9px;
+        padding: 8px 12px;
+      }
+
+      body[data-device='mobile'] .controls,
+      body[data-device='tablet'] .controls {
+        padding: 0 12px;
+      }
+
+      body[data-device='mobile'] .touch-btn,
+      body[data-device='tablet'] .touch-btn {
+        width: 62px;
+        height: 62px;
+        font-size: 22px;
+      }
+
+      body[data-device='mobile'] .action-btn,
+      body[data-device='tablet'] .action-btn {
+        width: 80px;
+        height: 80px;
+        font-size: 22px;
+      }
+
+      @media (orientation: landscape) and (max-height: 520px) {
+        .hud {
+          top: calc(var(--safe-top) + 8px);
+        }
+
+        .stat {
+          min-width: 70px;
+          padding: 6px 8px;
+        }
+
+        .brand {
+          letter-spacing: 0.18rem;
+          font-size: 9px;
+          padding: 7px 10px;
+        }
+
+        .controls {
+          bottom: calc(var(--safe-bottom) + 10px);
+        }
+
+        .touch-btn {
+          width: 54px;
+          height: 54px;
+          font-size: 18px;
+        }
+
+        .action-btn {
+          width: 68px;
+          height: 68px;
+          font-size: 18px;
+        }
+      }
+
       @media (max-width: 600px) {
         .brand {
           letter-spacing: 0.18rem;
@@ -275,7 +561,7 @@
           </div>
           <div class="stat">
             <span class="label">Health</span>
-            <span class="value" id="health">3</span>
+            <span class="value" id="health">100</span>
           </div>
           <div class="stat">
             <span class="label">Level</span>
@@ -284,23 +570,66 @@
         </div>
       </div>
 
-      <div class="controls">
-        <div class="touch-pad" aria-label="Move left and right">
-          <button class="touch-btn" id="leftBtn" aria-label="Move left">◀</button>
-          <button class="touch-btn" id="rightBtn" aria-label="Move right">▶</button>
+      <div id="crosshair" aria-hidden="true"></div>
+
+      <button id="devToggle" type="button" aria-label="Toggle developer tools">DEV</button>
+      <aside id="devPanel" aria-live="polite">
+        <h2 class="dev-title">Dev Tools</h2>
+        <div class="dev-grid">
+          <div class="dev-stat">
+            <span class="label">FPS</span>
+            <span class="value" id="devFps">0</span>
+          </div>
+          <div class="dev-stat">
+            <span class="label">Health</span>
+            <span class="value" id="devHealth">100</span>
+          </div>
+          <div class="dev-stat">
+            <span class="label">Score</span>
+            <span class="value" id="devScore">0</span>
+          </div>
+          <div class="dev-stat">
+            <span class="label">Level</span>
+            <span class="value" id="devLevel">1</span>
+          </div>
         </div>
-        <button class="action-btn" id="jumpBtn" aria-label="Jump">△</button>
+        <div class="dev-actions">
+          <button class="primary" type="button" data-dev-action="reset">Reset</button>
+          <button type="button" data-dev-action="hp">HP 100</button>
+          <button type="button" data-dev-action="score">+100 Score</button>
+          <button type="button" data-dev-action="level">+1 Level</button>
+          <button type="button" data-dev-action="pause">Pause</button>
+          <button type="button" data-dev-action="audio">Audio</button>
+          <button type="button" data-dev-action="lighting">Lighting</button>
+          <a href="/devtools.html" target="_blank" rel="noreferrer">Open Page</a>
+        </div>
+        <textarea id="devOutput" class="dev-output" readonly></textarea>
+      </aside>
+
+      <div class="controls">
+        <div class="left-stick-zone" id="leftStickZone" aria-label="Movement stick">
+          <div class="stick-ring">
+            <div class="stick-knob" id="leftStickKnob"></div>
+          </div>
+        </div>
+
+        <div class="right-action-zone" aria-label="Action buttons">
+          <button class="action-btn fire" id="fireBtn" aria-label="Fire weapon">✦</button>
+          <button class="action-btn" id="jumpBtn" aria-label="Jump">△</button>
+        </div>
       </div>
 
       <div class="message" id="messageBox">
         <div class="panel">
-          <div class="eyebrow">3D adventure</div>
-          <h1 id="messageTitle">Star Drift</h1>
-          <p class="subtitle" id="messageText">Dodge the incoming hazards and grab the energy cores.</p>
+          <div class="eyebrow">3rd person shooter</div>
+          <h1 id="messageTitle">PH Origins</h1>
+          <p class="subtitle" id="messageText">Move with WASD • Aim with mouse or drag • Fire • Jump • Explore the mission</p>
           <div class="button-row">
             <button class="primary" id="startBtn">Start</button>
             <button class="secondary" id="resetBtn">Reset</button>
+            <button class="secondary" id="loadModelBtn" type="button">Load Hero</button>
           </div>
+          <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />
         </div>
       </div>
     </div>

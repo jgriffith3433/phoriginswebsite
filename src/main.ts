@@ -1,5 +1,11 @@
-import * as BABYLON from '@babylonjs/core';
+﻿import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
+
+import { configureResponsiveUI } from './game/mobile';
+import { createHumanoid, clearEnemies, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
+import { clampValue, createBurst, createProjectile } from './game/physics';
+import { applyTheme, createArena, getSceneTheme } from './game/scene';
+import { importAssetFile } from './game/importer';
 
 const root = document.getElementById('game-root') as HTMLDivElement;
 const scoreEl = document.getElementById('score') as HTMLSpanElement;
@@ -11,39 +17,63 @@ const messageTitle = document.getElementById('messageTitle') as HTMLHeadingEleme
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
 const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
-const leftBtn = document.getElementById('leftBtn') as HTMLButtonElement;
-const rightBtn = document.getElementById('rightBtn') as HTMLButtonElement;
 const jumpBtn = document.getElementById('jumpBtn') as HTMLButtonElement;
+const fireBtn = document.getElementById('fireBtn') as HTMLButtonElement;
+const leftStickZone = document.getElementById('leftStickZone') as HTMLDivElement;
+const leftStickKnob = document.getElementById('leftStickKnob') as HTMLDivElement;
+const loadModelBtn = document.getElementById('loadModelBtn') as HTMLButtonElement;
+const modelInput = document.getElementById('modelInput') as HTMLInputElement;
+const devToggle = document.getElementById('devToggle') as HTMLButtonElement;
+const devPanel = document.getElementById('devPanel') as HTMLDivElement;
+const devOutput = document.getElementById('devOutput') as HTMLTextAreaElement;
+const devFps = document.getElementById('devFps') as HTMLSpanElement;
+const devHealth = document.getElementById('devHealth') as HTMLSpanElement;
+const devScore = document.getElementById('devScore') as HTMLSpanElement;
+const devLevel = document.getElementById('devLevel') as HTMLSpanElement;
 
 const canvas = document.createElement('canvas');
 canvas.style.width = '100%';
 canvas.style.height = '100%';
+canvas.style.touchAction = 'none';
+canvas.style.userSelect = 'none';
 root.appendChild(canvas);
 
 const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
 const scene = new BABYLON.Scene(engine);
-scene.clearColor = new BABYLON.Color4(0.05, 0.07, 0.12, 1);
 
-const camera = new BABYLON.FreeCamera('camera', new BABYLON.Vector3(0, 4.5, -8), scene);
-camera.setTarget(new BABYLON.Vector3(0, 1.5, 0));
+const camera = new BABYLON.UniversalCamera('playerCamera', new BABYLON.Vector3(0, 1.7, 6), scene);
+camera.fov = 0.9;
+camera.minZ = 0.1;
+camera.maxZ = 200;
+camera.angularSensibility = 1700;
+camera.speed = 8;
+camera.inputs.clear();
 
 const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
-hemi.intensity = 0.9;
+hemi.intensity = 0.8;
 
-const dirLight = new BABYLON.DirectionalLight('dirLight', new BABYLON.Vector3(-1, -2, 1), scene);
-dirLight.position = new BABYLON.Vector3(6, 10, 4);
-dirLight.intensity = 0.8;
+const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
+sun.position = new BABYLON.Vector3(12, 18, 6);
+sun.intensity = 0.9;
 
-const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 60, height: 60 }, scene);
-ground.position.y = -0.5;
-const groundMat = new BABYLON.StandardMaterial('groundMat', scene);
-groundMat.diffuseColor = new BABYLON.Color3(0.12, 0.2, 0.28);
-groundMat.emissiveColor = new BABYLON.Color3(0.04, 0.07, 0.1);
-ground.material = groundMat;
+const readDevLevelConfig = () => {
+  try {
+    const raw = localStorage.getItem('ph-origins-level-config');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+const currentThemeName = typeof readDevLevelConfig()?.theme === 'string' ? (readDevLevelConfig()?.theme ?? 'Neon Drift') : 'Neon Drift';
+createArena(scene, Number(readDevLevelConfig()?.arenaSize) || 90, currentThemeName);
+applyTheme(scene, currentThemeName);
 
 const saveKey = 'ph-origins-save';
 type SaveData = { best: number; unlocked: number; sound: boolean };
 const defaultSave: SaveData = { best: 0, unlocked: 1, sound: true };
+
 const loadSave = (): SaveData => {
   try {
     const raw = localStorage.getItem(saveKey);
@@ -53,34 +83,45 @@ const loadSave = (): SaveData => {
     return defaultSave;
   }
 };
+
 const saveGame = (next: Partial<SaveData>) => {
   const current = loadSave();
   const merged = { ...current, ...next };
   localStorage.setItem(saveKey, JSON.stringify(merged));
   return merged;
 };
+
 const save = loadSave();
-const clampValue = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const devLevelConfig = readDevLevelConfig();
 
 const state = {
   running: false,
   score: 0,
-  health: 5,
+  health: 100,
   best: save.best,
   level: 1,
+  wave: 1,
+  kills: 0,
   lastSpawn: 0,
   lastDamageAt: 0,
   shootCooldown: 0,
+  playerSpeed: Number(devLevelConfig?.playerSpeed) || 8.5,
+  fireRate: Number(devLevelConfig?.fireRate) || 0.14,
+  enemyHpMultiplier: Number(devLevelConfig?.enemyHp) || 1,
+  spawnInterval: Number(devLevelConfig?.spawnRate) || 1.4,
+  arenaSize: Number(devLevelConfig?.arenaSize) || 90,
+  pointerLocked: false,
+  mouseLookActive: false,
   player: {
     x: 0,
-    y: 1.2,
+    y: 1.6,
     z: 0,
-    radius: 1.1,
     velocityY: 0,
     grounded: true,
   },
   cameraYaw: Math.PI,
-  cameraPitch: 0.45,
+  cameraPitch: 0,
   input: {
     forward: false,
     backward: false,
@@ -88,11 +129,32 @@ const state = {
     right: false,
     jump: false,
   },
+  movementVector: { x: 0, y: 0 },
+  fireHeld: false,
+  stickDragging: false,
 };
 
-const enemies: Array<{ mesh: BABYLON.Mesh; hp: number; speed: number; }> = [];
-const projectiles: Array<{ mesh: BABYLON.Mesh; direction: BABYLON.Vector3; life: number; speed: number; }> = [];
-const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number; }> = [];
+const enemies: Enemy[] = [];
+const projectiles: Array<{ mesh: BABYLON.Mesh; direction: BABYLON.Vector3; life: number; speed: number; damage: number }> = [];
+const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
+const weaponMuzzle = new BABYLON.Mesh('weaponMuzzle', scene);
+weaponMuzzle.position = new BABYLON.Vector3(0.45, -0.12, 1.2);
+weaponMuzzle.isVisible = false;
+
+const playerModel = createHumanoid(scene, new BABYLON.Color3(0.22, 0.9, 1), false);
+playerModel.group.parent = null;
+playerModel.group.position = new BABYLON.Vector3(0, 0, 0);
+playerModel.group.rotation.y = Math.PI;
+
+const gunMesh = BABYLON.MeshBuilder.CreateBox('gunMesh', { width: 0.18, height: 0.18, depth: 0.9 }, scene);
+const gunMat = new BABYLON.StandardMaterial('gunMat', scene);
+gunMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.12);
+gunMat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.06);
+gunMesh.material = gunMat;
+gunMesh.parent = camera;
+gunMesh.position = new BABYLON.Vector3(0.45, -0.35, 0.9);
+gunMesh.rotation.x = -0.2;
+gunMesh.rotation.y = Math.PI / 3;
 
 const audio = {
   enabled: save.sound,
@@ -122,9 +184,9 @@ const audio = {
     gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
     osc.stop(this.ctx.currentTime + duration);
   },
-  hit() { this.tone(180, 0.18, 'square', 0.08); },
-  shoot() { this.tone(620, 0.08, 'triangle', 0.05); },
-  pickup() { this.tone(820, 0.12, 'sine', 0.06); },
+  hit() { this.tone(170, 0.18, 'square', 0.08); },
+  shoot() { this.tone(600, 0.08, 'triangle', 0.05); },
+  pickup() { this.tone(780, 0.12, 'sine', 0.06); },
   start() { this.tone(440, 0.1, 'sine', 0.05); this.tone(660, 0.13, 'triangle', 0.04); },
   win() { this.tone(530, 0.1, 'triangle', 0.06); this.tone(780, 0.18, 'triangle', 0.06); },
 };
@@ -132,13 +194,19 @@ const audio = {
 const updateHud = () => {
   scoreEl.textContent = Math.floor(state.score).toString();
   bestEl.textContent = Math.floor(state.best).toString();
-  healthEl.textContent = Math.max(0, state.health).toString();
+  healthEl.textContent = Math.max(0, Math.ceil(state.health)).toString();
   levelEl.textContent = state.level.toString();
+  devFps.textContent = `${Math.max(0, Math.round(engine.getFps()))}`;
+  devHealth.textContent = Math.max(0, Math.ceil(state.health)).toString();
+  devScore.textContent = Math.floor(state.score).toString();
+  devLevel.textContent = state.level.toString();
 };
 
 const showMessage = (title: string, text: string) => {
   messageTitle.textContent = title;
   messageText.textContent = text;
+  const isEndState = title === 'Defeat' || title === 'Mission Clear';
+  loadModelBtn.style.display = isEndState ? 'none' : '';
   messageBox.classList.remove('hidden');
 };
 
@@ -146,71 +214,41 @@ const hideMessage = () => {
   messageBox.classList.add('hidden');
 };
 
-const clearArrays = () => {
-  for (const enemy of enemies) enemy.mesh.dispose();
-  for (const projectile of projectiles) projectile.mesh.dispose();
-  for (const particle of particles) particle.mesh.dispose();
-  enemies.length = 0;
+const clearDynamicObjects = () => {
+  clearEnemies(enemies);
+  for (const projectile of projectiles) {
+    projectile.mesh.dispose();
+  }
+  for (const particle of particles) {
+    particle.mesh.dispose();
+  }
   projectiles.length = 0;
   particles.length = 0;
 };
 
-const spawnEnemy = () => {
-  const angle = Math.random() * Math.PI * 2;
-  const distance = 12 + Math.random() * 12;
-  const enemyMesh = BABYLON.MeshBuilder.CreateCapsule('enemy', { radius: 0.7, height: 1.8 }, scene);
-  enemyMesh.position = new BABYLON.Vector3(
-    Math.cos(angle) * distance,
-    1.2,
-    Math.sin(angle) * distance,
-  );
-
-  const material = new BABYLON.StandardMaterial('enemyMat', scene);
-  material.diffuseColor = new BABYLON.Color3(1, 0.29, 0.38);
-  material.emissiveColor = new BABYLON.Color3(0.25, 0.05, 0.08);
-  enemyMesh.material = material;
-
-  enemies.push({
-    mesh: enemyMesh,
-    hp: 1 + Math.floor(state.level / 2),
-    speed: 1.1 + state.level * 0.25,
-  });
-};
-
-const createBurst = (x: number, y: number, z: number, color: BABYLON.Color3) => {
-  for (let i = 0; i < 12; i++) {
-    const mesh = BABYLON.MeshBuilder.CreateSphere(`particle-${Math.random()}`, { diameter: 0.2 }, scene);
-    mesh.position = new BABYLON.Vector3(x, y, z);
-    const mat = new BABYLON.StandardMaterial(`particleMat-${Math.random()}`, scene);
-    mat.diffuseColor = color;
-    mat.emissiveColor = color;
-    mesh.material = mat;
-    particles.push({
-      mesh,
-      velocity: new BABYLON.Vector3((Math.random() - 0.5) * 2.5, (Math.random() - 0.5) * 2.5, (Math.random() - 0.5) * 2.5),
-      life: 0.7,
-    });
-  }
-};
-
 const resetPlayer = () => {
   state.player.x = 0;
-  state.player.y = 1.2;
+  state.player.y = 1.6;
   state.player.z = 0;
   state.player.velocityY = 0;
   state.player.grounded = true;
   state.level = 1;
+  state.wave = 1;
+  state.score = 0;
+  state.health = 100;
   state.shootCooldown = 0;
   state.lastDamageAt = 0;
+  state.kills = 0;
+  state.cameraYaw = Math.PI;
+  state.cameraPitch = 0;
+  camera.position = new BABYLON.Vector3(0, 3.2, 6);
+  camera.setTarget(new BABYLON.Vector3(0, 1.6, 0));
 };
 
 const beginGame = () => {
   audio.start();
   state.running = true;
-  state.score = 0;
-  state.health = 5;
-  state.level = 1;
-  clearArrays();
+  clearDynamicObjects();
   resetPlayer();
   updateHud();
   hideMessage();
@@ -221,41 +259,61 @@ const finishGame = (won = false) => {
   const finalScore = Math.floor(state.score);
   const best = Math.max(state.best, finalScore);
   state.best = best;
-  const unlocked = Math.max(save.unlocked ?? 1, Math.min(5, Math.floor(finalScore / 120) + 1));
-  saveGame({ best, unlocked, sound: audio.enabled });
+  saveGame({ best, unlocked: Math.max(save.unlocked ?? 1, state.level), sound: audio.enabled });
   updateHud();
+
   if (won) {
     audio.win();
-    showMessage('Mission Clear', `You scored ${finalScore} and unlocked level ${unlocked}.`);
+    showMessage('Mission Clear', `You scored ${finalScore}. Keep pushing into the next arena.`);
   } else {
     audio.hit();
     showMessage('Defeat', `You scored ${finalScore}. Press Start to retry.`);
   }
 };
 
-const fireWeapon = () => {
-  if (!state.running) return;
-  if (state.shootCooldown > 0) return;
-  state.shootCooldown = 0.18;
+const handleLook = (dx: number, dy: number) => {
+  state.cameraYaw -= dx * 0.0022;
+  state.cameraPitch = clampValue(state.cameraPitch - dy * 0.0016, -1.1, 1.1);
+};
 
-  const playerPos = new BABYLON.Vector3(state.player.x, state.player.y + 0.6, state.player.z);
-  const direction = camera.getForwardRay(1).direction.normalize();
-  const projectile = BABYLON.MeshBuilder.CreateSphere('projectile', { diameter: 0.28 }, scene);
-  projectile.position = playerPos.add(direction.scale(1.2));
+const clearInputState = () => {
+  state.input.forward = false;
+  state.input.backward = false;
+  state.input.left = false;
+  state.input.right = false;
+  state.input.jump = false;
+  state.movementVector.x = 0;
+  state.movementVector.y = 0;
+  leftStickKnob.style.left = '50%';
+  leftStickKnob.style.top = '50%';
+  leftStickKnob.style.transform = 'translate(-50%, -50%)';
+  state.stickDragging = false;
+};
 
-  const mat = new BABYLON.StandardMaterial('projectileMat', scene);
-  mat.emissiveColor = new BABYLON.Color3(0.7, 0.95, 1);
-  mat.diffuseColor = new BABYLON.Color3(0.4, 0.6, 1);
-  projectile.material = mat;
+const updateCamera = () => {
+  const target = new BABYLON.Vector3(state.player.x, state.player.y + 1.2, state.player.z);
+  const behindOffset = new BABYLON.Vector3(
+    Math.sin(state.cameraYaw) * -6,
+    2.5 - state.cameraPitch * 1.5,
+    Math.cos(state.cameraYaw) * -6,
+  );
+  const aimTarget = new BABYLON.Vector3(
+    target.x + Math.sin(state.cameraYaw) * 10,
+    target.y + state.cameraPitch * 4,
+    target.z + Math.cos(state.cameraYaw) * 10,
+  );
 
-  projectiles.push({
-    mesh: projectile,
-    direction: direction.clone(),
-    life: 1.2,
-    speed: 26,
-  });
+  camera.position = target.add(behindOffset);
+  camera.setTarget(aimTarget);
 
-  audio.shoot();
+  gunMesh.position.x = 0.45;
+  gunMesh.position.y = -0.35;
+  gunMesh.position.z = 0.9;
+  gunMesh.rotation.y = state.cameraYaw + Math.PI / 1.9;
+  gunMesh.rotation.x = state.cameraPitch * 0.4 - 0.25;
+
+  playerModel.group.rotation.y = state.cameraYaw + Math.PI;
+  playerModel.group.position = new BABYLON.Vector3(state.player.x, 0, state.player.z);
 };
 
 const updatePlayer = (delta: number) => {
@@ -270,33 +328,74 @@ const updatePlayer = (delta: number) => {
   if (state.input.forward) moveZ += 1;
   if (state.input.backward) moveZ -= 1;
 
+  moveX += state.movementVector.x;
+  moveZ += -state.movementVector.y;
+
   const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
-    const speed = 7.5;
+    const speed = state.playerSpeed;
     state.player.x += desiredMove.x * speed * delta;
     state.player.z += desiredMove.z * speed * delta;
   }
 
-  state.player.x = clampValue(state.player.x, -18, 18);
-  state.player.z = clampValue(state.player.z, -18, 18);
+  const walkMagnitude = Math.hypot(moveX, moveZ);
+  const time = performance.now() * 0.012;
+  const swing = walkMagnitude > 0.05 ? Math.sin(time * (10 + walkMagnitude * 10)) * (0.8 + walkMagnitude * 1.1) : 0;
+  playerModel.leftArm.rotation.x = swing;
+  playerModel.rightArm.rotation.x = -swing;
+  playerModel.leftLeg.rotation.x = -swing;
+  playerModel.rightLeg.rotation.x = swing;
+  playerModel.torso.rotation.z = moveX * 0.18;
+
+  const boundary = state.arenaSize / 2 - 2;
+  state.player.x = clampValue(state.player.x, -boundary, boundary);
+  state.player.z = clampValue(state.player.z, -boundary, boundary);
 
   if (!state.player.grounded) {
-    state.player.velocityY -= 18 * delta;
+    state.player.velocityY -= 22 * delta;
     state.player.y += state.player.velocityY * delta;
-    if (state.player.y <= 1.2) {
-      state.player.y = 1.2;
+    if (state.player.y <= 1.6) {
+      state.player.y = 1.6;
       state.player.velocityY = 0;
       state.player.grounded = true;
     }
   }
 
   if (state.input.jump && state.player.grounded) {
-    state.player.velocityY = 6.5;
+    state.player.velocityY = 7;
     state.player.grounded = false;
     state.input.jump = false;
     audio.tone(360, 0.12, 'triangle', 0.04);
   }
+};
+
+const projectileSpawner = (sceneRef: BABYLON.Scene, origin: BABYLON.Vector3, direction: BABYLON.Vector3) => {
+  const projectile = createProjectile(sceneRef, origin, direction);
+  projectiles.push(projectile);
+  weaponMuzzle.position = new BABYLON.Vector3(0.45, -0.12, 1.2);
+  weaponMuzzle.isVisible = true;
+  setTimeout(() => {
+    weaponMuzzle.isVisible = false;
+  }, 35);
+};
+
+const fireWeapon = () => {
+  if (!state.running || state.shootCooldown > 0) return;
+  state.shootCooldown = state.fireRate;
+
+  const forward = camera.getForwardRay(1).direction.normalize();
+  projectileSpawner(scene, camera.position.add(forward.scale(1.5)), forward);
+  audio.shoot();
+};
+
+const spawnWaveEnemy = () => {
+  const enemy = spawnEnemy(scene, state.level);
+  enemy.hp = Math.max(1, state.level * state.enemyHpMultiplier);
+  const angle = Math.random() * Math.PI * 2;
+  const distance = 20 + Math.random() * 14;
+  enemy.mesh.position = new BABYLON.Vector3(Math.cos(angle) * distance, 0.9, Math.sin(angle) * distance);
+  enemies.push(enemy);
 };
 
 window.addEventListener('keydown', (event) => {
@@ -310,6 +409,9 @@ window.addEventListener('keydown', (event) => {
     state.input.jump = true;
   }
   if (key === 'p') beginGame();
+  if (key === 'l' && devLevelConfig) {
+    showMessage('Dev level loaded', `${devLevelConfig.levelName || 'Custom'} • ${devLevelConfig.enemyCount || 0} enemies`);
+  }
 });
 
 window.addEventListener('keyup', (event) => {
@@ -321,83 +423,194 @@ window.addEventListener('keyup', (event) => {
   if (key === ' ') state.input.jump = false;
 });
 
-leftBtn.addEventListener('pointerdown', () => { state.input.left = true; });
-leftBtn.addEventListener('pointerup', () => { state.input.left = false; });
-leftBtn.addEventListener('pointerleave', () => { state.input.left = false; });
-rightBtn.addEventListener('pointerdown', () => { state.input.right = true; });
-rightBtn.addEventListener('pointerup', () => { state.input.right = false; });
-rightBtn.addEventListener('pointerleave', () => { state.input.right = false; });
-jumpBtn.addEventListener('pointerdown', () => { state.input.jump = true; });
-jumpBtn.addEventListener('pointerup', () => { state.input.jump = false; });
+window.addEventListener('blur', clearInputState);
+window.addEventListener('contextmenu', (event) => event.preventDefault());
+window.addEventListener('gesturestart', (event) => event.preventDefault(), { passive: false });
+window.addEventListener('gesturechange', (event) => event.preventDefault(), { passive: false });
+window.addEventListener('gestureend', (event) => event.preventDefault(), { passive: false });
 
-canvas.addEventListener('pointermove', (event) => {
-  if (!state.running) return;
-  const rect = canvas.getBoundingClientRect();
-  const xRatio = (event.clientX - rect.left) / rect.width;
-  const yRatio = (event.clientY - rect.top) / rect.height;
-  state.cameraYaw = (xRatio - 0.5) * 2.3 + Math.PI;
-  state.cameraPitch = clampValue((0.5 - yRatio) * 1.6, -0.8, 0.8);
-});
-
-canvas.addEventListener('pointerdown', () => {
+canvas.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse') {
+    state.mouseLookActive = true;
+    canvas.requestPointerLock();
+  }
   if (state.running) fireWeapon();
 });
-window.addEventListener('contextmenu', (event) => event.preventDefault());
+
+canvas.addEventListener('pointerup', () => {
+  state.mouseLookActive = false;
+});
+
+canvas.addEventListener('pointerleave', () => {
+  state.mouseLookActive = false;
+});
+
+document.addEventListener('pointerlockchange', () => {
+  state.pointerLocked = document.pointerLockElement === canvas;
+});
+
+document.addEventListener('mousemove', (event) => {
+  if (!state.running || !(state.pointerLocked || state.mouseLookActive)) return;
+  handleLook(event.movementX, event.movementY);
+});
+
+const touchState = { active: false, lastX: 0, lastY: 0 };
+canvas.addEventListener('touchstart', (event) => {
+  if (!state.running) return;
+  event.preventDefault();
+  if (event.touches.length > 0) {
+    const touch = event.touches[0];
+    touchState.active = true;
+    touchState.lastX = touch.clientX;
+    touchState.lastY = touch.clientY;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (event) => {
+  if (!state.running || !touchState.active) return;
+  event.preventDefault();
+  const touch = event.touches[0];
+  const dx = touch.clientX - touchState.lastX;
+  const dy = touch.clientY - touchState.lastY;
+  touchState.lastX = touch.clientX;
+  touchState.lastY = touch.clientY;
+  handleLook(dx, dy);
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => { touchState.active = false; }, { passive: false });
+canvas.addEventListener('touchcancel', () => { touchState.active = false; }, { passive: false });
+
+leftStickZone.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  state.stickDragging = true;
+  leftStickZone.setPointerCapture(event.pointerId);
+  const rect = leftStickZone.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const dx = (event.clientX - centerX) / (rect.width * 0.38);
+  const dy = (event.clientY - centerY) / (rect.height * 0.38);
+  const mag = Math.min(1, Math.hypot(dx, dy));
+  state.movementVector.x = Math.min(1, Math.max(-1, dx)) / Math.max(1, mag);
+  state.movementVector.y = Math.min(1, Math.max(-1, dy)) / Math.max(1, mag);
+  const knobX = Math.max(-38, Math.min(38, dx * 38));
+  const knobY = Math.max(-38, Math.min(38, dy * 38));
+  leftStickKnob.style.left = `calc(50% + ${knobX}px)`;
+  leftStickKnob.style.top = `calc(50% + ${knobY}px)`;
+  leftStickKnob.style.transform = 'translate(-50%, -50%)';
+});
+
+leftStickZone.addEventListener('pointermove', (event) => {
+  if (!state.stickDragging) return;
+  const rect = leftStickZone.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const dx = (event.clientX - centerX) / (rect.width * 0.38);
+  const dy = (event.clientY - centerY) / (rect.height * 0.38);
+  const clampX = Math.max(-1, Math.min(1, dx));
+  const clampY = Math.max(-1, Math.min(1, dy));
+  const magnitude = Math.hypot(clampX, clampY);
+  const normalizedX = magnitude > 1 ? clampX / magnitude : clampX;
+  const normalizedY = magnitude > 1 ? clampY / magnitude : clampY;
+  state.movementVector.x = normalizedX;
+  state.movementVector.y = normalizedY;
+  const knobX = normalizedX * 38;
+  const knobY = normalizedY * 38;
+  leftStickKnob.style.left = `calc(50% + ${knobX}px)`;
+  leftStickKnob.style.top = `calc(50% + ${knobY}px)`;
+  leftStickKnob.style.transform = 'translate(-50%, -50%)';
+});
+
+leftStickZone.addEventListener('pointerup', () => {
+  state.stickDragging = false;
+  state.movementVector.x = 0;
+  state.movementVector.y = 0;
+  leftStickKnob.style.left = '50%';
+  leftStickKnob.style.top = '50%';
+  leftStickKnob.style.transform = 'translate(-50%, -50%)';
+});
+leftStickZone.addEventListener('pointerleave', () => {
+  if (!state.stickDragging) return;
+  state.stickDragging = false;
+  state.movementVector.x = 0;
+  state.movementVector.y = 0;
+  leftStickKnob.style.left = '50%';
+  leftStickKnob.style.top = '50%';
+  leftStickKnob.style.transform = 'translate(-50%, -50%)';
+});
+leftStickZone.addEventListener('pointercancel', () => {
+  state.stickDragging = false;
+  state.movementVector.x = 0;
+  state.movementVector.y = 0;
+  leftStickKnob.style.left = '50%';
+  leftStickKnob.style.top = '50%';
+  leftStickKnob.style.transform = 'translate(-50%, -50%)';
+});
+
+jumpBtn.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  state.input.jump = true;
+});
+jumpBtn.addEventListener('pointerup', () => { state.input.jump = false; });
+jumpBtn.addEventListener('pointerleave', () => { state.input.jump = false; });
+jumpBtn.addEventListener('pointercancel', () => { state.input.jump = false; });
+
+fireBtn.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  state.fireHeld = true;
+  if (state.running) fireWeapon();
+});
+fireBtn.addEventListener('pointerup', () => { state.fireHeld = false; });
+fireBtn.addEventListener('pointerleave', () => { state.fireHeld = false; });
+fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
 startBtn.addEventListener('click', beginGame);
 resetBtn.addEventListener('click', () => {
-  clearArrays();
+  clearDynamicObjects();
+  clearInputState();
   resetPlayer();
-  state.score = 0;
-  state.health = 5;
   state.best = loadSave().best;
   updateHud();
-  showMessage('3rd Person Shooter', 'Desktop: WASD move • Mouse aim • Left click shoot • Space jump');
+  showMessage('PH Origins', 'Move with WASD • Aim with mouse or drag • Fire • Jump • Explore the mission');
+  loadModelBtn.style.display = '';
   state.running = false;
 });
 
-const updateCamera = () => {
-  const lookTarget = new BABYLON.Vector3(state.player.x, state.player.y + 1.4, state.player.z);
-  const camDistance = 7.5;
-  const camOffset = new BABYLON.Vector3(
-    Math.sin(state.cameraYaw) * -camDistance,
-    3.5 + state.cameraPitch * 2.4,
-    Math.cos(state.cameraYaw) * -camDistance,
-  );
-  camera.position = lookTarget.add(camOffset);
-  camera.setTarget(lookTarget);
-};
-
-const tick = () => {
+const renderLoop = () => {
   const delta = engine.getDeltaTime() / 1000;
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
 
   if (state.running) {
-    updatePlayer(delta);
-    updateCamera();
+    if (state.fireHeld) fireWeapon();
 
-    state.level = Math.min(5, 1 + Math.floor(state.score / 100));
-    if (performance.now() - state.lastSpawn > Math.max(0.85, 1.5 - state.level * 0.12) * 1000) {
-      spawnEnemy();
+    const targetWave = 1 + Math.floor(state.score / 220);
+    state.level = Math.min(8, targetWave);
+    state.wave = state.level;
+    state.playerSpeed = Number(devLevelConfig?.playerSpeed) || state.playerSpeed || 8.5;
+    state.fireRate = Number(devLevelConfig?.fireRate) || state.fireRate || 0.14;
+    state.enemyHpMultiplier = Number(devLevelConfig?.enemyHp) || state.enemyHpMultiplier || 1;
+    state.spawnInterval = Number(devLevelConfig?.spawnRate) || state.spawnInterval || 1.4;
+    state.arenaSize = Number(devLevelConfig?.arenaSize) || state.arenaSize || 90;
+
+    const spawnDelay = Math.max(0.45, state.spawnInterval * (1.75 - state.level * 0.14));
+    if (performance.now() - state.lastSpawn > spawnDelay * 1000 || enemies.length === 0) {
+      const maxSpawns = Math.min(2 + state.level, Math.max(2, Number(devLevelConfig?.enemyCount) || 8));
+      for (let i = 0; i < Math.min(maxSpawns, 8); i++) {
+        if (enemies.length < Math.max(6, Number(devLevelConfig?.enemyCount) || 8)) spawnWaveEnemy();
+      }
       state.lastSpawn = performance.now();
     }
 
-    for (const enemy of enemies) {
-      const dir = new BABYLON.Vector3(state.player.x - enemy.mesh.position.x, 0, state.player.z - enemy.mesh.position.z);
-      const length = dir.length();
-      if (length > 0.001) {
-        dir.normalize();
-        enemy.mesh.position.x += dir.x * enemy.speed * delta;
-        enemy.mesh.position.z += dir.z * enemy.speed * delta;
-      }
+    updatePlayer(delta);
+    updateCamera();
 
-      const now = performance.now();
-      if (length < 1.6 && now - state.lastDamageAt > 500) {
-        state.health -= 1;
-        state.lastDamageAt = now;
+    for (const enemy of enemies) {
+      const distance = updateEnemyAI(enemy, new BABYLON.Vector3(state.player.x, 1.6, state.player.z), delta);
+
+      if (distance < 1.8 && performance.now() - state.lastDamageAt > 500) {
+        state.health -= 10;
+        state.lastDamageAt = performance.now();
         audio.hit();
-        createBurst(enemy.mesh.position.x, enemy.mesh.position.y, enemy.mesh.position.z, new BABYLON.Color3(1, 0.3, 0.3));
-        updateHud();
+        createBurst(scene, enemy.mesh.position.x, enemy.mesh.position.y + 1.5, enemy.mesh.position.z, new BABYLON.Color3(1, 0.2, 0.2), particles);
         if (state.health <= 0) {
           finishGame(false);
           break;
@@ -408,23 +621,20 @@ const tick = () => {
     for (const projectile of projectiles) {
       projectile.mesh.position.addInPlace(projectile.direction.scale(projectile.speed * delta));
       projectile.life -= delta;
-      if (projectile.life <= 0) {
-        projectile.mesh.dispose();
-        continue;
-      }
 
       for (const enemy of enemies) {
         const dist = BABYLON.Vector3.Distance(enemy.mesh.position, projectile.mesh.position);
         if (dist < 1.2) {
-          enemy.hp -= 1;
+          enemy.hp -= projectile.damage;
           projectile.life = 0;
           projectile.mesh.dispose();
-          createBurst(projectile.mesh.position.x, projectile.mesh.position.y, projectile.mesh.position.z, new BABYLON.Color3(0.5, 0.8, 1));
+          createBurst(scene, projectile.mesh.position.x, projectile.mesh.position.y, projectile.mesh.position.z, new BABYLON.Color3(0.55, 0.83, 1), particles);
           if (enemy.hp <= 0) {
             enemy.mesh.dispose();
-            const idx = enemies.indexOf(enemy);
-            if (idx >= 0) enemies.splice(idx, 1);
-            state.score += 25;
+            const index = enemies.indexOf(enemy);
+            if (index >= 0) enemies.splice(index, 1);
+            state.score += 50;
+            state.kills += 1;
             audio.pickup();
           }
           break;
@@ -433,20 +643,20 @@ const tick = () => {
     }
 
     for (let i = projectiles.length - 1; i >= 0; i--) {
-      const p = projectiles[i];
-      if (p.life <= 0) {
-        p.mesh.dispose();
+      if (projectiles[i].life <= 0) {
+        projectiles[i].mesh.dispose();
         projectiles.splice(i, 1);
       }
     }
 
-    for (const p of particles) {
-      p.mesh.position.addInPlace(p.velocity.scale(delta));
-      p.life -= delta;
-      if (p.life <= 0) {
-        p.mesh.dispose();
+    for (const particle of particles) {
+      particle.mesh.position.addInPlace(particle.velocity.scale(delta));
+      particle.life -= delta;
+      if (particle.life <= 0) {
+        particle.mesh.dispose();
       }
     }
+
     for (let i = particles.length - 1; i >= 0; i--) {
       if (particles[i].life <= 0) particles.splice(i, 1);
     }
@@ -456,7 +666,7 @@ const tick = () => {
       saveGame({ best: Math.floor(state.best), unlocked: Math.max(save.unlocked ?? 1, state.level), sound: audio.enabled });
     }
 
-    if (state.level >= 5 && state.score > 450) {
+    if (state.kills >= 12 && state.level >= 5) {
       finishGame(true);
     }
 
@@ -466,15 +676,111 @@ const tick = () => {
   }
 
   scene.render();
-  requestAnimationFrame(tick);
 };
 
-async function start() {
-  updateHud();
-  updateCamera();
-  showMessage('3rd Person Shooter', 'Desktop: WASD move • Mouse aim • Left click shoot • Space jump');
-  requestAnimationFrame(tick);
+const loadCustomModel = (file: File) => {
+  importAssetFile(scene, file, (rootNode) => {
+    if (rootNode.getChildMeshes().length > 0) {
+      playerModel.group.setEnabled(false);
+      playerModel.group.parent = rootNode;
+      playerModel.group.position = new BABYLON.Vector3(0, 0, 0);
+      rootNode.scaling = new BABYLON.Vector3(0.7, 0.7, 0.7);
+      rootNode.position = new BABYLON.Vector3(0, 0.6, 1.3);
+      rootNode.rotation.y = Math.PI;
+      devOutput.value = `Imported model: ${file.name}`;
+    }
+  });
+};
+
+const themeOrder = ['Neon Drift', 'Crimson Surge', 'Arctic Rift'] as const;
+let activeThemeName = typeof devLevelConfig?.theme === 'string' ? devLevelConfig.theme : 'Neon Drift';
+
+const cycleTheme = () => {
+  const currentIndex = themeOrder.indexOf(activeThemeName as (typeof themeOrder)[number]);
+  const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length];
+  activeThemeName = nextTheme;
+  applyTheme(scene, nextTheme);
+  devOutput.value = `Theme applied: ${nextTheme}`;
+  if (devLevelConfig) {
+    localStorage.setItem('ph-origins-level-config', JSON.stringify({ ...devLevelConfig, theme: nextTheme, updatedAt: new Date().toISOString() }));
+  }
+};
+
+loadModelBtn.addEventListener('click', () => modelInput.click());
+modelInput.addEventListener('change', (event) => {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (file) {
+    loadCustomModel(file);
+    (event.target as HTMLInputElement).value = '';
+  }
+});
+
+const devActions: Record<string, () => void> = {
+  reset: () => {
+    resetBtn.click();
+  },
+  hp: () => {
+    state.health = 100;
+    updateHud();
+  },
+  score: () => {
+    state.score += 100;
+    updateHud();
+  },
+  level: () => {
+    state.level += 1;
+    updateHud();
+  },
+  pause: () => {
+    state.running = !state.running;
+    if (state.running) {
+      showMessage('Battle resumed', 'Keep moving and hold the line.');
+    } else {
+      showMessage('Battle paused', 'Resume when you are ready.');
+    }
+  },
+  audio: () => {
+    audio.enabled = !audio.enabled;
+    saveGame({ sound: audio.enabled });
+    devOutput.value = `Audio ${audio.enabled ? 'enabled' : 'muted'}`;
+  },
+  lighting: () => {
+    cycleTheme();
+  },
+};
+
+document.querySelectorAll('[data-dev-action]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const action = button.getAttribute('data-dev-action');
+    if (action && devActions[action]) {
+      devActions[action]();
+    }
+  });
+});
+
+devToggle.addEventListener('click', () => {
+  devPanel.classList.toggle('visible');
+});
+
+if (devLevelConfig) {
+  const cfg = devLevelConfig;
+  state.level = Math.max(1, Number(cfg.difficulty) || 1);
+  state.playerSpeed = Number(cfg.playerSpeed) || state.playerSpeed;
+  state.fireRate = Number(cfg.fireRate) || state.fireRate;
+  state.enemyHpMultiplier = Number(cfg.enemyHp) || state.enemyHpMultiplier;
+  state.spawnInterval = Number(cfg.spawnRate) || state.spawnInterval;
+  state.arenaSize = Number(cfg.arenaSize) || state.arenaSize;
+  activeThemeName = typeof cfg.theme === 'string' ? cfg.theme : 'Neon Drift';
+  applyTheme(scene, activeThemeName);
+  showMessage('Dev level', `${cfg.levelName || 'Custom'} • ${cfg.theme || 'Neon Drift'} • difficulty ${state.level}`);
+} else {
+  loadModelBtn.style.display = '';
+  showMessage('PH Origins', 'Move with WASD • Aim with mouse or drag • Fire • Jump • Explore the mission');
 }
 
-window.addEventListener('resize', () => engine.resize());
-start();
+configureResponsiveUI(root);
+engine.runRenderLoop(renderLoop);
+window.addEventListener('resize', () => {
+  configureResponsiveUI(root);
+  engine.resize();
+});

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PH Origins Level Editor</title>
+    <style>
+      :root {
+        --bg: #07141e;
+        --panel: rgba(10, 18, 28, 0.82);
+        --border: rgba(255,255,255,0.12);
+        --text: #eefaff;
+        --muted: #9bb0c1;
+        --accent: #67d2ff;
+        --good: #7af0c9;
+        --warning: #ffd86a;
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at top, #102637 0%, #07141e 45%, #030a10 100%);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+        padding: 24px;
+      }
+
+      .shell {
+        width: min(1180px, 100%);
+        margin: 0 auto;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--good);
+        letter-spacing: 0.22rem;
+        text-transform: uppercase;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(28px, 4vw, 44px);
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 18px;
+      }
+
+      .card {
+        background: rgba(7, 14, 20, 0.82);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 18px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+      }
+
+      .subtitle {
+        margin: 0 0 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+      }
+
+      .field input, .field select {
+        width: 100%;
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-size: 15px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .stat {
+        border-radius: 14px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.02);
+      }
+
+      .stat .label {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.16rem;
+        text-transform: uppercase;
+      }
+
+      .stat .value {
+        display: block;
+        margin-top: 8px;
+        font-size: 24px;
+        font-weight: 800;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      button, a.button-link {
+        appearance: none;
+        border: none;
+        border-radius: 999px;
+        padding: 12px 14px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text);
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+      }
+
+      button.primary, a.button-link.primary {
+        background: linear-gradient(135deg, var(--accent), var(--good));
+        color: #07141e;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 220px;
+        margin-top: 16px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 12px;
+        resize: vertical;
+      }
+
+      .preset-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .preset {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
+        letter-spacing: 0.08rem;
+        text-transform: uppercase;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="header">
+        <div>
+          <div class="eyebrow">PH Origins</div>
+          <h1>Level Editor & Dev Tools</h1>
+        </div>
+        <div class="button-row">
+          <a class="button-link primary" href="/game.html?dev=1">Open game</a>
+          <a class="button-link" href="/">Home</a>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="card">
+          <p class="subtitle">Level blueprint</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="levelName">Level name</label>
+              <input id="levelName" type="text" value="Dust Alley" />
+            </div>
+            <div class="field">
+              <label for="difficulty">Difficulty</label>
+              <select id="difficulty">
+                <option value="1">1 - Training</option>
+                <option value="2">2 - Rookie</option>
+                <option value="3">3 - Skirmish</option>
+                <option value="4">4 - Assault</option>
+                <option value="5">5 - Elite</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="arenaSize">Arena size</label>
+              <input id="arenaSize" type="number" min="20" max="200" value="90" />
+            </div>
+            <div class="field">
+              <label for="enemyCount">Enemy count</label>
+              <input id="enemyCount" type="number" min="1" max="50" value="8" />
+            </div>
+            <div class="field">
+              <label for="spawnRate">Spawn rate</label>
+              <input id="spawnRate" type="number" min="0.4" max="6" step="0.1" value="1.4" />
+            </div>
+            <div class="field">
+              <label for="hazards">Hazards</label>
+              <input id="hazards" type="number" min="0" max="30" value="6" />
+            </div>
+            <div class="field">
+              <label for="playerSpeed">Player speed</label>
+              <input id="playerSpeed" type="number" min="4" max="18" step="0.5" value="8.5" />
+            </div>
+            <div class="field">
+              <label for="fireRate">Fire rate</label>
+              <input id="fireRate" type="number" min="0.05" max="0.8" step="0.01" value="0.14" />
+            </div>
+            <div class="field">
+              <label for="enemyHp">Enemy HP</label>
+              <input id="enemyHp" type="number" min="1" max="8" step="0.5" value="1" />
+            </div>
+            <div class="field">
+              <label for="theme">Theme</label>
+              <select id="theme">
+                <option value="Neon Drift">Neon Drift</option>
+                <option value="Crimson Surge">Crimson Surge</option>
+                <option value="Arctic Rift">Arctic Rift</option>
+              </select>
+            </div>
+          </div>
+          <div class="button-row">
+            <button class="primary" id="saveConfig">Save config</button>
+            <button id="previewConfig">Preview JSON</button>
+            <button id="copyConfig">Copy JSON</button>
+            <button id="importConfig">Import JSON</button>
+            <button id="resetConfig">Reset</button>
+          </div>
+          <div class="preset-list">
+            <button class="preset" data-preset="training">Training</button>
+            <button class="preset" data-preset="rush">Rush</button>
+            <button class="preset" data-preset="boss">Boss</button>
+            <button class="preset" data-preset="storm">Storm</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <p class="subtitle">Diagnostics</p>
+          <div class="stats">
+            <div class="stat">
+              <span class="label">Best</span>
+              <span class="value" id="bestValue">0</span>
+            </div>
+            <div class="stat">
+              <span class="label">Saved</span>
+              <span class="value" id="saveValue">OK</span>
+            </div>
+            <div class="stat">
+              <span class="label">Audio</span>
+              <span class="value" id="soundValue">ON</span>
+            </div>
+            <div class="stat">
+              <span class="label">Status</span>
+              <span class="value" id="statusValue">Ready</span>
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="openGame">Open game</button>
+            <button id="toggleSound">Toggle sound</button>
+            <button id="resetSave">Reset save</button>
+          </div>
+        </section>
+
+        <section class="card" style="grid-column: 1 / -1;">
+          <p class="subtitle">JSON config</p>
+          <textarea id="configJson" spellcheck="false"></textarea>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'ph-origins-level-config';
+      const SAVE_KEY = 'ph-origins-save';
+
+      const defaultConfig = {
+        levelName: 'Dust Alley',
+        difficulty: 2,
+        arenaSize: 90,
+        enemyCount: 8,
+        spawnRate: 1.4,
+        hazards: 6,
+        playerSpeed: 8.5,
+        fireRate: 0.14,
+        enemyHp: 1,
+        theme: 'Neon Drift',
+        playerSpawn: { x: 0, y: 1.6, z: 0 },
+        updatedAt: new Date().toISOString()
+      };
+
+      const readLevelConfig = () => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? { ...defaultConfig, ...JSON.parse(raw) } : { ...defaultConfig };
+        } catch (error) {
+          return { ...defaultConfig };
+        }
+      };
+
+      const readSave = () => {
+        try {
+          const raw = localStorage.getItem(SAVE_KEY);
+          return raw ? JSON.parse(raw) : { best: 0, unlocked: 1, sound: true };
+        } catch (error) {
+          return { best: 0, unlocked: 1, sound: true };
+        }
+      };
+
+      const syncFormFromConfig = () => {
+        const config = readLevelConfig();
+        document.getElementById('levelName').value = config.levelName || defaultConfig.levelName;
+        document.getElementById('difficulty').value = String(config.difficulty || 1);
+        document.getElementById('arenaSize').value = config.arenaSize || 90;
+        document.getElementById('enemyCount').value = config.enemyCount || 8;
+        document.getElementById('spawnRate').value = config.spawnRate || 1.4;
+        document.getElementById('hazards').value = config.hazards || 6;
+        document.getElementById('playerSpeed').value = config.playerSpeed || 8.5;
+        document.getElementById('fireRate').value = config.fireRate || 0.14;
+        document.getElementById('enemyHp').value = config.enemyHp || 1;
+        document.getElementById('theme').value = config.theme || 'Neon Drift';
+      };
+
+      const readForm = () => ({
+        levelName: document.getElementById('levelName').value || defaultConfig.levelName,
+        difficulty: Number(document.getElementById('difficulty').value) || 1,
+        arenaSize: Number(document.getElementById('arenaSize').value) || 90,
+        enemyCount: Number(document.getElementById('enemyCount').value) || 8,
+        spawnRate: Number(document.getElementById('spawnRate').value) || 1.4,
+        hazards: Number(document.getElementById('hazards').value) || 6,
+        playerSpeed: Number(document.getElementById('playerSpeed').value) || 8.5,
+        fireRate: Number(document.getElementById('fireRate').value) || 0.14,
+        enemyHp: Number(document.getElementById('enemyHp').value) || 1,
+        theme: document.getElementById('theme').value || 'Neon Drift',
+        playerSpawn: { x: 0, y: 1.6, z: 0 },
+        updatedAt: new Date().toISOString()
+      });
+
+      const render = () => {
+        const config = readLevelConfig();
+        const save = readSave();
+        document.getElementById('configJson').value = JSON.stringify(config, null, 2);
+        document.getElementById('bestValue').textContent = save.best ?? 0;
+        document.getElementById('saveValue').textContent = 'OK';
+        document.getElementById('soundValue').textContent = save.sound === false ? 'OFF' : 'ON';
+        document.getElementById('statusValue').textContent = 'Ready';
+      };
+
+      const applyPreset = (name) => {
+        const presets = {
+          training: { levelName: 'Training Yard', difficulty: 1, arenaSize: 60, enemyCount: 4, spawnRate: 2.2, hazards: 2, playerSpeed: 8.5, fireRate: 0.18, enemyHp: 1, theme: 'Neon Drift' },
+          rush: { levelName: 'Rush Corridor', difficulty: 3, arenaSize: 90, enemyCount: 12, spawnRate: 1.2, hazards: 8, playerSpeed: 9.2, fireRate: 0.12, enemyHp: 1.5, theme: 'Crimson Surge' },
+          boss: { levelName: 'Boss Arena', difficulty: 5, arenaSize: 120, enemyCount: 16, spawnRate: 0.9, hazards: 12, playerSpeed: 10, fireRate: 0.1, enemyHp: 2.4, theme: 'Arctic Rift' },
+          storm: { levelName: 'Storm Cell', difficulty: 4, arenaSize: 110, enemyCount: 14, spawnRate: 0.7, hazards: 15, playerSpeed: 9.6, fireRate: 0.11, enemyHp: 2, theme: 'Arctic Rift' }
+        };
+
+        const preset = presets[name];
+        if (!preset) return;
+        const next = { ...defaultConfig, ...preset, updatedAt: new Date().toISOString() };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        syncFormFromConfig();
+        render();
+      };
+
+      document.getElementById('saveConfig').addEventListener('click', () => {
+        const next = readForm();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        document.getElementById('statusValue').textContent = 'Saved';
+        render();
+      });
+
+      document.getElementById('previewConfig').addEventListener('click', () => {
+        const next = readForm();
+        document.getElementById('configJson').value = JSON.stringify(next, null, 2);
+        document.getElementById('statusValue').textContent = 'Preview';
+      });
+
+      document.getElementById('resetConfig').addEventListener('click', () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...defaultConfig, updatedAt: new Date().toISOString() }));
+        syncFormFromConfig();
+        render();
+      });
+
+      document.getElementById('copyConfig').addEventListener('click', async () => {
+        const text = JSON.stringify(readForm(), null, 2);
+        try {
+          await navigator.clipboard.writeText(text);
+          document.getElementById('statusValue').textContent = 'Copied';
+        } catch {
+          document.getElementById('configJson').value = text;
+          document.getElementById('statusValue').textContent = 'Copied';
+        }
+      });
+
+      document.getElementById('importConfig').addEventListener('click', () => {
+        const text = prompt('Paste a level JSON config to import:', document.getElementById('configJson').value);
+        if (!text) return;
+        try {
+          const parsed = JSON.parse(text);
+          const next = { ...defaultConfig, ...parsed, updatedAt: new Date().toISOString() };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+          syncFormFromConfig();
+          render();
+          document.getElementById('statusValue').textContent = 'Imported';
+        } catch {
+          document.getElementById('statusValue').textContent = 'Invalid JSON';
+        }
+      });
+
+      document.getElementById('openGame').addEventListener('click', () => {
+        window.location.href = '/game.html?dev=1';
+      });
+
+      document.getElementById('toggleSound').addEventListener('click', () => {
+        const save = readSave();
+        const next = { ...save, sound: save.sound === false };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(next));
+        render();
+      });
+
+      document.getElementById('resetSave').addEventListener('click', () => {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ best: 0, unlocked: 1, sound: true }));
+        render();
+      });
+
+      document.querySelectorAll('.preset').forEach((btn) => {
+        btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+      });
+
+      syncFormFromConfig();
+      render();
+    </script>
+  </body>
+</html>
