@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --outDir play",
     "preview": "vite preview --host 0.0.0.0",
-    "deploy": "node tools/deploy-build.mjs"
+    "deploy": "npm run build"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",

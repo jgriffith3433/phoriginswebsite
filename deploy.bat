@@ -14,7 +14,7 @@ if /I not "%CONFIRM%"=="DEPLOY" (
 )
 
 echo.
-echo 1/3 Building production version...
+echo 1/3 Building production version for GitHub Pages...
 call build.bat
 if errorlevel 1 (
   echo Build failed.
