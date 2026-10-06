@@ -91,8 +91,9 @@
       </div>
     </main>
     <script>
-      const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      document.getElementById('playButton').href = isLocal ? '/game.html' : '/play/index.html';
+      const isLocalDev = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && location.port === '5173';
+      const shouldUsePlayFolder = !isLocalDev;
+      document.getElementById('playButton').href = shouldUsePlayFolder ? '/play/index.html' : '/game.html';
     </script>
   </body>
 </html>

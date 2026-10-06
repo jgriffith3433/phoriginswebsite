@@ -15,7 +15,7 @@ if /I not "%CONFIRM%"=="DEPLOY" (
 
 echo.
 echo 1/3 Building production version for GitHub Pages...
-call build.bat
+call npm run build
 if errorlevel 1 (
   echo Build failed.
   pause
