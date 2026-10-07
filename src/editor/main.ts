@@ -1,8 +1,9 @@
 import { createEditorViewport, type SelectionTarget } from './viewport';
-import { fetchProjectTree, saveJsonFile, importModel, importFbxFile, type FsTreeNode } from './fsApi';
+import { fetchProjectTree, saveJsonFile, importModel, importFbxFile, importTextureFile, type FsTreeNode } from './fsApi';
 import { renderProjectTree, inferAssetKind, type DraggableAssetPayload } from './projectPanel';
 import { getAssetLibrary, invalidateAssetLibrary, resolveLibraryEntry } from '../game/modelLoader';
 import { LEVEL_LIBRARY_PATH } from '../game/levels';
+import { applyMaterialToMesh, getMaterialDefs, invalidateMaterials, parseUvScale, resolveMeshUvScale, warmupMaterials, type MaterialDef } from '../game/materials';
 import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneTrigger } from '../game/sceneData';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -32,6 +33,7 @@ let currentLevelPath = '/levels/apex-peak.json';
 let sceneData: SceneData | null = null;
 let selection: SelectionTarget | null = null;
 let saveTimer: number | undefined;
+let materialOptions: MaterialDef[] = [];
 
 const viewport = createEditorViewport(canvas, {
   onSelect: (target) => {
@@ -110,6 +112,23 @@ const makeField = (label: string, value: number, onChange: (next: number) => voi
   wrap.appendChild(labelEl);
   wrap.appendChild(input);
   return wrap;
+};
+
+const renderNumberRow = (label: string, value: number, onChange: (next: number) => void): HTMLElement => {
+  const group = document.createElement('div');
+  group.className = 'inspector-row';
+  const title = document.createElement('div');
+  title.className = 'label';
+  title.innerHTML = `<span>${label}</span>`;
+  group.appendChild(title);
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.step = '0.1';
+  input.min = '0.01';
+  input.value = value.toFixed(2);
+  input.addEventListener('change', () => onChange(Number(input.value) || 0));
+  group.appendChild(input);
+  return group;
 };
 
 const renderVectorRow = (
@@ -211,6 +230,10 @@ const renderComponentsRow = (asset: SceneAssetInstance): HTMLElement => {
 
 const applyAssetEdit = (asset: SceneAssetInstance, patch: Partial<SceneAssetInstance>) => {
   Object.assign(asset, patch);
+  if (patch.uvScale) {
+    delete asset.uScale;
+    delete asset.vScale;
+  }
   const node = viewport.getAssetNode(asset.id);
   if (node) {
     const t = node as import('@babylonjs/core').TransformNode;
@@ -223,9 +246,53 @@ const applyAssetEdit = (asset: SceneAssetInstance, patch: Partial<SceneAssetInst
     if (patch.scale && t.scaling) {
       t.scaling.set(patch.scale.x ?? 1, patch.scale.y ?? 1, patch.scale.z ?? 1);
     }
+    if (patch.materialId !== undefined) {
+      void applyMaterialLive(asset);
+    } else if ((patch.scale || patch.uvScale) && asset.materialId) {
+      const mesh = meshFromAssetNode(t);
+      if (mesh) {
+        mesh.metadata = { ...(mesh.metadata ?? {}), sceneAssetId: asset.id, materialId: asset.materialId, uvScale: parseUvScale(asset) };
+        applyMaterialToMesh(viewport.scene, mesh, asset);
+      }
+    }
   }
   renderHierarchy();
   scheduleSave();
+};
+
+const meshFromAssetNode = (node: import('@babylonjs/core').Node | undefined) => {
+  if (!node) return null;
+  const asMesh = node as import('@babylonjs/core').AbstractMesh;
+  if (typeof asMesh.getClassName === 'function' && asMesh.getClassName().includes('Mesh')) return asMesh;
+  const child = (node as import('@babylonjs/core').TransformNode).getChildMeshes?.(false)?.[0];
+  return child ?? null;
+};
+
+const applyMaterialLive = async (asset: SceneAssetInstance) => {
+  const node = viewport.getAssetNode(asset.id);
+  if (!asset.materialId) {
+    const wasSelected = selection?.kind === 'asset' && selection.id === asset.id;
+    viewport.removeAsset(asset.id);
+    const created = viewport.addAssetNode(asset);
+    if (wasSelected) viewport.selectNode(created);
+    return;
+  }
+  const mesh = meshFromAssetNode(node);
+  if (!mesh) return;
+  mesh.metadata = {
+    ...(mesh.metadata ?? {}),
+    sceneAssetId: asset.id,
+    materialId: asset.materialId,
+    assetKind: asset.kind ?? asset.type,
+    uvScale: parseUvScale(asset),
+  };
+  await warmupMaterials(viewport.scene);
+  applyMaterialToMesh(viewport.scene, mesh, asset);
+};
+
+const refreshMaterialOptions = async () => {
+  invalidateMaterials();
+  materialOptions = await getMaterialDefs();
 };
 
 const renderInspector = () => {
@@ -275,6 +342,55 @@ const renderInspector = () => {
       renderVectorRow('Scale', { x: asset.scale?.x ?? 1, y: asset.scale?.y ?? 1, z: asset.scale?.z ?? 1 }, (next) =>
         applyAssetEdit(asset, { scale: next }),
       ),
+    );
+
+    const matRow = document.createElement('div');
+    matRow.className = 'inspector-row';
+    matRow.innerHTML = `<div class="label"><span>Material</span></div>`;
+    const matSelect = document.createElement('select');
+    const noneOpt = document.createElement('option');
+    noneOpt.value = '';
+    noneOpt.textContent = 'None (theme color)';
+    matSelect.appendChild(noneOpt);
+    materialOptions.forEach((mat) => {
+      const option = document.createElement('option');
+      option.value = mat.id;
+      option.textContent = mat.name ? `${mat.name} (${mat.id})` : mat.id;
+      matSelect.appendChild(option);
+    });
+    if (asset.materialId && !materialOptions.some((mat) => mat.id === asset.materialId)) {
+      const orphan = document.createElement('option');
+      orphan.value = asset.materialId;
+      orphan.textContent = `${asset.materialId} (missing file)`;
+      matSelect.appendChild(orphan);
+    }
+    matSelect.value = asset.materialId ?? '';
+    matSelect.addEventListener('change', () =>
+      applyAssetEdit(asset, { materialId: matSelect.value.trim() || undefined }),
+    );
+    matRow.appendChild(matSelect);
+    inspectorEl.appendChild(matRow);
+
+    const def = materialOptions.find((mat) => mat.id === asset.materialId);
+    const scaleVec = { x: asset.scale?.x ?? 1, y: asset.scale?.y ?? 1, z: asset.scale?.z ?? 1 };
+    const override = parseUvScale(asset);
+    const uv = override
+      ? { u: override[0], v: override[1] }
+      : def
+        ? resolveMeshUvScale(asset, scaleVec, def)
+        : { u: 1, v: 1 };
+
+    inspectorEl.appendChild(
+      renderNumberRow('U scale', uv.u, (next) => {
+        const current = parseUvScale(asset) ?? [uv.u, uv.v];
+        applyAssetEdit(asset, { uvScale: [Math.max(0.01, next), current[1]] });
+      }),
+    );
+    inspectorEl.appendChild(
+      renderNumberRow('V scale', uv.v, (next) => {
+        const current = parseUvScale(asset) ?? [uv.u, uv.v];
+        applyAssetEdit(asset, { uvScale: [current[0], Math.max(0.01, next)] });
+      }),
     );
 
     inspectorEl.appendChild(renderComponentsRow(asset));
@@ -972,11 +1088,131 @@ window.addEventListener('keydown', (e) => {
 
 levelSelectEl.addEventListener('change', () => void loadLevel(levelSelectEl.value));
 
+const toolsMenuBtn = $('toolsMenuBtn');
+const toolsMenuDropdown = $('toolsMenuDropdown');
+const textureImportInput = $('textureImportInput') as HTMLInputElement;
+const textureImportOverlay = $('textureImportOverlay');
+const textureImportList = $('textureImportList');
+const textureImportStatus = $('textureImportStatus');
+const textureImportPickBtn = $('textureImportPickBtn') as HTMLButtonElement;
+
+const setToolsMenuOpen = (open: boolean) => {
+  toolsMenuDropdown.hidden = !open;
+  toolsMenuBtn.classList.toggle('active', open);
+};
+
+toolsMenuBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  setToolsMenuOpen(toolsMenuDropdown.hidden);
+});
+document.addEventListener('click', () => setToolsMenuOpen(false));
+toolsMenuDropdown.addEventListener('click', (event) => event.stopPropagation());
+
+const closeTextureImport = () => {
+  textureImportOverlay.hidden = true;
+  textureImportPickBtn.disabled = false;
+};
+
+const openTextureImport = () => {
+  setToolsMenuOpen(false);
+  textureImportList.innerHTML = '';
+  textureImportStatus.textContent = '';
+  textureImportStatus.className = 'import-model-status';
+  textureImportOverlay.hidden = false;
+};
+
+const pickTextureFiles = async (): Promise<File[]> => {
+  const picker = (window as Window & {
+    showOpenFilePicker?: (opts: unknown) => Promise<Array<{ getFile: () => Promise<File> }>>;
+  }).showOpenFilePicker;
+  if (typeof picker === 'function') {
+    try {
+      const handles = await picker({
+        multiple: true,
+        types: [{
+          description: 'Textures',
+          accept: {
+            'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tif', '.tiff'],
+          },
+        }],
+      });
+      return Promise.all(handles.map((handle) => handle.getFile()));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return [];
+    }
+  }
+  return new Promise((resolve) => {
+    const onChange = () => {
+      textureImportInput.removeEventListener('change', onChange);
+      resolve(Array.from(textureImportInput.files ?? []));
+      textureImportInput.value = '';
+    };
+    textureImportInput.addEventListener('change', onChange);
+    textureImportInput.click();
+  });
+};
+
+const importTextureFiles = async (files: File[]) => {
+  const images = files.filter((file) => /\.(jpe?g|png|webp|tif{1,2}|bmp|gif)$/i.test(file.name));
+  if (images.length === 0) {
+    textureImportStatus.textContent = 'No supported images in that selection.';
+    textureImportStatus.className = 'import-model-status error';
+    return;
+  }
+  textureImportPickBtn.disabled = true;
+  textureImportStatus.className = 'import-model-status';
+  let okCount = 0;
+  for (let i = 0; i < images.length; i++) {
+    const file = images[i];
+    textureImportStatus.textContent = `Compressing ${i + 1} / ${images.length}: ${file.name}`;
+    const result = await importTextureFile(file, { maxDim: 1024 });
+    const row = document.createElement('li');
+    if (result.ok && result.material) {
+      okCount += 1;
+      const kb = result.bytes ? `${(result.bytes / 1024).toFixed(1)} KB` : 'webp';
+      row.textContent = `${result.material.id} ← ${file.name} (${kb})`;
+    } else {
+      row.textContent = `${file.name}: ${result.error ?? 'failed'}`;
+    }
+    textureImportList.appendChild(row);
+  }
+  invalidateAssetLibrary();
+  await refreshMaterialOptions();
+  await warmupMaterials(viewport.scene);
+  await loadProjectTree();
+  renderInspector();
+  textureImportPickBtn.disabled = false;
+  if (okCount > 0) {
+    textureImportStatus.textContent = `Imported ${okCount} material${okCount === 1 ? '' : 's'}. Select a mesh and pick it in Inspector → Material.`;
+    textureImportStatus.className = 'import-model-status success';
+    log(`Imported ${okCount} texture material${okCount === 1 ? '' : 's'}.`);
+  } else {
+    textureImportStatus.textContent = 'No textures imported. Is npm run dev running, and is ffmpeg installed?';
+    textureImportStatus.className = 'import-model-status error';
+  }
+};
+
+$('addTexturesBtn').addEventListener('click', async () => {
+  openTextureImport();
+  const files = await pickTextureFiles();
+  if (files.length) await importTextureFiles(files);
+});
+textureImportPickBtn.addEventListener('click', async () => {
+  const files = await pickTextureFiles();
+  if (files.length) await importTextureFiles(files);
+});
+$('textureImportCloseBtn').addEventListener('click', closeTextureImport);
+$('textureImportCloseFooterBtn').addEventListener('click', closeTextureImport);
+textureImportOverlay.addEventListener('click', (event) => {
+  if (event.target === textureImportOverlay) closeTextureImport();
+});
+
 (async function init() {
   await populateLevelSelect();
   await loadProjectTree();
+  await refreshMaterialOptions();
   await loadLevel(currentLevelPath);
-  log('Editor ready. Right-click + WASD to fly, left-click to select, drag assets from Project into the scene.');
+  log('Editor ready. Tools → Add Textures to import maps. Select a mesh to assign a material.');
 })();
 
 // Exposed for debugging in the browser console.

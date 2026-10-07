@@ -5,7 +5,7 @@ import { PLAYER_ASSET_ID, loadGlbByAssetId } from './modelLoader';
 export type PlayerAvatar = {
   group: BABYLON.TransformNode;
   setLocomotion: (moving: boolean, grounded: boolean) => void;
-  playClip: (keyword: string, loop?: boolean) => boolean;
+  playClip: (keyword: string, loop?: boolean, speedRatio?: number) => boolean;
   resumeLocomotion: () => void;
   dispose: () => void;
 };
@@ -67,6 +67,7 @@ export const createCharacterAvatar = (
   scene: BABYLON.Scene,
   name = 'characterAvatar',
   assetId = PLAYER_ASSET_ID,
+  jumpSpeedRatio = 1,
 ): PlayerAvatar => {
   const group = new BABYLON.TransformNode(`${name}Root`, scene);
   const modelRoot = new BABYLON.TransformNode(`${name}ModelRoot`, scene);
@@ -100,7 +101,7 @@ export const createCharacterAvatar = (
     animationGroups.forEach((clip) => {
       if (clip !== jumpGroup && clip.isPlaying) clip.stop();
     });
-    jumpGroup.start(false, 1.0, jumpGroup.from, jumpGroup.to, false);
+    jumpGroup.start(false, jumpSpeedRatio, jumpGroup.from, jumpGroup.to, false);
     current = 'jump';
   };
 
@@ -172,7 +173,7 @@ export const createCharacterAvatar = (
     }
   });
 
-  const playClip = (keyword: string, loop = true) => {
+  const playClip = (keyword: string, loop = true, speedRatio = 1) => {
     if (animationGroups.length === 0) {
       cinematic = true;
       pendingClip = { keyword, loop };
@@ -185,7 +186,7 @@ export const createCharacterAvatar = (
     animationGroups.forEach((groupClip) => {
       if (groupClip !== clip && groupClip.isPlaying) groupClip.stop();
     });
-    clip.start(loop, 1.0, clip.from, clip.to, false);
+    clip.start(loop, speedRatio, clip.from, clip.to, false);
     current = keyword.toLowerCase();
     return true;
   };
@@ -205,4 +206,4 @@ export const createCharacterAvatar = (
 };
 
 export const createPlayerAvatar = (scene: BABYLON.Scene): PlayerAvatar =>
-  createCharacterAvatar(scene, 'playerAvatar');
+  createCharacterAvatar(scene, 'playerAvatar', PLAYER_ASSET_ID, 1.3);

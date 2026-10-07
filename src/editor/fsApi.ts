@@ -63,6 +63,41 @@ export const importModel = async (
   }
 };
 
+export type ImportTextureResult = {
+  ok: boolean;
+  material?: { id: string; name: string; albedo: string; tileMeters?: number };
+  path?: string;
+  bytes?: number;
+  error?: string;
+};
+
+export const importTextureFile = async (file: File, options?: { maxDim?: number }): Promise<ImportTextureResult> => {
+  try {
+    const params = new URLSearchParams();
+    if (options?.maxDim) params.set('maxDim', String(options.maxDim));
+    const qs = params.toString();
+    const response = await fetch(`/api/import-texture${qs ? `?${qs}` : ''}`, {
+      method: 'POST',
+      headers: { 'X-File-Name': file.name },
+      body: file,
+    });
+    return await response.json();
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+};
+
+export const fetchMaterialsCatalog = async (): Promise<{ id: string; name?: string; albedo: string }[]> => {
+  try {
+    const response = await fetch('/api/materials', { cache: 'no-store' });
+    if (!response.ok) return [];
+    const json = await response.json();
+    return Array.isArray(json?.materials) ? json.materials : [];
+  } catch {
+    return [];
+  }
+};
+
 export const importFbxFile = async (
   file: File,
   options: { mode: 'character' | 'animation'; name: string; target?: string },

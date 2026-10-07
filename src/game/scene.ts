@@ -1,5 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { applySkyboxForTheme } from './skybox';
+
 export type SceneThemeName = 'Neon Drift' | 'Crimson Surge' | 'Arctic Rift' | 'Apex Peak';
 
 export type SceneTheme = {
@@ -59,9 +61,9 @@ const themes: Record<SceneThemeName, SceneTheme> = {
     fog: new BABYLON.Color3(0.05, 0.06, 0.08),
     ground: new BABYLON.Color3(0.07, 0.07, 0.08),
     wall: new BABYLON.Color3(0.16, 0.16, 0.17),
-    ambient: new BABYLON.Color3(0.18, 0.19, 0.22),
-    hemiIntensity: 0.45,
-    sunIntensity: 0.25,
+    ambient: new BABYLON.Color3(0.24, 0.25, 0.30),
+    hemiIntensity: 0.58,
+    sunIntensity: 0.33,
     fogDistance: 42,
   },
 };
@@ -78,6 +80,7 @@ export const applyTheme = (scene: BABYLON.Scene, themeName: string) => {
   scene.fogStart = 10;
   scene.fogEnd = theme.fogDistance;
   scene.ambientColor = theme.ambient;
+  applySkyboxForTheme(scene, theme.name);
 
   const lighting = scene.getLightByName('sun');
   const hemi = scene.getLightByName('hemi');

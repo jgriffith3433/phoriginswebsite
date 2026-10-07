@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "levels": [
+    {
+      "id": "apex-peak",
+      "name": "The Apex Peak",
+      "path": "/levels/apex-peak.json",
+      "theme": "Apex Peak",
+      "difficulty": 1,
+      "enemyCount": 0,
+      "combat": false,
+      "playerSpeed": 3.4,
+      "arenaSize": 140,
+      "reward": "Room for Grace"
+    },
+    {
+      "id": "crimson-courtyard",
+      "path": "/levels/crimson-courtyard.json",
+      "comingSoon": true,
+      "difficulty": 2
+    },
+    {
+      "id": "arctic-rift",
+      "path": "/levels/arctic-rift.json",
+      "comingSoon": true,
+      "difficulty": 3
+    }
+  ]
+}

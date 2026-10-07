@@ -6,3 +6,4 @@ staging/
 .env.*
 .DS_Store
 npm-debug.log*
+assets/textures/source/

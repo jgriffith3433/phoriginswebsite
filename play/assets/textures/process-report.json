@@ -1,0 +1,65 @@
+{
+  "sourceDir": "C:\\Projects\\phoriginsassets\\textures",
+  "report": [
+    {
+      "id": "office-wall",
+      "out": "office-wall.webp",
+      "bytes": 324886,
+      "source": "Modern_acoustic_felt_wall_panel_20261007094606.jpg"
+    },
+    {
+      "id": "office-plaster",
+      "out": "office-plaster.webp",
+      "bytes": 36354,
+      "source": "Off-white_plaster_wall_texture_20261007094612.jpg"
+    },
+    {
+      "id": "office-floor",
+      "out": "office-floor.webp",
+      "bytes": 76534,
+      "source": "Dark_grey_satin_texture_sample_20261007094627.jpg"
+    },
+    {
+      "id": "office-desk",
+      "out": "office-desk.webp",
+      "bytes": 86390,
+      "source": "Light_oak_wood_veneer_sample_20261007094617.jpg"
+    },
+    {
+      "id": "office-chair",
+      "out": "office-chair.webp",
+      "bytes": 56466,
+      "source": "Office_chair_mesh_texture_sample_20261007094609.jpg"
+    },
+    {
+      "id": "office-glass",
+      "out": "office-glass.webp",
+      "bytes": 79112,
+      "source": "Architectural_glass_texture_sample_20261007094625.jpg"
+    },
+    {
+      "id": "hall-floor",
+      "out": "hall-floor.webp",
+      "bytes": 237076,
+      "source": "Rubber_floor_matting_texture_sample_20261007091953.jpg"
+    },
+    {
+      "id": "ceil-tile",
+      "out": "ceil-tile.webp",
+      "bytes": 89786,
+      "source": "Perforated_metal_ceiling_tile_te…_20261007091204.jpg"
+    },
+    {
+      "id": "lift-metal",
+      "out": "lift-metal.webp",
+      "bytes": 197922,
+      "source": "Brushed_stainless_steel_panel_20261007091936.jpg"
+    },
+    {
+      "id": "monitor",
+      "out": "monitor.webp",
+      "bytes": 58406,
+      "source": "Security_monitor_pixel_grid_texture_20261007091943.jpg"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { Connect, Plugin, ViteDevServer } from 'vite';
 import { defineConfig } from 'vite';
 import { convertCharacterGlb, inferClipName } from './tools/blenderConvert.mjs';
+import { importEditorTexture } from './tools/process-textures.mjs';
 
 // Directories the editor API is allowed to read/write. Keeps file access
 // scoped to project content instead of the whole filesystem.
@@ -23,7 +24,11 @@ const buildTree = (absDir: string, relDir: string): FsTreeNode[] => {
   if (!fs.existsSync(absDir)) return [];
   return fs
     .readdirSync(absDir, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith('.') && !entry.name.toLowerCase().endsWith('.fbx'))
+    .filter((entry) => {
+      if (entry.name.startsWith('.') || entry.name.toLowerCase().endsWith('.fbx')) return false;
+      if (relDir.replace(/\\/g, '/').endsWith('/textures') && entry.name === 'source') return false;
+      return true;
+    })
     .sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name))
     .map((entry) => {
       const absPath = path.join(absDir, entry.name);
@@ -262,6 +267,35 @@ const editorApiPlugin = (): Plugin => ({
         })
         .catch((error) => sendJson(res, 400, { ok: false, error: String(error) }));
     });
+
+    server.middlewares.use('/api/materials', (req, res) => {
+      const abs = path.join(root, 'assets', 'textures', 'materials.json');
+      if (!fs.existsSync(abs)) {
+        sendJson(res, 200, { version: 1, materials: [] });
+        return;
+      }
+      res.setHeader('Content-Type', 'application/json');
+      res.end(fs.readFileSync(abs, 'utf8'));
+    });
+
+    // Browser upload: save under assets/textures/source/, compress to WebP, register material.
+    server.middlewares.use('/api/import-texture', (req, res) => {
+      if (req.method !== 'POST') {
+        res.statusCode = 405;
+        res.end('Method not allowed');
+        return;
+      }
+      const url = new URL(req.url || '', 'http://localhost');
+      const headerName = String(req.headers['x-file-name'] || '');
+      const fileName = path.basename(headerName || url.searchParams.get('name') || 'texture.png');
+      const maxDim = Number(url.searchParams.get('maxDim') || 0) || undefined;
+      readBinaryBody(req, 40 * 1024 * 1024)
+        .then((buffer) => {
+          const result = importEditorTexture({ projectRoot: root, fileName, buffer, maxDim });
+          sendJson(res, result.ok ? 200 : 400, result);
+        })
+        .catch((error) => sendJson(res, 400, { ok: false, error: String(error) }));
+    });
   },
 });
 
@@ -275,6 +309,28 @@ export default defineConfig({
         const from = path.join(process.cwd(), 'cutscenes');
         const to = path.join(process.cwd(), 'play', 'cutscenes');
         if (fs.existsSync(from)) fs.cpSync(from, to, { recursive: true });
+      },
+    },
+    {
+      name: 'copy-runtime-content',
+      closeBundle() {
+        const root = process.cwd();
+        const outDir = path.join(root, 'play');
+        const copyDir = (rel: string, filter?: (src: string) => boolean) => {
+          const from = path.join(root, rel);
+          const to = path.join(outDir, rel);
+          if (!fs.existsSync(from)) return;
+          fs.cpSync(from, to, {
+            recursive: true,
+            filter: (src) => {
+              if (src.toLowerCase().endsWith('.fbx')) return false;
+              if (src.replace(/\\/g, '/').includes('/textures/source')) return false;
+              return filter ? filter(src) : true;
+            },
+          });
+        };
+        copyDir('levels');
+        copyDir('assets');
       },
     },
   ],

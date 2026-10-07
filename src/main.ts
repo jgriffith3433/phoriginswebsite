@@ -19,7 +19,7 @@ import {
 import { createPlayerAvatar } from './game/playerAvatar';
 import { addItem, createInventoryState, consumeItem, inventorySummary } from './game/inventory';
 import { getLevelDefinition, getLevels, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
-import { applyJump, clampPlayerToArena, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, updateVerticalMotion } from './game/player';
+import { clampPlayerToArena, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
@@ -339,7 +339,7 @@ const beginAlarmObjective = () => {
   officeAlarm.start();
   const terminal = missionScene
     ? resolveOfficeTerminal(missionScene)
-    : { x: 48.15, z: 41.88 };
+    : { x: 48.15, z: 43.05 };
   setObjective('Objective', 'Investigate the terminal', { x: terminal.x, y: 1.85, z: terminal.z });
   refreshObjectivePresentation();
 };
@@ -462,7 +462,7 @@ const applyElevatorCabLight = (time: number, riding: boolean) => {
   const ceiling = sceneMeshById('ceil-lift');
   const ceilingMat = ceiling?.material;
   if (!riding) {
-    if (light) light.intensity = 0.42;
+    if (light) light.intensity = 0.52;
     if (ceilingMat instanceof BABYLON.StandardMaterial) {
       ceilingMat.emissiveColor = new BABYLON.Color3(0.12, 0.12, 0.13);
     }
@@ -1124,6 +1124,7 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
 
 const updatePlayer = (delta: number) => {
   if (state.inCutscene) {
+    state.player.jumpWindup = 0;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
     return { moving: false, moveHeading: null };
   }
@@ -1158,13 +1159,15 @@ const updatePlayer = (delta: number) => {
     : null;
 
   clampPlayerToArena(state.player, state.arenaSize);
-  updateVerticalMotion(state.player, delta);
+  updateVerticalMotion(state.player, delta, playerCollider);
 
-  if (state.input.jump && state.player.grounded) {
-    if (applyJump(state.player)) {
-      state.input.jump = false;
+  if (state.input.jump) {
+    if (requestJump(state.player)) {
       audio.tone(360, 0.12, 'triangle', 0.04);
     }
+    // One-shot: Space and the on-screen button share this path. Consume even on
+    // miss so a press during windup or in air cannot queue a second hop.
+    state.input.jump = false;
   }
 
   const facingTarget = followCamera.isLooking() || !moving || moveHeading === null
@@ -1172,7 +1175,8 @@ const updatePlayer = (delta: number) => {
     : moveHeading;
   state.characterYaw = lerpAngle(state.characterYaw, facingTarget, 1 - Math.exp(-(followCamera.isLooking() ? 18 : 10) * Math.min(delta, 0.05)));
 
-  playerAvatar.setLocomotion(moving, state.player.grounded);
+  const jumpAnim = !state.player.grounded || state.player.jumpWindup > 0;
+  playerAvatar.setLocomotion(moving, !jumpAnim);
 
   const forwardDot = moveHeading === null ? 0 : Math.sin(yaw) * Math.sin(moveHeading) + Math.cos(yaw) * Math.cos(moveHeading);
   return { moving, moveHeading: moving && forwardDot > 0.45 ? moveHeading : null };
@@ -1488,7 +1492,7 @@ const renderLoop = () => {
 
     if (sequencePhase === 'alarm' && missionScene) {
       const terminal = resolveOfficeTerminal(missionScene);
-      if (Math.hypot(state.player.x - terminal.x, state.player.z - terminal.z) < 1.15) {
+      if (Math.hypot(state.player.x - terminal.x, state.player.z - terminal.z) < 1.35) {
         beginTerminalBeat();
       }
     }

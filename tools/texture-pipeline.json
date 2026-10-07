@@ -1,0 +1,223 @@
+{
+  "sourceDir": "../phoriginsassets/textures",
+  "outDir": "assets/textures",
+  "materialsFile": "assets/textures/materials.json",
+  "defaultMaxDim": 1024,
+  "defaultQuality": 78,
+  "converts": [
+    {
+      "id": "office-wall",
+      "source": "office/Modern_acoustic_felt_wall_panel",
+      "out": "office-wall.webp",
+      "maxDim": 1024,
+      "note": "Acoustic felt — hall walls (soft, seamless tile)"
+    },
+    {
+      "id": "office-plaster",
+      "source": "office/Off-white_plaster_wall_texture",
+      "out": "office-plaster.webp",
+      "maxDim": 1024,
+      "note": "Off-white plaster — boardroom / Pierce office walls"
+    },
+    {
+      "id": "office-floor",
+      "source": "office/Dark_grey_satin_texture_sample",
+      "out": "office-floor.webp",
+      "maxDim": 1024,
+      "note": "Dark grey satin — hall / board / office floors"
+    },
+    {
+      "id": "office-desk",
+      "source": "office/Light_oak_wood_veneer_sample",
+      "out": "office-desk.webp",
+      "maxDim": 1024,
+      "note": "Light oak veneer — desks and board table"
+    },
+    {
+      "id": "office-chair",
+      "source": "office/Office_chair_mesh_texture_sample",
+      "out": "office-chair.webp",
+      "maxDim": 512,
+      "note": "Black chair mesh — seating (small meshes, 512)"
+    },
+    {
+      "id": "office-glass",
+      "source": "office/Architectural_glass_texture_sample",
+      "out": "office-glass.webp",
+      "maxDim": 1024,
+      "note": "Frosted architectural glass — Apex windows (alpha at runtime)"
+    },
+    {
+      "id": "hall-floor",
+      "source": "Rubber_floor_matting",
+      "out": "hall-floor.webp",
+      "maxDim": 1024,
+      "note": "Diamond plate — elevator floor only"
+    },
+    {
+      "id": "ceil-tile",
+      "source": "Perforated_metal_ceiling",
+      "out": "ceil-tile.webp",
+      "maxDim": 1024,
+      "note": "Perforated metal ceiling tile"
+    },
+    {
+      "id": "lift-metal",
+      "source": "Brushed_stainless_steel_panel",
+      "out": "lift-metal.webp",
+      "maxDim": 1024,
+      "note": "Brushed stainless — elevator cab / doors"
+    },
+    {
+      "id": "monitor",
+      "source": "Security_monitor_pixel",
+      "out": "monitor.webp",
+      "maxDim": 512,
+      "note": "Pixel grid — office terminal"
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat-hall-wall",
+      "name": "Hall wall — acoustic felt",
+      "albedo": "office-wall.webp",
+      "tileMeters": 4,
+      "specular": [0.06, 0.06, 0.06],
+      "specularPower": 12,
+      "emissive": [0.04, 0.04, 0.042],
+      "tags": ["wall", "hall"]
+    },
+    {
+      "id": "mat-office-wall",
+      "name": "Office wall — plaster",
+      "albedo": "office-plaster.webp",
+      "tileMeters": 3.6,
+      "specular": [0.08, 0.08, 0.085],
+      "specularPower": 16,
+      "emissive": [0.05, 0.05, 0.048],
+      "tags": ["wall", "office"]
+    },
+    {
+      "id": "mat-board-wall",
+      "name": "Boardroom wall — plaster",
+      "albedo": "office-plaster.webp",
+      "tileMeters": 4.2,
+      "specular": [0.09, 0.09, 0.095],
+      "specularPower": 18,
+      "emissive": [0.05, 0.05, 0.048],
+      "tags": ["wall", "boardroom"]
+    },
+    {
+      "id": "mat-hall-floor",
+      "name": "Hall floor — grey satin",
+      "albedo": "office-floor.webp",
+      "tileMeters": 8,
+      "uTileMeters": 28,
+      "vTileMeters": 8,
+      "specular": [0.14, 0.14, 0.145],
+      "specularPower": 28,
+      "emissive": [0.025, 0.025, 0.026],
+      "tags": ["floor", "hall"]
+    },
+    {
+      "id": "mat-board-floor",
+      "name": "Office floor — grey satin",
+      "albedo": "office-floor.webp",
+      "tileMeters": 3.4,
+      "specular": [0.16, 0.16, 0.17],
+      "specularPower": 36,
+      "emissive": [0.028, 0.028, 0.03],
+      "tags": ["floor", "boardroom", "office"]
+    },
+    {
+      "id": "mat-lift-floor",
+      "name": "Elevator floor — diamond plate",
+      "albedo": "hall-floor.webp",
+      "tileMeters": 1.4,
+      "specular": [0.14, 0.14, 0.14],
+      "specularPower": 18,
+      "emissive": [0.02, 0.02, 0.022],
+      "tags": ["floor", "elevator"]
+    },
+    {
+      "id": "mat-ceil-tile",
+      "name": "Perforated ceiling",
+      "albedo": "ceil-tile.webp",
+      "tileMeters": 1.2,
+      "specular": [0.18, 0.18, 0.2],
+      "specularPower": 20,
+      "emissive": [0.08, 0.08, 0.085],
+      "tags": ["ceiling"]
+    },
+    {
+      "id": "mat-lift-metal",
+      "name": "Elevator stainless",
+      "albedo": "lift-metal.webp",
+      "tileMeters": 1.5,
+      "specular": [0.32, 0.32, 0.34],
+      "specularPower": 48,
+      "emissive": [0.04, 0.04, 0.045],
+      "tags": ["wall", "elevator"]
+    },
+    {
+      "id": "mat-wood-desk",
+      "name": "Light oak furniture",
+      "albedo": "office-desk.webp",
+      "tileMeters": 1.2,
+      "specular": [0.16, 0.13, 0.08],
+      "specularPower": 32,
+      "emissive": [0.04, 0.035, 0.025],
+      "tags": ["furniture", "wood"]
+    },
+    {
+      "id": "mat-chair-leather",
+      "name": "Office chair mesh",
+      "albedo": "office-chair.webp",
+      "tileMeters": 0.35,
+      "specular": [0.05, 0.05, 0.05],
+      "specularPower": 10,
+      "emissive": [0.012, 0.012, 0.012],
+      "tags": ["furniture", "chair"]
+    },
+    {
+      "id": "mat-monitor",
+      "name": "Hologram terminal glass",
+      "albedo": "office-glass.webp",
+      "tileMeters": 0.7,
+      "transparent": true,
+      "alpha": 0.38,
+      "diffuse": [0.35, 0.72, 0.95],
+      "specular": [0.38, 0.52, 0.62],
+      "specularPower": 64,
+      "emissive": [0.18, 0.48, 0.62],
+      "tags": ["prop", "screen", "glass", "hologram"]
+    },
+    {
+      "id": "mat-office-glass",
+      "name": "Frosted office glass",
+      "albedo": "office-glass.webp",
+      "tileMeters": 2.4,
+      "transparent": true,
+      "alpha": 0.48,
+      "specular": [0.42, 0.44, 0.46],
+      "specularPower": 72,
+      "emissive": [0.06, 0.07, 0.08],
+      "tags": ["glass", "office"]
+    }
+  ],
+  "skip": [
+    "Carbon-fiber_texture_sample",
+    "Carbon_fiber_weave",
+    "Corroded_metallic",
+    "Corrugated_metal",
+    "Gold_traces_on_circuit",
+    "Polished_chrome",
+    "Scuffed_industrial_floor",
+    "Weathered_industrial_concrete",
+    "Brushed_copper_wall_inlay",
+    "Metal_floor_plate",
+    "Brushed_aluminum_window_frame_trim",
+    "Ceiling_panel_texture_sample",
+    "White_synthetic_surface_texture"
+  ]
+}

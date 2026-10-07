@@ -6,6 +6,8 @@ export type PlayerState = {
   z: number;
   velocityY: number;
   grounded: boolean;
+  /** Seconds remaining before a queued jump leaves the ground. 0 = none. */
+  jumpWindup: number;
 };
 
 export type InventoryState = {

@@ -9,30 +9,81 @@ export const PLAYER_MESH_Y_OFFSET = 1.6;
 
 export const playerMeshY = (playerY: number) => playerY - PLAYER_MESH_Y_OFFSET;
 
+/** Delay after jump press before vertical velocity is applied (matches 2× jump clip). */
+export const JUMP_WINDUP = 0.5;
+
 export const createPlayerState = (): PlayerState => ({
   x: 0,
   y: PLAYER_STAND_Y,
   z: 3,
   velocityY: 0,
   grounded: true,
+  jumpWindup: 0,
 });
+
+/** Queue a hop. Animation should start on true; physics waits JUMP_WINDUP. */
+export const requestJump = (player: PlayerState) => {
+  if (!player.grounded || player.jumpWindup > 0) return false;
+  player.jumpWindup = JUMP_WINDUP;
+  return true;
+};
 
 export const applyJump = (player: PlayerState) => {
   if (!player.grounded) return false;
+  player.jumpWindup = 0;
   player.velocityY = 7;
   player.grounded = false;
   return true;
 };
 
-export const updateVerticalMotion = (player: PlayerState, delta: number) => {
+const moveVertical = (player: PlayerState, collider: BABYLON.Mesh | undefined, dy: number) => {
+  if (!collider || Math.abs(dy) < 1e-8) {
+    player.y += dy;
+    return { blocked: false };
+  }
+  const startY = player.y;
+  collider.position.set(player.x, startY, player.z);
+  collider.moveWithCollisions(new BABYLON.Vector3(0, dy, 0));
+  player.y = collider.position.y;
+  const expected = startY + dy;
+  const blocked = dy < 0
+    ? player.y > expected + 0.002
+    : player.y < expected - 0.002;
+  return { blocked };
+};
+
+export const updateVerticalMotion = (
+  player: PlayerState,
+  delta: number,
+  collider?: BABYLON.Mesh,
+) => {
+  if (player.jumpWindup > 0) {
+    player.jumpWindup -= delta;
+    if (player.jumpWindup <= 0) {
+      player.jumpWindup = 0;
+      applyJump(player);
+      return;
+    }
+  }
   if (!player.grounded) {
     player.velocityY -= 22 * delta;
-    player.y += player.velocityY * delta;
-    if (player.y <= PLAYER_STAND_Y) {
-      player.y = PLAYER_STAND_Y;
+    const dy = player.velocityY * delta;
+    const { blocked } = moveVertical(player, collider, dy);
+    if (blocked && player.velocityY < 0) {
       player.velocityY = 0;
       player.grounded = true;
+    } else if (blocked && player.velocityY > 0) {
+      player.velocityY = 0;
     }
+  } else {
+    const { blocked } = moveVertical(player, collider, -0.14);
+    if (!blocked) player.grounded = false;
+  }
+  if (player.y <= PLAYER_STAND_Y) {
+    player.y = PLAYER_STAND_Y;
+    if (player.velocityY < 0) player.velocityY = 0;
+    player.grounded = true;
+    collider?.position.set(player.x, player.y, player.z);
   }
 };
 

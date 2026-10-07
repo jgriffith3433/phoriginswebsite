@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "deploy": "npm run build",
     "convert:fbx": "node tools/convert-fbx-to-glb.mjs",
-    "bake:anims": "node tools/bake-player-anims.mjs"
+    "bake:anims": "node tools/bake-player-anims.mjs",
+    "textures": "node tools/process-textures.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",

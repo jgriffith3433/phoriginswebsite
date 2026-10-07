@@ -141,7 +141,7 @@ export const resolveBoardDoor = (sceneData: SceneData) =>
   pointFromScene(sceneData, ['trigger-board-door', 'marker-board-door'], { x: 36.4, z: 32 });
 
 export const resolveOfficeTerminal = (sceneData: SceneData) =>
-  pointFromScene(sceneData, ['office-terminal', 'trigger-office-terminal'], { x: 48.15, z: 41.88 });
+  pointFromScene(sceneData, ['office-terminal', 'trigger-office-terminal'], { x: 48.15, z: 43.05 });
 
 export const resolveOfficeWindow = (sceneData: SceneData) =>
   pointFromScene(sceneData, ['trigger-office-window'], { x: 48, z: 46.2 });

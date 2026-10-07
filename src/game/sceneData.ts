@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { applyGlassFlags, applyHologramLook, applyMaterialToMesh, isHologramAsset, parseUvScale, warmupMaterials } from './materials';
 import { loadGlbByAssetId } from './modelLoader';
 import { getSceneTheme } from './scene';
 
@@ -35,6 +36,13 @@ export type SceneAssetInstance = {
   components?: string[];
   /** Mixamo GLB used when this asset is an NpcSeat. */
   npcAssetId?: string;
+  /** Library material id (e.g. mat-hall-wall). Textures load once and UV-tile from world size. */
+  materialId?: string;
+  /** Per-object Babylon/Unity tiling. When omitted, materials use tileMeters from the catalog. */
+  uvScale?: [number, number];
+  /** Alternate JSON form; prefer `uvScale`. */
+  uScale?: number;
+  vScale?: number;
   // Id of the parent scene asset. Transform fields are local to the parent.
   parentId?: string;
 };
@@ -159,6 +167,9 @@ export type SceneNodeMetadata = {
   animationGroups?: string[];
   liftTexture?: BABYLON.DynamicTexture;
   liftLabel?: string;
+  materialId?: string;
+  assetKind?: SceneAssetKind;
+  uvScale?: [number, number];
 };
 
 const LIFT_GLYPH_FOR_ID: Record<string, string> = {
@@ -236,20 +247,86 @@ const createLiftGlyphMesh = (
   return plane;
 };
 
-const attachFurnitureHull = (scene: BABYLON.Scene, mesh: BABYLON.Mesh, scale: BABYLON.Vector3) => {
-  if (scale.y >= 1.2) return;
-  const hull = BABYLON.MeshBuilder.CreateBox(`${mesh.name}-hull`, { size: 1 }, scene);
-  hull.parent = mesh;
-  hull.isVisible = false;
-  hull.isPickable = false;
-  hull.checkCollisions = true;
-  const worldHeight = 1.2;
-  hull.scaling.set(
-    Math.max(1, 0.9 / Math.max(scale.x, 0.01)),
-    worldHeight / Math.max(scale.y, 0.01),
-    Math.max(1, 0.9 / Math.max(scale.z, 0.01)),
-  );
-  hull.position.set(0, (worldHeight / 2 - scale.y / 2) / Math.max(scale.y, 0.01), 0);
+/** Open a hole in the opaque wall behind city glass so the skybox shows through. */
+const createWindowFrameWall = (
+  scene: BABYLON.Scene,
+  asset: SceneAssetInstance,
+  position: BABYLON.Vector3,
+  rotation: BABYLON.Vector3,
+  scale: BABYLON.Vector3,
+  metadata: SceneNodeMetadata,
+  theme: ReturnType<typeof getSceneTheme>,
+): BABYLON.TransformNode => {
+  const root = new BABYLON.TransformNode(asset.name ?? asset.id, scene);
+  root.position.copyFrom(position);
+  root.rotation.copyFrom(rotation);
+  root.metadata = metadata;
+
+  const sx = Math.max(0.04, Math.abs(scale.x));
+  const sy = Math.max(0.04, Math.abs(scale.y));
+  const sz = Math.max(0.04, Math.abs(scale.z));
+  const alongX = sx >= sz;
+  const sill = 0.18;
+  const lintel = 0.28;
+  const jamb = 0.22;
+  const openingH = Math.max(0.4, sy - sill - lintel);
+
+  const makePart = (name: string, size: BABYLON.Vector3, local: BABYLON.Vector3) => {
+    const mesh = BABYLON.MeshBuilder.CreateBox(name, { width: size.x, height: size.y, depth: size.z }, scene);
+    mesh.parent = root;
+    mesh.position.copyFrom(local);
+    mesh.checkCollisions = true;
+    mesh.metadata = metadata;
+    const material = new BABYLON.StandardMaterial(`${name}-mat`, scene);
+    material.diffuseColor = theme.wall;
+    material.emissiveColor = theme.wall.scale(0.22);
+    mesh.material = material;
+    applyMaterialToMesh(scene, mesh, { ...asset, id: name });
+    return mesh;
+  };
+
+  if (alongX) {
+    makePart(`${asset.id}-sill`, new BABYLON.Vector3(sx, sill, sz), new BABYLON.Vector3(0, -sy / 2 + sill / 2, 0));
+    makePart(`${asset.id}-lintel`, new BABYLON.Vector3(sx, lintel, sz), new BABYLON.Vector3(0, sy / 2 - lintel / 2, 0));
+    makePart(`${asset.id}-jamb-l`, new BABYLON.Vector3(jamb, openingH, sz), new BABYLON.Vector3(-sx / 2 + jamb / 2, (sill - lintel) / 2, 0));
+    makePart(`${asset.id}-jamb-r`, new BABYLON.Vector3(jamb, openingH, sz), new BABYLON.Vector3(sx / 2 - jamb / 2, (sill - lintel) / 2, 0));
+  } else {
+    makePart(`${asset.id}-sill`, new BABYLON.Vector3(sx, sill, sz), new BABYLON.Vector3(0, -sy / 2 + sill / 2, 0));
+    makePart(`${asset.id}-lintel`, new BABYLON.Vector3(sx, lintel, sz), new BABYLON.Vector3(0, sy / 2 - lintel / 2, 0));
+    makePart(`${asset.id}-jamb-l`, new BABYLON.Vector3(sx, openingH, jamb), new BABYLON.Vector3(0, (sill - lintel) / 2, -sz / 2 + jamb / 2));
+    makePart(`${asset.id}-jamb-r`, new BABYLON.Vector3(sx, openingH, jamb), new BABYLON.Vector3(0, (sill - lintel) / 2, sz / 2 - jamb / 2));
+  }
+  return root;
+};
+
+const isJumpOnFurniture = (asset: SceneAssetInstance) => {
+  const label = `${asset.id} ${asset.name ?? ''}`.toLowerCase();
+  return label.includes('desk') || label.includes('table');
+};
+
+/** Thin top-face collider with world scale 1 so ellipsoid landing is not eaten by parent scale. */
+const attachFurnitureTopCollider = (scene: BABYLON.Scene, mesh: BABYLON.Mesh, scale: BABYLON.Vector3) => {
+  const thickness = 0.18;
+  const sx = Math.max(Math.abs(scale.x), 0.01);
+  const sy = Math.max(Math.abs(scale.y), 0.01);
+  const sz = Math.max(Math.abs(scale.z), 0.01);
+
+  const pivot = new BABYLON.TransformNode(`${mesh.name}-col-pivot`, scene);
+  pivot.parent = mesh;
+  pivot.position.set(0, 0, 0);
+  pivot.rotation.set(0, 0, 0);
+  pivot.scaling.set(1 / sx, 1 / sy, 1 / sz);
+
+  const top = BABYLON.MeshBuilder.CreateBox(`${mesh.name}-top-col`, {
+    width: sx,
+    height: thickness,
+    depth: sz,
+  }, scene);
+  top.parent = pivot;
+  top.position.set(0, sy / 2 - thickness / 2, 0);
+  top.isVisible = false;
+  top.isPickable = false;
+  top.checkCollisions = true;
 };
 
 // Builds (or rebuilds) the Babylon node for a single scene asset entry.
@@ -271,7 +348,17 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     asset.scale?.z ?? 1,
   );
 
-  const metadata: SceneNodeMetadata = { sceneAssetId: asset.id };
+  const metadata: SceneNodeMetadata = {
+    sceneAssetId: asset.id,
+    materialId: asset.materialId,
+    assetKind: kind,
+    uvScale: parseUvScale(asset),
+  };
+
+  const finishMesh = (mesh: BABYLON.AbstractMesh): BABYLON.AbstractMesh => {
+    applyMaterialToMesh(scene, mesh, asset);
+    return mesh;
+  };
 
   if (asset.id === 'lift-ind-panel') {
     const mesh = BABYLON.MeshBuilder.CreateBox(asset.name ?? asset.id, { width: 1, height: 1, depth: 1 }, scene);
@@ -286,7 +373,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     mesh.material = material;
     mesh.metadata = metadata;
     mesh.checkCollisions = false;
-    return mesh;
+    return finishMesh(mesh);
   }
 
   if (asset.id.startsWith('lift-ind-')) {
@@ -299,7 +386,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
       position,
       scene,
     );
-    light.intensity = 0.35;
+    light.intensity = 0.46;
     light.range = 14;
     light.metadata = metadata;
     return light;
@@ -330,15 +417,15 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     const isWindowGlass = asset.assetId === 'asset-window'
       || asset.id === 'board-glass'
       || asset.id === 'office-glass';
-    if (isWindowGlass) {
-      material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
-      material.alpha = 0.72;
-      material.disableDepthWrite = true;
-      material.backFaceCulling = false;
+    if (isHologramAsset(asset)) {
+      applyHologramLook(plane, material, 0.32);
+    } else if (isWindowGlass) {
+      applyGlassFlags(material, 0.72);
+      plane.checkCollisions = true;
     }
     plane.material = material;
     plane.metadata = metadata;
-    return plane;
+    return finishMesh(plane);
   }
 
   if (kind === 'ground') {
@@ -355,11 +442,14 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     ground.material = material;
     ground.metadata = metadata;
     ground.checkCollisions = true;
-    return ground;
+    return finishMesh(ground);
   }
 
   if (kind === 'wall') {
     const theme = getSceneTheme(themeName);
+    if (asset.id === 'board-glass-sill' || asset.id === 'office-wall-n') {
+      return createWindowFrameWall(scene, asset, position, rotation, scale, metadata, theme);
+    }
     const mesh = BABYLON.MeshBuilder.CreateBox(asset.name ?? asset.id, { width: 1, height: 1, depth: 1 }, scene);
     mesh.position = position;
     mesh.rotation = rotation;
@@ -371,14 +461,15 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     mesh.metadata = metadata;
     const isChair = asset.id.startsWith('chair-') || Boolean(asset.components?.includes('NpcSeat'));
     const isLiftButton = asset.id === 'lift-b3-button';
-    mesh.checkCollisions = !isChair && !isLiftButton;
+    const jumpOn = isJumpOnFurniture(asset);
+    mesh.checkCollisions = !isChair && !isLiftButton && !jumpOn;
     if (isLiftButton) {
       material.diffuseColor = new BABYLON.Color3(0.18, 0.2, 0.22);
       material.emissiveColor = new BABYLON.Color3(0.08, 0.1, 0.12);
       material.specularColor = BABYLON.Color3.Black();
     }
-    if (!isChair && !isLiftButton) attachFurnitureHull(scene, mesh, scale);
-    return mesh;
+    if (jumpOn) attachFurnitureTopCollider(scene, mesh, scale);
+    return finishMesh(mesh);
   }
 
   if (kind === 'pillar') {
@@ -392,7 +483,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     mesh.material = material;
     mesh.metadata = metadata;
     mesh.checkCollisions = true;
-    return mesh;
+    return finishMesh(mesh);
   }
 
   if (kind === 'model') {
@@ -418,7 +509,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
   mesh.material = material;
   mesh.metadata = metadata;
 
-  return mesh;
+  return finishMesh(mesh);
 };
 
 const createModelAssetNode = (
@@ -465,6 +556,22 @@ export const loadSceneFromJson = (
   sceneData: SceneData,
   options?: LoadSceneOptions,
 ): BABYLON.Node[] => {
+  void warmupMaterials(scene).then(() => {
+    const assetsById = new Map(sceneData.assets.map((asset) => [asset.id, asset]));
+    scene.meshes.forEach((mesh) => {
+      const meta = mesh.metadata as SceneNodeMetadata | undefined;
+      if (!meta?.materialId || !meta.sceneAssetId) return;
+      const asset = assetsById.get(meta.sceneAssetId);
+      applyMaterialToMesh(scene, mesh, asset ?? {
+        id: meta.sceneAssetId,
+        assetId: '',
+        kind: meta.assetKind,
+        materialId: meta.materialId,
+        uvScale: meta.uvScale,
+        scale: { x: mesh.scaling.x, y: mesh.scaling.y, z: mesh.scaling.z },
+      });
+    });
+  });
   const omit = new Set(options?.omitAssetIds ?? []);
   const created: BABYLON.Node[] = [];
   const assetNodes = new Map<string, BABYLON.Node>();

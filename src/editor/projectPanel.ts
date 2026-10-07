@@ -6,7 +6,7 @@ export const inferAssetKind = (fileName: string): AssetKind => {
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
   if (ext === 'glb' || ext === 'gltf') return fileName.toLowerCase().includes('light') ? 'light' : 'model';
   if (ext === 'wav' || ext === 'mp3' || ext === 'ogg') return 'audio';
-  if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') return 'texture';
+  if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp' || ext === 'ktx2') return 'texture';
   return 'other';
 };
 

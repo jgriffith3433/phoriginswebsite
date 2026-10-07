@@ -48,7 +48,7 @@ export const DEFAULT_CAMERA_CONFIG: ThirdPersonCameraConfig = {
   recenterStiffness: 2.8,
   fov: 0.9,
   minZ: 0.12,
-  maxZ: 220,
+  maxZ: 400,
 };
 
 const expDamp = (current: number, target: number, stiffness: number, dt: number) =>
