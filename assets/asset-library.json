@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "asset-hero-model",
+      "name": "hero.glb",
+      "path": "/assets/models/hero.glb",
+      "type": "model",
+      "tags": [
+        "player",
+        "character",
+        "real-file"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-rock-model",
+      "name": "rock-cluster.glb",
+      "path": "/assets/models/rock-cluster.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "environment",
+        "real-file"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-neon-drift-audio",
+      "name": "neon-drift.wav",
+      "path": "/assets/audio/neon-drift.wav",
+      "type": "audio",
+      "tags": [
+        "music",
+        "ambient",
+        "real-file"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-wood-floor-texture",
+      "name": "wood-floor.png",
+      "path": "/assets/textures/wood-floor.png",
+      "type": "texture",
+      "tags": [
+        "floor",
+        "material",
+        "real-file"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-lantern-light",
+      "name": "lantern-light.glb",
+      "path": "/assets/models/lantern-light.glb",
+      "type": "light",
+      "tags": [
+        "lighting",
+        "prop",
+        "real-file"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-ch44-hero",
+      "name": "ch44-hero.glb",
+      "path": "/assets/models/ch44-hero.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "real-file"
+      ],
+      "source": "project"
+    }
+  ]
+}

@@ -75,35 +75,7 @@ export const applyTheme = (scene: BABYLON.Scene, themeName: string) => {
   return theme;
 };
 
-export const createArena = (scene: BABYLON.Scene, arenaSize = 90, themeName = 'Neon Drift') => {
-  const theme = getSceneTheme(themeName);
-  const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: arenaSize, height: arenaSize }, scene);
-  ground.position.y = -0.5;
-
-  const groundMat = new BABYLON.StandardMaterial('groundMat', scene);
-  groundMat.diffuseColor = theme.ground;
-  groundMat.emissiveColor = theme.ground.scale(0.35);
-  ground.material = groundMat;
-
-  const wallMat = new BABYLON.StandardMaterial('wallMat', scene);
-  wallMat.diffuseColor = new BABYLON.Color3(0.2, 0.24, 0.32);
-  wallMat.emissiveColor = new BABYLON.Color3(0.06, 0.08, 0.1);
-
-  const wallCount = Math.max(8, Math.min(18, Math.round(arenaSize / 6)));
-  for (let i = 0; i < wallCount; i++) {
-    const wall = BABYLON.MeshBuilder.CreateBox(`wall-${i}`, { width: 4, height: 4, depth: 1 }, scene);
-    wall.position = new BABYLON.Vector3((i - wallCount / 2) * (arenaSize / wallCount), 2, -arenaSize * 0.32 + (i % 3) * (arenaSize * 0.22));
-    wall.material = wallMat;
-  }
-
-  const pillarMat = new BABYLON.StandardMaterial('pillarMat', scene);
-  pillarMat.diffuseColor = new BABYLON.Color3(0.25, 0.28, 0.35);
-  const pillarCount = Math.max(6, Math.min(12, Math.round(arenaSize / 10)));
-  for (let i = 0; i < pillarCount; i++) {
-    const pillar = BABYLON.MeshBuilder.CreateCylinder(`pillar-${i}`, { height: 5, diameter: 1.2 }, scene);
-    pillar.position = new BABYLON.Vector3(-arenaSize * 0.42 + (i % 3) * (arenaSize * 0.25), 2.5, -arenaSize * 0.42 + (Math.floor(i / 3) * (arenaSize * 0.25)));
-    pillar.material = pillarMat;
-  }
-
-  return theme;
-};
+// Note: the arena's walls/pillars/ground used to be generated procedurally
+// here. They're now authored as regular scene assets (kind 'wall'/'pillar'/
+// 'ground' in game/sceneData.ts) so they can be selected, moved, and edited
+// in the level editor like any other object. See levels/*.json.

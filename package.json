@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build --outDir play && node tools/postbuild.mjs",
     "preview": "vite preview --host 0.0.0.0",
-    "deploy": "npm run build"
+    "deploy": "npm run build",
+    "convert:fbx": "node tools/convert-fbx-to-glb.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",

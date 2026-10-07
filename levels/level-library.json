@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "levels": [
+    {
+      "id": "starter-arena",
+      "name": "Starter Arena",
+      "path": "/levels/starter-arena.json",
+      "theme": "Neon Drift",
+      "difficulty": 1
+    },
+    {
+      "id": "crimson-courtyard",
+      "name": "Crimson Courtyard",
+      "path": "/levels/crimson-courtyard.json",
+      "theme": "Crimson Surge",
+      "difficulty": 2
+    },
+    {
+      "id": "arctic-rift",
+      "name": "Arctic Rift",
+      "path": "/levels/arctic-rift.json",
+      "theme": "Arctic Rift",
+      "difficulty": 3
+    }
+  ]
+}

@@ -1,0 +1,614 @@
+{
+  "id": "arctic-rift",
+  "name": "Arctic Rift",
+  "theme": "Arctic Rift",
+  "assets": [
+    {
+      "id": "struct-ground",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Ground",
+      "x": 0,
+      "y": -0.5,
+      "z": 0,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 90,
+        "y": 1,
+        "z": 90
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 1",
+      "x": -45,
+      "y": 2,
+      "z": -28.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 2",
+      "x": -39,
+      "y": 2,
+      "z": -9,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 3",
+      "x": -33,
+      "y": 2,
+      "z": 10.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 4",
+      "x": -27,
+      "y": 2,
+      "z": -28.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-4",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 5",
+      "x": -21,
+      "y": 2,
+      "z": -9,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-5",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 6",
+      "x": -15,
+      "y": 2,
+      "z": 10.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-6",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 7",
+      "x": -9,
+      "y": 2,
+      "z": -28.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-7",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 8",
+      "x": -3,
+      "y": 2,
+      "z": -9,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-8",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 9",
+      "x": 3,
+      "y": 2,
+      "z": 10.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-9",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 10",
+      "x": 9,
+      "y": 2,
+      "z": -28.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-10",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 11",
+      "x": 15,
+      "y": 2,
+      "z": -9,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-11",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 12",
+      "x": 21,
+      "y": 2,
+      "z": 10.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-12",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 13",
+      "x": 27,
+      "y": 2,
+      "z": -28.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-13",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 14",
+      "x": 33,
+      "y": 2,
+      "z": -9,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-wall-14",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Wall 15",
+      "x": 39,
+      "y": 2,
+      "z": 10.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4,
+        "y": 4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-0",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 1",
+      "x": -37.8,
+      "y": 2.5,
+      "z": -37.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-1",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 2",
+      "x": -15.299999999999997,
+      "y": 2.5,
+      "z": -37.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-2",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 3",
+      "x": 7.200000000000003,
+      "y": 2.5,
+      "z": -37.8,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-3",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 4",
+      "x": -37.8,
+      "y": 2.5,
+      "z": -15.299999999999997,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-4",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 5",
+      "x": -15.299999999999997,
+      "y": 2.5,
+      "z": -15.299999999999997,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-5",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 6",
+      "x": 7.200000000000003,
+      "y": 2.5,
+      "z": -15.299999999999997,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-6",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 7",
+      "x": -37.8,
+      "y": 2.5,
+      "z": 7.200000000000003,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-7",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 8",
+      "x": -15.299999999999997,
+      "y": 2.5,
+      "z": 7.200000000000003,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "struct-pillar-8",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pillar 9",
+      "x": 7.200000000000003,
+      "y": 2.5,
+      "z": 7.200000000000003,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 5,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "scene-hero",
+      "assetId": "asset-hero-model",
+      "kind": "model",
+      "name": "Hero",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "components": [
+        "Transform",
+        "Collider"
+      ]
+    },
+    {
+      "id": "scene-ice",
+      "assetId": "asset-rock-model",
+      "kind": "model",
+      "name": "Ice Formation",
+      "x": 18,
+      "y": 0,
+      "z": 12,
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "scene-bgm",
+      "assetId": "asset-neon-drift-audio",
+      "kind": "audio",
+      "name": "Ambient Loop",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "components": [
+        "AudioSource"
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trigger-1",
+      "type": "jump_pad",
+      "label": "Launch Pad",
+      "assetId": "asset-lantern-light",
+      "x": 8,
+      "y": 0,
+      "z": 4
+    },
+    {
+      "id": "trigger-2",
+      "type": "checkpoint",
+      "label": "North Gate",
+      "assetId": "asset-hero-model",
+      "x": -12,
+      "y": 0,
+      "z": -8
+    }
+  ]
+}

@@ -268,6 +268,45 @@
         font-weight: 800;
       }
 
+      body[data-device='desktop'] .controls {
+        display: none;
+      }
+
+      .inventory-hud {
+        position: absolute;
+        right: 18px;
+        bottom: calc(var(--safe-bottom) + 118px);
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      .inventory-item {
+        min-width: 72px;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(10, 20, 31, 0.54);
+        border: 1px solid var(--panel-border);
+        text-align: center;
+      }
+
+      .inventory-label {
+        display: block;
+        font-size: 9px;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .inventory-item strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 18px;
+      }
+
       .controls {
         position: absolute;
         left: 0;
@@ -408,6 +447,66 @@
         line-height: 1.6;
       }
 
+      .hidden {
+        display: none !important;
+      }
+
+      .level-select {
+        margin-top: 16px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 16px;
+        background: rgba(17, 26, 36, 0.82);
+        padding: 14px;
+      }
+
+      .level-select-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .level-select-header h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .level-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .level-item {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.02);
+        color: var(--text);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .level-item.locked {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .level-item strong {
+        display: block;
+        font-size: 15px;
+      }
+
+      .level-item small {
+        display: block;
+        color: var(--muted);
+      }
+
       .button-row {
         display: flex;
         flex-wrap: wrap;
@@ -544,7 +643,7 @@
         }
       }
     </style>
-    <script type="module" crossorigin src="./assets/index-CYpxYpWC.js"></script>
+    <script type="module" crossorigin src="./assets/index-CtT7KNR5.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -571,6 +670,7 @@
       </div>
 
       <div id="crosshair" aria-hidden="true"></div>
+      <div id="inventoryHud" class="inventory-hud" aria-live="polite"></div>
 
       <button id="devToggle" type="button" aria-label="Toggle developer tools">DEV</button>
       <aside id="devPanel" aria-live="polite">
@@ -621,13 +721,22 @@
 
       <div class="message" id="messageBox">
         <div class="panel">
-          <div class="eyebrow">3rd person shooter</div>
+          <div class="eyebrow">3rd person adventure</div>
           <h1 id="messageTitle">PH Origins</h1>
           <p class="subtitle" id="messageText">Move with WASD • Aim with mouse or drag • Fire • Jump • Explore the mission</p>
+
+          <div id="levelSelect" class="level-select hidden" aria-live="polite">
+            <div class="level-select-header">
+              <h2>Mission Select</h2>
+              <button type="button" class="secondary" id="closeLevelSelect">Back</button>
+            </div>
+            <div id="levelList" class="level-list"></div>
+          </div>
+
           <div class="button-row">
             <button class="primary" id="startBtn">Start</button>
             <button class="secondary" id="resetBtn">Reset</button>
-            <button class="secondary" id="loadModelBtn" type="button">Load Hero</button>
+            <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
           </div>
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />
         </div>
