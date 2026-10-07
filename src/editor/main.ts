@@ -282,8 +282,16 @@ const renderInspector = () => {
     deleteBtn.className = 'danger';
     deleteBtn.addEventListener('click', () => {
       if (!sceneData) return;
-      sceneData.assets = sceneData.assets.filter((a) => a.id !== asset.id);
-      viewport.removeAsset(asset.id);
+      const doomed = new Set([...collectDescendantAssetIds(asset.id), asset.id]);
+      sceneData.triggers = sceneData.triggers.filter((t) => {
+        if (t.parentId && doomed.has(t.parentId)) {
+          viewport.removeTrigger(t.id);
+          return false;
+        }
+        return true;
+      });
+      doomed.forEach((id) => viewport.removeAsset(id));
+      sceneData.assets = sceneData.assets.filter((a) => !doomed.has(a.id));
       selection = null;
       renderHierarchy();
       renderInspector();
@@ -337,6 +345,44 @@ const renderInspector = () => {
   inspectorEl.appendChild(deleteBtn);
 };
 
+type HierarchyEntry = { target: SelectionTarget; label: string; tag: string; parentId?: string };
+
+let dragged: SelectionTarget | null = null;
+
+const isDescendantOf = (candidateId: string, ancestorId: string): boolean => {
+  let current = findAsset(candidateId);
+  const seen = new Set<string>();
+  while (current?.parentId && !seen.has(current.id)) {
+    if (current.parentId === ancestorId) return true;
+    seen.add(current.id);
+    current = findAsset(current.parentId);
+  }
+  return false;
+};
+
+const collectDescendantAssetIds = (id: string): string[] => {
+  const children = sceneData?.assets.filter((a) => a.parentId === id) ?? [];
+  return children.flatMap((c) => [...collectDescendantAssetIds(c.id), c.id]);
+};
+
+const setParentOf = (child: SelectionTarget, parentId: string | null) => {
+  if (!sceneData) return;
+  if (parentId && child.kind === 'asset' && (parentId === child.id || isDescendantOf(parentId, child.id))) {
+    log('Cannot parent an object under itself or its own child.');
+    return;
+  }
+  const entry = child.kind === 'asset' ? findAsset(child.id) : findTrigger(child.id);
+  if (!entry || (entry.parentId ?? null) === parentId) return;
+  viewport.reparent(child, parentId);
+  if (parentId) entry.parentId = parentId;
+  else delete entry.parentId;
+  commitNodeTransformToData(child);
+  renderHierarchy();
+  renderInspector();
+  scheduleSave(true);
+  log(parentId ? `Parented ${child.id} under ${parentId}.` : `Unparented ${child.id}.`);
+};
+
 const renderHierarchy = () => {
   hierarchyTreeEl.innerHTML = '';
   if (!sceneData) {
@@ -344,31 +390,87 @@ const renderHierarchy = () => {
     return;
   }
 
-  sceneData.assets.forEach((asset) => {
-    const row = document.createElement('div');
-    const isActive = selection?.kind === 'asset' && selection.id === asset.id;
-    row.className = `hierarchy-item${isActive ? ' active' : ''}`;
-    row.innerHTML = `<div class="name"><span>${asset.name ?? asset.assetId ?? asset.id}</span><span class="type-tag">${asset.kind ?? asset.type ?? 'model'}</span></div>`;
-    row.addEventListener('click', () => {
-      const node = viewport.getAssetNode(asset.id);
-      viewport.selectNode(node ?? null);
-    });
-    hierarchyTreeEl.appendChild(row);
+  const entries: HierarchyEntry[] = [
+    ...sceneData.assets.map((asset) => ({
+      target: { kind: 'asset' as const, id: asset.id },
+      label: asset.name ?? asset.assetId ?? asset.id,
+      tag: asset.kind ?? asset.type ?? 'model',
+      parentId: asset.parentId,
+    })),
+    ...sceneData.triggers.map((trigger) => ({
+      target: { kind: 'trigger' as const, id: trigger.id },
+      label: trigger.label ?? trigger.type,
+      tag: 'trigger',
+      parentId: trigger.parentId,
+    })),
+  ];
+  const assetIds = new Set(sceneData.assets.map((a) => a.id));
+  const childrenOf = new Map<string | undefined, HierarchyEntry[]>();
+  entries.forEach((entry) => {
+    const key = entry.parentId && assetIds.has(entry.parentId) ? entry.parentId : undefined;
+    childrenOf.set(key, [...(childrenOf.get(key) ?? []), entry]);
   });
 
-  sceneData.triggers.forEach((trigger) => {
-    const row = document.createElement('div');
-    const isActive = selection?.kind === 'trigger' && selection.id === trigger.id;
-    row.className = `hierarchy-item${isActive ? ' active' : ''}`;
-    row.innerHTML = `<div class="name"><span>${trigger.label ?? trigger.type}</span><span class="type-tag">trigger</span></div>`;
-    row.addEventListener('click', () => {
-      const node = viewport.getTriggerNode(trigger.id);
-      viewport.selectNode(node ?? null);
+  const renderLevel = (parentKey: string | undefined, depth: number, visited: Set<string>) => {
+    (childrenOf.get(parentKey) ?? []).forEach((entry) => {
+      if (visited.has(entry.target.id)) return;
+      const row = document.createElement('div');
+      const isActive = selection?.kind === entry.target.kind && selection.id === entry.target.id;
+      row.className = `hierarchy-item${isActive ? ' active' : ''}`;
+      row.style.paddingLeft = `${10 + depth * 16}px`;
+      row.draggable = true;
+      const prefix = depth > 0 ? '? ' : '';
+      row.innerHTML = `<div class="name"><span></span><span class="type-tag">${entry.tag}</span></div>`;
+      row.querySelector('span')!.textContent = prefix + entry.label;
+      row.addEventListener('click', () => {
+        const node = entry.target.kind === 'asset' ? viewport.getAssetNode(entry.target.id) : viewport.getTriggerNode(entry.target.id);
+        viewport.selectNode(node ?? null);
+      });
+      row.addEventListener('dragstart', (e) => {
+        dragged = entry.target;
+        e.dataTransfer?.setData('application/x-ph-hierarchy', entry.target.id);
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+      });
+      row.addEventListener('dragend', () => {
+        dragged = null;
+        hierarchyTreeEl.querySelectorAll('.drop-target').forEach((el) => el.classList.remove('drop-target'));
+      });
+      // Only assets can be parents.
+      if (entry.target.kind === 'asset') {
+        row.addEventListener('dragover', (e) => {
+          if (!dragged) return;
+          e.preventDefault();
+          e.stopPropagation();
+          row.classList.add('drop-target');
+        });
+        row.addEventListener('dragleave', () => row.classList.remove('drop-target'));
+        row.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          row.classList.remove('drop-target');
+          if (dragged) setParentOf(dragged, entry.target.id);
+          dragged = null;
+        });
+      }
+      hierarchyTreeEl.appendChild(row);
+      const nextVisited = new Set(visited).add(entry.target.id);
+      if (entry.target.kind === 'asset') renderLevel(entry.target.id, depth + 1, nextVisited);
     });
-    hierarchyTreeEl.appendChild(row);
-  });
+  };
+  renderLevel(undefined, 0, new Set());
 };
 
+hierarchyTreeEl.addEventListener('dragover', (e) => {
+  if (!dragged) return;
+  e.preventDefault();
+});
+// Dropping on empty hierarchy space moves the object back to the scene root.
+hierarchyTreeEl.addEventListener('drop', (e) => {
+  if (!dragged) return;
+  e.preventDefault();
+  setParentOf(dragged, null);
+  dragged = null;
+});
 const loadLevel = async (levelPath: string) => {
   try {
     const response = await fetch(levelPath, { cache: 'no-store' });
@@ -717,6 +819,18 @@ document.querySelectorAll('[data-gizmo-mode]').forEach((btn) => {
     btn.classList.add('active');
     viewport.setGizmoMode(btn.getAttribute('data-gizmo-mode') as 'position' | 'rotation' | 'scale');
   });
+});
+
+window.addEventListener('keydown', (e) => {
+  const target = e.target as HTMLElement | null;
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) return;
+  if (e.ctrlKey || e.metaKey || e.altKey || viewport.isFlying()) return;
+  const modes: Record<string, string> = { KeyW: 'position', KeyE: 'rotation', KeyR: 'scale' };
+  if (modes[e.code]) {
+    document.querySelector<HTMLElement>(`[data-gizmo-mode="${modes[e.code]}"]`)?.click();
+  } else if (e.code === 'KeyF') {
+    viewport.focusSelected();
+  }
 });
 
 levelSelectEl.addEventListener('change', () => void loadLevel(levelSelectEl.value));

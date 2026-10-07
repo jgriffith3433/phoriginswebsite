@@ -38,22 +38,60 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   camera.speed = 0.6;
   camera.angularSensibility = 1900;
   camera.inertia = 0.55;
-  // W/A/S/D fly controls, moving along the camera's full look direction
-  // (including pitch) so looking up/down and pressing forward flies the
-  // camera through the scene like Unity's scene view.
-  camera.keysUp = [87];
-  camera.keysDown = [83];
-  camera.keysLeft = [65];
-  camera.keysRight = [68];
-  camera.attachControl(canvas, true);
+  // Fly cam: while the right mouse button is held, the pointer is locked and
+  // mouse movement looks around; W/A/S/D/Q/E move (Shift = faster).
+  camera.inputs.clear();
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-  // Only rotate the view while the right mouse button is held, so the left
-  // button stays free for object selection and gizmo dragging.
-  const mouseInput = camera.inputs.attached.mouse as BABYLON.FreeCameraMouseInput | undefined;
-  if (mouseInput) {
-    mouseInput.buttons = [2];
-  }
+  const heldKeys = new Set<string>();
+  let flying = false;
+  const lookSensitivity = 0.003;
 
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 2) return;
+    flying = true;
+    canvas.focus();
+    void canvas.requestPointerLock?.();
+  });
+  window.addEventListener('pointerup', (e) => {
+    if (e.button !== 2 || !flying) return;
+    flying = false;
+    heldKeys.clear();
+    if (document.pointerLockElement === canvas) document.exitPointerLock();
+  });
+  window.addEventListener('blur', () => {
+    flying = false;
+    heldKeys.clear();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!flying) return;
+    camera.rotation.y += e.movementX * lookSensitivity;
+    camera.rotation.x = Math.max(-1.55, Math.min(1.55, camera.rotation.x + e.movementY * lookSensitivity));
+  });
+  window.addEventListener('keydown', (e) => {
+    if (flying) {
+      heldKeys.add(e.code);
+      if (e.code.startsWith('Key')) e.preventDefault();
+    }
+  });
+  window.addEventListener('keyup', (e) => heldKeys.delete(e.code));
+
+  const baseFlySpeed = 12;
+  scene.onBeforeRenderObservable.add(() => {
+    if (!flying || heldKeys.size === 0) return;
+    const dt = engine.getDeltaTime() / 1000;
+    const speed = baseFlySpeed * dt * (heldKeys.has('ShiftLeft') || heldKeys.has('ShiftRight') ? 3 : 1);
+    const forward = camera.getDirection(BABYLON.Vector3.Forward());
+    const right = camera.getDirection(BABYLON.Vector3.Right());
+    const move = BABYLON.Vector3.Zero();
+    if (heldKeys.has('KeyW')) move.addInPlace(forward);
+    if (heldKeys.has('KeyS')) move.subtractInPlace(forward);
+    if (heldKeys.has('KeyD')) move.addInPlace(right);
+    if (heldKeys.has('KeyA')) move.subtractInPlace(right);
+    if (heldKeys.has('KeyE')) move.y += 1;
+    if (heldKeys.has('KeyQ')) move.y -= 1;
+    if (move.lengthSquared() > 0) camera.position.addInPlace(move.normalize().scale(speed));
+  });
   const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
   hemi.intensity = 0.8;
   const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
@@ -157,12 +195,16 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   const addAssetNode = (asset: SceneAssetInstance): BABYLON.Node => {
     const node = createSceneAssetNode(scene, asset, currentTheme);
     assetNodes.set(asset.id, node);
+    const parent = asset.parentId ? assetNodes.get(asset.parentId) : undefined;
+    if (parent && parent !== node) node.parent = parent;
     return node;
   };
 
   const addTriggerNode = (trigger: SceneTrigger): BABYLON.Node => {
     const node = createSceneTriggerNode(scene, trigger);
     triggerNodes.set(trigger.id, node);
+    const parent = trigger.parentId ? assetNodes.get(trigger.parentId) : undefined;
+    if (parent) node.parent = parent;
     return node;
   };
 
@@ -178,6 +220,22 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     node?.dispose();
     triggerNodes.delete(id);
     if (selected?.kind === 'trigger' && selected.id === id) selectNode(null);
+  };
+
+  // Reparents a node while keeping its world transform, so dragging an object
+  // under another in the Hierarchy doesn't make it jump in the viewport.
+  const reparent = (child: SelectionTarget, parentAssetId: string | null) => {
+    const node = child.kind === 'asset' ? assetNodes.get(child.id) : triggerNodes.get(child.id);
+    const parent = parentAssetId ? assetNodes.get(parentAssetId) ?? null : null;
+    if (!node) return;
+    if (node instanceof BABYLON.TransformNode && (parent === null || parent instanceof BABYLON.TransformNode)) {
+      if (!node.rotationQuaternion) node.rotationQuaternion = BABYLON.Quaternion.FromEulerVector(node.rotation);
+      node.setParent(parent);
+      node.rotation = node.rotationQuaternion!.toEulerAngles();
+      node.rotationQuaternion = null;
+    } else {
+      node.parent = parent;
+    }
   };
 
   const getAssetNode = (id: string) => assetNodes.get(id);
@@ -213,6 +271,34 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     return forward.origin.add(forward.direction.scale(distance));
   };
 
+  // Moves the camera so the selected object fills the view, looking at it.
+  const focusSelected = () => {
+    if (!selected) return;
+    const node = selected.kind === 'asset' ? assetNodes.get(selected.id) : triggerNodes.get(selected.id);
+    if (!node) return;
+    const meshes = [node, ...node.getChildMeshes()].filter((n): n is BABYLON.AbstractMesh => n instanceof BABYLON.AbstractMesh);
+    let center: BABYLON.Vector3;
+    let radius = 1;
+    if (meshes.length > 0) {
+      let min = new BABYLON.Vector3(Infinity, Infinity, Infinity);
+      let max = new BABYLON.Vector3(-Infinity, -Infinity, -Infinity);
+      meshes.forEach((m) => {
+        m.computeWorldMatrix(true);
+        const box = m.getBoundingInfo().boundingBox;
+        min = BABYLON.Vector3.Minimize(min, box.minimumWorld);
+        max = BABYLON.Vector3.Maximize(max, box.maximumWorld);
+      });
+      center = min.add(max).scale(0.5);
+      radius = Math.max(0.5, max.subtract(min).length() / 2);
+    } else {
+      center = (node as BABYLON.TransformNode).getAbsolutePosition().clone();
+    }
+    const distance = radius / Math.sin(camera.fov / 2) * 1.1;
+    const dir = camera.getDirection(BABYLON.Vector3.Forward());
+    camera.position = center.subtract(dir.scale(distance));
+    camera.setTarget(center);
+  };
+
   engine.runRenderLoop(() => scene.render());
 
   const resizeObserver = new ResizeObserver(() => engine.resize());
@@ -234,12 +320,15 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     addTriggerNode,
     removeAsset,
     removeTrigger,
+    reparent,
     getAssetNode,
     getTriggerNode,
     selectNode,
     setGizmoMode,
     screenToGroundPoint,
     cameraLookGroundPoint,
+    focusSelected,
+    isFlying: () => flying,
     dispose,
   };
 };

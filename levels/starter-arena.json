@@ -619,28 +619,6 @@
         "y": 1,
         "z": 1
       }
-    },
-    {
-      "id": "model-1791340180244-5ctls",
-      "assetId": "asset-ch44-hero",
-      "kind": "model",
-      "name": "ch44-hero",
-      "x": 0,
-      "y": 0,
-      "z": 1.3750018531447736,
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 1,
-        "y": 1,
-        "z": 1
-      },
-      "components": [
-        "Transform"
-      ]
     }
   ],
   "triggers": [

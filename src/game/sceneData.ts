@@ -27,6 +27,8 @@ export type SceneAssetInstance = {
   rotation?: SceneVector3;
   scale?: SceneVector3;
   components?: string[];
+  // Id of the parent scene asset. Transform fields are local to the parent.
+  parentId?: string;
 };
 
 export type SceneTrigger = {
@@ -39,6 +41,7 @@ export type SceneTrigger = {
   y?: number;
   z?: number;
   data?: Record<string, unknown>;
+  parentId?: string;
 };
 
 export type SceneData = {
@@ -262,7 +265,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
 // Cached fetch of the project's asset library (assetId -> real file path).
 // Shared by every 'model' node so we only hit the network once per session.
 let assetLibraryPromise: Promise<AssetLibraryEntry[]> | null = null;
-const getAssetLibrary = (): Promise<AssetLibraryEntry[]> => {
+export const getAssetLibrary = (): Promise<AssetLibraryEntry[]> => {
   if (!assetLibraryPromise) {
     assetLibraryPromise = fetch('/assets/asset-library.json', { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : { assets: [] }))
@@ -365,11 +368,22 @@ export const createSceneTriggerNode = (scene: BABYLON.Scene, trigger: SceneTrigg
 
 export const loadSceneFromJson = (scene: BABYLON.Scene, sceneData: SceneData): BABYLON.Node[] => {
   const created: BABYLON.Node[] = [];
+  const assetNodes = new Map<string, BABYLON.Node>();
+  const pending: Array<{ node: BABYLON.Node; parentId?: string }> = [];
   sceneData.assets.forEach((asset) => {
-    created.push(createSceneAssetNode(scene, asset, sceneData.theme));
+    const node = createSceneAssetNode(scene, asset, sceneData.theme);
+    assetNodes.set(asset.id, node);
+    pending.push({ node, parentId: asset.parentId });
+    created.push(node);
   });
   sceneData.triggers.forEach((trigger) => {
-    created.push(createSceneTriggerNode(scene, trigger));
+    const node = createSceneTriggerNode(scene, trigger);
+    pending.push({ node, parentId: trigger.parentId });
+    created.push(node);
+  });
+  pending.forEach(({ node, parentId }) => {
+    const parent = parentId ? assetNodes.get(parentId) : undefined;
+    if (parent && parent !== node) node.parent = parent;
   });
   return created;
 };

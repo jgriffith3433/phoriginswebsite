@@ -3,6 +3,7 @@ import '@babylonjs/loaders';
 
 import { configureResponsiveUI } from './game/mobile';
 import { createHumanoid, clearEnemies, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
+import { createPlayerAvatar } from './game/playerAvatar';
 import { addItem, createInventoryState, consumeItem, inventorySummary } from './game/inventory';
 import { getLevelDefinition, getLevels, getUnlockedLevelCount } from './game/levels';
 import { applyJump, clampPlayerToArena, createPlayerState, updateVerticalMotion } from './game/player';
@@ -183,17 +184,17 @@ const weaponMuzzle = new BABYLON.Mesh('weaponMuzzle', scene);
 weaponMuzzle.position = new BABYLON.Vector3(0.45, -0.12, 1.2);
 weaponMuzzle.isVisible = false;
 
-const playerModel = createHumanoid(scene, new BABYLON.Color3(0.22, 0.9, 1), false);
-playerModel.group.parent = null;
-playerModel.group.position = new BABYLON.Vector3(0, 0, 0);
-playerModel.group.rotation.y = Math.PI;
+const playerAvatar = createPlayerAvatar(scene);
+playerAvatar.group.parent = null;
+playerAvatar.group.position = new BABYLON.Vector3(0, 0, 0);
+playerAvatar.group.rotation.y = Math.PI;
 
 const gunMesh = BABYLON.MeshBuilder.CreateBox('gunMesh', { width: 0.18, height: 0.18, depth: 0.9 }, scene);
 const gunMat = new BABYLON.StandardMaterial('gunMat', scene);
 gunMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.12);
 gunMat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.06);
 gunMesh.material = gunMat;
-gunMesh.parent = playerModel.group;
+gunMesh.parent = playerAvatar.group;
 gunMesh.position = new BABYLON.Vector3(0.7, 1.15, 0.8);
 gunMesh.rotation.x = -0.2;
 gunMesh.rotation.y = Math.PI / 3;
@@ -434,8 +435,8 @@ const updateCamera = () => {
   gunMesh.rotation.y = state.cameraYaw + Math.PI / 1.9;
   gunMesh.rotation.x = state.cameraPitch * 0.4 - 0.25;
 
-  playerModel.group.rotation.y = state.cameraYaw + Math.PI;
-  playerModel.group.position = new BABYLON.Vector3(state.player.x, state.player.y - 1.6, state.player.z);
+  playerAvatar.group.rotation.y = state.cameraYaw + Math.PI;
+  playerAvatar.group.position = new BABYLON.Vector3(state.player.x, state.player.y - 1.6, state.player.z);
 };
 
 const updatePlayer = (delta: number) => {
@@ -462,13 +463,7 @@ const updatePlayer = (delta: number) => {
   }
 
   const walkMagnitude = Math.hypot(moveX, moveZ);
-  const time = performance.now() * 0.012;
-  const swing = walkMagnitude > 0.05 ? Math.sin(time * (10 + walkMagnitude * 10)) * (0.8 + walkMagnitude * 1.1) : 0;
-  playerModel.leftArm.rotation.x = swing;
-  playerModel.rightArm.rotation.x = -swing;
-  playerModel.leftLeg.rotation.x = -swing;
-  playerModel.rightLeg.rotation.x = swing;
-  playerModel.torso.rotation.z = moveX * 0.18;
+  playerAvatar.setMoving(walkMagnitude > 0.05);
 
   clampPlayerToArena(state.player, state.arenaSize);
   updateVerticalMotion(state.player, delta);
@@ -821,9 +816,9 @@ const renderLoop = () => {
 const loadCustomModel = (file: File) => {
   importAssetFile(scene, file, (rootNode) => {
     if (rootNode.getChildMeshes().length > 0) {
-      playerModel.group.setEnabled(false);
-      playerModel.group.parent = rootNode;
-      playerModel.group.position = new BABYLON.Vector3(0, 0, 0);
+      playerAvatar.group.setEnabled(false);
+      playerAvatar.group.parent = rootNode;
+      playerAvatar.group.position = new BABYLON.Vector3(0, 0, 0);
       rootNode.scaling = new BABYLON.Vector3(0.7, 0.7, 0.7);
       rootNode.position = new BABYLON.Vector3(0, 0.6, 1.3);
       rootNode.rotation.y = Math.PI;
