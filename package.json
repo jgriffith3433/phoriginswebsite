@@ -8,7 +8,8 @@
     "build": "tsc && vite build --outDir play && node tools/postbuild.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "deploy": "npm run build",
-    "convert:fbx": "node tools/convert-fbx-to-glb.mjs"
+    "convert:fbx": "node tools/convert-fbx-to-glb.mjs",
+    "bake:anims": "node tools/bake-player-anims.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",

@@ -21,7 +21,7 @@ const log = (message: string) => {
   consoleEl.value = `[${stamp}] ${message}\n${consoleEl.value}`.slice(0, 8000);
 };
 
-type LevelManifestEntry = { id: string; name: string; path: string; theme: string; difficulty?: number };
+type LevelManifestEntry = { id: string; name?: string; path: string; theme?: string; difficulty?: number; comingSoon?: boolean };
 
 // Known component tags an asset can carry. Purely descriptive metadata today
 // (not yet wired to gameplay behavior), shown/edited in the Inspector like a
@@ -501,7 +501,7 @@ const populateLevelSelect = async () => {
     levels.forEach((level) => {
       const option = document.createElement('option');
       option.value = level.path;
-      option.textContent = level.name;
+      option.textContent = level.comingSoon ? 'Coming soon' : (level.name || level.id);
       levelSelectEl.appendChild(option);
     });
     levelSelectEl.value = currentLevelPath;
@@ -586,7 +586,7 @@ const openFbxModal = (file: File) => {
   fbxFileNameEl.textContent = file.name;
   fbxClipNameInput.value = inferClipName(file.name);
   fbxCharacterInput.value = file.name.replace(/\.fbx$/i, '').replace(/[^a-zA-Z0-9_-]+/g, '-') || 'character';
-  fbxTargetInput.value = 'ch44-hero';
+  fbxTargetInput.value = 'ch33-hero';
   fbxStatusEl.textContent = '';
   fbxStatusEl.className = 'import-model-status';
   fbxSubmitBtn.disabled = false;
@@ -638,7 +638,7 @@ fbxSubmitBtn.addEventListener('click', async () => {
   const result = await importFbxFile(pendingFbxFile, {
     mode,
     name,
-    target: fbxTargetInput.value.trim() || 'ch44-hero',
+    target: fbxTargetInput.value.trim() || 'ch33-hero',
   });
 
   if (!result.ok || !result.asset) {

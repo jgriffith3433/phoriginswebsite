@@ -71,7 +71,7 @@ export const importFbxFile = async (
     const params = new URLSearchParams({
       mode: options.mode,
       name: options.name,
-      target: options.target ?? 'ch44-hero',
+      target: options.target ?? 'ch33-hero',
     });
     const response = await fetch(`/api/import-fbx?${params.toString()}`, {
       method: 'POST',

@@ -41,7 +41,7 @@ export type ActiveCutscene = {
   cursor: number;
   playing: HTMLAudioElement[];
   hooks: CutsceneHooks;
-  lineHold: { until: number; actor: string } | null;
+  lineHold: { until: number; actor: string; restClip: string } | null;
 };
 
 const cache = new Map<string, CutsceneTimeline>();
@@ -159,9 +159,15 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
     const hold = resolveLineDuration(event);
     cutscene.hooks.onHud(speaker, event.text);
     if (event.actor) {
-      cutscene.hooks.onAnim('*', 'sit', true);
-      cutscene.hooks.onAnim(event.actor, event.anim ?? 'talk', true);
-      cutscene.lineHold = { until: cutscene.time + hold, actor: event.actor };
+      const clip = event.anim ?? 'talk';
+      const seatedTalk = clip === 'talk' || clip === 'sit';
+      if (seatedTalk) cutscene.hooks.onAnim('*', 'sit', true);
+      cutscene.hooks.onAnim(event.actor, clip, true);
+      cutscene.lineHold = {
+        until: cutscene.time + hold,
+        actor: event.actor,
+        restClip: seatedTalk ? 'sit' : clip,
+      };
     }
     if (event.audio) {
       playFile(cutscene, event.audio, event.volume ?? 0.85, false, hold);
@@ -205,7 +211,7 @@ export const stepCutscene = (cutscene: ActiveCutscene, delta: number): boolean =
   cutscene.time += delta;
   flushDueEvents(cutscene);
   if (cutscene.lineHold && cutscene.time >= cutscene.lineHold.until) {
-    cutscene.hooks.onAnim(cutscene.lineHold.actor, 'sit', true);
+    cutscene.hooks.onAnim(cutscene.lineHold.actor, cutscene.lineHold.restClip, true);
     cutscene.lineHold = null;
   }
   if (cutscene.time >= cutscene.duration) {
@@ -223,7 +229,8 @@ type AnimAvatar = { playClip: (clip: string, loop?: boolean) => boolean };
 
 const playWithFallback = (avatar: AnimAvatar, clip: string, loop: boolean) => {
   if (avatar.playClip(clip, loop)) return;
-  if (clip !== 'sit' && avatar.playClip('sit', true)) return;
+  if (clip === 'walk' && avatar.playClip('idle', true)) return;
+  if (clip !== 'sit' && clip !== 'idle' && clip !== 'walk' && avatar.playClip('sit', true)) return;
   if (clip !== 'idle') avatar.playClip('idle', true);
 };
 

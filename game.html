@@ -241,6 +241,7 @@
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
+        margin-right: 72px;
       }
 
       .stat {
@@ -251,6 +252,38 @@
         background: rgba(10, 20, 31, 0.48);
         border: 1px solid var(--panel-border);
         backdrop-filter: blur(8px);
+      }
+
+      .health-stat {
+        min-width: 168px;
+        text-align: left;
+      }
+
+      .health-bar {
+        width: 148px;
+        height: 10px;
+        margin-top: 6px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.38);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .health-fill {
+        display: block;
+        height: 100%;
+        width: 100%;
+        border-radius: 999px;
+        background: var(--good);
+        transition: width 0.16s ease, background-color 0.16s ease;
+      }
+
+      .health-fill[data-band='mid'] {
+        background: var(--warning);
+      }
+
+      .health-fill[data-band='low'] {
+        background: #ff5d6c;
       }
 
       .label {
@@ -272,6 +305,70 @@
         display: none;
       }
 
+      .objective-hud {
+        position: absolute;
+        top: calc(var(--safe-top) + 76px);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 6;
+        pointer-events: none;
+        display: none;
+        min-width: 260px;
+        max-width: min(420px, calc(100% - 32px));
+        text-align: center;
+        padding: 10px 16px;
+        border-radius: 16px;
+        background: rgba(10, 20, 31, 0.52);
+        border: 1px solid var(--panel-border);
+        backdrop-filter: blur(8px);
+      }
+
+      .objective-hud.visible {
+        display: block;
+      }
+
+      .objective-kicker {
+        display: block;
+        font-size: 9px;
+        letter-spacing: 0.22rem;
+        text-transform: uppercase;
+        color: var(--good);
+        margin-bottom: 4px;
+      }
+
+      .objective-text {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .objective-dist {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .alarm-flash {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 7;
+        display: none;
+        background: radial-gradient(ellipse at center, rgba(180, 16, 28, 0) 40%, rgba(150, 8, 18, 0.28) 100%);
+        animation: alarmPulse 0.65s ease-in-out infinite;
+      }
+
+      .alarm-flash.visible {
+        display: block;
+      }
+
+      @keyframes alarmPulse {
+        0%, 100% { opacity: 0.35; }
+        50% { opacity: 0.85; }
+      }
+
       .inventory-hud {
         position: absolute;
         right: 18px;
@@ -279,9 +376,82 @@
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
+        align-items: stretch;
         justify-content: flex-end;
-        z-index: 3;
+        z-index: 8;
         pointer-events: none;
+      }
+
+      .inventory-hud.open {
+        pointer-events: auto;
+      }
+
+      .inventory-hint,
+      .inventory-close {
+        appearance: none;
+        -webkit-appearance: none;
+        margin: 0;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: rgba(10, 20, 31, 0.54);
+        border: 1px solid var(--panel-border);
+        color: var(--text);
+        backdrop-filter: blur(8px);
+        font-family: inherit;
+        font-weight: 800;
+        letter-spacing: 0.14rem;
+        text-transform: uppercase;
+        transform: none;
+      }
+
+      .inventory-hint {
+        font-size: 10px;
+        min-width: 108px;
+        text-align: center;
+        pointer-events: none;
+        cursor: default;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .inventory-hint kbd {
+        display: inline-block;
+        min-width: 1.4em;
+        padding: 2px 5px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.08);
+        font: inherit;
+        font-size: 11px;
+        letter-spacing: 0;
+        line-height: 1.2;
+      }
+
+      .inventory-close {
+        display: none;
+        min-width: 36px;
+        font-size: 16px;
+        letter-spacing: 0;
+        line-height: 1;
+        cursor: pointer;
+      }
+
+      .inventory-items {
+        display: none;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .inventory-hud.open .inventory-hint {
+        display: none;
+      }
+
+      .inventory-hud.open .inventory-items,
+      .inventory-hud.open .inventory-close {
+        display: flex;
       }
 
       .inventory-item {
@@ -291,6 +461,7 @@
         background: rgba(10, 20, 31, 0.54);
         border: 1px solid var(--panel-border);
         text-align: center;
+        pointer-events: none;
       }
 
       .inventory-label {
@@ -509,7 +680,8 @@
         cursor: pointer;
       }
 
-      .level-item.locked {
+      .level-item.locked,
+      .level-item.coming-soon {
         opacity: 0.5;
         cursor: not-allowed;
       }
@@ -667,27 +839,27 @@
       <div class="hud">
         <div class="brand">PH ORIGINS</div>
         <div class="stats">
-          <div class="stat">
-            <span class="label">Score</span>
-            <span class="value" id="score">0</span>
-          </div>
-          <div class="stat">
-            <span class="label">Best</span>
-            <span class="value" id="best">0</span>
-          </div>
-          <div class="stat">
+          <div class="stat health-stat">
             <span class="label">Health</span>
-            <span class="value" id="health">100</span>
-          </div>
-          <div class="stat">
-            <span class="label">Level</span>
-            <span class="value" id="level">1</span>
+            <div class="health-bar" id="healthBar" role="progressbar" aria-label="Health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+              <span class="health-fill" id="healthFill" data-band="high"></span>
+            </div>
           </div>
         </div>
       </div>
 
       <div id="crosshair" aria-hidden="true"></div>
-      <div id="inventoryHud" class="inventory-hud" aria-live="polite"></div>
+      <div id="objectiveHud" class="objective-hud" aria-live="polite">
+        <span class="objective-kicker">Objective</span>
+        <span id="objectiveText" class="objective-text"></span>
+        <span id="objectiveDist" class="objective-dist"></span>
+      </div>
+      <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
+      <div id="inventoryHud" class="inventory-hud" aria-live="polite">
+        <span id="inventoryHint" class="inventory-hint"><kbd>I</kbd> Inventory</span>
+        <div id="inventoryItems" class="inventory-items"></div>
+        <button type="button" id="inventoryClose" class="inventory-close" aria-label="Close inventory">›</button>
+      </div>
 
       <button id="devToggle" type="button" aria-label="Toggle developer tools">DEV</button>
       <aside id="devPanel" aria-live="polite">
@@ -702,10 +874,6 @@
             <span class="value" id="devHealth">100</span>
           </div>
           <div class="dev-stat">
-            <span class="label">Score</span>
-            <span class="value" id="devScore">0</span>
-          </div>
-          <div class="dev-stat">
             <span class="label">Level</span>
             <span class="value" id="devLevel">1</span>
           </div>
@@ -713,7 +881,6 @@
         <div class="dev-actions">
           <button class="primary" type="button" data-dev-action="reset">Reset</button>
           <button type="button" data-dev-action="hp">HP 100</button>
-          <button type="button" data-dev-action="score">+100 Score</button>
           <button type="button" data-dev-action="level">+1 Level</button>
           <button type="button" data-dev-action="pause">Pause</button>
           <button type="button" data-dev-action="audio">Audio</button>
@@ -745,9 +912,9 @@
 
       <div class="message" id="messageBox">
         <div class="panel">
-          <div class="eyebrow">3rd person adventure</div>
+          <div class="eyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
-          <p class="subtitle" id="messageText">Move with WASD • Aim with mouse or drag • Fire • Jump • Explore the mission</p>
+          <p class="subtitle" id="messageText">Get ready to embark on an exciting journey!</p>
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">

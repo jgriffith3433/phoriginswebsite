@@ -90,7 +90,7 @@
       "text": "The street is watching B3, Pierce. If that basement leaks, the valuation does not survive the quarter.",
       "audio": "/assets/audio/cutscenes/room-for-grace/04-hale-b3.wav",
       "anim": "talk",
-      "duration": 7.0,
+      "duration": 7.1,
       "volume": 0.85
     },
     {
@@ -124,7 +124,7 @@
       "text": "Ethics and the charter say we seal it. Those are patients down there, Pierce. Not prototypes.",
       "audio": "/assets/audio/cutscenes/room-for-grace/06-voss-ethics.wav",
       "anim": "talk",
-      "duration": 6.8,
+      "duration": 5.8,
       "volume": 0.85
     },
     {

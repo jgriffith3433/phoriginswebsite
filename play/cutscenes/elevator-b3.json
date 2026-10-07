@@ -1,0 +1,161 @@
+{
+  "id": "elevator-b3",
+  "name": "B3",
+  "duration": 69,
+  "notes": "Pierce in the Apex Peak elevator. Standing idle. Cab stays put — descent is the floor LEDs, rumble, and flicker. Cine HUD is Pierce's monitor/creature monologue only. Gameplay closes the doors from 3.3s and steps 58 → B3 from 7.2s to 64.5s. This ends Apex Peak Act I — do not continue into B3 combat.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": { "x": 43.15, "y": 1.62, "z": 21.05 },
+      "lookAt": { "x": 45.4, "y": 1.38, "z": 21.25 }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/hum.wav",
+      "bus": "music",
+      "loop": true,
+      "volume": 0.22
+    },
+    {
+      "at": 2.5,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.7
+    },
+    {
+      "at": 4.0,
+      "type": "camera",
+      "position": { "x": 44.0, "y": 1.7, "z": 20.15 },
+      "lookAt": { "x": 44.0, "y": 1.45, "z": 23.6 }
+    },
+    {
+      "at": 4.1,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/doors.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.65
+    },
+    {
+      "at": 7.0,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/rumble.wav",
+      "bus": "sfx",
+      "loop": true,
+      "volume": 0.5
+    },
+    {
+      "at": 8.4,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "Doors shut. Good. The board can sit up there and pretend the numbers still mean something.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/02-pierce-doors.wav",
+      "anim": "idle",
+      "duration": 6.1,
+      "volume": 0.92
+    },
+    {
+      "at": 12.0,
+      "type": "camera",
+      "position": { "x": 43.2, "y": 1.72, "z": 20.55 },
+      "lookAt": { "x": 44.1, "y": 2.7, "z": 23.48 }
+    },
+    {
+      "at": 15.4,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "That alarm was not a drill. I saw the monitor. After the klaxon. After they left me the office like a gift.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/03-pierce-monitor.wav",
+      "anim": "idle",
+      "duration": 7.9,
+      "volume": 0.92
+    },
+    {
+      "at": 24.2,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "It looked like a creature. Not a chart. Not a leak. Something with a shape it should not have, sitting on a terminal in my tower.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/04-pierce-creature.wav",
+      "anim": "idle",
+      "duration": 9.75,
+      "volume": 0.92
+    },
+    {
+      "at": 34.9,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "Hawkes sells dominance. Clean floors. Locked basements. We do not put animals on a fifty-eighth-floor screen and call it operations.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/05-pierce-dominance.wav",
+      "anim": "idle",
+      "duration": 10.1,
+      "volume": 0.92
+    },
+    {
+      "at": 36.0,
+      "type": "camera",
+      "position": { "x": 43.35, "y": 1.78, "z": 20.7 },
+      "lookAt": { "x": 44.4, "y": 2.72, "z": 23.46 }
+    },
+    {
+      "at": 45.9,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "Unless it was not an animal. Unless B3 has been writing back. That is not a valuation problem. That is a thing in the building.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/06-pierce-writing.wav",
+      "anim": "idle",
+      "duration": 11.2,
+      "volume": 0.92
+    },
+    {
+      "at": 58.0,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "I am going down there. If it is a glitch, I will bury the tape. If it is not—",
+      "audio": "/assets/audio/cutscenes/elevator-b3/07-pierce-tape.wav",
+      "anim": "idle",
+      "duration": 6.0,
+      "volume": 0.92
+    },
+    {
+      "at": 59.5,
+      "type": "camera",
+      "position": { "x": 43.4, "y": 1.7, "z": 20.65 },
+      "lookAt": { "x": 44.18, "y": 2.74, "z": 23.44 }
+    },
+    {
+      "at": 65.4,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.82
+    },
+    {
+      "at": 66.2,
+      "type": "hud",
+      "title": "Level Complete",
+      "text": "Apex Peak Act I — the ride down"
+    },
+    {
+      "at": 69,
+      "type": "end"
+    }
+  ]
+}

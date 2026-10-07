@@ -2,6 +2,8 @@ import type { LevelDefinition } from './types';
 
 export const LEVEL_LIBRARY_PATH = '/levels/level-library.json';
 
+export const MISSION_SELECT_SLOTS = 3;
+
 type LibraryEntry = {
   id?: string;
   name?: string;
@@ -16,6 +18,7 @@ type LibraryEntry = {
   fireRate?: number;
   enemyHp?: number;
   arenaSize?: number;
+  comingSoon?: boolean;
 };
 
 const combatFromDifficulty = (difficulty: number) => ({
@@ -28,19 +31,21 @@ const combatFromDifficulty = (difficulty: number) => ({
 
 const FALLBACK_LIBRARY: LibraryEntry[] = [
   { id: 'apex-peak', name: 'The Apex Peak', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 1, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'Room for Grace' },
-  { id: 'crimson-courtyard', name: 'Crimson Courtyard', path: '/levels/crimson-courtyard.json', theme: 'Crimson Surge', difficulty: 2, reward: 'Heavy Ammo' },
-  { id: 'arctic-rift', name: 'Arctic Rift', path: '/levels/arctic-rift.json', theme: 'Arctic Rift', difficulty: 3, reward: 'Core Key' },
+  { id: 'crimson-courtyard', path: '/levels/crimson-courtyard.json', comingSoon: true },
+  { id: 'arctic-rift', path: '/levels/arctic-rift.json', comingSoon: true },
 ];
 
 const normalizeLevel = (entry: LibraryEntry | Partial<LevelDefinition> | undefined, index: number): LevelDefinition => {
   const difficulty = Math.max(1, Number(entry?.difficulty ?? index));
   const combat = combatFromDifficulty(difficulty);
   const libraryId = String((entry as LibraryEntry)?.id ?? (entry as LevelDefinition)?.libraryId ?? `level-${index}`);
+  const comingSoon = entry?.comingSoon === true || index > 1;
   return {
     id: index,
     libraryId,
+    comingSoon,
     path: String(entry?.path ?? `/levels/${libraryId}.json`),
-    name: String(entry?.name ?? `Level ${index}`),
+    name: comingSoon ? `Level ${index}` : String(entry?.name ?? `Level ${index}`),
     difficulty,
     enemyCount: Number(entry?.enemyCount ?? combat.enemyCount),
     combat: entry?.combat === true || (entry?.combat !== false && Number(entry?.enemyCount ?? combat.enemyCount) > 0),
@@ -63,8 +68,13 @@ const parseLibrary = (payload: unknown): LevelDefinition[] => {
     : Array.isArray(payload)
       ? (payload as LibraryEntry[])
       : [];
-  if (entries.length === 0) return FALLBACK_LIBRARY.map((entry, index) => normalizeLevel(entry, index + 1));
-  return entries.map((entry, index) => normalizeLevel(entry, index + 1));
+  const source = entries.length === 0 ? FALLBACK_LIBRARY : entries;
+  const levels = source.map((entry, index) => normalizeLevel(entry, index + 1));
+  while (levels.length < MISSION_SELECT_SLOTS) {
+    const index = levels.length + 1;
+    levels.push(normalizeLevel({ id: `coming-soon-${index}`, comingSoon: true }, index));
+  }
+  return levels;
 };
 
 export const loadLevelLibrary = async (): Promise<LevelDefinition[]> => {
@@ -90,7 +100,11 @@ export const getLevelDefinition = (level: number): LevelDefinition => {
   return levels[boundedLevel - 1] ?? normalizeLevel(FALLBACK_LIBRARY[0], 1);
 };
 
+export const getPlayableLevelCount = () => {
+  const playable = getLevels().filter((level) => !level.comingSoon).length;
+  return Math.max(1, playable);
+};
+
 export const getUnlockedLevelCount = (highestUnlocked: number) => {
-  const levels = getLevels();
-  return Math.max(1, Math.min(highestUnlocked, levels.length));
+  return Math.max(1, Math.min(highestUnlocked, getPlayableLevelCount()));
 };

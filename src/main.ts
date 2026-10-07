@@ -2,28 +2,39 @@
 import '@babylonjs/loaders';
 
 import { configureResponsiveUI } from './game/mobile';
-import { clearEnemies, disposeEnemy, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
-import { clearNpcs, spawnNpcsFromScene, type Npc } from './game/npcs';
+import { clearEnemies, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
+import {
+  clearNpcs,
+  remainingDepartingNpcs,
+  resolveBoardDoor,
+  resolveBoardSeatPose,
+  resolveElevator,
+  resolveOfficeTerminal,
+  resolveOfficeWindow,
+  spawnNpcsFromScene,
+  startBoardDeparture,
+  updateNpcDeparture,
+  type Npc,
+} from './game/npcs';
 import { createPlayerAvatar } from './game/playerAvatar';
 import { addItem, createInventoryState, consumeItem, inventorySummary } from './game/inventory';
 import { getLevelDefinition, getLevels, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
 import { applyJump, clampPlayerToArena, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, updateVerticalMotion } from './game/player';
-import { createBurst, createProjectile } from './game/physics';
+import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_IDS } from './game/modelLoader';
-import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneTrigger } from './game/sceneData';
+import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, paintLiftGlyph, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createTriggerRunner } from './game/triggers';
 import { applyNpcAnim, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
+import { createObjectiveMarker } from './game/objectiveMarker';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 const root = document.getElementById('game-root') as HTMLDivElement;
-const scoreEl = document.getElementById('score') as HTMLSpanElement;
-const bestEl = document.getElementById('best') as HTMLSpanElement;
-const healthEl = document.getElementById('health') as HTMLSpanElement;
-const levelEl = document.getElementById('level') as HTMLSpanElement;
+const healthBar = document.getElementById('healthBar') as HTMLDivElement;
+const healthFill = document.getElementById('healthFill') as HTMLSpanElement;
 const messageBox = document.getElementById('messageBox') as HTMLDivElement;
 const messageTitle = document.getElementById('messageTitle') as HTMLHeadingElement;
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
@@ -42,13 +53,18 @@ const devPanel = document.getElementById('devPanel') as HTMLDivElement;
 const devOutput = document.getElementById('devOutput') as HTMLTextAreaElement;
 const devFps = document.getElementById('devFps') as HTMLSpanElement;
 const devHealth = document.getElementById('devHealth') as HTMLSpanElement;
-const devScore = document.getElementById('devScore') as HTMLSpanElement;
 const devLevel = document.getElementById('devLevel') as HTMLSpanElement;
 const levelSelect = document.getElementById('levelSelect') as HTMLDivElement;
 const levelList = document.getElementById('levelList') as HTMLDivElement;
 const closeLevelSelectBtn = document.getElementById('closeLevelSelect') as HTMLButtonElement;
 const crosshair = document.getElementById('crosshair') as HTMLDivElement;
 const inventoryHud = document.getElementById('inventoryHud') as HTMLDivElement;
+const inventoryItems = document.getElementById('inventoryItems') as HTMLDivElement;
+const inventoryClose = document.getElementById('inventoryClose') as HTMLButtonElement;
+const objectiveHud = document.getElementById('objectiveHud') as HTMLDivElement | null;
+const objectiveText = document.getElementById('objectiveText') as HTMLSpanElement | null;
+const objectiveDist = document.getElementById('objectiveDist') as HTMLSpanElement | null;
+const alarmFlash = document.getElementById('alarmFlash') as HTMLDivElement | null;
 
 const canvas = document.createElement('canvas');
 canvas.style.width = '100%';
@@ -99,18 +115,469 @@ if (initialSceneData?.theme) {
 
 const sceneLoadOptions = { omitAssetIds: PLAYER_ASSET_IDS, hideTriggers: true };
 let sceneNodes: BABYLON.Node[] = [];
+let missionScene: SceneData | null = initialSceneData;
 
 const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFile>>) => {
   if (loaded) {
     sceneNodes = loaded.nodes;
+    missionScene = loaded.data;
     applyTheme(scene, loaded.data.theme || currentThemeName);
     return;
   }
+  missionScene = initialSceneData;
   sceneNodes = loadSceneFromJson(scene, initialSceneData, sceneLoadOptions);
 };
 
 const npcs: Npc[] = [];
 let activeCutscene: ActiveCutscene | null = null;
+let seatedPierceForCutscene = false;
+let windowPierceLocked = false;
+let terminalPierceLocked = false;
+let boardDeparting = false;
+let windowCutsceneQueued = false;
+let elevatorCutsceneQueued = false;
+let elevatorLocked = false;
+// Rest poses left a ~0.09 gap (half-width 0.675). Slide further in so the leaves overlap.
+const ELEVATOR_DOOR_L_CLOSED = 43.42;
+const ELEVATOR_DOOR_R_CLOSED = 44.58;
+const ELEVATOR_DOOR_L_OPEN = 42.42;
+const ELEVATOR_DOOR_R_OPEN = 45.58;
+let elevatorDoorOpen = 0;
+let elevatorFloorIndex = 0;
+let elevatorDinged = false;
+let elevatorReadoutLabel = '';
+let officeAlarmStarted = false;
+let sequencePhase: 'seat' | 'idle' | 'wait-board' | 'window' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done' = 'idle';
+const objectiveMarker = createObjectiveMarker(scene);
+
+const OFFICE_WINDOW_POSE = { x: 48, z: 46.2, yaw: 0 };
+const OFFICE_TERMINAL_POSE = { x: 48.15, z: 43.12, yaw: Math.PI };
+
+const placePierceAtTerminal = () => {
+  const x = OFFICE_TERMINAL_POSE.x;
+  const z = OFFICE_TERMINAL_POSE.z;
+  const yaw = OFFICE_TERMINAL_POSE.yaw;
+  state.player.x = x;
+  state.player.y = PLAYER_STAND_Y;
+  state.player.z = z;
+  state.player.velocityY = 0;
+  state.player.grounded = true;
+  state.characterYaw = yaw;
+  playerCollider.position.set(x, PLAYER_STAND_Y, z);
+  playerAvatar.group.position.set(x, playerMeshY(PLAYER_STAND_Y), z);
+  playerAvatar.group.rotation.y = yaw + Math.PI;
+};
+
+const placePierceAtOfficeWindow = () => {
+  const pose = missionScene ? resolveOfficeWindow(missionScene) : OFFICE_WINDOW_POSE;
+  const x = pose.x;
+  const z = pose.z;
+  const yaw = OFFICE_WINDOW_POSE.yaw;
+  state.player.x = x;
+  state.player.y = PLAYER_STAND_Y;
+  state.player.z = z;
+  state.player.velocityY = 0;
+  state.player.grounded = true;
+  state.characterYaw = yaw;
+  playerCollider.position.set(x, PLAYER_STAND_Y, z);
+  playerAvatar.group.position.set(x, playerMeshY(PLAYER_STAND_Y), z);
+  playerAvatar.group.rotation.y = yaw + Math.PI;
+};
+
+const setObjective = (title: string, text: string, target: { x: number; z: number; y?: number } | null) => {
+  if (objectiveText) objectiveText.textContent = text;
+  if (objectiveHud) {
+    const kicker = objectiveHud.querySelector('.objective-kicker') as HTMLElement | null;
+    if (kicker) kicker.textContent = title;
+  }
+  if (target) objectiveMarker.setTarget({ ...target, title, text });
+  else objectiveMarker.setTarget(null);
+};
+
+const showObjectiveHud = (visible: boolean) => {
+  if (!objectiveHud) return;
+  objectiveHud.classList.toggle('visible', visible);
+};
+
+const isApexPeakLevel = () =>
+  getLevelDefinition(state.level).libraryId === 'apex-peak' || missionScene?.id === 'apex-peak';
+
+const refreshObjectivePresentation = () => {
+  const hideWorld = state.inCutscene
+    || sequencePhase === 'idle'
+    || sequencePhase === 'done'
+    || sequencePhase === 'window'
+    || sequencePhase === 'terminal'
+    || sequencePhase === 'ride';
+  if (hideWorld) objectiveMarker.hide();
+  else objectiveMarker.show();
+  const showHud = sequencePhase === 'seat'
+    || sequencePhase === 'wait-board'
+    || sequencePhase === 'alarm'
+    || sequencePhase === 'elevator';
+  showObjectiveHud(showHud && !state.inCutscene && state.running);
+};
+
+const restyleOfficeTerminal = (alarming: boolean) => {
+  const mesh = scene.meshes.find((entry) => entry.metadata?.sceneAssetId === 'office-terminal');
+  if (!mesh) return;
+  const material = mesh.material;
+  if (!(material instanceof BABYLON.StandardMaterial)) return;
+  if (alarming) {
+    material.diffuseColor = new BABYLON.Color3(0.55, 0.08, 0.1);
+    material.emissiveColor = new BABYLON.Color3(0.85, 0.12, 0.14);
+  } else {
+    material.diffuseColor = new BABYLON.Color3(0.08, 0.12, 0.16);
+    material.emissiveColor = new BABYLON.Color3(0.12, 0.35, 0.42);
+  }
+};
+
+const officeAlarm = {
+  active: false,
+  wav: null as HTMLAudioElement | null,
+  timer: 0,
+  pulse: 0,
+  start() {
+    if (this.active) return;
+    this.active = true;
+    officeAlarmStarted = true;
+    alarmFlash?.classList.add('visible');
+    restyleOfficeTerminal(true);
+    if (!audio.enabled) return;
+    audio.ensure();
+    this.wav = new Audio('/assets/audio/cutscenes/apex-window/alarm.wav');
+    this.wav.loop = true;
+    this.wav.volume = 0.62;
+    this.wav.addEventListener('error', () => {
+      this.wav = null;
+    });
+    void this.wav.play().catch(() => {
+      this.wav = null;
+    });
+  },
+  update(delta: number) {
+    if (!this.active) return;
+    this.pulse += delta;
+    const mesh = scene.meshes.find((entry) => entry.metadata?.sceneAssetId === 'office-terminal');
+    const material = mesh?.material;
+    if (material instanceof BABYLON.StandardMaterial) {
+      const flash = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(this.pulse * 9));
+      material.emissiveColor = new BABYLON.Color3(flash, 0.08, 0.1);
+    }
+    const wavPlaying = Boolean(this.wav && !this.wav.paused && this.wav.readyState >= 2);
+    if (wavPlaying || !audio.enabled) return;
+    this.timer += delta;
+    if (this.timer < 0.52) return;
+    this.timer = 0;
+    audio.tone(880, 0.11, 'square', 0.085);
+    window.setTimeout(() => audio.tone(620, 0.11, 'square', 0.07), 130);
+  },
+  stop() {
+    this.active = false;
+    alarmFlash?.classList.remove('visible');
+    if (this.wav) {
+      this.wav.pause();
+      this.wav.src = '';
+      this.wav = null;
+    }
+    restyleOfficeTerminal(false);
+  },
+};
+
+const resetApexSequence = () => {
+  boardDeparting = false;
+  windowCutsceneQueued = false;
+  elevatorCutsceneQueued = false;
+  windowPierceLocked = false;
+  terminalPierceLocked = false;
+  elevatorLocked = false;
+  officeAlarmStarted = false;
+  sequencePhase = 'idle';
+  officeAlarm.stop();
+  elevatorDoorOpen = 0;
+  elevatorFloorIndex = 0;
+  elevatorDinged = false;
+  elevatorReadoutLabel = '';
+  applyElevatorDoors(0);
+  applyElevatorIndicators(0, false, false);
+  applyElevatorCabLight(0, false);
+  objectiveMarker.setTarget(null);
+  showObjectiveHud(false);
+};
+
+const beginSeatObjective = () => {
+  if (!isApexPeakLevel()) return;
+  sequencePhase = 'seat';
+  const pose = missionScene ? resolveBoardSeatPose(missionScene, 'chair-head') : null;
+  const x = pose?.x ?? 50.55;
+  const z = pose?.z ?? 32;
+  setObjective('Take your seat', 'Join the board', { x, y: 1.85, z });
+  refreshObjectivePresentation();
+};
+
+const beginBoardWalkout = () => {
+  if (!missionScene || boardDeparting || sequencePhase === 'wait-board') return;
+  boardDeparting = true;
+  sequencePhase = 'wait-board';
+  startBoardDeparture(npcs, missionScene);
+  const door = resolveBoardDoor(missionScene);
+  setObjective('Objective', 'Wait for the board to leave', { x: door.x, y: 2.05, z: door.z });
+  refreshObjectivePresentation();
+};
+
+const beginWindowCutscene = () => {
+  if (windowCutsceneQueued || sequencePhase === 'window' || sequencePhase === 'alarm' || sequencePhase === 'terminal' || sequencePhase === 'elevator' || sequencePhase === 'ride') return;
+  windowCutsceneQueued = true;
+  sequencePhase = 'window';
+  objectiveMarker.hide();
+  showObjectiveHud(false);
+  beginNamedCutscene('apex-window');
+};
+
+const beginAlarmObjective = () => {
+  sequencePhase = 'alarm';
+  officeAlarm.start();
+  const terminal = missionScene
+    ? resolveOfficeTerminal(missionScene)
+    : { x: 48.15, z: 41.88 };
+  setObjective('Objective', 'Investigate the terminal', { x: terminal.x, y: 1.85, z: terminal.z });
+  refreshObjectivePresentation();
+};
+
+const ELEVATOR_POSE = { x: 44.25, z: 21.2, yaw: Math.PI / 2 };
+
+const sceneMeshById = (id: string) =>
+  scene.meshes.find((entry) => entry.metadata?.sceneAssetId === id);
+
+const placePierceInElevator = () => {
+  const x = ELEVATOR_POSE.x;
+  const z = ELEVATOR_POSE.z;
+  const y = PLAYER_STAND_Y;
+  const yaw = ELEVATOR_POSE.yaw;
+  state.player.x = x;
+  state.player.y = y;
+  state.player.z = z;
+  state.player.velocityY = 0;
+  state.player.grounded = true;
+  state.characterYaw = yaw;
+  playerCollider.position.set(x, y, z);
+  playerAvatar.group.position.set(x, playerMeshY(y), z);
+  playerAvatar.group.rotation.y = yaw + Math.PI;
+};
+
+const pulseB3Button = (lit: boolean) => {
+  const mesh = sceneMeshById('lift-b3-button');
+  const material = mesh?.material;
+  if (!(material instanceof BABYLON.StandardMaterial)) return;
+  if (lit) {
+    material.diffuseColor = new BABYLON.Color3(0.95, 0.35, 0.12);
+    material.emissiveColor = new BABYLON.Color3(1, 0.45, 0.08);
+  } else {
+    material.diffuseColor = new BABYLON.Color3(0.18, 0.2, 0.22);
+    material.emissiveColor = new BABYLON.Color3(0.08, 0.1, 0.12);
+  }
+};
+
+const LIFT_FLOOR_LEDS = [
+  'lift-ind-58',
+  'lift-ind-40',
+  'lift-ind-20',
+  'lift-ind-L',
+  'lift-ind-B1',
+  'lift-ind-B2',
+  'lift-ind-B3',
+] as const;
+
+const LIFT_FLOOR_LABELS = ['58', '40', '20', 'L', 'B1', 'B2', 'B3'] as const;
+
+const ELEVATOR_DOOR_CLOSE_AT = 3.3;
+const ELEVATOR_RIDE_AT = 7.2;
+const ELEVATOR_ARRIVE_AT = 64.5;
+const ELEVATOR_DING_AT = 65.4;
+const LIFT_FLOOR_AT = [0, 16, 26, 36, 46, 56, 64.5];
+
+const elevatorFloorAt = (time: number) => {
+  let index = 0;
+  for (let i = 0; i < LIFT_FLOOR_AT.length; i++) {
+    if (time >= LIFT_FLOOR_AT[i]) index = i;
+  }
+  return index;
+};
+
+const glowMesh = (id: string, diffuse: BABYLON.Color3, emissive: BABYLON.Color3) => {
+  const mesh = sceneMeshById(id);
+  const material = mesh?.material;
+  if (!(material instanceof BABYLON.StandardMaterial)) return;
+  material.diffuseColor = diffuse;
+  material.emissiveColor = emissive;
+};
+
+const applyElevatorIndicators = (floorIndex: number, descending: boolean, arrived: boolean, time = 0) => {
+  glowMesh('lift-ind-panel', new BABYLON.Color3(0.04, 0.05, 0.06), new BABYLON.Color3(0.02, 0.03, 0.04));
+  const flicker = descending && !arrived && Math.sin(time * 31.4) * Math.sin(time * 5.7) > 0.62;
+  LIFT_FLOOR_LEDS.forEach((id, index) => {
+    const active = index === floorIndex;
+    const basement = index === 6 && active;
+    if (!active) {
+      glowMesh(id, new BABYLON.Color3(0.12, 0.13, 0.14), new BABYLON.Color3(0.08, 0.09, 0.1));
+      return;
+    }
+    if (flicker) {
+      glowMesh(id, new BABYLON.Color3(0.16, 0.12, 0.06), new BABYLON.Color3(0.18, 0.1, 0.04));
+      return;
+    }
+    if (basement) {
+      glowMesh(id, new BABYLON.Color3(1, 0.28, 0.1), new BABYLON.Color3(1, 0.28, 0.08));
+      return;
+    }
+    glowMesh(id, new BABYLON.Color3(1, 0.78, 0.22), new BABYLON.Color3(1, 0.72, 0.18));
+  });
+  const arrowOn = descending || arrived;
+  const blink = descending && !arrived && Math.sin(time * 8.5) > 0;
+  if (arrowOn && (arrived || blink) && !flicker) {
+    glowMesh('lift-ind-down', new BABYLON.Color3(0.35, 1, 0.45), new BABYLON.Color3(0.2, 1, 0.28));
+  } else {
+    glowMesh('lift-ind-down', new BABYLON.Color3(0.1, 0.14, 0.12), new BABYLON.Color3(0.06, 0.08, 0.06));
+  }
+  const label = LIFT_FLOOR_LABELS[floorIndex] ?? '58';
+  const readout = sceneMeshById('lift-ind-readout');
+  if (label !== elevatorReadoutLabel) {
+    elevatorReadoutLabel = label;
+    paintLiftGlyph(readout, label, '#ffffff');
+  }
+  if (flicker) {
+    glowMesh('lift-ind-readout', new BABYLON.Color3(0.12, 0.1, 0.06), new BABYLON.Color3(0.1, 0.08, 0.04));
+  } else if (arrived) {
+    glowMesh('lift-ind-readout', new BABYLON.Color3(1, 0.32, 0.1), new BABYLON.Color3(1, 0.3, 0.08));
+  } else {
+    glowMesh('lift-ind-readout', new BABYLON.Color3(1, 0.82, 0.28), new BABYLON.Color3(1, 0.75, 0.2));
+  }
+};
+
+const cabLightById = () =>
+  scene.lights.find((entry) => (entry.metadata as { sceneAssetId?: string } | undefined)?.sceneAssetId === 'light-lift');
+
+const applyElevatorCabLight = (time: number, riding: boolean) => {
+  const light = cabLightById();
+  const ceiling = sceneMeshById('ceil-lift');
+  const ceilingMat = ceiling?.material;
+  if (!riding) {
+    if (light) light.intensity = 0.42;
+    if (ceilingMat instanceof BABYLON.StandardMaterial) {
+      ceilingMat.emissiveColor = new BABYLON.Color3(0.12, 0.12, 0.13);
+    }
+    return;
+  }
+  const arrived = time >= ELEVATOR_ARRIVE_AT;
+  const flicker = time >= ELEVATOR_RIDE_AT && time < ELEVATOR_ARRIVE_AT && (Math.sin(time * 23.4) * Math.sin(time * 4.1) > 0.72);
+  const dim = arrived ? 0.08 : flicker ? 0.12 : 0.38 + 0.06 * Math.sin(time * 7.2);
+  if (light) light.intensity = dim;
+  if (ceilingMat instanceof BABYLON.StandardMaterial) {
+    const glow = arrived ? 0.02 : flicker ? 0.04 : 0.18;
+    ceilingMat.emissiveColor = new BABYLON.Color3(glow, glow * (arrived ? 0.4 : 0.95), glow * (arrived ? 0.3 : 0.9));
+  }
+};
+
+const tickElevatorFloor = (index: number, arrived: boolean) => {
+  if (!audio.enabled) return;
+  if (arrived) {
+    audio.tone(392, 0.12, 'sine', 0.07);
+    window.setTimeout(() => audio.tone(587, 0.22, 'sine', 0.08), 90);
+    return;
+  }
+  audio.tone(620 - index * 28, 0.07, 'square', 0.045);
+};
+
+const applyElevatorDoors = (openAmount: number) => {
+  const t = Math.max(0, Math.min(1, openAmount));
+  const doorL = sceneMeshById('lift-door-l');
+  const doorR = sceneMeshById('lift-door-r');
+  if (doorL) {
+    doorL.position.x = ELEVATOR_DOOR_L_CLOSED + (ELEVATOR_DOOR_L_OPEN - ELEVATOR_DOOR_L_CLOSED) * t;
+    doorL.checkCollisions = t < 0.45;
+  }
+  if (doorR) {
+    doorR.position.x = ELEVATOR_DOOR_R_CLOSED + (ELEVATOR_DOOR_R_OPEN - ELEVATOR_DOOR_R_CLOSED) * t;
+    doorR.checkCollisions = t < 0.45;
+  }
+};
+
+const applyElevatorRideFeel = (time: number) => {
+  if (time < ELEVATOR_RIDE_AT || time > ELEVATOR_ARRIVE_AT + 1.2) return;
+  const amp = time >= ELEVATOR_ARRIVE_AT ? 0.006 : 0.02;
+  const cam = followCamera.camera;
+  cam.position.x += Math.sin(time * 41.3) * amp;
+  cam.position.y += Math.sin(time * 53.7) * amp * 0.55;
+  cam.position.z += Math.sin(time * 29.1) * amp * 0.35;
+};
+
+const stepElevatorSet = (time: number) => {
+  // Cab/cart stay put. Descent is doors, B3 button, floor LEDs, readout, light flicker, and a light rumble on the camera.
+  const closeT = Math.min(1, Math.max(0, (time - ELEVATOR_DOOR_CLOSE_AT) / 1.5));
+  elevatorDoorOpen = 1 - closeT;
+  applyElevatorDoors(elevatorDoorOpen);
+  pulseB3Button(time >= 2.35);
+  const descending = time >= ELEVATOR_RIDE_AT && time < ELEVATOR_ARRIVE_AT;
+  const arrived = time >= ELEVATOR_ARRIVE_AT;
+  const floorIndex = elevatorFloorAt(time);
+  if (floorIndex !== elevatorFloorIndex) {
+    elevatorFloorIndex = floorIndex;
+    tickElevatorFloor(floorIndex, false);
+  }
+  if (arrived && !elevatorDinged && time >= ELEVATOR_DING_AT) {
+    elevatorDinged = true;
+    tickElevatorFloor(6, true);
+  }
+  applyElevatorIndicators(floorIndex, descending, arrived, time);
+  applyElevatorCabLight(time, true);
+  placePierceInElevator();
+};
+
+const beginElevatorObjective = () => {
+  sequencePhase = 'elevator';
+  officeAlarm.stop();
+  const lift = missionScene ? resolveElevator(missionScene) : { x: 44, z: 21.35 };
+  setObjective('Objective', 'Get to the elevator', { x: lift.x, y: 2.15, z: lift.z });
+  refreshObjectivePresentation();
+};
+
+const beginTerminalBeat = () => {
+  if (sequencePhase !== 'alarm') return;
+  sequencePhase = 'terminal';
+  objectiveMarker.hide();
+  showObjectiveHud(false);
+  beginNamedCutscene('apex-terminal');
+};
+
+const completeApexPeak = () => {
+  const alreadyDone = sequencePhase === 'done';
+  sequencePhase = 'done';
+  elevatorLocked = false;
+  officeAlarm.stop();
+  objectiveMarker.setTarget(null);
+  showObjectiveHud(false);
+  clearInputState();
+  playerAvatar.setLocomotion(false, true);
+  playerAvatar.playClip('idle', true);
+  state.running = false;
+  if (alreadyDone) return;
+  state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level + 1));
+  saveGame({ unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
+  audio.win();
+  updateHud();
+    showMessage('Level Complete', 'Apex Peak Act I is done. Later missions are coming soon.');
+};
+
+const beginElevatorCutscene = () => {
+  if (elevatorCutsceneQueued || sequencePhase === 'ride' || sequencePhase !== 'elevator') return;
+  elevatorCutsceneQueued = true;
+  sequencePhase = 'ride';
+  elevatorLocked = true;
+  objectiveMarker.hide();
+  showObjectiveHud(false);
+  placePierceInElevator();
+  beginNamedCutscene('elevator-b3');
+};
 
 const cineHud = document.createElement('div');
 cineHud.style.cssText = 'position:absolute;left:0;right:0;bottom:11%;text-align:center;pointer-events:none;z-index:24;display:none;';
@@ -129,30 +596,124 @@ const resetCutsceneState = () => {
   stopCutsceneAudio(activeCutscene);
   activeCutscene = null;
   state.inCutscene = false;
+  seatedPierceForCutscene = false;
+  windowPierceLocked = false;
+  terminalPierceLocked = false;
+  elevatorLocked = false;
   followCamera.clearCinematic();
   showCineHud();
 };
 
+const PLAYER_HEAD_CHAIR_ID = 'chair-head';
+
+const seatPlayerAtHeadChair = () => {
+  const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
+  if (!pose) return;
+  state.player.x = pose.x;
+  state.player.y = PLAYER_STAND_Y;
+  state.player.z = pose.z;
+  state.player.velocityY = 0;
+  state.player.grounded = true;
+  state.characterYaw = pose.facingYaw;
+  playerCollider.position.set(pose.x, PLAYER_STAND_Y, pose.z);
+  playerAvatar.group.position.set(pose.x, pose.visualY, pose.z);
+  playerAvatar.group.rotation.y = pose.facingYaw + Math.PI;
+  playerAvatar.playClip('sit', true);
+};
+
+const leavePlayerAtHeadChair = () => {
+  const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
+  if (!pose) return;
+  const x = pose.x - 0.55;
+  const z = pose.z - 1.15;
+  state.player.x = x;
+  state.player.y = PLAYER_STAND_Y;
+  state.player.z = z;
+  state.player.velocityY = 0;
+  state.player.grounded = true;
+  state.characterYaw = pose.facingYaw;
+  playerCollider.position.set(x, PLAYER_STAND_Y, z);
+  playerAvatar.group.position.set(x, playerMeshY(PLAYER_STAND_Y), z);
+  playerAvatar.group.rotation.y = pose.facingYaw + Math.PI;
+};
+
 const endCutscene = () => {
+  const finishedId = activeCutscene?.id;
+  if (seatedPierceForCutscene) leavePlayerAtHeadChair();
   resetCutsceneState();
+  if (finishedId === 'elevator-b3') {
+    completeApexPeak();
+    return;
+  }
   playerAvatar.resumeLocomotion();
+  refreshObjectivePresentation();
+  if (finishedId === 'room-for-grace') beginBoardWalkout();
+  if (finishedId === 'apex-window') beginAlarmObjective();
+  if (finishedId === 'apex-terminal') beginElevatorObjective();
 };
 
 const beginNamedCutscene = (id: string) => {
+  if (state.inCutscene) return;
+  state.inCutscene = true;
+  if (id === 'room-for-grace') {
+    seatedPierceForCutscene = true;
+    sequencePhase = 'idle';
+    showObjectiveHud(false);
+    objectiveMarker.hide();
+    seatPlayerAtHeadChair();
+  }
+  if (id === 'apex-window') {
+    windowPierceLocked = true;
+    sequencePhase = 'window';
+    showObjectiveHud(false);
+    objectiveMarker.hide();
+    placePierceAtOfficeWindow();
+    playerAvatar.playClip('idle', true);
+  }
+  if (id === 'apex-terminal') {
+    terminalPierceLocked = true;
+    sequencePhase = 'terminal';
+    showObjectiveHud(false);
+    objectiveMarker.hide();
+    placePierceAtTerminal();
+    playerAvatar.playClip('idle', true);
+  }
+  if (id === 'elevator-b3') {
+    elevatorLocked = true;
+    sequencePhase = 'ride';
+    showObjectiveHud(false);
+    objectiveMarker.hide();
+    placePierceInElevator();
+    playerAvatar.playClip('idle', true);
+  }
+  unlockPointer();
   void startCutscene(id, {
     onCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
     onHud: (title, text) => showCineHud(title, text),
     onAnim: (actor, clip, loop) => applyNpcAnim(npcs, actor, clip, loop, playerAvatar),
     audioEnabled: () => audio.enabled,
   }).then((next) => {
-    if (!next) return;
+    if (!next) {
+      endCutscene();
+      if (id === 'room-for-grace') beginBoardWalkout();
+      if (id === 'apex-window') beginAlarmObjective();
+      if (id === 'apex-terminal') beginElevatorObjective();
+      if (id === 'elevator-b3') completeApexPeak();
+      return;
+    }
     activeCutscene = next;
-    state.inCutscene = true;
-    unlockPointer();
+    if (seatedPierceForCutscene) seatPlayerAtHeadChair();
+    if (windowPierceLocked) placePierceAtOfficeWindow();
+    if (terminalPierceLocked) placePierceAtTerminal();
+    if (elevatorLocked) placePierceInElevator();
   });
 };
 
 const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
+  if (trigger.id === 'trigger-elevator-b3') {
+    beginElevatorCutscene();
+    return;
+  }
   const cutsceneId = trigger.type === 'cutscene'
     ? String(trigger.data?.cutscene ?? trigger.id)
     : typeof trigger.data?.cutscene === 'string'
@@ -164,29 +725,29 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
 const loadMissionScene = async (path: string) => {
   clearNpcs(npcs);
   clearEnemies(enemies);
+  resetApexSequence();
   resetCutsceneState();
   const loaded = await loadSceneFromJsonFile(scene, path, { ...sceneLoadOptions, replaceNodes: sceneNodes });
   applyLoadedScene(loaded);
   triggerRunner.bind(loaded?.data.triggers ?? []);
   if (loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+  restyleOfficeTerminal(false);
+  pulseB3Button(false);
+  applyElevatorIndicators(0, false, false);
+  applyElevatorCabLight(0, false);
+  beginSeatObjective();
 };
 
-void (async () => {
-  await loadLevelLibrary();
-  const firstLevel = getLevels()[0];
-  if (firstLevel) applyLevelConfig(firstLevel);
-  await loadMissionScene(firstLevel?.path ?? DEFAULT_SCENE_FILE_PATH);
-})().catch(() => applyLoadedScene(null));
-
 const saveKey = 'ph-origins-save';
-type SaveData = { best: number; unlocked: number; sound: boolean };
-const defaultSave: SaveData = { best: 0, unlocked: 1, sound: true };
+type SaveData = { unlocked: number; sound: boolean };
+const defaultSave: SaveData = { unlocked: 1, sound: true };
+const MAX_HEALTH = 100;
 
 const GAME_COPY = {
-  intro: 'Move with WASD • Aim with mouse or drag • Fire • Jump • Explore the mission',
-  missionClear: (score: number) => `You scored ${score}. Keep pushing into the next mission.`,
-  defeat: (score: number) => `You scored ${score}. Press Start to retry.`,
-  reset: 'Move with WASD • Aim with mouse or drag • Fire • Jump • Explore the mission',
+  intro: 'Get ready to embark on an exciting journey!',
+  missionClear: 'Keep pushing into the next mission.',
+  defeat: 'Press Start to retry.',
+  reset: 'Get ready to embark on an exciting journey!',
 } as const;
 
 const loadSave = (): SaveData => {
@@ -212,9 +773,7 @@ const devLevelConfig = readDevLevelConfig();
 
 const state = {
   running: false,
-  score: 0,
-  health: 100,
-  best: save.best,
+  health: MAX_HEALTH,
   level: 1,
   wave: 1,
   kills: 0,
@@ -253,7 +812,6 @@ const state = {
 };
 
 const enemies: Enemy[] = [];
-const projectiles: Array<{ mesh: BABYLON.Mesh; direction: BABYLON.Vector3; life: number; speed: number; damage: number }> = [];
 const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
 const pickups: Array<{ mesh: BABYLON.Mesh; item: InventoryItemType; amount: number; active: boolean }> = [];
 const playerAvatar = createPlayerAvatar(scene);
@@ -296,13 +854,13 @@ const audio = {
 };
 
 const updateHud = () => {
-  scoreEl.textContent = Math.floor(state.score).toString();
-  bestEl.textContent = Math.floor(state.best).toString();
-  healthEl.textContent = Math.max(0, Math.ceil(state.health)).toString();
-  levelEl.textContent = state.level.toString();
+  const healthPct = Math.max(0, Math.min(100, (state.health / MAX_HEALTH) * 100));
+  const healthBand = healthPct > 75 ? 'high' : healthPct >= 35 ? 'mid' : 'low';
+  healthFill.style.width = `${healthPct}%`;
+  healthFill.dataset.band = healthBand;
+  healthBar.setAttribute('aria-valuenow', String(Math.round(healthPct)));
   devFps.textContent = `${Math.max(0, Math.round(engine.getFps()))}`;
   devHealth.textContent = Math.max(0, Math.ceil(state.health)).toString();
-  devScore.textContent = Math.floor(state.score).toString();
   devLevel.textContent = state.level.toString();
 
   const invEntries = [
@@ -311,13 +869,49 @@ const updateHud = () => {
     ['Scrap', state.inventory.items.scrap ?? 0],
     ['Core', state.inventory.items.power_core ?? 0],
   ] as const;
-  inventoryHud.innerHTML = invEntries
+  inventoryItems.innerHTML = invEntries
     .map(([label, count]) => `<span class="inventory-item"><span class="inventory-label">${label}</span><strong>${count}</strong></span>`)
     .join('');
 };
 
+let inventoryOpen = false;
+
+const canLockGameplayPointer = () =>
+  state.running && !state.inCutscene && messageBox.classList.contains('hidden') && !inventoryOpen;
+
+const lockGameplayPointer = () => {
+  if (!canLockGameplayPointer()) return;
+  void canvas.requestPointerLock();
+};
+
+const setInventoryOpen = (open: boolean) => {
+  inventoryOpen = open;
+  inventoryHud.classList.toggle('open', open);
+  if (open) {
+    unlockPointer();
+    canvas.style.cursor = 'default';
+    root.style.cursor = 'default';
+  } else {
+    canvas.style.cursor = '';
+    root.style.cursor = '';
+    if (!state.inCutscene) lockGameplayPointer();
+  }
+  updateCrosshairVisibility();
+};
+
+const stopInventoryPointer = (event: Event) => {
+  event.stopPropagation();
+};
+
+inventoryClose.addEventListener('click', (event) => {
+  event.stopPropagation();
+  setInventoryOpen(false);
+});
+inventoryHud.addEventListener('pointerdown', stopInventoryPointer);
+inventoryHud.addEventListener('pointerup', stopInventoryPointer);
+
 const syncStartButtonLabel = () => {
-  const shouldContinue = state.running || state.score > 0 || state.best > 0;
+  const shouldContinue = state.running;
   startBtn.textContent = shouldContinue ? 'Continue' : 'Start';
 };
 
@@ -330,7 +924,7 @@ const unlockPointer = () => {
 };
 
 const updateCrosshairVisibility = () => {
-  const visible = state.running && messageBox.classList.contains('hidden');
+  const visible = state.running && !inventoryOpen && messageBox.classList.contains('hidden');
   crosshair.style.display = visible ? 'block' : 'none';
 };
 
@@ -354,16 +948,12 @@ const hideMessage = () => {
 
 const clearDynamicObjects = () => {
   clearEnemies(enemies);
-  for (const projectile of projectiles) {
-    projectile.mesh.dispose();
-  }
   for (const particle of particles) {
     particle.mesh.dispose();
   }
   for (const pickup of pickups) {
     pickup.mesh.dispose();
   }
-  projectiles.length = 0;
   particles.length = 0;
   pickups.length = 0;
 };
@@ -386,8 +976,7 @@ const resetPlayer = (keepLevel = false) => {
   state.player = createPlayerState();
   state.level = selectedLevel;
   state.wave = 1;
-  state.score = 0;
-  state.health = 100;
+  state.health = MAX_HEALTH;
   state.shootCooldown = 0;
   state.lastDamageAt = 0;
   state.kills = 0;
@@ -408,7 +997,24 @@ const beginGame = () => {
   syncStartButtonLabel();
   updateHud();
   hideMessage();
+  if (isApexPeakLevel() && (sequencePhase === 'idle' || sequencePhase === 'done' || sequencePhase === 'seat')) {
+    beginSeatObjective();
+  } else {
+    refreshObjectivePresentation();
+  }
 };
+
+void (async () => {
+  await loadLevelLibrary();
+  const firstLevel = getLevels()[0];
+  if (firstLevel) applyLevelConfig(firstLevel);
+  await loadMissionScene(firstLevel?.path ?? DEFAULT_SCENE_FILE_PATH);
+  if (new URLSearchParams(location.search).get('cutscene') === 'elevator-b3') {
+    sequencePhase = 'elevator';
+    beginGame();
+    beginElevatorCutscene();
+  }
+})().catch(() => applyLoadedScene(null));
 
 const spawnPickup = (position: BABYLON.Vector3, item: InventoryItemType, amount = 1) => {
   const colorMap: Record<InventoryItemType, BABYLON.Color3> = {
@@ -439,18 +1045,15 @@ const updateQuestTracker = () => {
 
 const finishGame = (won = false) => {
   state.running = false;
-  const finalScore = Math.floor(state.score);
-  const best = Math.max(state.best, finalScore);
-  state.best = best;
-  saveGame({ best, unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
+  saveGame({ unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
   updateHud();
 
   if (won) {
     audio.win();
-    showMessage('Mission Clear', GAME_COPY.missionClear(finalScore));
+    showMessage('Mission Clear', GAME_COPY.missionClear);
   } else {
     audio.hit();
-    showMessage('Defeat', GAME_COPY.defeat(finalScore));
+    showMessage('Defeat', GAME_COPY.defeat);
   }
 };
 
@@ -498,7 +1101,6 @@ const gatherCameraIgnoreMeshes = () => {
     playerCollider,
     ...playerAvatar.group.getChildMeshes(true),
   ];
-  for (const projectile of projectiles) ignored.push(projectile.mesh);
   for (const particle of particles) ignored.push(particle.mesh);
   for (const pickup of pickups) ignored.push(pickup.mesh);
   for (const enemy of enemies) {
@@ -515,6 +1117,7 @@ const gatherCameraIgnoreMeshes = () => {
 const updateCamera = (delta: number, moving = false, moveHeading: number | null = null) => {
   followCamera.update(delta, state.player, moving, moveHeading, gatherCameraIgnoreMeshes());
 
+  if (state.inCutscene) return;
   playerAvatar.group.rotation.y = state.characterYaw + Math.PI;
   playerAvatar.group.position = new BABYLON.Vector3(state.player.x, playerMeshY(state.player.y), state.player.z);
 };
@@ -575,21 +1178,13 @@ const updatePlayer = (delta: number) => {
   return { moving, moveHeading: moving && forwardDot > 0.45 ? moveHeading : null };
 };
 
-const projectileSpawner = (sceneRef: BABYLON.Scene, origin: BABYLON.Vector3, direction: BABYLON.Vector3) => {
-  const projectile = createProjectile(sceneRef, origin, direction);
-  projectiles.push(projectile);
-};
-
 const fireWeapon = () => {
-  if (!state.running || state.inCutscene || state.shootCooldown > 0) return;
+  if (!state.running || state.inCutscene || inventoryOpen || state.shootCooldown > 0) return;
   if (!consumeItem(state.inventory, 'ammo', 1)) {
     audio.hit();
     return;
   }
   state.shootCooldown = state.fireRate;
-
-  const forward = camera.getForwardRay(1).direction.normalize();
-  projectileSpawner(scene, camera.position.add(forward.scale(1.5)), forward);
   audio.shoot();
 };
 
@@ -619,6 +1214,10 @@ window.addEventListener('keydown', (event) => {
     state.input.jump = true;
   }
   if (key === 'p') beginGame();
+  if (key === 'i') {
+    event.preventDefault();
+    setInventoryOpen(!inventoryOpen);
+  }
   if (key === 'l' && devLevelConfig) {
     showMessage('Dev level loaded', `${devLevelConfig.levelName || 'Custom'} • ${devLevelConfig.enemyCount || 0} enemies`);
   }
@@ -640,6 +1239,7 @@ window.addEventListener('gesturechange', (event) => event.preventDefault(), { pa
 window.addEventListener('gestureend', (event) => event.preventDefault(), { passive: false });
 
 canvas.addEventListener('pointerdown', (event) => {
+  if (inventoryOpen || state.inCutscene) return;
   if (event.pointerType === 'mouse') {
     state.mouseLookActive = true;
     canvas.requestPointerLock();
@@ -825,7 +1425,6 @@ resetBtn.addEventListener('click', () => {
   clearInputState();
   resetPlayer();
   void loadMissionScene(getLevelDefinition(1).path);
-  state.best = loadSave().best;
   updateHud();
   showMessage('PH Origins', GAME_COPY.reset);
   loadModelBtn.style.display = '';
@@ -839,13 +1438,20 @@ const renderLoop = () => {
 
   if (state.running) {
     if (state.inCutscene && activeCutscene) {
+      if (windowPierceLocked) placePierceAtOfficeWindow();
+      if (terminalPierceLocked) placePierceAtTerminal();
+      if (elevatorLocked) stepElevatorSet(activeCutscene.time);
+      if (activeCutscene.id === 'apex-window' && activeCutscene.time >= 42.3) officeAlarm.start();
       const playing = stepCutscene(activeCutscene, delta);
       if (!playing) endCutscene();
+      officeAlarm.update(delta);
+      objectiveMarker.update(delta);
       updateCamera(delta, false, null);
+      if (elevatorLocked && activeCutscene) applyElevatorRideFeel(activeCutscene.time);
     } else {
     if (state.fireHeld) fireWeapon();
 
-    state.wave = 1 + Math.floor(state.score / 220);
+    state.wave = 1 + Math.floor(state.kills / 4);
     const levelConfig = getLevelDefinition(state.level);
     applyLevelCombat(levelConfig);
 
@@ -867,6 +1473,32 @@ const renderLoop = () => {
     updateCamera(delta, locomotion.moving, locomotion.moveHeading);
     triggerRunner.update(state.player);
 
+    if (sequencePhase === 'elevator' && elevatorDoorOpen < 1) {
+      elevatorDoorOpen = Math.min(1, elevatorDoorOpen + delta / 1.05);
+      applyElevatorDoors(elevatorDoorOpen);
+    }
+
+    if (boardDeparting) {
+      updateNpcDeparture(npcs, delta);
+      if (remainingDepartingNpcs(npcs) === 0) {
+        boardDeparting = false;
+        beginWindowCutscene();
+      }
+    }
+
+    if (sequencePhase === 'alarm' && missionScene) {
+      const terminal = resolveOfficeTerminal(missionScene);
+      if (Math.hypot(state.player.x - terminal.x, state.player.z - terminal.z) < 1.15) {
+        beginTerminalBeat();
+      }
+    }
+
+    officeAlarm.update(delta);
+    if (!state.inCutscene) objectiveMarker.update(delta);
+    if (objectiveHud?.classList.contains('visible') && objectiveDist && objectiveMarker.getTarget()) {
+      objectiveDist.textContent = `${objectiveMarker.distanceTo(state.player.x, state.player.z).toFixed(1)} m`;
+    }
+
     for (const enemy of enemies) {
       const distance = updateEnemyAI(enemy, new BABYLON.Vector3(state.player.x, 1.6, state.player.z), delta);
 
@@ -879,43 +1511,6 @@ const renderLoop = () => {
           finishGame(false);
           break;
         }
-      }
-    }
-
-    for (const projectile of projectiles) {
-      projectile.mesh.position.addInPlace(projectile.direction.scale(projectile.speed * delta));
-      projectile.life -= delta;
-
-      for (const enemy of enemies) {
-        const dist = BABYLON.Vector3.Distance(enemy.mesh.position, projectile.mesh.position);
-        if (dist < 1.2) {
-          enemy.hp -= projectile.damage;
-          projectile.life = 0;
-          projectile.mesh.dispose();
-          createBurst(scene, projectile.mesh.position.x, projectile.mesh.position.y, projectile.mesh.position.z, new BABYLON.Color3(0.55, 0.83, 1), particles);
-          if (enemy.hp <= 0) {
-            const dropAt = enemy.mesh.position.clone();
-            disposeEnemy(enemy);
-            const index = enemies.indexOf(enemy);
-            if (index >= 0) enemies.splice(index, 1);
-            state.score += 50;
-            state.kills += 1;
-            awardQuestProgress('kills', 1);
-            awardQuestProgress('score', 50);
-            if (Math.random() > 0.72) {
-              spawnPickup(new BABYLON.Vector3(dropAt.x, 1.2, dropAt.z), Math.random() > 0.5 ? 'ammo' : 'scrap', 1);
-            }
-            audio.pickup();
-          }
-          break;
-        }
-      }
-    }
-
-    for (let i = projectiles.length - 1; i >= 0; i--) {
-      if (projectiles[i].life <= 0) {
-        projectiles[i].mesh.dispose();
-        projectiles.splice(i, 1);
       }
     }
 
@@ -944,22 +1539,21 @@ const renderLoop = () => {
       if (particles[i].life <= 0) particles.splice(i, 1);
     }
 
-      if (state.score > state.best) {
-      state.best = state.score;
-      saveGame({ best: Math.floor(state.best), unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
-    }
-
     if (state.kills >= 12) {
       state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level + 1));
       finishGame(true);
     }
 
-    state.progression.xp = Math.max(0, Math.floor(state.score / 20));
+    state.progression.xp = Math.max(0, state.kills * 5);
     state.progression.medals = Math.max(0, Math.floor(state.kills / 3));
     updateQuestTracker();
     updateHud();
     }
   } else {
+    if (sequencePhase === 'done') {
+      clearInputState();
+      playerAvatar.setLocomotion(false, true);
+    }
     updateCamera(delta);
   }
 
@@ -999,12 +1593,22 @@ const renderLevelSelect = () => {
   const levels = getLevels();
 
   levels.forEach((level) => {
-    const unlocked = level.id <= state.progression.highestUnlocked;
+    const comingSoon = level.comingSoon || level.id > 1;
+    const unlocked = !comingSoon && level.id <= state.progression.highestUnlocked;
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `level-item${unlocked ? '' : ' locked'}`;
-    button.disabled = !unlocked;
-    button.innerHTML = `
+    button.className = `level-item${comingSoon ? ' coming-soon' : unlocked ? '' : ' locked'}`;
+    button.disabled = comingSoon || !unlocked;
+    button.setAttribute('aria-disabled', comingSoon || !unlocked ? 'true' : 'false');
+    button.innerHTML = comingSoon
+      ? `
+      <div>
+        <strong>Level ${level.id}</strong>
+        <small>Coming soon</small>
+      </div>
+      <span>Coming soon</span>
+    `
+      : `
       <div>
         <strong>Level ${level.id}: ${level.name}</strong>
         <small>${level.reward}</small>
@@ -1013,6 +1617,10 @@ const renderLevelSelect = () => {
     `;
 
     button.addEventListener('click', () => {
+      if (comingSoon) {
+        messageText.textContent = 'Coming soon.';
+        return;
+      }
       if (!unlocked) return;
       state.level = level.id;
       state.progression.currentLevel = level.id;
@@ -1061,11 +1669,7 @@ const devActions: Record<string, () => void> = {
     resetBtn.click();
   },
   hp: () => {
-    state.health = 100;
-    updateHud();
-  },
-  score: () => {
-    state.score += 100;
+    state.health = MAX_HEALTH;
     updateHud();
   },
   level: () => {
@@ -1107,6 +1711,7 @@ devToggle.addEventListener('click', () => {
 
 loadModelBtn.style.display = '';
 showMessage('PH Origins', GAME_COPY.intro);
+updateHud();
 
 updateCrosshairVisibility();
 configureResponsiveUI(root);

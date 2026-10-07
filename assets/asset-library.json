@@ -3,8 +3,8 @@
   "assets": [
     {
       "id": "asset-hero-model",
-      "name": "ch44-hero.glb",
-      "path": "/assets/models/ch44-hero.glb",
+      "name": "ch33-hero.glb",
+      "path": "/assets/models/ch33-hero.glb",
       "type": "model",
       "tags": [
         "player",
@@ -69,31 +69,233 @@
       "tags": [
         "character",
         "mixamo",
+        "transform",
+        "post-god-complex",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Ch44_nonPBR.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        },
+        {
+          "name": "Jump",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Jump.fbx"
+        },
+        {
+          "name": "SitIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Idle.fbx"
+        },
+        {
+          "name": "SitTalk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        }
+      ]
+    },
+    {
+      "id": "asset-ch33-hero",
+      "name": "ch33-hero.glb",
+      "path": "/assets/models/ch33-hero.glb",
+      "type": "model",
+      "tags": [
+        "character",
+        "mixamo",
         "player",
         "real-file"
       ],
       "source": "project",
-      "sourceFbx": "C:/Projects/phoriginsassets/models/Ch44_nonPBR.fbx",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Ch33_nonPBR.fbx",
       "animations": [
         {
           "name": "Idle",
-          "path": "/assets/animations/Idle.fbx"
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
         },
         {
           "name": "Walk",
-          "path": "/assets/animations/Walking.fbx"
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
         },
         {
           "name": "Jump",
-          "path": "/assets/animations/Jump.fbx"
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Jump.fbx"
         },
         {
           "name": "SitIdle",
-          "path": "/assets/animations/Sitting Idle.fbx"
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Idle.fbx"
         },
         {
           "name": "SitTalk",
-          "path": "/assets/animations/Sitting Talking.fbx"
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        }
+      ]
+    },
+    {
+      "id": "asset-ch08-npc",
+      "name": "ch08-npc.glb",
+      "path": "/assets/models/ch08-npc.glb",
+      "type": "model",
+      "tags": [
+        "character",
+        "mixamo",
+        "npc",
+        "professional_npc",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Ch08_nonPBR.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        },
+        {
+          "name": "SitIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Idle.fbx"
+        },
+        {
+          "name": "SitTalk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        }
+      ]
+    },
+    {
+      "id": "asset-ch23-npc",
+      "name": "ch23-npc.glb",
+      "path": "/assets/models/ch23-npc.glb",
+      "type": "model",
+      "tags": [
+        "character",
+        "mixamo",
+        "npc",
+        "professional_npc",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Ch23_nonPBR.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        },
+        {
+          "name": "SitIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Idle.fbx"
+        },
+        {
+          "name": "SitTalk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        }
+      ]
+    },
+    {
+      "id": "asset-ch28-npc",
+      "name": "ch28-npc.glb",
+      "path": "/assets/models/ch28-npc.glb",
+      "type": "model",
+      "tags": [
+        "character",
+        "mixamo",
+        "npc",
+        "professional_npc",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Ch28_nonPBR.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        },
+        {
+          "name": "SitIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Idle.fbx"
+        },
+        {
+          "name": "SitTalk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        }
+      ]
+    },
+    {
+      "id": "asset-ch31-npc",
+      "name": "ch31-npc.glb",
+      "path": "/assets/models/ch31-npc.glb",
+      "type": "model",
+      "tags": [
+        "character",
+        "mixamo",
+        "npc",
+        "professional_npc",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Ch31_nonPBR.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        },
+        {
+          "name": "SitIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Idle.fbx"
+        },
+        {
+          "name": "SitTalk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        }
+      ]
+    },
+    {
+      "id": "asset-ch37-npc",
+      "name": "ch37-npc.glb",
+      "path": "/assets/models/ch37-npc.glb",
+      "type": "model",
+      "tags": [
+        "character",
+        "mixamo",
+        "npc",
+        "professional_npc",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Ch37_nonPBR.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        },
+        {
+          "name": "SitIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Idle.fbx"
+        },
+        {
+          "name": "SitTalk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
         }
       ]
     }

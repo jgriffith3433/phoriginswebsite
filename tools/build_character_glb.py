@@ -1,24 +1,15 @@
 """
 Blender headless script: converts a base FBX (mesh + skeleton) into a GLB,
-optionally merging in one or more Mixamo "animation-only" FBX exports
-(same rig, no mesh) as additional named animation clips in the output file.
+optionally merging Mixamo animation-only FBX exports as named clips.
 
-Usage:
-  blender -b --python build_character_glb.py -- <base.fbx> <output.glb> [clipName=anim.fbx ...]
-
-Each trailing argument is either:
-  - a bare path to an animation FBX (clip name derived from the filename), or
-  - "clipName=path/to/anim.fbx" to explicitly name the clip.
-
-Mixamo animation-only exports share bone names with the base character rig,
-so their actions are compatible with the base armature without retargeting.
-Blender's glTF exporter (export_animation_mode='ACTIONS') exports every
-action compatible with an armature as its own animation clip, regardless of
-whether that action is currently assigned to the armature. That's what lets
-one GLB carry multiple named clips (e.g. "Idle", "Walk", "Run").
+Mixamo clips key pose.bones["mixamorig:Hips"]. Character FBXs often use
+mixamorig6/7/9/10. Do NOT rename the character armature. Retarget each clip
+F-curve onto the character bone whose suffix after the last colon matches
+(Hips, Spine, LeftUpLeg, ...). Ch23 already matches mixamorig: and is a no-op.
 """
 
 import os
+import re
 import sys
 import bpy
 
@@ -41,8 +32,82 @@ output_dir = os.path.dirname(output_path)
 if output_dir:
     os.makedirs(output_dir, exist_ok=True)
 
-# Start from a truly empty scene -- the default startup file can include a
-# camera/light/cube which would otherwise get exported alongside the model.
+
+def _fail(exc_type, exc, tb):
+    import traceback
+    traceback.print_exception(exc_type, exc, tb)
+    sys.exit(1)
+
+
+sys.excepthook = _fail
+
+
+def joint_suffix(name: str) -> str:
+    text = str(name)
+    if ':' in text:
+        return text.rsplit(':', 1)[-1].lower()
+    return text.lower()
+
+
+def iter_action_fcurves(action):
+    """Blender 5 layered actions store F-curves on strip channelbags, not action.fcurves."""
+    legacy = getattr(action, 'fcurves', None)
+    if legacy is not None:
+        for fcurve in legacy:
+            yield fcurve
+        return
+    for layer in getattr(action, 'layers', []):
+        for strip in getattr(layer, 'strips', []):
+            bags = []
+            channelbags = getattr(strip, 'channelbags', None)
+            if channelbags is not None:
+                bags.extend(list(channelbags))
+            channelbag_fn = getattr(strip, 'channelbag', None)
+            if callable(channelbag_fn):
+                try:
+                    got = channelbag_fn()
+                    if got is not None and got not in bags:
+                        bags.append(got)
+                except TypeError:
+                    pass
+            elif channelbag_fn is not None and hasattr(channelbag_fn, 'fcurves') and channelbag_fn not in bags:
+                bags.append(channelbag_fn)
+            for channelbag in bags:
+                for fcurve in channelbag.fcurves:
+                    yield fcurve
+
+
+def bones_by_suffix(armature) -> dict:
+    mapping = {}
+    for bone in armature.data.bones:
+        mapping[joint_suffix(bone.name)] = bone.name
+    return mapping
+
+
+def retarget_action_fcurves(action, dest_by_suffix: dict) -> tuple:
+    """Rewrite pose.bones["mixamorig:Hips"] → pose.bones["mixamorig7:Hips"]."""
+    hits = 0
+    example = None
+    for fcurve in iter_action_fcurves(action):
+        if 'pose.bones[' not in fcurve.data_path:
+            continue
+
+        def _remap(match, _dest=dest_by_suffix):
+            nonlocal hits, example
+            old = match.group(1)
+            new = _dest.get(joint_suffix(old))
+            if not new:
+                return match.group(0)
+            if old != new:
+                hits += 1
+                if example is None:
+                    example = (old, new)
+            return 'pose.bones["' + new + '"]'
+
+        fcurve.data_path = re.sub(r'pose\.bones\["([^"]+)"\]', _remap, fcurve.data_path)
+    return hits, example
+
+
 for obj in list(bpy.data.objects):
     bpy.data.objects.remove(obj, do_unlink=True)
 
@@ -52,8 +117,15 @@ base_armature = next((obj for obj in bpy.data.objects if obj.type == 'ARMATURE')
 if base_armature and base_armature.animation_data and base_armature.animation_data.action:
     base_armature.animation_data.action.use_fake_user = True
 
+dest_by_suffix = bones_by_suffix(base_armature) if base_armature else {}
+hips = dest_by_suffix.get('hips')
+print(f"Character armature hips={hips} first={[b.name for b in list(base_armature.data.bones)[:3]]}" if base_armature else "No armature")
+
 collected_clip_names = []
 if base_armature:
+    if not base_armature.animation_data:
+        base_armature.animation_data_create()
+
     for raw_arg in anim_args:
         if '=' in raw_arg:
             clip_name, anim_path = raw_arg.split('=', 1)
@@ -80,20 +152,36 @@ if base_armature:
         action.use_fake_user = True
         anim_armature.animation_data.action = None
 
+        sample_paths = [fc.data_path for i, fc in enumerate(iter_action_fcurves(action)) if i < 3]
+        print(f"Clip '{clip_name}' fcurve0={sample_paths}")
+
+        hits, example = retarget_action_fcurves(action, dest_by_suffix)
+        if example:
+            print(f"Retargeted '{clip_name}' {example[0]} -> {example[1]} ({hits} fcurves)")
+        else:
+            print(f"Retargeted '{clip_name}' already matched character bones ({hits} fcurves)")
+
         for obj in new_objects:
             bpy.data.objects.remove(obj, do_unlink=True)
 
         collected_clip_names.append(clip_name)
         print(f"Merged animation clip '{clip_name}' from {anim_path}")
+
+    # Mixamo FBX often has empties named mixamorig:Hips while bones are mixamorig7:Hips.
+    # The glTF exporter skins those objects, so rename them to the armature bone names
+    # (do not rewrite the GLB after export).
+    for obj in list(bpy.data.objects):
+        if obj == base_armature or obj.type == 'ARMATURE':
+            continue
+        dest = dest_by_suffix.get(joint_suffix(obj.name))
+        if dest and obj.name != dest and 'mixamorig' in obj.name.lower():
+            print(f"Rename object {obj.name} -> {dest} ({obj.type})")
+            obj.name = dest
+    hip_objects = [obj.name for obj in bpy.data.objects if 'hips' in obj.name.lower()]
+    print(f"Pre-export hip objects={hip_objects}")
 elif anim_args:
     print("WARNING: base FBX has no armature; ignoring requested animation clips.")
 
-# Mixamo/mobile characters typically arrive with several 4K PNG texture maps
-# (diffuse/normal/specular/glossiness/emissive) baked straight from the DCC
-# tool. Embedded losslessly, those alone can balloon a GLB to 100MB+ and blow
-# well past mobile GPU texture-memory budgets. Downscale every image before
-# export -- this shrinks both the on-disk file and the decoded GPU memory
-# footprint, which is what actually matters on a phone.
 MAX_TEXTURE_SIZE = int(os.environ.get('PH_MAX_TEXTURE_SIZE', '1024'))
 for img in bpy.data.images:
     width, height = img.size
@@ -110,6 +198,77 @@ for img in bpy.data.images:
 
 bpy.ops.object.select_all(action='DESELECT')
 
+# Mixamo *_nonPBR.fbx Phong becomes Principled metallic~0.5 + specular maps.
+# glTF then looks chrome under Babylon PBR. Keep albedo/normals; force dielectric cloth.
+MIN_ROUGHNESS = 0.82
+
+
+def _unlink_socket(node_tree, socket):
+    if socket is None:
+        return
+    for link in list(socket.links):
+        node_tree.links.remove(link)
+
+
+def _set_float(node_tree, node, name, value, unlink=True):
+    socket = node.inputs.get(name)
+    if socket is None:
+        return
+    if unlink:
+        _unlink_socket(node_tree, socket)
+    try:
+        socket.default_value = float(value)
+    except (TypeError, ValueError):
+        pass
+
+
+def flatten_character_materials():
+    for mat in bpy.data.materials:
+        if not mat.use_nodes or mat.node_tree is None:
+            if hasattr(mat, 'metallic'):
+                mat.metallic = 0.0
+            if hasattr(mat, 'roughness'):
+                mat.roughness = max(float(mat.roughness), MIN_ROUGHNESS)
+            continue
+        tree = mat.node_tree
+        for node in tree.nodes:
+            if node.type != 'BSDF_PRINCIPLED':
+                continue
+            _set_float(tree, node, 'Metallic', 0.0)
+            roughness = node.inputs.get('Roughness')
+            current_rough = float(roughness.default_value) if roughness is not None else MIN_ROUGHNESS
+            _set_float(tree, node, 'Roughness', max(current_rough, MIN_ROUGHNESS))
+            # Default glTF dielectric specular; drop Mixamo specular textures.
+            for spec_name, spec_value in (
+                ('Specular IOR Level', 0.5),
+                ('Specular', 0.5),
+            ):
+                sock = node.inputs.get(spec_name)
+                if sock is None:
+                    continue
+                _unlink_socket(tree, sock)
+                try:
+                    sock.default_value = spec_value
+                except (TypeError, ValueError):
+                    pass
+            tint = node.inputs.get('Specular Tint')
+            if tint is not None:
+                _unlink_socket(tree, tint)
+                try:
+                    val = tint.default_value
+                    if hasattr(val, '__len__') and len(val) >= 3:
+                        tint.default_value = (1.0, 1.0, 1.0, 1.0) if len(val) > 3 else (1.0, 1.0, 1.0)
+                    else:
+                        tint.default_value = 0.0
+                except (TypeError, ValueError):
+                    pass
+            for extra in ('Coat Weight', 'Clearcoat', 'Sheen Weight', 'Sheen'):
+                _set_float(tree, node, extra, 0.0)
+    print('Flattened character materials to non-metal / dielectric')
+
+
+flatten_character_materials()
+
 export_kwargs = dict(
     filepath=output_path,
     export_format='GLB',
@@ -119,9 +278,6 @@ export_kwargs = dict(
     export_normals=True,
     export_materials='EXPORT',
     export_animations=True,
-    # AUTO re-encodes opaque textures as JPEG (much smaller than PNG) and
-    # keeps PNG only where alpha is actually needed; unused images/textures
-    # (e.g. maps not wired into any exported channel) are dropped entirely.
     export_image_format='AUTO',
     export_jpeg_quality=85,
     export_image_quality=85,
@@ -129,8 +285,6 @@ export_kwargs = dict(
     export_unused_textures=False,
 )
 
-# export_animation_mode is only present on newer glTF exporter versions; fall
-# back gracefully so this still works against older Blender builds.
 try:
     bpy.ops.export_scene.gltf(export_animation_mode='ACTIONS', **export_kwargs)
 except TypeError:
@@ -139,3 +293,5 @@ except TypeError:
 print(f"Exported GLB to {output_path}")
 if collected_clip_names:
     print(f"Animation clips: {', '.join(collected_clip_names)}")
+if hips:
+    print(f"Exported hips bone: {hips}")

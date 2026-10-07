@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { PLAYER_ASSET_ID } from './modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from './playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from './player';
 
@@ -33,7 +34,7 @@ export const spawnEnemy = (scene: BABYLON.Scene, level: number): Enemy => {
   mesh.isPickable = false;
 
   const kind: EnemyKind = level >= 6 ? (Math.random() > 0.66 ? 'elite' : 'brute') : level >= 3 ? 'brute' : 'scout';
-  const avatar = createCharacterAvatar(scene, `enemy-${kind}`);
+  const avatar = createCharacterAvatar(scene, `enemy-${kind}`, PLAYER_ASSET_ID);
   avatar.group.parent = mesh;
   avatar.group.position.y = -PLAYER_MESH_Y_OFFSET;
   avatar.setLocomotion(true, true);

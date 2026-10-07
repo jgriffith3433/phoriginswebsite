@@ -1,0 +1,42 @@
+{
+  "id": "apex-terminal",
+  "name": "The Monitor",
+  "duration": 5.4,
+  "notes": "Pierce at the office terminal after the window alarm. He sees the B3 creature on the screen — that is why the alarm was going. Then send him to the elevator. Standing idle facing the monitor.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": { "x": 48.45, "y": 1.68, "z": 44.35 },
+      "lookAt": { "x": 48.15, "y": 1.22, "z": 41.88 }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0.25,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "What is that? What is that thing doing on B3?",
+      "audio": "/assets/audio/cutscenes/apex-terminal/01-pierce-b3-screen.wav",
+      "anim": "idle",
+      "duration": 4.2,
+      "volume": 0.92
+    },
+    {
+      "at": 4.7,
+      "type": "hud",
+      "title": "Objective",
+      "text": "Get to the elevator"
+    },
+    {
+      "at": 5.4,
+      "type": "end"
+    }
+  ]
+}

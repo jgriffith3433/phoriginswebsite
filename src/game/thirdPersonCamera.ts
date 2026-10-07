@@ -98,7 +98,7 @@ export const createThirdPersonCamera = (
   const addLook = (dx: number, dy: number) => {
     if (dx === 0 && dy === 0) return;
     yaw += dx * cfg.mouseSensitivity;
-    pitch = clampValue(pitch - dy * cfg.mouseSensitivity * 0.78, cfg.minPitch, cfg.maxPitch);
+    pitch = clampValue(pitch + dy * cfg.mouseSensitivity * 0.78, cfg.minPitch, cfg.maxPitch);
     lookInputTimer = 0.12;
     recenterIdle = 0;
   };

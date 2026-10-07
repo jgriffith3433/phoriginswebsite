@@ -34,12 +34,22 @@ const writeLibrary = (libraryAbsPath, library) => {
   writeFileSync(libraryAbsPath, JSON.stringify(library, null, 2), 'utf8');
 };
 
+const toProjectSourceFbx = (projectRoot, absPath) => {
+  const root = path.resolve(projectRoot);
+  const resolved = path.resolve(absPath);
+  if (resolved.toLowerCase().startsWith(root.toLowerCase())) {
+    return `/${path.relative(root, resolved).replace(/\\/g, '/')}`;
+  }
+  return absPath;
+};
+
 export const convertCharacterGlb = ({
   projectRoot,
   basePath,
   outputName,
   animations = [],
   blenderPath = '',
+  tags,
 }) => {
   const blender = resolveBlender(blenderPath);
   if (!blender) {
@@ -62,6 +72,7 @@ export const convertCharacterGlb = ({
   const outputAbsPath = path.join(projectRoot, 'assets', 'models', `${safeName}.glb`);
   mkdirSync(path.dirname(outputAbsPath), { recursive: true });
 
+  // Clips are retargeted onto the character's real mixamorig / mixamorigN bones. Do not rewrite GLB JSON.
   const scriptPath = path.join(__dirname, 'build_character_glb.py');
   const animArgs = animations.map((anim) => (anim.name ? `${anim.name}=${anim.path}` : anim.path));
   const result = spawnSync(blender, ['-b', '--python', scriptPath, '--', basePath, outputAbsPath, ...animArgs], {
@@ -71,7 +82,7 @@ export const convertCharacterGlb = ({
   });
 
   const log = `${result.stdout || ''}${result.stderr || ''}`;
-  if (result.status !== 0 || !existsSync(outputAbsPath)) {
+  if (result.status !== 0 || !existsSync(outputAbsPath) || /Traceback \(most recent call last\)|AttributeError:/.test(log)) {
     return { ok: false, error: 'Blender conversion failed.', log };
   }
 
@@ -83,17 +94,23 @@ export const convertCharacterGlb = ({
     name: anim.name,
     path: anim.projectPath || anim.path,
   }));
+  const defaultTags = animations.length
+    ? ['character', 'mixamo', 'real-file']
+    : ['prop', 'real-file'];
+  const existingIndex = library.assets.findIndex((asset) => asset.id === assetId);
+  const existingTags = existingIndex >= 0 && Array.isArray(library.assets[existingIndex].tags)
+    ? library.assets[existingIndex].tags
+    : null;
   const entry = {
     id: assetId,
     name: `${safeName}.glb`,
     path: outputRelPath,
     type: 'model',
-    tags: animations.length ? ['character', 'mixamo', 'player', 'real-file'] : ['prop', 'real-file'],
+    tags: Array.isArray(tags) && tags.length ? tags : (existingTags ?? defaultTags),
     source: 'project',
-    sourceFbx: basePath,
+    sourceFbx: toProjectSourceFbx(projectRoot, basePath),
     animations: animationEntries,
   };
-  const existingIndex = library.assets.findIndex((asset) => asset.id === assetId);
   if (existingIndex >= 0) library.assets[existingIndex] = { ...library.assets[existingIndex], ...entry };
   else library.assets.push(entry);
   writeLibrary(libraryAbsPath, library);

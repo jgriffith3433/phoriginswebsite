@@ -1,8 +1,8 @@
 {
   "id": "room-for-grace",
   "name": "Room for Grace",
-  "duration": 16.5,
-  "notes": "Absolute times in seconds from cutscene start. Drop VO files at the audio paths; missing files fall back to a voice stub so timing still reads. actor ids match NpcSeat asset ids (chair-s-1 … chair-n-3). Mixamo sit/talk clips will bind via anim names.",
+  "duration": 82,
+  "notes": "Absolute times in seconds from cutscene start. actor ids: chair-head = Pierce (player); chair-s-1 = Voss; chair-s-3 = Lang; chair-n-2 = Hale. Drop VO at the audio paths; missing files stub so timing still reads. Line events play sit-talk on the speaker and sit-idle on everyone else, then return the speaker to sit-idle when duration elapses.",
   "events": [
     {
       "at": 0,
@@ -32,83 +32,188 @@
       "volume": 0.22
     },
     {
-      "at": 1.6,
-      "type": "line",
-      "actor": "chair-n-2",
-      "speaker": "Director Hale",
-      "text": "The quarter is fine. That is not why we are here.",
-      "audio": "/assets/audio/cutscenes/room-for-grace/01-hale-quarter.wav",
-      "anim": "talk",
-      "volume": 0.85
-    },
-    {
-      "at": 5.1,
-      "type": "anim",
-      "actor": "chair-n-2",
-      "clip": "sit",
-      "loop": true
-    },
-    {
-      "at": 5.2,
+      "at": 1.8,
       "type": "camera",
-      "position": { "x": 44.2, "y": 3.1, "z": 25.4 },
-      "lookAt": { "x": 44.2, "y": 1.2, "z": 32 }
-    },
-    {
-      "at": 5.4,
-      "type": "line",
-      "actor": "chair-s-1",
-      "speaker": "Voss",
-      "text": "B3 is still dark, Pierce. Compliance wants it sealed.",
-      "audio": "/assets/audio/cutscenes/room-for-grace/02-voss-b3.wav",
-      "anim": "talk",
-      "volume": 0.85
-    },
-    {
-      "at": 9.2,
-      "type": "anim",
-      "actor": "chair-s-1",
-      "clip": "sit",
-      "loop": true
-    },
-    {
-      "at": 9.4,
-      "type": "camera",
-      "position": { "x": 48.4, "y": 2.2, "z": 32 },
+      "position": { "x": 48.4, "y": 2.15, "z": 32 },
       "lookAt": { "x": 50.6, "y": 1.35, "z": 32 }
+    },
+    {
+      "at": 2.0,
+      "type": "line",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "I appreciate you all taking the time. I know calendars at this altitude fill themselves with golf and liability.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/01-pierce-appreciate.wav",
+      "anim": "talk",
+      "duration": 7.2,
+      "volume": 0.9
     },
     {
       "at": 9.6,
       "type": "line",
-      "actor": "chair-s-3",
-      "speaker": "Lang",
-      "text": "There is no room left in the model for a miracle.",
-      "audio": "/assets/audio/cutscenes/room-for-grace/03-lang-miracle.wav",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "We are not just building a product here. This is about absolute market dominance. Anyone still talking share is already losing.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/02-pierce-dominance.wav",
       "anim": "talk",
-      "volume": 0.85
-    },
-    {
-      "at": 12.8,
-      "type": "anim",
-      "actor": "chair-s-3",
-      "clip": "sit",
-      "loop": true
-    },
-    {
-      "at": 13.0,
-      "type": "hud",
-      "title": "Pierce Hawkes",
-      "text": "There's always room for grace."
-    },
-    {
-      "at": 13.0,
-      "type": "audio",
-      "clip": "/assets/audio/cutscenes/room-for-grace/04-pierce-grace.wav",
-      "bus": "vo",
+      "duration": 8.4,
       "volume": 0.9
     },
     {
-      "at": 16.5,
+      "at": 18.4,
+      "type": "hud",
+      "title": "The Pitch",
+      "text": "Hawkes Biomedical — category ownership"
+    },
+    {
+      "at": 18.6,
+      "type": "line",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "Some of you have gotten comfortable. Comfortable is how empires get carved up by people hungrier than you. That ends in this room.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/03-pierce-comfortable.wav",
+      "anim": "talk",
+      "duration": 8.6,
+      "volume": 0.9
+    },
+    {
+      "at": 27.6,
+      "type": "camera",
+      "position": { "x": 44.2, "y": 2.5, "z": 38.2 },
+      "lookAt": { "x": 44.2, "y": 1.2, "z": 34.3 }
+    },
+    {
+      "at": 27.8,
+      "type": "line",
+      "actor": "chair-n-2",
+      "speaker": "Director Hale",
+      "text": "The street is watching B3, Pierce. If that basement leaks, the valuation does not survive the quarter.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/04-hale-b3.wav",
+      "anim": "talk",
+      "duration": 7.1,
+      "volume": 0.85
+    },
+    {
+      "at": 35.2,
+      "type": "camera",
+      "position": { "x": 48.4, "y": 2.15, "z": 32 },
+      "lookAt": { "x": 50.6, "y": 1.35, "z": 32 }
+    },
+    {
+      "at": 35.4,
+      "type": "line",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "B3 stays dark because I told it to stay dark. Compliance does not set the ceiling. I do.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/05-pierce-ceiling.wav",
+      "anim": "talk",
+      "duration": 6.6,
+      "volume": 0.9
+    },
+    {
+      "at": 42.4,
+      "type": "camera",
+      "position": { "x": 40.2, "y": 2.2, "z": 26.4 },
+      "lookAt": { "x": 40.2, "y": 1.15, "z": 29.7 }
+    },
+    {
+      "at": 42.6,
+      "type": "line",
+      "actor": "chair-s-1",
+      "speaker": "Voss",
+      "text": "Ethics and the charter say we seal it. Those are patients down there, Pierce. Not prototypes.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/06-voss-ethics.wav",
+      "anim": "talk",
+      "duration": 5.8,
+      "volume": 0.85
+    },
+    {
+      "at": 49.8,
+      "type": "camera",
+      "position": { "x": 48.6, "y": 2.2, "z": 31.2 },
+      "lookAt": { "x": 50.6, "y": 1.35, "z": 32 }
+    },
+    {
+      "at": 50.0,
+      "type": "line",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "Patients are the product. The ones who walk out of here will write our next decade. The ones who don't were never going to.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/07-pierce-patients.wav",
+      "anim": "talk",
+      "duration": 8.2,
+      "volume": 0.9
+    },
+    {
+      "at": 58.6,
+      "type": "camera",
+      "position": { "x": 48.2, "y": 2.25, "z": 26.6 },
+      "lookAt": { "x": 48.2, "y": 1.15, "z": 29.7 }
+    },
+    {
+      "at": 58.8,
+      "type": "line",
+      "actor": "chair-s-3",
+      "speaker": "Lang",
+      "text": "Investors want a date they can take to Zurich. You keep moving the timeline like the market will wait.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/08-lang-timeline.wav",
+      "anim": "talk",
+      "duration": 6.8,
+      "volume": 0.85
+    },
+    {
+      "at": 66.0,
+      "type": "camera",
+      "position": { "x": 47.8, "y": 2.35, "z": 32 },
+      "lookAt": { "x": 50.6, "y": 1.4, "z": 32 }
+    },
+    {
+      "at": 66.2,
+      "type": "line",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "Zurich can wait. When we own the category, they will thank me for making them rich slower than they wanted.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/09-pierce-zurich.wav",
+      "anim": "talk",
+      "duration": 7.4,
+      "volume": 0.9
+    },
+    {
+      "at": 74.0,
+      "type": "hud",
+      "title": "Adjourned",
+      "text": "Get back to work."
+    },
+    {
+      "at": 74.2,
+      "type": "line",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "That's all. This meeting is over. Get back to work.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/10-pierce-dismiss.wav",
+      "anim": "talk",
+      "duration": 4.6,
+      "volume": 0.9
+    },
+    {
+      "at": 79.2,
+      "type": "camera",
+      "position": { "x": 37.5, "y": 2.6, "z": 32 },
+      "lookAt": { "x": 45, "y": 1.15, "z": 32 }
+    },
+    {
+      "at": 79.4,
+      "type": "line",
+      "actor": "chair-head",
+      "speaker": "Pierce",
+      "text": "There's always room for grace.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/11-pierce-grace.wav",
+      "anim": "talk",
+      "duration": 2.4,
+      "volume": 0.88
+    },
+    {
+      "at": 82,
       "type": "end"
     }
   ]

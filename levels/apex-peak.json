@@ -11,9 +11,19 @@
       "x": 0,
       "y": 0,
       "z": 16,
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 5.2, "y": 1, "z": 34 },
-      "components": ["Transform"]
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.2,
+        "y": 1,
+        "z": 34
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "floor-hall-2",
@@ -23,9 +33,19 @@
       "x": 20,
       "y": 0,
       "z": 32,
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 36, "y": 1, "z": 5.2 },
-      "components": ["Transform"]
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 36,
+        "y": 1,
+        "z": 5.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "floor-board",
@@ -35,9 +55,19 @@
       "x": 44,
       "y": 0,
       "z": 32,
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 18, "y": 1, "z": 16 },
-      "components": ["Transform"]
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 18,
+        "y": 1,
+        "z": 16
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "floor-office",
@@ -47,9 +77,19 @@
       "x": 48,
       "y": 0,
       "z": 43,
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 10, "y": 1, "z": 8 },
-      "components": ["Transform"]
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 10,
+        "y": 1,
+        "z": 8
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "floor-lift",
@@ -59,9 +99,19 @@
       "x": 44,
       "y": 0,
       "z": 21.2,
-      "rotation": { "x": 0, "y": 0, "z": 0 },
-      "scale": { "x": 3.6, "y": 1, "z": 4.4 },
-      "components": ["Transform"]
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.6,
+        "y": 1,
+        "z": 4.4
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "ceil-hall-1",
@@ -71,8 +121,14 @@
       "x": 0,
       "y": 3.26,
       "z": 16,
-      "scale": { "x": 5.2, "y": 0.12, "z": 34 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 5.2,
+        "y": 0.12,
+        "z": 34
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "ceil-hall-2",
@@ -82,8 +138,14 @@
       "x": 20,
       "y": 3.26,
       "z": 32,
-      "scale": { "x": 36, "y": 0.12, "z": 5.2 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 36,
+        "y": 0.12,
+        "z": 5.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "ceil-board",
@@ -93,8 +155,14 @@
       "x": 44,
       "y": 3.26,
       "z": 32,
-      "scale": { "x": 18, "y": 0.12, "z": 16 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 18,
+        "y": 0.12,
+        "z": 16
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "ceil-office",
@@ -104,8 +172,14 @@
       "x": 48,
       "y": 3.26,
       "z": 43,
-      "scale": { "x": 10, "y": 0.12, "z": 8 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 10,
+        "y": 0.12,
+        "z": 8
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "ceil-lift",
@@ -115,10 +189,15 @@
       "x": 44,
       "y": 3.26,
       "z": 21.2,
-      "scale": { "x": 3.6, "y": 0.12, "z": 4.4 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 3.6,
+        "y": 0.12,
+        "z": 4.4
+      },
+      "components": [
+        "Transform"
+      ]
     },
-
     {
       "id": "h1-wall-w",
       "assetId": "structure-wall",
@@ -127,8 +206,14 @@
       "x": -2.32,
       "y": 1.6,
       "z": 16,
-      "scale": { "x": 0.24, "y": 3.2, "z": 34 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.24,
+        "y": 3.2,
+        "z": 34
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "h1-wall-e",
@@ -138,8 +223,14 @@
       "x": 2.32,
       "y": 1.6,
       "z": 14.7,
-      "scale": { "x": 0.24, "y": 3.2, "z": 31.4 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.24,
+        "y": 3.2,
+        "z": 31.4
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "h1-wall-n",
@@ -147,10 +238,21 @@
       "kind": "wall",
       "name": "Hall 1 Dead End",
       "x": 0,
-      "y": 1.6,
-      "z": 32.12,
-      "scale": { "x": 4.88, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "y": 1.600000023841858,
+      "z": 33.056148529052734,
+      "scale": {
+        "x": 4.880000114440918,
+        "y": 3.200000047683716,
+        "z": 0.23999999463558197
+      },
+      "components": [
+        "Transform"
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "h1-wall-s",
@@ -160,10 +262,15 @@
       "x": 0,
       "y": 1.6,
       "z": -1.12,
-      "scale": { "x": 4.88, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 4.88,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
-
     {
       "id": "h2-wall-s",
       "assetId": "structure-wall",
@@ -172,8 +279,14 @@
       "x": 19.2,
       "y": 1.6,
       "z": 29.68,
-      "scale": { "x": 33.6, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 33.6,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "h2-wall-n",
@@ -183,10 +296,15 @@
       "x": 19.2,
       "y": 1.6,
       "z": 34.32,
-      "scale": { "x": 33.6, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 33.6,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
-
     {
       "id": "board-wall-w-s",
       "assetId": "structure-wall",
@@ -195,8 +313,14 @@
       "x": 35.12,
       "y": 1.6,
       "z": 26.7,
-      "scale": { "x": 0.24, "y": 3.2, "z": 6.2 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.24,
+        "y": 3.2,
+        "z": 6.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-wall-w-n",
@@ -206,8 +330,14 @@
       "x": 35.12,
       "y": 1.6,
       "z": 37.3,
-      "scale": { "x": 0.24, "y": 3.2, "z": 5.6 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.24,
+        "y": 3.2,
+        "z": 5.6
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-wall-n-w",
@@ -217,8 +347,14 @@
       "x": 39.2,
       "y": 1.6,
       "z": 40.12,
-      "scale": { "x": 8.4, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 8.4,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-wall-n-e",
@@ -228,8 +364,14 @@
       "x": 51.2,
       "y": 1.6,
       "z": 40.12,
-      "scale": { "x": 5.6, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 5.6,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-wall-s-w",
@@ -239,8 +381,14 @@
       "x": 39.4,
       "y": 1.6,
       "z": 23.88,
-      "scale": { "x": 8.8, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 8.8,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-wall-s-e",
@@ -250,20 +398,37 @@
       "x": 48.6,
       "y": 1.6,
       "z": 23.88,
-      "scale": { "x": 6.8, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 6.8,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-glass",
       "assetId": "asset-window",
       "kind": "texture",
       "name": "City Glass",
-      "x": 52.9,
+      "x": 52.72,
       "y": 1.6,
       "z": 32,
-      "rotation": { "x": 0, "y": 1.5708, "z": 0 },
-      "scale": { "x": 15.6, "y": 3.0, "z": 1 },
-      "components": ["Transform", "Renderer"]
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 15.6,
+        "y": 3,
+        "z": 1
+      },
+      "components": [
+        "Transform",
+        "Renderer"
+      ]
     },
     {
       "id": "board-glass-sill",
@@ -273,8 +438,14 @@
       "x": 53.05,
       "y": 1.6,
       "z": 32,
-      "scale": { "x": 0.1, "y": 3.2, "z": 16.2 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.1,
+        "y": 3.2,
+        "z": 16.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-table",
@@ -284,8 +455,14 @@
       "x": 44.2,
       "y": 0.42,
       "z": 32,
-      "scale": { "x": 10.4, "y": 0.84, "z": 3.2 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 10.4,
+        "y": 0.84,
+        "z": 3.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "board-hologram",
@@ -295,9 +472,19 @@
       "x": 44.2,
       "y": 1.55,
       "z": 32,
-      "rotation": { "x": 0, "y": 1.5708, "z": 0 },
-      "scale": { "x": 2.8, "y": 1.6, "z": 1 },
-      "components": ["Renderer"]
+      "rotation": {
+        "x": 0,
+        "y": 1.5708,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.8,
+        "y": 1.6,
+        "z": 1
+      },
+      "components": [
+        "Renderer"
+      ]
     },
     {
       "id": "chair-s-1",
@@ -307,8 +494,16 @@
       "x": 40.2,
       "y": 0.22,
       "z": 29.7,
-      "scale": { "x": 0.62, "y": 0.44, "z": 0.62 },
-      "components": ["Transform", "NpcSeat"]
+      "scale": {
+        "x": 0.62,
+        "y": 0.44,
+        "z": 0.62
+      },
+      "components": [
+        "Transform",
+        "NpcSeat"
+      ],
+      "npcAssetId": "asset-ch08-npc"
     },
     {
       "id": "chair-s-2",
@@ -318,8 +513,16 @@
       "x": 44.2,
       "y": 0.22,
       "z": 29.7,
-      "scale": { "x": 0.62, "y": 0.44, "z": 0.62 },
-      "components": ["Transform", "NpcSeat"]
+      "scale": {
+        "x": 0.62,
+        "y": 0.44,
+        "z": 0.62
+      },
+      "components": [
+        "Transform",
+        "NpcSeat"
+      ],
+      "npcAssetId": "asset-ch23-npc"
     },
     {
       "id": "chair-s-3",
@@ -329,8 +532,16 @@
       "x": 48.2,
       "y": 0.22,
       "z": 29.7,
-      "scale": { "x": 0.62, "y": 0.44, "z": 0.62 },
-      "components": ["Transform", "NpcSeat"]
+      "scale": {
+        "x": 0.62,
+        "y": 0.44,
+        "z": 0.62
+      },
+      "components": [
+        "Transform",
+        "NpcSeat"
+      ],
+      "npcAssetId": "asset-ch28-npc"
     },
     {
       "id": "chair-n-1",
@@ -340,8 +551,16 @@
       "x": 40.2,
       "y": 0.22,
       "z": 34.3,
-      "scale": { "x": 0.62, "y": 0.44, "z": 0.62 },
-      "components": ["Transform", "NpcSeat"]
+      "scale": {
+        "x": 0.62,
+        "y": 0.44,
+        "z": 0.62
+      },
+      "components": [
+        "Transform",
+        "NpcSeat"
+      ],
+      "npcAssetId": "asset-ch31-npc"
     },
     {
       "id": "chair-n-2",
@@ -351,8 +570,16 @@
       "x": 44.2,
       "y": 0.22,
       "z": 34.3,
-      "scale": { "x": 0.62, "y": 0.44, "z": 0.62 },
-      "components": ["Transform", "NpcSeat"]
+      "scale": {
+        "x": 0.62,
+        "y": 0.44,
+        "z": 0.62
+      },
+      "components": [
+        "Transform",
+        "NpcSeat"
+      ],
+      "npcAssetId": "asset-ch37-npc"
     },
     {
       "id": "chair-n-3",
@@ -362,8 +589,16 @@
       "x": 48.2,
       "y": 0.22,
       "z": 34.3,
-      "scale": { "x": 0.62, "y": 0.44, "z": 0.62 },
-      "components": ["Transform", "NpcSeat"]
+      "scale": {
+        "x": 0.62,
+        "y": 0.44,
+        "z": 0.62
+      },
+      "components": [
+        "Transform",
+        "NpcSeat"
+      ],
+      "npcAssetId": "asset-ch08-npc"
     },
     {
       "id": "chair-head",
@@ -371,10 +606,16 @@
       "kind": "wall",
       "name": "Pierce Chair",
       "x": 50.55,
-      "y": 0.52,
+      "y": 0.22,
       "z": 32,
-      "scale": { "x": 0.7, "y": 1.04, "z": 0.7 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.7,
+        "y": 0.44,
+        "z": 0.7
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "col-sw",
@@ -384,8 +625,14 @@
       "x": 36.4,
       "y": 1.6,
       "z": 25.2,
-      "scale": { "x": 0.45, "y": 3.2, "z": 0.45 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.45,
+        "y": 3.2,
+        "z": 0.45
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "col-nw",
@@ -395,10 +642,15 @@
       "x": 36.4,
       "y": 1.6,
       "z": 38.8,
-      "scale": { "x": 0.45, "y": 3.2, "z": 0.45 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.45,
+        "y": 3.2,
+        "z": 0.45
+      },
+      "components": [
+        "Transform"
+      ]
     },
-
     {
       "id": "office-wall-w",
       "assetId": "structure-wall",
@@ -407,8 +659,14 @@
       "x": 43.12,
       "y": 1.6,
       "z": 43.1,
-      "scale": { "x": 0.24, "y": 3.2, "z": 6.2 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.24,
+        "y": 3.2,
+        "z": 6.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "office-wall-e",
@@ -418,8 +676,14 @@
       "x": 52.88,
       "y": 1.6,
       "z": 43.1,
-      "scale": { "x": 0.24, "y": 3.2, "z": 6.2 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.24,
+        "y": 3.2,
+        "z": 6.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "office-wall-n",
@@ -429,8 +693,14 @@
       "x": 48,
       "y": 1.6,
       "z": 47.12,
-      "scale": { "x": 10, "y": 3.2, "z": 0.24 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 10,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "office-glass",
@@ -439,9 +709,16 @@
       "name": "Office City Glass",
       "x": 48,
       "y": 1.6,
-      "z": 47.0,
-      "scale": { "x": 8.8, "y": 2.9, "z": 1 },
-      "components": ["Transform", "Renderer"]
+      "z": 46.76,
+      "scale": {
+        "x": 8.8,
+        "y": 2.9,
+        "z": 1
+      },
+      "components": [
+        "Transform",
+        "Renderer"
+      ]
     },
     {
       "id": "office-desk",
@@ -450,9 +727,15 @@
       "name": "Pierce Desk",
       "x": 48,
       "y": 0.4,
-      "z": 45.2,
-      "scale": { "x": 2.4, "y": 0.8, "z": 1.1 },
-      "components": ["Transform"]
+      "z": 42.35,
+      "scale": {
+        "x": 2.4,
+        "y": 0.8,
+        "z": 1.1
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "office-whiskey",
@@ -461,9 +744,15 @@
       "name": "Whiskey Glass",
       "x": 47.4,
       "y": 0.92,
-      "z": 45.0,
-      "scale": { "x": 0.12, "y": 0.22, "z": 0.12 },
-      "components": ["Transform"]
+      "z": 42.2,
+      "scale": {
+        "x": 0.12,
+        "y": 0.22,
+        "z": 0.12
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "office-trophy",
@@ -473,10 +762,32 @@
       "x": 50.6,
       "y": 1.15,
       "z": 46.2,
-      "scale": { "x": 0.28, "y": 0.7, "z": 0.28 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.28,
+        "y": 0.7,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
     },
-
+    {
+      "id": "office-terminal",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Office Terminal",
+      "x": 48.15,
+      "y": 1.12,
+      "z": 41.88,
+      "scale": {
+        "x": 0.78,
+        "y": 0.52,
+        "z": 0.1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
     {
       "id": "lift-wall-w",
       "assetId": "structure-wall",
@@ -485,8 +796,14 @@
       "x": 42.32,
       "y": 1.6,
       "z": 21.4,
-      "scale": { "x": 0.2, "y": 3.2, "z": 4.8 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.2,
+        "y": 3.2,
+        "z": 4.8
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "lift-wall-e",
@@ -496,8 +813,14 @@
       "x": 45.68,
       "y": 1.6,
       "z": 21.4,
-      "scale": { "x": 0.2, "y": 3.2, "z": 4.8 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 0.2,
+        "y": 3.2,
+        "z": 4.8
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "lift-wall-s",
@@ -507,32 +830,248 @@
       "x": 44,
       "y": 1.6,
       "z": 19.12,
-      "scale": { "x": 3.6, "y": 3.2, "z": 0.2 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 3.6,
+        "y": 3.2,
+        "z": 0.2
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "lift-door-l",
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Elevator Door L",
-      "x": 43.28,
+      "x": 43.42,
       "y": 1.5,
       "z": 23.78,
-      "scale": { "x": 1.35, "y": 3, "z": 0.08 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 1.35,
+        "y": 3,
+        "z": 0.08
+      },
+      "components": [
+        "Transform"
+      ]
     },
     {
       "id": "lift-door-r",
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Elevator Door R",
-      "x": 44.72,
+      "x": 44.58,
       "y": 1.5,
       "z": 23.78,
-      "scale": { "x": 1.35, "y": 3, "z": 0.08 },
-      "components": ["Transform"]
+      "scale": {
+        "x": 1.35,
+        "y": 3,
+        "z": 0.08
+      },
+      "components": [
+        "Transform"
+      ]
     },
-
+    {
+      "id": "lift-b3-button",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "B3 Button",
+      "x": 45.48,
+      "y": 1.38,
+      "z": 21.2,
+      "scale": {
+        "x": 0.08,
+        "y": 0.14,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-panel",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Floor Panel",
+      "x": 44,
+      "y": 2.68,
+      "z": 23.52,
+      "scale": {
+        "x": 1.86,
+        "y": 0.58,
+        "z": 0.08
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-readout",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor Readout",
+      "x": 44.18,
+      "y": 2.78,
+      "z": 23.44,
+      "scale": {
+        "x": 0.78,
+        "y": 0.24,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-down",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Down Arrow",
+      "x": 43.28,
+      "y": 2.78,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.24,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-58",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor 58",
+      "x": 43.42,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-40",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor 40",
+      "x": 43.64,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-20",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor 20",
+      "x": 43.86,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-L",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor L",
+      "x": 44.08,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-B1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor B1",
+      "x": 44.3,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-B2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor B2",
+      "x": 44.52,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-B3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor B3",
+      "x": 44.74,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-lift",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Elevator Cab Light",
+      "x": 44,
+      "y": 3.02,
+      "z": 21.2,
+      "components": [
+        "Light"
+      ]
+    },
     {
       "id": "light-h1-a",
       "assetId": "asset-lantern-light",
@@ -541,7 +1080,9 @@
       "x": 0,
       "y": 3.05,
       "z": 6,
-      "components": ["Light"]
+      "components": [
+        "Light"
+      ]
     },
     {
       "id": "light-h1-b",
@@ -551,7 +1092,9 @@
       "x": 0,
       "y": 3.05,
       "z": 16,
-      "components": ["Light"]
+      "components": [
+        "Light"
+      ]
     },
     {
       "id": "light-h1-c",
@@ -561,7 +1104,9 @@
       "x": 0,
       "y": 3.05,
       "z": 26,
-      "components": ["Light"]
+      "components": [
+        "Light"
+      ]
     },
     {
       "id": "light-h2-a",
@@ -571,7 +1116,9 @@
       "x": 12,
       "y": 3.05,
       "z": 32,
-      "components": ["Light"]
+      "components": [
+        "Light"
+      ]
     },
     {
       "id": "light-h2-b",
@@ -581,7 +1128,9 @@
       "x": 24,
       "y": 3.05,
       "z": 32,
-      "components": ["Light"]
+      "components": [
+        "Light"
+      ]
     },
     {
       "id": "light-board",
@@ -591,7 +1140,9 @@
       "x": 44.2,
       "y": 3.05,
       "z": 32,
-      "components": ["Light"]
+      "components": [
+        "Light"
+      ]
     },
     {
       "id": "light-office",
@@ -601,17 +1152,22 @@
       "x": 48,
       "y": 3.05,
       "z": 43.5,
-      "components": ["Light"]
+      "components": [
+        "Light"
+      ]
     },
     {
       "id": "player-spawn",
-      "assetId": "asset-ch44-hero",
+      "assetId": "asset-ch33-hero",
       "kind": "model",
       "name": "Player",
       "x": 0,
       "y": 0,
       "z": 3,
-      "components": ["Transform", "Collider"]
+      "components": [
+        "Transform",
+        "Collider"
+      ]
     }
   ],
   "triggers": [
@@ -652,12 +1208,60 @@
       "z": 43
     },
     {
+      "id": "trigger-board-exit",
+      "type": "npc_exit",
+      "label": "Board Hallway Exit",
+      "x": 16,
+      "y": 0,
+      "z": 32,
+      "data": {
+        "radius": 2.4
+      }
+    },
+    {
+      "id": "trigger-office-window",
+      "type": "enter_zone",
+      "label": "Office Window",
+      "x": 48,
+      "y": 0,
+      "z": 46.2,
+      "data": {
+        "radius": 0.9
+      }
+    },
+    {
+      "id": "trigger-office-terminal",
+      "type": "enter_zone",
+      "label": "Office Terminal",
+      "x": 48.15,
+      "y": 0,
+      "z": 41.88,
+      "data": {
+        "radius": 1.15
+      }
+    },
+    {
+      "id": "trigger-board-door",
+      "type": "npc_exit",
+      "label": "Boardroom Door",
+      "x": 36.4,
+      "y": 0,
+      "z": 32,
+      "data": {
+        "radius": 1.4
+      }
+    },
+    {
       "id": "trigger-elevator-b3",
-      "type": "checkpoint",
+      "type": "cutscene",
       "label": "Elevator to B3",
       "x": 44,
       "y": 0,
-      "z": 21.5
+      "z": 21.35,
+      "data": {
+        "cutscene": "elevator-b3",
+        "radius": 1.55
+      }
     }
   ]
 }

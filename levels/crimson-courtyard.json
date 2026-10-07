@@ -555,7 +555,7 @@
     },
     {
       "id": "scene-hero",
-      "assetId": "asset-ch44-hero",
+      "assetId": "asset-ch33-hero",
       "kind": "model",
       "name": "Hero",
       "x": 0,
@@ -596,7 +596,7 @@
       "id": "trigger-1",
       "type": "enter_zone",
       "label": "Entry Gate",
-      "assetId": "asset-ch44-hero",
+      "assetId": "asset-ch33-hero",
       "x": 0,
       "y": 0,
       "z": 0

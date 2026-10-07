@@ -28,6 +28,7 @@ export type LevelDefinition = {
   theme: string;
   reward: string;
   arenaSize: number;
+  comingSoon: boolean;
 };
 
 export type ProgressionState = {

@@ -1,28 +1,139 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { convertCharacterGlb } from './blenderConvert.mjs';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const animationsDir = path.join(projectRoot, 'assets', 'animations');
+const assetsRoot = process.env.PHORIGINS_ASSETS || 'C:/Projects/phoriginsassets';
+const modelsDir = path.join(assetsRoot, 'models');
+const animationsDir = path.join(assetsRoot, 'animations');
 
-const result = convertCharacterGlb({
-  projectRoot,
-  outputName: 'ch44-hero',
-  basePath: 'C:/Projects/phoriginsassets/models/Ch44_nonPBR.fbx',
-  animations: [
-    { name: 'Idle', path: path.join(animationsDir, 'Idle.fbx'), projectPath: '/assets/animations/Idle.fbx' },
-    { name: 'Walk', path: path.join(animationsDir, 'Walking.fbx'), projectPath: '/assets/animations/Walking.fbx' },
-    { name: 'Jump', path: path.join(animationsDir, 'Jump.fbx'), projectPath: '/assets/animations/Jump.fbx' },
-    { name: 'SitIdle', path: path.join(animationsDir, 'Sitting Idle.fbx'), projectPath: '/assets/animations/Sitting Idle.fbx' },
-    { name: 'SitTalk', path: path.join(animationsDir, 'Sitting Talking.fbx'), projectPath: '/assets/animations/Sitting Talking.fbx' },
-  ],
-});
+const locomoClips = [
+  { name: 'Idle', path: path.join(animationsDir, 'Idle.fbx') },
+  { name: 'Walk', path: path.join(animationsDir, 'Walking.fbx') },
+  { name: 'Jump', path: path.join(animationsDir, 'Jump.fbx') },
+  { name: 'SitIdle', path: path.join(animationsDir, 'Sitting Idle.fbx') },
+  { name: 'SitTalk', path: path.join(animationsDir, 'Sitting Talking.fbx') },
+];
 
-if (!result.ok) {
-  console.error(result.error);
-  if (result.log) console.error(result.log);
+const npcClips = locomoClips.filter((clip) => clip.name !== 'Jump');
+
+const jobs = [
+  {
+    outputName: 'ch33-hero',
+    fbx: 'Ch33_nonPBR.fbx',
+    animations: locomoClips,
+    tags: ['character', 'mixamo', 'player', 'real-file'],
+  },
+  {
+    outputName: 'ch44-hero',
+    fbx: 'Ch44_nonPBR.fbx',
+    animations: locomoClips,
+    tags: ['character', 'mixamo', 'transform', 'post-god-complex', 'real-file'],
+  },
+  {
+    outputName: 'ch08-npc',
+    fbx: 'Ch08_nonPBR.fbx',
+    animations: npcClips,
+    tags: ['character', 'mixamo', 'npc', 'professional_npc', 'real-file'],
+  },
+  {
+    outputName: 'ch23-npc',
+    fbx: 'Ch23_nonPBR.fbx',
+    animations: npcClips,
+    tags: ['character', 'mixamo', 'npc', 'professional_npc', 'real-file'],
+  },
+  {
+    outputName: 'ch28-npc',
+    fbx: 'Ch28_nonPBR.fbx',
+    animations: npcClips,
+    tags: ['character', 'mixamo', 'npc', 'professional_npc', 'real-file'],
+  },
+  {
+    outputName: 'ch31-npc',
+    fbx: 'Ch31_nonPBR.fbx',
+    animations: npcClips,
+    tags: ['character', 'mixamo', 'npc', 'professional_npc', 'real-file'],
+  },
+  {
+    outputName: 'ch37-npc',
+    fbx: 'Ch37_nonPBR.fbx',
+    animations: npcClips,
+    tags: ['character', 'mixamo', 'npc', 'professional_npc', 'real-file'],
+  },
+];
+
+const only = process.argv.slice(2).filter((arg) => !arg.startsWith('-'));
+const selected = only.length ? jobs.filter((job) => only.includes(job.outputName)) : jobs;
+if (only.length && selected.length !== only.length) {
+  const known = new Set(jobs.map((job) => job.outputName));
+  const missing = only.filter((name) => !known.has(name));
+  console.error(`Unknown bake target(s): ${missing.join(', ')}`);
   process.exit(1);
 }
 
-console.log(`Baked ${result.asset.path} with clips: ${result.clipNames.join(', ')}`);
-if (result.log) console.log(result.log);
+const verifyGlbSkinAndClips = (glbAbsPath) => {
+  const buf = readFileSync(glbAbsPath);
+  const jsonLen = buf.readUInt32LE(12);
+  const json = JSON.parse(buf.slice(20, 20 + jsonLen).toString('utf8'));
+  const nodes = json.nodes || [];
+  const skinNames = new Set((json.skins?.[0]?.joints || []).map((index) => nodes[index]?.name));
+  const hipJoint = [...skinNames].find((name) => /hips/i.test(name || ''));
+  const clips = (json.animations || []).filter((anim) => /^(Idle|Walk|Jump|SitIdle|SitTalk)$/i.test(anim.name || ''));
+  const problems = [];
+  if (!hipJoint) problems.push('skin.joints has no Hips');
+  for (const anim of clips) {
+    const targets = [...new Set((anim.channels || []).map((channel) => nodes[channel.target.node]?.name))];
+    const hipTarget = targets.find((name) => /hips/i.test(name || ''));
+    if (!hipTarget) problems.push(`${anim.name} has no Hips channel`);
+    else if (!skinNames.has(hipTarget)) problems.push(`${anim.name} Hips ${hipTarget} not in skin.joints`);
+  }
+  return { hipJoint, clipCount: clips.length, problems };
+};
+
+let failed = 0;
+for (const job of selected) {
+  const basePath = path.join(modelsDir, job.fbx);
+  console.log(`Baking ${job.outputName} from ${basePath} (${job.animations.map((clip) => clip.name).join(', ')})...`);
+  const result = convertCharacterGlb({
+    projectRoot,
+    outputName: job.outputName,
+    basePath,
+    animations: job.animations,
+    tags: job.tags,
+  });
+  if (!result.ok) {
+    failed += 1;
+    console.error(`FAILED ${job.outputName}: ${result.error}`);
+    if (result.log) console.error(result.log);
+    continue;
+  }
+  console.log(`Baked ${result.asset.path} with clips: ${result.clipNames.join(', ')}`);
+  const jointLine = (result.log || '').split(/\r?\n/).filter((line) =>
+    line.includes('Character armature hips')
+    || line.includes('Retargeted')
+    || line.includes('fcurve0=')
+    || line.includes('Rename object')
+    || line.includes('Pre-export hip objects')
+    || line.includes('Exported hips bone')
+  );
+  jointLine.forEach((line) => console.log(line));
+  const glbAbs = path.join(projectRoot, 'assets', 'models', `${job.outputName}.glb`);
+  const check = verifyGlbSkinAndClips(glbAbs);
+  const expectedHips = (result.log.match(/Character armature hips=(\S+)/) || [])[1];
+  console.log(`Verify ${job.outputName} blenderHips=${expectedHips} glbHips=${check.hipJoint} clips=${check.clipCount}`);
+  if (!check.hipJoint) {
+    check.problems.push('GLB skin has no Hips joint');
+  }
+  if (check.problems.length) {
+    failed += 1;
+    console.error(`VERIFY FAILED ${job.outputName}: ${check.problems.join('; ')}`);
+  }
+}
+
+if (failed) {
+  console.error(`Bake finished with ${failed} failure(s).`);
+  process.exit(1);
+}
+
+console.log('Bake finished successfully.');

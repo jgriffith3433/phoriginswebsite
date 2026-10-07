@@ -1,0 +1,146 @@
+{
+  "id": "apex-window",
+  "name": "The Glass",
+  "duration": 50,
+  "notes": "Pierce at the office north window after the board has left. Standing idle; do not sit. Drop VO at the audio paths; missing files stub. Gameplay starts looping /assets/audio/cutscenes/apex-window/alarm.wav at 42.3s and keeps it after this timeline ends.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": { "x": 50.55, "y": 1.62, "z": 45.55 },
+      "lookAt": { "x": 48.15, "y": 1.42, "z": 46.85 }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0,
+      "type": "hud",
+      "title": "Hawkes Tower",
+      "text": "58th floor — Pierce's office"
+    },
+    {
+      "at": 0,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/apex-window/ambience.wav",
+      "bus": "music",
+      "loop": true,
+      "volume": 0.2
+    },
+    {
+      "at": 1.2,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "Let them file out. Let them tell themselves the quarter is clean.",
+      "audio": "/assets/audio/cutscenes/apex-window/01-pierce-file-out.wav",
+      "anim": "idle",
+      "duration": 4.6,
+      "volume": 0.9
+    },
+    {
+      "at": 6.2,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "Hawkes Biomedical. Category owner. A valuation that makes Zurich sit up straight and ask how high.",
+      "audio": "/assets/audio/cutscenes/apex-window/02-pierce-valuation.wav",
+      "anim": "idle",
+      "duration": 7.2,
+      "volume": 0.9
+    },
+    {
+      "at": 14.0,
+      "type": "camera",
+      "position": { "x": 49.85, "y": 1.55, "z": 45.15 },
+      "lookAt": { "x": 48.0, "y": 1.48, "z": 46.9 }
+    },
+    {
+      "at": 14.2,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "I told Hale B3 stays dark. I told Voss patients are the product. And I meant every word.",
+      "audio": "/assets/audio/cutscenes/apex-window/03-pierce-meant-it.wav",
+      "anim": "idle",
+      "duration": 7.4,
+      "volume": 0.9
+    },
+    {
+      "at": 22.2,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "Dominance isn't a slide. It's this city looking up at fifty-eight and knowing the ceiling is mine.",
+      "audio": "/assets/audio/cutscenes/apex-window/04-pierce-ceiling.wav",
+      "anim": "idle",
+      "duration": 7.2,
+      "volume": 0.9
+    },
+    {
+      "at": 30.0,
+      "type": "camera",
+      "position": { "x": 50.7, "y": 1.58, "z": 45.55 },
+      "lookAt": { "x": 48.4, "y": 1.4, "z": 46.9 }
+    },
+    {
+      "at": 30.2,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "So why does the glass still look like it's keeping something in.",
+      "audio": "/assets/audio/cutscenes/apex-window/05-pierce-glass.wav",
+      "anim": "idle",
+      "duration": 4.8,
+      "volume": 0.9
+    },
+    {
+      "at": 35.4,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "There's a smell under the multiples. Something rotten in the basement I keep calling a rounding error.",
+      "audio": "/assets/audio/cutscenes/apex-window/06-pierce-rotten.wav",
+      "anim": "idle",
+      "duration": 7.0,
+      "volume": 0.9
+    },
+    {
+      "at": 42.5,
+      "type": "hud",
+      "title": "Alert",
+      "text": "Unscheduled terminal alarm — next room"
+    },
+    {
+      "at": 43.6,
+      "type": "camera",
+      "position": { "x": 50.15, "y": 1.72, "z": 45.85 },
+      "lookAt": { "x": 48.15, "y": 1.12, "z": 42.2 }
+    },
+    {
+      "at": 44.0,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "There's always room for—",
+      "audio": "/assets/audio/cutscenes/apex-window/07-pierce-interrupted.wav",
+      "anim": "idle",
+      "duration": 2.2,
+      "volume": 0.9
+    },
+    {
+      "at": 46.4,
+      "type": "hud",
+      "title": "Objective",
+      "text": "Investigate the terminal"
+    },
+    {
+      "at": 50,
+      "type": "end"
+    }
+  ]
+}

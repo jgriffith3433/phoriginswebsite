@@ -11,34 +11,51 @@ export type PlayerAvatar = {
 };
 
 const compact = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '');
-const tokens = (value: string) => value.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
 
-/** Keyword match that prefers SitIdle over SitTalk for `sit`, and standing Idle over SitIdle for `idle`. */
+/** Last segment after `_` so prefixed clones (`…ModelRoot_2_SitIdle`) still match. */
+const clipTail = (value: string) => {
+  const slash = value.replace(/\\/g, '/');
+  const base = slash.slice(slash.lastIndexOf('/') + 1);
+  const parts = base.split('_');
+  return parts[parts.length - 1] ?? base;
+};
+
+const hasTail = (clipName: string, pattern: RegExp) => pattern.test(clipName) || pattern.test(clipTail(clipName));
+
+/** Keyword match on the clip tail. Prefers SitIdle over SitTalk for `sit`, standing Idle over SitIdle for `idle`. */
 export const findClip = (clips: BABYLON.AnimationGroup[], keyword: string): BABYLON.AnimationGroup | null => {
   const key = keyword.trim().toLowerCase();
   if (!key || clips.length === 0) return null;
   const keyCompact = compact(key);
-  const keyTokens = tokens(key);
-  const wantsTalk = key === 'talk' || keyTokens.includes('talk');
-  const wantsSit = key === 'sit' || keyTokens.includes('sit') || keyTokens.includes('sitting');
-  const wantsIdle = key === 'idle' || (keyTokens.includes('idle') && !wantsSit);
+  const wantsTalk = key === 'talk' || keyCompact.includes('talk');
+  const wantsSit = key === 'sit' || key === 'sitting' || keyCompact === 'sitidle' || (keyCompact.includes('sit') && !wantsTalk);
+  const wantsIdle = key === 'idle' || keyCompact === 'idle';
+  const wantsWalk = key === 'walk' || key === 'walking' || keyCompact === 'walk';
+  const wantsJump = key === 'jump' || keyCompact === 'jump';
 
   const scored = clips.map((clip) => {
-    const name = clip.name.toLowerCase();
-    const nameCompact = compact(clip.name);
-    const nameTokens = tokens(clip.name);
-    const clipTalk = nameCompact.includes('talk');
-    const clipSit = nameCompact.includes('sit');
+    const tail = clipTail(clip.name);
+    const tailCompact = compact(tail);
     let score = 0;
-    if (name === key || nameCompact === keyCompact) score += 100;
-    if (keyCompact.length >= 3 && nameCompact.includes(keyCompact)) score += 20;
-    if (keyTokens.length > 0 && keyTokens.every((token) => nameCompact.includes(token))) score += 15;
-    if (wantsTalk && clipTalk) score += 40;
-    if (wantsTalk && !clipTalk) score -= 50;
-    if (wantsSit && !wantsTalk && clipSit && !clipTalk) score += 40;
-    if (wantsSit && !wantsTalk && clipTalk) score -= 40;
-    if (wantsIdle && clipSit) score -= 50;
-    if (wantsIdle && nameTokens.includes('idle') && !clipSit) score += 40;
+    if (tail.toLowerCase() === key || tailCompact === keyCompact) score += 100;
+    if (wantsTalk) {
+      if (hasTail(clip.name, /(?:^|_)SitTalk$/i) || tailCompact === 'sittalk' || tailCompact === 'talk') score += 80;
+      else if (tailCompact.includes('talk')) score += 40;
+      else score -= 50;
+    } else if (wantsSit) {
+      if (hasTail(clip.name, /(?:^|_)SitIdle$/i) || tailCompact === 'sitidle' || tailCompact === 'sit') score += 80;
+      else if (tailCompact.includes('sit') && !tailCompact.includes('talk')) score += 40;
+      else if (tailCompact.includes('talk')) score -= 40;
+    } else if (wantsIdle) {
+      if (hasTail(clip.name, /(?:^|_)Idle$/i) && !/sit/i.test(tail)) score += 80;
+      else if (tailCompact === 'idle') score += 80;
+    } else if (wantsWalk) {
+      if (hasTail(clip.name, /(?:^|_)Walk(?:ing)?$/i) || tailCompact === 'walk' || tailCompact === 'walking') score += 80;
+    } else if (wantsJump) {
+      if (hasTail(clip.name, /(?:^|_)Jump$/i) || tailCompact === 'jump') score += 80;
+    } else if (keyCompact.length >= 3 && tailCompact.includes(keyCompact)) {
+      score += 20;
+    }
     return { clip, score };
   }).filter((entry) => entry.score > 0);
 
@@ -46,14 +63,19 @@ export const findClip = (clips: BABYLON.AnimationGroup[], keyword: string): BABY
   return scored[0]?.clip ?? null;
 };
 
-export const createCharacterAvatar = (scene: BABYLON.Scene, name = 'characterAvatar'): PlayerAvatar => {
+export const createCharacterAvatar = (
+  scene: BABYLON.Scene,
+  name = 'characterAvatar',
+  assetId = PLAYER_ASSET_ID,
+): PlayerAvatar => {
   const group = new BABYLON.TransformNode(`${name}Root`, scene);
   const modelRoot = new BABYLON.TransformNode(`${name}ModelRoot`, scene);
   modelRoot.parent = group;
-  // Mixamo/ch44 faces +Z; gameplay yaw treats -Z as forward (away from the camera).
+  // Mixamo characters face +Z; gameplay yaw treats -Z as forward (away from the camera).
   modelRoot.rotation.y = Math.PI;
 
   let animationGroups: BABYLON.AnimationGroup[] = [];
+  let skeletons: BABYLON.Skeleton[] = [];
   let idleGroup: BABYLON.AnimationGroup | null = null;
   let walkGroup: BABYLON.AnimationGroup | null = null;
   let jumpGroup: BABYLON.AnimationGroup | null = null;
@@ -103,10 +125,11 @@ export const createCharacterAvatar = (scene: BABYLON.Scene, name = 'characterAva
     applyLocomotion();
   };
 
-  void loadGlbByAssetId(scene, PLAYER_ASSET_ID, modelRoot).then((imported) => {
+  void loadGlbByAssetId(scene, assetId, modelRoot).then((imported) => {
     if (!imported || disposed) {
       imported?.meshes.forEach((mesh) => mesh.dispose());
       imported?.animationGroups.forEach((clip) => clip.dispose());
+      imported?.skeletons.forEach((skeleton) => skeleton.dispose());
       return;
     }
 
@@ -114,10 +137,32 @@ export const createCharacterAvatar = (scene: BABYLON.Scene, name = 'characterAva
       mesh.isPickable = false;
     });
     animationGroups = imported.animationGroups;
+    skeletons = imported.skeletons;
     idleGroup = findClip(animationGroups, 'idle');
     walkGroup = findClip(animationGroups, 'walk');
     jumpGroup = findClip(animationGroups, 'jump');
-    if (!idleGroup && animationGroups.length === 1) idleGroup = animationGroups[0];
+    const sitGroup = findClip(animationGroups, 'sit');
+    if (!idleGroup && animationGroups.length === 1 && !sitGroup) idleGroup = animationGroups[0];
+    if (!idleGroup && !walkGroup && !sitGroup && animationGroups.length) {
+      console.warn(
+        `${name} loaded ${animationGroups.length} clip(s) but none matched idle/walk/sit:`,
+        animationGroups.map((clip) => clip.name),
+      );
+    }
+    const hipBone = skeletons[0]?.bones.find((bone) => /:hips$/i.test(bone.name) || /(^|_)hips$/i.test(bone.name));
+    const hipNode = hipBone?.getTransformNode() ?? null;
+    const skinned = imported.meshes.find((mesh) => mesh.skeleton);
+    const skinHip = skinned?.skeleton?.bones.find((bone) => /:hips$/i.test(bone.name) || /(^|_)hips$/i.test(bone.name));
+    const skinJointNode = skinHip?.getTransformNode() ?? null;
+    const probe = sitGroup ?? idleGroup ?? animationGroups[0];
+    const hipsChannel = probe?.targetedAnimations.find((channel) => {
+      const targetName = String((channel.target as { name?: string } | undefined)?.name ?? '');
+      return /:hips$/i.test(targetName) || /(^|_)hips$/i.test(targetName);
+    });
+    const probeTarget = hipsChannel?.target as { name?: string; uniqueId?: number } | undefined;
+    const targetId = probeTarget?.uniqueId;
+    const skinJointId = skinJointNode?.uniqueId;
+
     if (pendingClip) {
       const queued = pendingClip;
       pendingClip = null;
@@ -153,6 +198,7 @@ export const createCharacterAvatar = (scene: BABYLON.Scene, name = 'characterAva
     dispose: () => {
       disposed = true;
       animationGroups.forEach((clip) => clip.dispose());
+      skeletons.forEach((skeleton) => skeleton.dispose());
       group.dispose();
     },
   };

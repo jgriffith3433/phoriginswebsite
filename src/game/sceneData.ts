@@ -33,6 +33,8 @@ export type SceneAssetInstance = {
   rotation?: SceneVector3;
   scale?: SceneVector3;
   components?: string[];
+  /** Mixamo GLB used when this asset is an NpcSeat. */
+  npcAssetId?: string;
   // Id of the parent scene asset. Transform fields are local to the parent.
   parentId?: string;
 };
@@ -67,12 +69,12 @@ export const DEFAULT_SCENE_DATA: SceneData = {
   theme: 'Neon Drift',
   assets: [
     { id: 'scene_asset_0', assetId: 'structure-ground', kind: 'ground', name: 'Ground', x: 0, y: -0.5, z: 0, scale: { x: 90, y: 1, z: 90 }, components: ['Transform'] },
-    { id: 'scene_asset_1', assetId: 'asset-ch44-hero', kind: 'model', name: 'Player', x: 0, y: 0, z: 0, components: ['Transform', 'Collider'] },
+    { id: 'scene_asset_1', assetId: 'asset-ch33-hero', kind: 'model', name: 'Player', x: 0, y: 0, z: 0, components: ['Transform', 'Collider'] },
     { id: 'scene_asset_2', assetId: 'asset-rock-model', kind: 'model', name: 'Rock Cluster', x: 15, y: 0, z: 10, components: ['Transform'] },
     { id: 'scene_asset_3', assetId: 'asset-neon-drift-audio', kind: 'audio', name: 'Music Trigger', x: 0, y: 0, z: 0, components: ['AudioSource'] },
   ],
   triggers: [
-    { id: 'trigger_1', type: 'enter_zone', label: 'Spawn Gate', assetId: 'asset-ch44-hero', x: 0, y: 0, z: 0 },
+    { id: 'trigger_1', type: 'enter_zone', label: 'Spawn Gate', assetId: 'asset-ch33-hero', x: 0, y: 0, z: 0 },
     { id: 'trigger_2', type: 'checkpoint', label: 'Checkpoint A', assetId: 'asset-lantern-light', x: 10, y: 0, z: 4 },
   ],
 };
@@ -155,6 +157,83 @@ export type SceneNodeMetadata = {
   sceneAssetId?: string;
   sceneTriggerId?: string;
   animationGroups?: string[];
+  liftTexture?: BABYLON.DynamicTexture;
+  liftLabel?: string;
+};
+
+const LIFT_GLYPH_FOR_ID: Record<string, string> = {
+  'lift-ind-down': '▼',
+  'lift-ind-58': '58',
+  'lift-ind-40': '40',
+  'lift-ind-20': '20',
+  'lift-ind-L': 'L',
+  'lift-ind-B1': 'B1',
+  'lift-ind-B2': 'B2',
+  'lift-ind-B3': 'B3',
+  'lift-ind-readout': '58',
+};
+
+export const paintLiftGlyph = (mesh: BABYLON.AbstractMesh | null | undefined, text: string, fill = '#f4f7fb') => {
+  const texture = (mesh?.metadata as SceneNodeMetadata | undefined)?.liftTexture;
+  if (!texture) return;
+  const ctx = texture.getContext() as CanvasRenderingContext2D;
+  const { width, height } = texture.getSize();
+  ctx.fillStyle = '#05070a';
+  ctx.fillRect(0, 0, width, height);
+  ctx.fillStyle = fill;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const size = text.length > 2 ? Math.floor(height * 0.5) : Math.floor(height * 0.64);
+  ctx.font = `700 ${size}px Consolas, "Courier New", monospace`;
+  // Plane faces the cab (yaw 180). Flip the bitmap so glyphs read LTR from Pierce.
+  ctx.save();
+  ctx.translate(width, 0);
+  ctx.scale(-1, 1);
+  ctx.fillText(text, width / 2, height / 2 + Math.floor(height * 0.04));
+  ctx.restore();
+  texture.update();
+};
+
+const createLiftGlyphMesh = (
+  scene: BABYLON.Scene,
+  asset: SceneAssetInstance,
+  position: BABYLON.Vector3,
+  rotation: BABYLON.Vector3,
+  scale: BABYLON.Vector3,
+  metadata: SceneNodeMetadata,
+): BABYLON.Mesh => {
+  const plane = BABYLON.MeshBuilder.CreatePlane(asset.name ?? asset.id, { width: 1, height: 1 }, scene);
+  plane.position = position;
+  plane.rotation = rotation.clone();
+  // Panel sits on the north cab wall (z≈23.44). Pierce/camera look +Z at it.
+  // Yaw 180 so the plane faces the cab. Glyph bitmap is flipped in paintLiftGlyph.
+  plane.rotation.y += Math.PI;
+  plane.scaling = new BABYLON.Vector3(Math.max(0.04, Math.abs(scale.x)), Math.max(0.04, scale.y), 1);
+  const label = LIFT_GLYPH_FOR_ID[asset.id] ?? asset.id.replace(/^lift-ind-/, '');
+  const wide = asset.id === 'lift-ind-readout';
+  const texture = new BABYLON.DynamicTexture(
+    `${asset.id}-tex`,
+    { width: wide ? 512 : 256, height: wide ? 256 : 256 },
+    scene,
+    false,
+    BABYLON.Texture.BILINEAR_SAMPLINGMODE,
+    BABYLON.Engine.TEXTUREFORMAT_RGBA,
+    false,
+  );
+  texture.hasAlpha = false;
+  const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
+  material.diffuseTexture = texture;
+  material.emissiveTexture = texture;
+  material.specularColor = BABYLON.Color3.Black();
+  material.disableLighting = true;
+  material.backFaceCulling = false;
+  material.diffuseColor = new BABYLON.Color3(0.2, 0.22, 0.24);
+  material.emissiveColor = new BABYLON.Color3(0.08, 0.09, 0.1);
+  plane.material = material;
+  plane.checkCollisions = false;
+  plane.metadata = { ...metadata, liftTexture: texture, liftLabel: label };
+  paintLiftGlyph(plane, label);
+  return plane;
 };
 
 const attachFurnitureHull = (scene: BABYLON.Scene, mesh: BABYLON.Mesh, scale: BABYLON.Vector3) => {
@@ -194,6 +273,26 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
 
   const metadata: SceneNodeMetadata = { sceneAssetId: asset.id };
 
+  if (asset.id === 'lift-ind-panel') {
+    const mesh = BABYLON.MeshBuilder.CreateBox(asset.name ?? asset.id, { width: 1, height: 1, depth: 1 }, scene);
+    mesh.position = position;
+    mesh.rotation = rotation;
+    mesh.scaling = scale;
+    const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
+    material.diffuseColor = new BABYLON.Color3(0.04, 0.05, 0.06);
+    material.emissiveColor = new BABYLON.Color3(0.03, 0.04, 0.05);
+    material.specularColor = BABYLON.Color3.Black();
+    material.disableLighting = true;
+    mesh.material = material;
+    mesh.metadata = metadata;
+    mesh.checkCollisions = false;
+    return mesh;
+  }
+
+  if (asset.id.startsWith('lift-ind-')) {
+    return createLiftGlyphMesh(scene, asset, position, rotation, scale, metadata);
+  }
+
   if (kind === 'light') {
     const light = new BABYLON.PointLight(
       asset.name ?? asset.assetId ?? 'sceneLight',
@@ -228,6 +327,15 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
     material.diffuseColor = new BABYLON.Color3(0.7, 0.75, 1);
     material.emissiveColor = new BABYLON.Color3(0.12, 0.12, 0.18);
+    const isWindowGlass = asset.assetId === 'asset-window'
+      || asset.id === 'board-glass'
+      || asset.id === 'office-glass';
+    if (isWindowGlass) {
+      material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+      material.alpha = 0.72;
+      material.disableDepthWrite = true;
+      material.backFaceCulling = false;
+    }
     plane.material = material;
     plane.metadata = metadata;
     return plane;
@@ -261,8 +369,15 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     material.emissiveColor = theme.wall.scale(0.22);
     mesh.material = material;
     mesh.metadata = metadata;
-    mesh.checkCollisions = true;
-    attachFurnitureHull(scene, mesh, scale);
+    const isChair = asset.id.startsWith('chair-') || Boolean(asset.components?.includes('NpcSeat'));
+    const isLiftButton = asset.id === 'lift-b3-button';
+    mesh.checkCollisions = !isChair && !isLiftButton;
+    if (isLiftButton) {
+      material.diffuseColor = new BABYLON.Color3(0.18, 0.2, 0.22);
+      material.emissiveColor = new BABYLON.Color3(0.08, 0.1, 0.12);
+      material.specularColor = BABYLON.Color3.Black();
+    }
+    if (!isChair && !isLiftButton) attachFurnitureHull(scene, mesh, scale);
     return mesh;
   }
 

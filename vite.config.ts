@@ -23,7 +23,7 @@ const buildTree = (absDir: string, relDir: string): FsTreeNode[] => {
   if (!fs.existsSync(absDir)) return [];
   return fs
     .readdirSync(absDir, { withFileTypes: true })
-    .filter((entry) => !entry.name.startsWith('.'))
+    .filter((entry) => !entry.name.startsWith('.') && !entry.name.toLowerCase().endsWith('.fbx'))
     .sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name))
     .map((entry) => {
       const absPath = path.join(absDir, entry.name);
@@ -149,6 +149,7 @@ const editorApiPlugin = (): Plugin => ({
       basePath: string;
       outputName: string;
       animations: { name: string; path: string; projectPath?: string }[];
+      tags?: string[];
     }) => convertCharacterGlb({ projectRoot: root, ...options });
 
     const loadLibraryAssets = (): any[] => {
@@ -195,7 +196,7 @@ const editorApiPlugin = (): Plugin => ({
       const url = new URL(req.url || '', 'http://localhost');
       const mode = url.searchParams.get('mode') === 'animation' ? 'animation' : 'character';
       const requestedName = (url.searchParams.get('name') || '').trim();
-      const targetName = (url.searchParams.get('target') || 'ch44-hero').trim();
+      const targetName = (url.searchParams.get('target') || 'ch33-hero').trim();
       const headerName = String(req.headers['x-file-name'] || '');
       const fileName = path.basename(headerName || `${requestedName || 'clip'}.fbx`);
 
@@ -232,10 +233,11 @@ const editorApiPlugin = (): Plugin => ({
 
           const assets = loadLibraryAssets();
           const targetId = targetName.startsWith('asset-') ? targetName : `asset-${targetName}`;
-          const target = assets.find((asset) => asset.id === targetId) ?? assets.find((asset) => asset.id === 'asset-ch44-hero');
-          const basePath = typeof target?.sourceFbx === 'string' && fs.existsSync(target.sourceFbx)
+          const target = assets.find((asset) => asset.id === targetId) ?? assets.find((asset) => asset.id === 'asset-ch33-hero');
+          const rawSource = typeof target?.sourceFbx === 'string'
             ? target.sourceFbx
-            : 'C:/Projects/phoriginsassets/models/Ch44_nonPBR.fbx';
+            : 'C:/Projects/phoriginsassets/models/Ch33_nonPBR.fbx';
+          const basePath = toAbsAssetPath(root, rawSource);
           if (!fs.existsSync(basePath)) {
             sendJson(res, 400, {
               ok: false,
@@ -255,7 +257,7 @@ const editorApiPlugin = (): Plugin => ({
             : [];
           existing.push({ name: clipName, path: animAbs, projectPath: animRel });
 
-          const outputName = (target?.name || 'ch44-hero').replace(/\.glb$/i, '');
+          const outputName = (target?.name || 'ch33-hero').replace(/\.glb$/i, '');
           sendJson(res, 200, runConvert({ outputName, basePath, animations: existing }));
         })
         .catch((error) => sendJson(res, 400, { ok: false, error: String(error) }));
