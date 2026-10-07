@@ -84,6 +84,82 @@ def bones_by_suffix(armature) -> dict:
     return mapping
 
 
+def reverse_action(action) -> None:
+    """Time-reverse a Mixamo clip (Put Away is a copy of Take Out)."""
+    curves = list(iter_action_fcurves(action))
+    times = [kp.co.x for fc in curves for kp in fc.keyframe_points]
+    if not times:
+        return
+    t0 = min(times)
+    t1 = max(times)
+    span = t0 + t1
+    for fc in curves:
+        snapshots = []
+        for kp in fc.keyframe_points:
+            snapshots.append((
+                kp.co.copy(),
+                kp.handle_left.copy(),
+                kp.handle_right.copy(),
+                kp.handle_left_type,
+                kp.handle_right_type,
+                kp.interpolation,
+            ))
+        for kp, (co, hl, hr, hlt, hrt, interp) in zip(fc.keyframe_points, snapshots):
+            kp.co.x = span - co.x
+            kp.co.y = co.y
+            kp.handle_left.x = span - hr.x
+            kp.handle_left.y = hr.y
+            kp.handle_right.x = span - hl.x
+            kp.handle_right.y = hl.y
+            kp.handle_left_type = hrt
+            kp.handle_right_type = hlt
+            kp.interpolation = interp
+        fc.update()
+    print(f"Reversed clip '{action.name}' time {t0:.3f}..{t1:.3f} (scale -1)")
+
+
+def uniquify_action(src_action, clip_name: str):
+    """Copy so Mixamo's shared mixamo.com action cannot alias another clip."""
+    dup = src_action.copy()
+    dup.name = clip_name
+    dup.use_fake_user = True
+    slots = getattr(dup, 'slots', None)
+    if slots is not None:
+        for slot in slots:
+            for attr in ('name_display', 'identifier', 'name_prefix', 'name'):
+                if not hasattr(slot, attr):
+                    continue
+                try:
+                    setattr(slot, attr, clip_name)
+                except (TypeError, AttributeError, ValueError):
+                    pass
+    print(f"Unique action '{dup.name}' from '{src_action.name}' id={id(dup)}")
+    return dup
+
+
+def push_nla_clip(armature, action, clip_name: str) -> None:
+    if not armature.animation_data:
+        armature.animation_data_create()
+    tracks = armature.animation_data.nla_tracks
+    for track in list(tracks):
+        if track.name == clip_name:
+            tracks.remove(track)
+    track = tracks.new()
+    track.name = clip_name
+    start = 1
+    try:
+        start = int(action.frame_range[0])
+    except (TypeError, AttributeError, IndexError):
+        pass
+    strip = track.strips.new(clip_name, max(start, 0), action)
+    strip.name = clip_name
+    try:
+        strip.action = action
+    except Exception:
+        pass
+    print(f"NLA track '{track.name}' action='{action.name}' frames={tuple(action.frame_range)}")
+
+
 def retarget_action_fcurves(action, dest_by_suffix: dict) -> tuple:
     """Rewrite pose.bones["mixamorig:Hips"] → pose.bones["mixamorig7:Hips"]."""
     hits = 0
@@ -114,58 +190,81 @@ for obj in list(bpy.data.objects):
 bpy.ops.import_scene.fbx(filepath=base_path)
 
 base_armature = next((obj for obj in bpy.data.objects if obj.type == 'ARMATURE'), None)
-if base_armature and base_armature.animation_data and base_armature.animation_data.action:
-    base_armature.animation_data.action.use_fake_user = True
+if base_armature and base_armature.animation_data:
+    if base_armature.animation_data.action:
+        base_armature.animation_data.action.use_fake_user = False
+    for track in list(base_armature.animation_data.nla_tracks):
+        base_armature.animation_data.nla_tracks.remove(track)
+    base_armature.animation_data.action = None
 
 dest_by_suffix = bones_by_suffix(base_armature) if base_armature else {}
 hips = dest_by_suffix.get('hips')
 print(f"Character armature hips={hips} first={[b.name for b in list(base_armature.data.bones)[:3]]}" if base_armature else "No armature")
 
 collected_clip_names = []
+stored_actions = {}
 if base_armature:
     if not base_armature.animation_data:
         base_armature.animation_data_create()
 
     for raw_arg in anim_args:
+        reverse = False
+        if raw_arg.endswith('@@reverse'):
+            reverse = True
+            raw_arg = raw_arg[: -len('@@reverse')]
         if '=' in raw_arg:
             clip_name, anim_path = raw_arg.split('=', 1)
         else:
             clip_name, anim_path = os.path.splitext(os.path.basename(raw_arg))[0], raw_arg
 
-        if not os.path.exists(anim_path):
-            print(f"WARNING: animation FBX not found, skipping: {anim_path}")
-            continue
+        action = None
+        # Holster is reverse of Draw (unique action). Do not re-import shared mixamo.com.
+        if reverse and clip_name != 'Draw' and 'Draw' in stored_actions:
+            action = uniquify_action(stored_actions['Draw'], clip_name)
+            reverse_action(action)
+            print(f"Holster from reversed Draw (skipped reimport {anim_path})")
+        else:
+            if not os.path.exists(anim_path):
+                print(f"WARNING: animation FBX not found, skipping: {anim_path}")
+                continue
 
-        before = set(bpy.data.objects)
-        bpy.ops.import_scene.fbx(filepath=anim_path)
-        new_objects = [obj for obj in bpy.data.objects if obj not in before]
-        anim_armature = next((obj for obj in new_objects if obj.type == 'ARMATURE'), None)
+            before = set(bpy.data.objects)
+            bpy.ops.import_scene.fbx(filepath=anim_path)
+            new_objects = [obj for obj in bpy.data.objects if obj not in before]
+            anim_armature = next((obj for obj in new_objects if obj.type == 'ARMATURE'), None)
 
-        if not anim_armature or not anim_armature.animation_data or not anim_armature.animation_data.action:
-            print(f"WARNING: no animation action found in {anim_path}, skipping")
+            if not anim_armature or not anim_armature.animation_data or not anim_armature.animation_data.action:
+                print(f"WARNING: no animation action found in {anim_path}, skipping")
+                for obj in new_objects:
+                    bpy.data.objects.remove(obj, do_unlink=True)
+                continue
+
+            imported = anim_armature.animation_data.action
+            anim_armature.animation_data.action = None
+            action = uniquify_action(imported, clip_name)
+            imported.use_fake_user = False
+
+            sample_paths = [fc.data_path for i, fc in enumerate(iter_action_fcurves(action)) if i < 3]
+            print(f"Clip '{clip_name}' fcurve0={sample_paths}")
+
+            hits, example = retarget_action_fcurves(action, dest_by_suffix)
+            if example:
+                print(f"Retargeted '{clip_name}' {example[0]} -> {example[1]} ({hits} fcurves)")
+            else:
+                print(f"Retargeted '{clip_name}' already matched character bones ({hits} fcurves)")
+            if reverse:
+                reverse_action(action)
+
             for obj in new_objects:
                 bpy.data.objects.remove(obj, do_unlink=True)
-            continue
 
-        action = anim_armature.animation_data.action
-        action.name = clip_name
-        action.use_fake_user = True
-        anim_armature.animation_data.action = None
+            print(f"Merged animation clip '{clip_name}' from {anim_path}")
 
-        sample_paths = [fc.data_path for i, fc in enumerate(iter_action_fcurves(action)) if i < 3]
-        print(f"Clip '{clip_name}' fcurve0={sample_paths}")
-
-        hits, example = retarget_action_fcurves(action, dest_by_suffix)
-        if example:
-            print(f"Retargeted '{clip_name}' {example[0]} -> {example[1]} ({hits} fcurves)")
-        else:
-            print(f"Retargeted '{clip_name}' already matched character bones ({hits} fcurves)")
-
-        for obj in new_objects:
-            bpy.data.objects.remove(obj, do_unlink=True)
-
+        stored_actions[clip_name] = action
         collected_clip_names.append(clip_name)
-        print(f"Merged animation clip '{clip_name}' from {anim_path}")
+        push_nla_clip(base_armature, action, clip_name)
+
+    base_armature.animation_data.action = None
 
     # Mixamo FBX often has empties named mixamorig:Hips while bones are mixamorig7:Hips.
     # The glTF exporter skins those objects, so rename them to the armature bone names
@@ -285,9 +384,16 @@ export_kwargs = dict(
     export_unused_textures=False,
 )
 
-try:
-    bpy.ops.export_scene.gltf(export_animation_mode='ACTIONS', **export_kwargs)
-except TypeError:
+exported = False
+for mode in ('NLA_TRACKS', 'ACTIONS'):
+    try:
+        bpy.ops.export_scene.gltf(export_animation_mode=mode, **export_kwargs)
+        print(f"glTF export_animation_mode={mode}")
+        exported = True
+        break
+    except TypeError:
+        continue
+if not exported:
     bpy.ops.export_scene.gltf(**export_kwargs)
 
 print(f"Exported GLB to {output_path}")

@@ -1,3 +1,5 @@
+import { createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
+
 export type CutsceneVec3 = { x: number; y: number; z: number };
 
 export type TimelineEvent = {
@@ -91,7 +93,7 @@ const stopAudio = (cutscene: ActiveCutscene) => {
 
 const playFile = (cutscene: ActiveCutscene, url: string, volume: number, loop: boolean, stubSeconds = 1.6) => {
   if (!cutscene.hooks.audioEnabled() || !url) return;
-  const element = new Audio(url);
+  const element = createUnlockedAudio(url);
   element.loop = loop;
   element.volume = Math.max(0, Math.min(1, volume));
   const handleError = () => {
@@ -105,9 +107,8 @@ const playFile = (cutscene: ActiveCutscene, url: string, volume: number, loop: b
 
 const playVoiceStub = (cutscene: ActiveCutscene, seconds: number, hz: number) => {
   if (!cutscene.hooks.audioEnabled()) return;
-  const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioCtor) return;
-  const ctx = new AudioCtor();
+  const ctx = getSharedAudioContext();
+  if (!ctx) return;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = 'triangle';

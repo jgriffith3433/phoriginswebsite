@@ -8,6 +8,8 @@ export type PlayerState = {
   grounded: boolean;
   /** Seconds remaining before a queued jump leaves the ground. 0 = none. */
   jumpWindup: number;
+  /** Pistol out of holster. Default holstered. */
+  weaponDrawn: boolean;
 };
 
 export type InventoryState = {

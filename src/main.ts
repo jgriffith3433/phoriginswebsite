@@ -29,6 +29,7 @@ import { PLAYER_ASSET_IDS } from './game/modelLoader';
 import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, paintLiftGlyph, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createTriggerRunner } from './game/triggers';
 import { applyNpcAnim, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
+import { createUnlockedAudio, getSharedAudioContext, installAudioUnlock, unlockAudio } from './game/audioUnlock';
 import { createObjectiveMarker } from './game/objectiveMarker';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
@@ -59,8 +60,11 @@ const levelList = document.getElementById('levelList') as HTMLDivElement;
 const closeLevelSelectBtn = document.getElementById('closeLevelSelect') as HTMLButtonElement;
 const crosshair = document.getElementById('crosshair') as HTMLDivElement;
 const inventoryHud = document.getElementById('inventoryHud') as HTMLDivElement;
+const inventoryHint = document.getElementById('inventoryHint') as HTMLButtonElement | null;
 const inventoryItems = document.getElementById('inventoryItems') as HTMLDivElement;
 const inventoryClose = document.getElementById('inventoryClose') as HTMLButtonElement;
+const weaponSlot = document.getElementById('weaponSlot') as HTMLButtonElement | null;
+const weaponSlotState = document.getElementById('weaponSlotState') as HTMLSpanElement | null;
 const objectiveHud = document.getElementById('objectiveHud') as HTMLDivElement | null;
 const objectiveText = document.getElementById('objectiveText') as HTMLSpanElement | null;
 const objectiveDist = document.getElementById('objectiveDist') as HTMLSpanElement | null;
@@ -245,7 +249,7 @@ const officeAlarm = {
     restyleOfficeTerminal(true);
     if (!audio.enabled) return;
     audio.ensure();
-    this.wav = new Audio('/assets/audio/cutscenes/apex-window/alarm.wav');
+    this.wav = createUnlockedAudio('/assets/audio/cutscenes/apex-window/alarm.wav');
     this.wav.loop = true;
     this.wav.volume = 0.62;
     this.wav.addEventListener('error', () => {
@@ -822,14 +826,8 @@ const audio = {
   enabled: save.sound,
   ctx: undefined as AudioContext | undefined,
   ensure() {
-    if (!this.ctx) {
-      const AudioCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtor) return;
-      this.ctx = new AudioCtor();
-    }
-    if (this.ctx.state === 'suspended') {
-      void this.ctx.resume();
-    }
+    unlockAudio();
+    this.ctx = getSharedAudioContext();
   },
   tone(frequency: number, duration: number, type: OscillatorType = 'sine', volume = 0.04) {
     if (!this.enabled) return;
@@ -872,9 +870,18 @@ const updateHud = () => {
   inventoryItems.innerHTML = invEntries
     .map(([label, count]) => `<span class="inventory-item"><span class="inventory-label">${label}</span><strong>${count}</strong></span>`)
     .join('');
+
+  if (weaponSlot && weaponSlotState) {
+    const drawn = state.player.weaponDrawn;
+    weaponSlotState.textContent = drawn ? 'Drawn' : 'Holstered';
+    weaponSlot.classList.toggle('drawn', drawn);
+    weaponSlot.setAttribute('aria-pressed', drawn ? 'true' : 'false');
+    weaponSlot.disabled = weaponBusy || !state.running || state.inCutscene;
+  }
 };
 
 let inventoryOpen = false;
+let weaponBusy = false;
 
 const canLockGameplayPointer = () =>
   state.running && !state.inCutscene && messageBox.classList.contains('hidden') && !inventoryOpen;
@@ -907,6 +914,11 @@ inventoryClose.addEventListener('click', (event) => {
   event.stopPropagation();
   setInventoryOpen(false);
 });
+inventoryHint?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  event.preventDefault();
+  setInventoryOpen(!inventoryOpen);
+});
 inventoryHud.addEventListener('pointerdown', stopInventoryPointer);
 inventoryHud.addEventListener('pointerup', stopInventoryPointer);
 
@@ -924,9 +936,42 @@ const unlockPointer = () => {
 };
 
 const updateCrosshairVisibility = () => {
-  const visible = state.running && !inventoryOpen && messageBox.classList.contains('hidden');
+  const visible = state.running
+    && state.player.weaponDrawn
+    && !inventoryOpen
+    && messageBox.classList.contains('hidden');
   crosshair.style.display = visible ? 'block' : 'none';
 };
+
+const finishWeaponToggle = (drawn: boolean) => {
+  state.player.weaponDrawn = drawn;
+  playerAvatar.setArmed(drawn);
+  weaponBusy = false;
+  playerAvatar.resumeLocomotion();
+  updateHud();
+  updateCrosshairVisibility();
+};
+
+const toggleWeapon = () => {
+  if (!state.running || state.inCutscene || weaponBusy) return;
+  const drawing = !state.player.weaponDrawn;
+  weaponBusy = true;
+  followCamera.setOverShoulder(drawing);
+  if (!drawing) {
+    state.player.weaponDrawn = false;
+    updateCrosshairVisibility();
+  }
+  updateHud();
+  const keyword = drawing ? 'draw' : 'holster';
+  const played = playerAvatar.playClip(keyword, false, 4, () => finishWeaponToggle(drawing));
+  if (!played) finishWeaponToggle(drawing);
+  setInventoryOpen(false);
+};
+
+weaponSlot?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleWeapon();
+});
 
 const showMessage = (title: string, text: string) => {
   messageTitle.textContent = title;
@@ -980,6 +1025,11 @@ const resetPlayer = (keepLevel = false) => {
   state.shootCooldown = 0;
   state.lastDamageAt = 0;
   state.kills = 0;
+  weaponBusy = false;
+  state.player.weaponDrawn = false;
+  playerAvatar.setArmed(false);
+  playerAvatar.resumeLocomotion();
+  followCamera.setOverShoulder(false);
   state.progression.currentLevel = selectedLevel;
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
@@ -1183,13 +1233,14 @@ const updatePlayer = (delta: number) => {
 };
 
 const fireWeapon = () => {
-  if (!state.running || state.inCutscene || inventoryOpen || state.shootCooldown > 0) return;
+  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || !state.player.weaponDrawn || state.shootCooldown > 0) return;
   if (!consumeItem(state.inventory, 'ammo', 1)) {
     audio.hit();
     return;
   }
   state.shootCooldown = state.fireRate;
   audio.shoot();
+  playerAvatar.playClip('shoot', false, 3, () => playerAvatar.resumeLocomotion());
 };
 
 const levelAllowsCombat = () => {
@@ -1408,6 +1459,7 @@ if (rightStickZone) {
 
 jumpBtn.addEventListener('pointerdown', (event) => {
   event.preventDefault();
+  unlockAudio();
   state.input.jump = true;
 });
 jumpBtn.addEventListener('pointerup', () => { state.input.jump = false; });
@@ -1423,7 +1475,12 @@ fireBtn.addEventListener('pointerup', () => { state.fireHeld = false; });
 fireBtn.addEventListener('pointerleave', () => { state.fireHeld = false; });
 fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
-startBtn.addEventListener('click', beginGame);
+startBtn.addEventListener('click', () => {
+  unlockAudio();
+  beginGame();
+});
+canvas.addEventListener('pointerdown', () => unlockAudio());
+installAudioUnlock();
 resetBtn.addEventListener('click', () => {
   clearDynamicObjects();
   clearInputState();

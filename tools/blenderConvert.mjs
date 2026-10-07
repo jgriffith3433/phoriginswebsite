@@ -74,7 +74,10 @@ export const convertCharacterGlb = ({
 
   // Clips are retargeted onto the character's real mixamorig / mixamorigN bones. Do not rewrite GLB JSON.
   const scriptPath = path.join(__dirname, 'build_character_glb.py');
-  const animArgs = animations.map((anim) => (anim.name ? `${anim.name}=${anim.path}` : anim.path));
+  const animArgs = animations.map((anim) => {
+    const base = anim.name ? `${anim.name}=${anim.path}` : anim.path;
+    return anim.reverse ? `${base}@@reverse` : base;
+  });
   const result = spawnSync(blender, ['-b', '--python', scriptPath, '--', basePath, outputAbsPath, ...animArgs], {
     encoding: 'utf8',
     maxBuffer: 1024 * 1024 * 64,

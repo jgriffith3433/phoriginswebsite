@@ -19,6 +19,7 @@ export const createPlayerState = (): PlayerState => ({
   velocityY: 0,
   grounded: true,
   jumpWindup: 0,
+  weaponDrawn: false,
 });
 
 /** Queue a hop. Animation should start on true; physics waits JUMP_WINDUP. */

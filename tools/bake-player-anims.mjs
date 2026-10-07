@@ -16,13 +16,41 @@ const locomoClips = [
   { name: 'SitTalk', path: path.join(animationsDir, 'Sitting Talking.fbx') },
 ];
 
+/*
+ * Mixamo pistol FBX inspection (Blender 5, 2026-10-07). Every file’s action is
+ * Armature|mixamo.com|Layer0 — names are useless; map by pose, not filename.
+ *
+ *   Pistol Idle.fbx      367136  41f  two-hand chest hold, looping
+ *   Pistol Walk.fbx      326816  25f  two-hand hold while stepping
+ *   Pistol Jump.fbx      424032  61f  same hold through a jump
+ *   Pistol Take Out.fbx  381728  36f  two-hand gun already up; small recoil
+ *                                    (NOT a hip draw). Identical SHA to Put Away.
+ *   Pistol Put Away.fbx  381728  36f  byte-identical to Take Out — do not import.
+ *   Pistol Aim.fbx       712608 167f  starts two-hand, hands drop/apart to sides
+ *                                    (put-away / disarm, NOT aim).
+ *
+ * Draw  = reverse of Aim.fbx (raise from sides to two-hand).
+ * Holster = reverse of Draw (Aim.fbx forward).
+ * PistolAim = Take Out.fbx (the actual fire/aim-hold). Shoot keyword uses this.
+ */
+const putAwayPath = path.join(animationsDir, 'Pistol Aim.fbx');
+const firePath = path.join(animationsDir, 'Pistol Take Out.fbx');
+const playerPistolClips = [
+  { name: 'PistolIdle', path: path.join(animationsDir, 'Pistol Idle.fbx') },
+  { name: 'PistolWalk', path: path.join(animationsDir, 'Pistol Walk.fbx') },
+  { name: 'PistolJump', path: path.join(animationsDir, 'Pistol Jump.fbx') },
+  { name: 'Draw', path: putAwayPath, reverse: true },
+  { name: 'Holster', path: putAwayPath, reverse: true },
+  { name: 'PistolAim', path: firePath },
+];
+
 const npcClips = locomoClips.filter((clip) => clip.name !== 'Jump');
 
 const jobs = [
   {
     outputName: 'ch33-hero',
     fbx: 'Ch33_nonPBR.fbx',
-    animations: locomoClips,
+    animations: [...locomoClips, ...playerPistolClips],
     tags: ['character', 'mixamo', 'player', 'real-file'],
   },
   {
@@ -79,7 +107,9 @@ const verifyGlbSkinAndClips = (glbAbsPath) => {
   const nodes = json.nodes || [];
   const skinNames = new Set((json.skins?.[0]?.joints || []).map((index) => nodes[index]?.name));
   const hipJoint = [...skinNames].find((name) => /hips/i.test(name || ''));
-  const clips = (json.animations || []).filter((anim) => /^(Idle|Walk|Jump|SitIdle|SitTalk)$/i.test(anim.name || ''));
+  const clips = (json.animations || []).filter((anim) =>
+    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster)$/i.test(anim.name || ''),
+  );
   const problems = [];
   if (!hipJoint) problems.push('skin.joints has no Hips');
   for (const anim of clips) {
@@ -116,6 +146,9 @@ for (const job of selected) {
     || line.includes('Rename object')
     || line.includes('Pre-export hip objects')
     || line.includes('Exported hips bone')
+    || line.includes('Reversed clip')
+    || line.includes('NLA track')
+    || line.includes('Unique action')
   );
   jointLine.forEach((line) => console.log(line));
   const glbAbs = path.join(projectRoot, 'assets', 'models', `${job.outputName}.glb`);

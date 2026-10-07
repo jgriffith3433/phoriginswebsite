@@ -25,6 +25,10 @@ export type ThirdPersonCameraConfig = {
   fov: number;
   minZ: number;
   maxZ: number;
+  /** World meters to the character's right when the pistol is drawn. */
+  shoulderOffset: number;
+  shoulderStiffness: number;
+  drawnDistanceDelta: number;
 };
 
 export const DEFAULT_CAMERA_CONFIG: ThirdPersonCameraConfig = {
@@ -49,6 +53,9 @@ export const DEFAULT_CAMERA_CONFIG: ThirdPersonCameraConfig = {
   fov: 0.9,
   minZ: 0.12,
   maxZ: 400,
+  shoulderOffset: 1.28,
+  shoulderStiffness: 8.2,
+  drawnDistanceDelta: -0.9,
 };
 
 const expDamp = (current: number, target: number, stiffness: number, dt: number) =>
@@ -87,13 +94,18 @@ export const createThirdPersonCamera = (
   let lookStickY = 0;
   let lookInputTimer = 0;
   let recenterIdle = 0;
+  let shoulderTarget = 0;
+  let shoulderMix = 0;
 
   const pivot = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
   const lookAt = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
   const desiredPos = new BABYLON.Vector3();
   const smoothedPos = new BABYLON.Vector3(0, 3.2, -8);
   const offsetDir = new BABYLON.Vector3();
+  const probeOrigin = new BABYLON.Vector3();
+  const upDir = BABYLON.Vector3.Up();
   const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward(), 1);
+  const ceilingClearance = Math.max(cfg.minZ + 0.08, 0.2);
 
   const addLook = (dx: number, dy: number) => {
     if (dx === 0 && dy === 0) return;
@@ -121,6 +133,8 @@ export const createThirdPersonCamera = (
     lookStickY = 0;
     lookInputTimer = 0;
     recenterIdle = 0;
+    shoulderTarget = 0;
+    shoulderMix = 0;
     pivot.set(0, cfg.pivotHeight, 0);
     lookAt.copyFrom(pivot);
     smoothedPos.set(0, cfg.pivotHeight + cfg.height + 2.2, -cfg.distance);
@@ -140,26 +154,46 @@ export const createThirdPersonCamera = (
     return into;
   };
 
+  const isCameraObstacle = (mesh: BABYLON.AbstractMesh | undefined, ignore: Set<BABYLON.AbstractMesh>) => {
+    if (!mesh || !mesh.isEnabled() || !mesh.isVisible || mesh.visibility <= 0) return false;
+    if (ignore.has(mesh)) return false;
+    if ((mesh.metadata as { sceneTriggerId?: string } | undefined)?.sceneTriggerId) return false;
+    return mesh.checkCollisions || mesh.isPickable;
+  };
+
+  const pickAlong = (
+    origin: BABYLON.Vector3,
+    direction: BABYLON.Vector3,
+    length: number,
+    ignore: Set<BABYLON.AbstractMesh>,
+  ) => {
+    if (length < 0.001) return null;
+    ray.origin.copyFrom(origin);
+    ray.direction.copyFrom(direction);
+    ray.length = length;
+    return scene.pickWithRay(ray, (mesh) => isCameraObstacle(mesh, ignore), false);
+  };
+
   const collideDistance = (origin: BABYLON.Vector3, target: BABYLON.Vector3, ignore: Set<BABYLON.AbstractMesh>) => {
     offsetDir.copyFrom(target).subtractInPlace(origin);
     const maxDist = offsetDir.length();
     if (maxDist < 0.001) return cfg.minDistance;
     offsetDir.scaleInPlace(1 / maxDist);
     const skin = Math.min(0.45, maxDist * 0.2);
-    ray.origin.copyFrom(origin).addInPlace(offsetDir.scale(skin));
-    ray.direction.copyFrom(offsetDir);
-    ray.length = Math.max(0.01, maxDist - skin);
-
-    const hit = scene.pickWithRay(ray, (mesh) => {
-      if (!mesh || !mesh.isEnabled()) return false;
-      if (ignore.has(mesh)) return false;
-      return mesh.isPickable;
-    });
-
+    probeOrigin.copyFrom(origin).addInPlace(offsetDir.scale(skin));
+    const hit = pickAlong(probeOrigin, offsetDir, Math.max(0.01, maxDist - skin), ignore);
     if (hit?.hit && typeof hit.distance === 'number') {
       return clampValue(hit.distance + skin - cfg.collisionRadius, cfg.minDistance, maxDist);
     }
     return maxDist;
+  };
+
+  /** World Y of the first ceiling/overhang above a point; boom rays barely change Y under a flat slab. */
+  const ceilingWorldY = (x: number, y: number, z: number, ignore: Set<BABYLON.AbstractMesh>) => {
+    probeOrigin.set(x, y, z);
+    const hit = pickAlong(probeOrigin, upDir, 12, ignore);
+    if (hit?.hit && hit.pickedPoint) return hit.pickedPoint.y;
+    return Number.POSITIVE_INFINITY;
   };
 
   const update = (
@@ -201,22 +235,50 @@ export const createThirdPersonCamera = (
       recenterIdle = 0;
     }
 
-    const pivotTargetX = player.x;
+    shoulderMix = expDamp(shoulderMix, shoulderTarget, cfg.shoulderStiffness, clampedDt);
+    const rightX = Math.cos(yaw);
+    const rightZ = -Math.sin(yaw);
+    const shoulder = cfg.shoulderOffset * shoulderMix;
+    const aimDistance = clampValue(
+      desiredDistance + cfg.drawnDistanceDelta * shoulderMix,
+      cfg.minDistance,
+      cfg.maxDistance,
+    );
+
+    const pivotTargetX = player.x + rightX * shoulder;
     const pivotTargetY = playerMeshY(player.y) + cfg.pivotHeight;
-    const pivotTargetZ = player.z;
+    const pivotTargetZ = player.z + rightZ * shoulder;
     pivot.x = expDamp(pivot.x, pivotTargetX, cfg.followStiffness, clampedDt);
     pivot.y = expDamp(pivot.y, pivotTargetY, cfg.followStiffness, clampedDt);
     pivot.z = expDamp(pivot.z, pivotTargetZ, cfg.followStiffness, clampedDt);
 
-    desiredOffset(desiredDistance, desiredPos);
+    desiredOffset(aimDistance, desiredPos);
     desiredPos.addInPlace(pivot);
 
-    const blocked = collideDistance(pivot, desiredPos, ignore);
+    let blocked = collideDistance(pivot, desiredPos, ignore);
+
+    const midX = (pivot.x + desiredPos.x) * 0.5;
+    const midZ = (pivot.z + desiredPos.z) * 0.5;
+    const ceilingY = Math.min(
+      ceilingWorldY(pivot.x, pivot.y, pivot.z, ignore),
+      ceilingWorldY(desiredPos.x, pivot.y, desiredPos.z, ignore),
+      ceilingWorldY(midX, pivot.y, midZ, ignore),
+    );
+    const maxCamY = ceilingY - ceilingClearance;
+    const pitchLift = Math.sin(pitch);
+    if (Number.isFinite(maxCamY) && pitchLift > 0.02) {
+      const maxDistY = (maxCamY - pivot.y - cfg.height) / pitchLift;
+      if (maxDistY < blocked) {
+        blocked = clampValue(maxDistY, cfg.minDistance, blocked);
+      }
+    }
+
     const stiffness = blocked < currentDistance - 0.02 ? cfg.collisionInStiffness : cfg.collisionOutStiffness;
-    currentDistance = expDamp(currentDistance, Math.min(desiredDistance, blocked), stiffness, clampedDt);
+    currentDistance = expDamp(currentDistance, Math.min(aimDistance, blocked), stiffness, clampedDt);
 
     desiredOffset(currentDistance, smoothedPos);
     smoothedPos.addInPlace(pivot);
+    if (smoothedPos.y > maxCamY) smoothedPos.y = maxCamY;
 
     const lookForward = 0.35;
     lookAt.x = expDamp(lookAt.x, pivot.x + Math.sin(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
@@ -251,6 +313,9 @@ export const createThirdPersonCamera = (
     isLooking,
     setCinematic,
     clearCinematic,
+    setOverShoulder: (enabled: boolean) => {
+      shoulderTarget = enabled ? 1 : 0;
+    },
     getYaw: () => yaw,
     getPitch: () => pitch,
   };

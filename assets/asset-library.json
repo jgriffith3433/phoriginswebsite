@@ -131,6 +131,30 @@
         {
           "name": "SitTalk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        },
+        {
+          "name": "PistolIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Pistol Idle.fbx"
+        },
+        {
+          "name": "PistolWalk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Pistol Walk.fbx"
+        },
+        {
+          "name": "PistolJump",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Pistol Jump.fbx"
+        },
+        {
+          "name": "Draw",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Pistol Aim.fbx"
+        },
+        {
+          "name": "Holster",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Pistol Aim.fbx"
+        },
+        {
+          "name": "PistolAim",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Pistol Take Out.fbx"
         }
       ]
     },
