@@ -555,11 +555,11 @@
     },
     {
       "id": "scene_asset_1",
-      "assetId": "asset-hero-model",
+      "assetId": "asset-ch44-hero",
       "kind": "model",
       "name": "Player",
       "x": 1.7677428722381592,
-      "y": 0.2743157148361206,
+      "y": -0.7451714277267456,
       "z": 0,
       "components": [
         "Transform",
@@ -626,7 +626,7 @@
       "id": "trigger_1",
       "type": "enter_zone",
       "label": "Spawn Gate",
-      "assetId": "asset-hero-model",
+      "assetId": "asset-ch44-hero",
       "x": 4.159492015838623,
       "y": 5.0565714836120605,
       "z": 0

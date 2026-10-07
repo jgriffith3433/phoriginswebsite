@@ -555,7 +555,7 @@
     },
     {
       "id": "scene-hero",
-      "assetId": "asset-hero-model",
+      "assetId": "asset-ch44-hero",
       "kind": "model",
       "name": "Hero",
       "x": 0,
@@ -605,7 +605,7 @@
       "id": "trigger-2",
       "type": "checkpoint",
       "label": "North Gate",
-      "assetId": "asset-hero-model",
+      "assetId": "asset-ch44-hero",
       "x": -12,
       "y": 0,
       "z": -8

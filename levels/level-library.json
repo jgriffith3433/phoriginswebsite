@@ -2,25 +2,32 @@
   "version": 1,
   "levels": [
     {
-      "id": "starter-arena",
-      "name": "Starter Arena",
-      "path": "/levels/starter-arena.json",
-      "theme": "Neon Drift",
-      "difficulty": 1
+      "id": "apex-peak",
+      "name": "The Apex Peak",
+      "path": "/levels/apex-peak.json",
+      "theme": "Apex Peak",
+      "difficulty": 1,
+      "enemyCount": 0,
+      "combat": false,
+      "playerSpeed": 3.4,
+      "arenaSize": 140,
+      "reward": "Room for Grace"
     },
     {
       "id": "crimson-courtyard",
       "name": "Crimson Courtyard",
       "path": "/levels/crimson-courtyard.json",
       "theme": "Crimson Surge",
-      "difficulty": 2
+      "difficulty": 2,
+      "reward": "Heavy Ammo"
     },
     {
       "id": "arctic-rift",
       "name": "Arctic Rift",
       "path": "/levels/arctic-rift.json",
       "theme": "Arctic Rift",
-      "difficulty": 3
+      "difficulty": 3,
+      "reward": "Core Key"
     }
   ]
 }

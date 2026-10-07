@@ -2,17 +2,22 @@
 import '@babylonjs/loaders';
 
 import { configureResponsiveUI } from './game/mobile';
-import { createHumanoid, clearEnemies, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
+import { clearEnemies, disposeEnemy, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
+import { clearNpcs, spawnNpcsFromScene, type Npc } from './game/npcs';
 import { createPlayerAvatar } from './game/playerAvatar';
 import { addItem, createInventoryState, consumeItem, inventorySummary } from './game/inventory';
-import { getLevelDefinition, getLevels, getUnlockedLevelCount } from './game/levels';
-import { applyJump, clampPlayerToArena, createPlayerState, updateVerticalMotion } from './game/player';
-import { clampValue, createBurst, createProjectile } from './game/physics';
+import { getLevelDefinition, getLevels, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
+import { applyJump, clampPlayerToArena, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, updateVerticalMotion } from './game/player';
+import { createBurst, createProjectile } from './game/physics';
+import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
-import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData } from './game/sceneData';
-import type { InventoryItemType, InventoryState, ProgressionState, QuestState } from './game/types';
+import { PLAYER_ASSET_IDS } from './game/modelLoader';
+import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneTrigger } from './game/sceneData';
+import { createTriggerRunner } from './game/triggers';
+import { applyNpcAnim, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
+import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 const root = document.getElementById('game-root') as HTMLDivElement;
 const scoreEl = document.getElementById('score') as HTMLSpanElement;
@@ -28,6 +33,8 @@ const jumpBtn = document.getElementById('jumpBtn') as HTMLButtonElement;
 const fireBtn = document.getElementById('fireBtn') as HTMLButtonElement;
 const leftStickZone = document.getElementById('leftStickZone') as HTMLDivElement;
 const leftStickKnob = document.getElementById('leftStickKnob') as HTMLDivElement;
+const rightStickZone = document.getElementById('rightStickZone') as HTMLDivElement | null;
+const rightStickKnob = document.getElementById('rightStickKnob') as HTMLDivElement | null;
 const loadModelBtn = document.getElementById('loadModelBtn') as HTMLButtonElement;
 const modelInput = document.getElementById('modelInput') as HTMLInputElement;
 const devToggle = document.getElementById('devToggle') as HTMLButtonElement;
@@ -52,14 +59,11 @@ root.appendChild(canvas);
 
 const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
 const scene = new BABYLON.Scene(engine);
+scene.collisionsEnabled = true;
+scene.gravity = BABYLON.Vector3.Zero();
 
-const camera = new BABYLON.UniversalCamera('playerCamera', new BABYLON.Vector3(0, 1.7, 6), scene);
-camera.fov = 0.9;
-camera.minZ = 0.1;
-camera.maxZ = 200;
-camera.angularSensibility = 1700;
-camera.speed = 8;
-camera.inputs.clear();
+const followCamera = createThirdPersonCamera(scene);
+const camera = followCamera.camera;
 
 const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
 hemi.intensity = 0.8;
@@ -93,15 +97,86 @@ if (initialSceneData?.theme) {
   applyTheme(scene, currentThemeName);
 }
 
-void loadSceneFromJsonFile(scene, DEFAULT_SCENE_FILE_PATH).then((fileScene) => {
-  if (fileScene) {
-    applyTheme(scene, fileScene.theme || currentThemeName);
+const sceneLoadOptions = { omitAssetIds: PLAYER_ASSET_IDS, hideTriggers: true };
+let sceneNodes: BABYLON.Node[] = [];
+
+const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFile>>) => {
+  if (loaded) {
+    sceneNodes = loaded.nodes;
+    applyTheme(scene, loaded.data.theme || currentThemeName);
     return;
   }
-  loadSceneFromJson(scene, initialSceneData);
-}).catch(() => {
-  loadSceneFromJson(scene, initialSceneData);
+  sceneNodes = loadSceneFromJson(scene, initialSceneData, sceneLoadOptions);
+};
+
+const npcs: Npc[] = [];
+let activeCutscene: ActiveCutscene | null = null;
+
+const cineHud = document.createElement('div');
+cineHud.style.cssText = 'position:absolute;left:0;right:0;bottom:11%;text-align:center;pointer-events:none;z-index:24;display:none;';
+cineHud.innerHTML = '<div style="font-size:11px;letter-spacing:0.28em;text-transform:uppercase;color:#7af0c9;margin-bottom:8px;"></div><div style="font-size:18px;color:#eefaff;text-shadow:0 2px 16px #000;"></div>';
+root.appendChild(cineHud);
+const cineTitle = cineHud.children[0] as HTMLDivElement;
+const cineText = cineHud.children[1] as HTMLDivElement;
+
+const showCineHud = (title?: string, text?: string) => {
+  cineTitle.textContent = title ?? '';
+  cineText.textContent = text ?? '';
+  cineHud.style.display = title || text ? 'block' : 'none';
+};
+
+const resetCutsceneState = () => {
+  stopCutsceneAudio(activeCutscene);
+  activeCutscene = null;
+  state.inCutscene = false;
+  followCamera.clearCinematic();
+  showCineHud();
+};
+
+const endCutscene = () => {
+  resetCutsceneState();
+  playerAvatar.resumeLocomotion();
+};
+
+const beginNamedCutscene = (id: string) => {
+  void startCutscene(id, {
+    onCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+    onHud: (title, text) => showCineHud(title, text),
+    onAnim: (actor, clip, loop) => applyNpcAnim(npcs, actor, clip, loop, playerAvatar),
+    audioEnabled: () => audio.enabled,
+  }).then((next) => {
+    if (!next) return;
+    activeCutscene = next;
+    state.inCutscene = true;
+    unlockPointer();
+  });
+};
+
+const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
+  const cutsceneId = trigger.type === 'cutscene'
+    ? String(trigger.data?.cutscene ?? trigger.id)
+    : typeof trigger.data?.cutscene === 'string'
+      ? trigger.data.cutscene
+      : null;
+  if (cutsceneId) beginNamedCutscene(cutsceneId);
 });
+
+const loadMissionScene = async (path: string) => {
+  clearNpcs(npcs);
+  clearEnemies(enemies);
+  resetCutsceneState();
+  const loaded = await loadSceneFromJsonFile(scene, path, { ...sceneLoadOptions, replaceNodes: sceneNodes });
+  applyLoadedScene(loaded);
+  triggerRunner.bind(loaded?.data.triggers ?? []);
+  if (loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+};
+
+void (async () => {
+  await loadLevelLibrary();
+  const firstLevel = getLevels()[0];
+  if (firstLevel) applyLevelConfig(firstLevel);
+  await loadMissionScene(firstLevel?.path ?? DEFAULT_SCENE_FILE_PATH);
+})().catch(() => applyLoadedScene(null));
 
 const saveKey = 'ph-origins-save';
 type SaveData = { best: number; unlocked: number; sound: boolean };
@@ -146,24 +221,24 @@ const state = {
   lastSpawn: 0,
   lastDamageAt: 0,
   shootCooldown: 0,
-  playerSpeed: Number(devLevelConfig?.playerSpeed) || 8.5,
+  playerSpeed: 3.4,
   fireRate: Number(devLevelConfig?.fireRate) || 0.14,
   enemyHpMultiplier: Number(devLevelConfig?.enemyHp) || 1,
   spawnInterval: Number(devLevelConfig?.spawnRate) || 1.4,
   arenaSize: Number(devLevelConfig?.arenaSize) || 90,
   pointerLocked: false,
   mouseLookActive: false,
+  characterYaw: 0,
+  lookStickDragging: false,
   progression: {
     currentLevel: 1,
-    highestUnlocked: 1,
+    highestUnlocked: getUnlockedLevelCount(save.unlocked ?? 1),
     xp: 0,
     medals: 0,
   } satisfies ProgressionState,
   quests: createQuestState() satisfies QuestState[],
   inventory: createInventoryState() satisfies InventoryState,
   player: createPlayerState(),
-  cameraYaw: Math.PI,
-  cameraPitch: 0,
   input: {
     forward: false,
     backward: false,
@@ -174,30 +249,16 @@ const state = {
   movementVector: { x: 0, y: 0 },
   fireHeld: false,
   stickDragging: false,
+  inCutscene: false,
 };
 
 const enemies: Enemy[] = [];
 const projectiles: Array<{ mesh: BABYLON.Mesh; direction: BABYLON.Vector3; life: number; speed: number; damage: number }> = [];
 const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
 const pickups: Array<{ mesh: BABYLON.Mesh; item: InventoryItemType; amount: number; active: boolean }> = [];
-const weaponMuzzle = new BABYLON.Mesh('weaponMuzzle', scene);
-weaponMuzzle.position = new BABYLON.Vector3(0.45, -0.12, 1.2);
-weaponMuzzle.isVisible = false;
-
 const playerAvatar = createPlayerAvatar(scene);
-playerAvatar.group.parent = null;
-playerAvatar.group.position = new BABYLON.Vector3(0, 0, 0);
 playerAvatar.group.rotation.y = Math.PI;
-
-const gunMesh = BABYLON.MeshBuilder.CreateBox('gunMesh', { width: 0.18, height: 0.18, depth: 0.9 }, scene);
-const gunMat = new BABYLON.StandardMaterial('gunMat', scene);
-gunMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.12);
-gunMat.emissiveColor = new BABYLON.Color3(0.05, 0.05, 0.06);
-gunMesh.material = gunMat;
-gunMesh.parent = playerAvatar.group;
-gunMesh.position = new BABYLON.Vector3(0.7, 1.15, 0.8);
-gunMesh.rotation.x = -0.2;
-gunMesh.rotation.y = Math.PI / 3;
+const playerCollider = createPlayerCollider(scene);
 
 const audio = {
   enabled: save.sound,
@@ -307,30 +368,43 @@ const clearDynamicObjects = () => {
   pickups.length = 0;
 };
 
-const resetPlayer = () => {
+const applyLevelCombat = (config: LevelDefinition) => {
+  state.playerSpeed = config.playerSpeed;
+  state.fireRate = config.fireRate;
+  state.enemyHpMultiplier = config.enemyHp;
+  state.spawnInterval = config.spawnRate;
+  state.arenaSize = config.arenaSize || 90;
+};
+
+const applyLevelConfig = (config: LevelDefinition) => {
+  applyLevelCombat(config);
+  applyTheme(scene, config.theme);
+};
+
+const resetPlayer = (keepLevel = false) => {
+  const selectedLevel = keepLevel ? Math.max(1, state.level) : 1;
   state.player = createPlayerState();
-  state.level = 1;
+  state.level = selectedLevel;
   state.wave = 1;
   state.score = 0;
   state.health = 100;
   state.shootCooldown = 0;
   state.lastDamageAt = 0;
   state.kills = 0;
-  state.progression.currentLevel = 1;
-  state.progression.highestUnlocked = Math.max(1, state.progression.highestUnlocked);
+  state.progression.currentLevel = selectedLevel;
+  state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
   state.quests = createQuestState();
-  state.cameraYaw = Math.PI;
-  state.cameraPitch = 0;
-  camera.position = new BABYLON.Vector3(0, 3.2, 6);
-  camera.setTarget(new BABYLON.Vector3(0, 1.6, 0));
+  state.characterYaw = 0;
+  applyLevelConfig(getLevelDefinition(selectedLevel));
+  followCamera.reset();
 };
 
 const beginGame = () => {
   audio.start();
   state.running = true;
   clearDynamicObjects();
-  resetPlayer();
+  resetPlayer(true);
   syncStartButtonLabel();
   updateHud();
   hideMessage();
@@ -368,7 +442,7 @@ const finishGame = (won = false) => {
   const finalScore = Math.floor(state.score);
   const best = Math.max(state.best, finalScore);
   state.best = best;
-  saveGame({ best, unlocked: Math.max(save.unlocked ?? 1, state.level), sound: audio.enabled });
+  saveGame({ best, unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
   updateHud();
 
   if (won) {
@@ -395,8 +469,7 @@ const awardQuestProgress = (type: 'kills' | 'score' | 'collect', amount: number)
 };
 
 const handleLook = (dx: number, dy: number) => {
-  state.cameraYaw += dx * 0.0022;
-  state.cameraPitch = clampValue(state.cameraPitch - dy * 0.0016, -1.1, 1.1);
+  followCamera.addLook(dx, dy);
 };
 
 const clearInputState = () => {
@@ -411,37 +484,49 @@ const clearInputState = () => {
   leftStickKnob.style.top = '50%';
   leftStickKnob.style.transform = 'translate(-50%, -50%)';
   state.stickDragging = false;
+  state.lookStickDragging = false;
+  followCamera.setLookStick(0, 0);
+  if (rightStickKnob) {
+    rightStickKnob.style.left = '50%';
+    rightStickKnob.style.top = '50%';
+    rightStickKnob.style.transform = 'translate(-50%, -50%)';
+  }
 };
 
-const updateCamera = () => {
-  const target = new BABYLON.Vector3(state.player.x, state.player.y + 1.2, state.player.z);
-  const behindOffset = new BABYLON.Vector3(
-    Math.sin(state.cameraYaw) * -8,
-    3.1 - state.cameraPitch * 1.6,
-    Math.cos(state.cameraYaw) * -8,
-  );
-  const aimTarget = new BABYLON.Vector3(
-    target.x + Math.sin(state.cameraYaw) * 14,
-    target.y + state.cameraPitch * 4,
-    target.z + Math.cos(state.cameraYaw) * 14,
-  );
+const gatherCameraIgnoreMeshes = () => {
+  const ignored: BABYLON.AbstractMesh[] = [
+    playerCollider,
+    ...playerAvatar.group.getChildMeshes(true),
+  ];
+  for (const projectile of projectiles) ignored.push(projectile.mesh);
+  for (const particle of particles) ignored.push(particle.mesh);
+  for (const pickup of pickups) ignored.push(pickup.mesh);
+  for (const enemy of enemies) {
+    ignored.push(enemy.mesh);
+    enemy.root.getChildMeshes(true).forEach((mesh) => ignored.push(mesh));
+  }
+  for (const npc of npcs) {
+    ignored.push(npc.mesh);
+    npc.avatar.group.getChildMeshes(true).forEach((mesh) => ignored.push(mesh));
+  }
+  return ignored;
+};
 
-  camera.position = target.add(behindOffset);
-  camera.setTarget(aimTarget);
+const updateCamera = (delta: number, moving = false, moveHeading: number | null = null) => {
+  followCamera.update(delta, state.player, moving, moveHeading, gatherCameraIgnoreMeshes());
 
-  gunMesh.position.x = 0.7;
-  gunMesh.position.y = 1.15;
-  gunMesh.position.z = 0.8;
-  gunMesh.rotation.y = state.cameraYaw + Math.PI / 1.9;
-  gunMesh.rotation.x = state.cameraPitch * 0.4 - 0.25;
-
-  playerAvatar.group.rotation.y = state.cameraYaw + Math.PI;
-  playerAvatar.group.position = new BABYLON.Vector3(state.player.x, state.player.y - 1.6, state.player.z);
+  playerAvatar.group.rotation.y = state.characterYaw + Math.PI;
+  playerAvatar.group.position = new BABYLON.Vector3(state.player.x, playerMeshY(state.player.y), state.player.z);
 };
 
 const updatePlayer = (delta: number) => {
-  const forward = new BABYLON.Vector3(Math.sin(state.cameraYaw), 0, Math.cos(state.cameraYaw));
-  const right = new BABYLON.Vector3(Math.cos(state.cameraYaw), 0, -Math.sin(state.cameraYaw));
+  if (state.inCutscene) {
+    playerCollider.position.set(state.player.x, state.player.y, state.player.z);
+    return { moving: false, moveHeading: null };
+  }
+  const yaw = followCamera.getYaw();
+  const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+  const right = new BABYLON.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
 
   let moveX = 0;
   let moveZ = 0;
@@ -458,12 +543,16 @@ const updatePlayer = (delta: number) => {
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
     const speed = state.playerSpeed;
-    state.player.x += desiredMove.x * speed * delta;
-    state.player.z += desiredMove.z * speed * delta;
+    movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * delta, desiredMove.z * speed * delta);
+  } else {
+    playerCollider.position.set(state.player.x, state.player.y, state.player.z);
   }
 
   const walkMagnitude = Math.hypot(moveX, moveZ);
-  playerAvatar.setMoving(walkMagnitude > 0.05);
+  const moving = walkMagnitude > 0.05;
+  const moveHeading = desiredMove.lengthSquared() > 0
+    ? Math.atan2(desiredMove.x, desiredMove.z)
+    : null;
 
   clampPlayerToArena(state.player, state.arenaSize);
   updateVerticalMotion(state.player, delta);
@@ -474,20 +563,25 @@ const updatePlayer = (delta: number) => {
       audio.tone(360, 0.12, 'triangle', 0.04);
     }
   }
+
+  const facingTarget = followCamera.isLooking() || !moving || moveHeading === null
+    ? followCamera.getYaw()
+    : moveHeading;
+  state.characterYaw = lerpAngle(state.characterYaw, facingTarget, 1 - Math.exp(-(followCamera.isLooking() ? 18 : 10) * Math.min(delta, 0.05)));
+
+  playerAvatar.setLocomotion(moving, state.player.grounded);
+
+  const forwardDot = moveHeading === null ? 0 : Math.sin(yaw) * Math.sin(moveHeading) + Math.cos(yaw) * Math.cos(moveHeading);
+  return { moving, moveHeading: moving && forwardDot > 0.45 ? moveHeading : null };
 };
 
 const projectileSpawner = (sceneRef: BABYLON.Scene, origin: BABYLON.Vector3, direction: BABYLON.Vector3) => {
   const projectile = createProjectile(sceneRef, origin, direction);
   projectiles.push(projectile);
-  weaponMuzzle.position = new BABYLON.Vector3(0.45, -0.12, 1.2);
-  weaponMuzzle.isVisible = true;
-  setTimeout(() => {
-    weaponMuzzle.isVisible = false;
-  }, 35);
 };
 
 const fireWeapon = () => {
-  if (!state.running || state.shootCooldown > 0) return;
+  if (!state.running || state.inCutscene || state.shootCooldown > 0) return;
   if (!consumeItem(state.inventory, 'ammo', 1)) {
     audio.hit();
     return;
@@ -499,12 +593,18 @@ const fireWeapon = () => {
   audio.shoot();
 };
 
+const levelAllowsCombat = () => {
+  const config = getLevelDefinition(state.level);
+  return config.combat === true && config.libraryId !== 'apex-peak' && config.enemyCount > 0;
+};
+
 const spawnWaveEnemy = () => {
+  if (!levelAllowsCombat()) return;
   const enemy = spawnEnemy(scene, state.level);
   enemy.hp = Math.max(1, state.level * state.enemyHpMultiplier);
   const angle = Math.random() * Math.PI * 2;
-  const distance = 20 + Math.random() * 14;
-  enemy.mesh.position = new BABYLON.Vector3(Math.cos(angle) * distance, 0.9, Math.sin(angle) * distance);
+  const distance = 8 + Math.random() * 6;
+  enemy.mesh.position = new BABYLON.Vector3(Math.cos(angle) * distance, PLAYER_STAND_Y, Math.sin(angle) * distance);
   enemies.push(enemy);
 };
 
@@ -563,6 +663,11 @@ document.addEventListener('mousemove', (event) => {
   if (!state.running || !(state.pointerLocked || state.mouseLookActive)) return;
   handleLook(event.movementX, event.movementY);
 });
+
+canvas.addEventListener('wheel', (event) => {
+  event.preventDefault();
+  followCamera.setZoom(Math.sign(event.deltaY));
+}, { passive: false });
 
 const touchState = { active: false, lastX: 0, lastY: 0 };
 canvas.addEventListener('touchstart', (event) => {
@@ -656,6 +761,47 @@ leftStickZone.addEventListener('pointercancel', () => {
   leftStickKnob.style.transform = 'translate(-50%, -50%)';
 });
 
+const resetLookStick = () => {
+  state.lookStickDragging = false;
+  followCamera.setLookStick(0, 0);
+  if (!rightStickKnob) return;
+  rightStickKnob.style.left = '50%';
+  rightStickKnob.style.top = '50%';
+  rightStickKnob.style.transform = 'translate(-50%, -50%)';
+};
+
+const applyLookStick = (clientX: number, clientY: number) => {
+  if (!rightStickZone || !rightStickKnob) return;
+  const rect = rightStickZone.getBoundingClientRect();
+  const dx = (clientX - (rect.left + rect.width / 2)) / (rect.width * 0.38);
+  const dy = (clientY - (rect.top + rect.height / 2)) / (rect.height * 0.38);
+  const mag = Math.hypot(dx, dy);
+  const x = mag > 1 ? dx / mag : dx;
+  const y = mag > 1 ? dy / mag : dy;
+  followCamera.setLookStick(Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y)));
+  rightStickKnob.style.left = `calc(50% + ${x * 38}px)`;
+  rightStickKnob.style.top = `calc(50% + ${y * 38}px)`;
+  rightStickKnob.style.transform = 'translate(-50%, -50%)';
+};
+
+if (rightStickZone) {
+  rightStickZone.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    state.lookStickDragging = true;
+    rightStickZone.setPointerCapture(event.pointerId);
+    applyLookStick(event.clientX, event.clientY);
+  });
+  rightStickZone.addEventListener('pointermove', (event) => {
+    if (!state.lookStickDragging) return;
+    applyLookStick(event.clientX, event.clientY);
+  });
+  rightStickZone.addEventListener('pointerup', resetLookStick);
+  rightStickZone.addEventListener('pointerleave', () => {
+    if (state.lookStickDragging) resetLookStick();
+  });
+  rightStickZone.addEventListener('pointercancel', resetLookStick);
+}
+
 jumpBtn.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   state.input.jump = true;
@@ -678,6 +824,7 @@ resetBtn.addEventListener('click', () => {
   clearDynamicObjects();
   clearInputState();
   resetPlayer();
+  void loadMissionScene(getLevelDefinition(1).path);
   state.best = loadSave().best;
   updateHud();
   showMessage('PH Origins', GAME_COPY.reset);
@@ -691,31 +838,34 @@ const renderLoop = () => {
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
 
   if (state.running) {
+    if (state.inCutscene && activeCutscene) {
+      const playing = stepCutscene(activeCutscene, delta);
+      if (!playing) endCutscene();
+      updateCamera(delta, false, null);
+    } else {
     if (state.fireHeld) fireWeapon();
 
-    const targetWave = 1 + Math.floor(state.score / 220);
-    state.level = Math.min(8, targetWave);
-    state.wave = state.level;
-    state.progression.currentLevel = state.level;
-    state.progression.highestUnlocked = Math.max(state.progression.highestUnlocked, state.level);
+    state.wave = 1 + Math.floor(state.score / 220);
     const levelConfig = getLevelDefinition(state.level);
-    state.playerSpeed = Number(devLevelConfig?.playerSpeed) || state.playerSpeed || levelConfig.playerSpeed;
-    state.fireRate = Number(devLevelConfig?.fireRate) || state.fireRate || levelConfig.fireRate;
-    state.enemyHpMultiplier = Number(devLevelConfig?.enemyHp) || state.enemyHpMultiplier || levelConfig.enemyHp;
-    state.spawnInterval = Number(devLevelConfig?.spawnRate) || state.spawnInterval || levelConfig.spawnRate;
-    state.arenaSize = Number(devLevelConfig?.arenaSize) || state.arenaSize || 90;
+    applyLevelCombat(levelConfig);
 
-    const spawnDelay = Math.max(0.45, state.spawnInterval * (1.75 - state.level * 0.14));
-    if (performance.now() - state.lastSpawn > spawnDelay * 1000 || enemies.length === 0) {
-      const maxSpawns = Math.min(2 + state.level, Math.max(2, Number(devLevelConfig?.enemyCount) || 8));
-      for (let i = 0; i < Math.min(maxSpawns, 8); i++) {
-        if (enemies.length < Math.max(6, Number(devLevelConfig?.enemyCount) || 8)) spawnWaveEnemy();
+    if (!levelAllowsCombat()) {
+      if (enemies.length > 0) clearEnemies(enemies);
+    } else {
+      const spawnDelay = Math.max(0.45, state.spawnInterval * (1.75 - state.wave * 0.14));
+      const enemyCap = levelConfig.enemyCount;
+      if (enemyCap > 0 && (performance.now() - state.lastSpawn > spawnDelay * 1000 || enemies.length === 0)) {
+        const maxSpawns = Math.min(2 + state.wave, Math.max(1, enemyCap));
+        for (let i = 0; i < Math.min(maxSpawns, 8); i++) {
+          if (enemies.length < enemyCap) spawnWaveEnemy();
+        }
+        state.lastSpawn = performance.now();
       }
-      state.lastSpawn = performance.now();
     }
 
-    updatePlayer(delta);
-    updateCamera();
+    const locomotion = updatePlayer(delta);
+    updateCamera(delta, locomotion.moving, locomotion.moveHeading);
+    triggerRunner.update(state.player);
 
     for (const enemy of enemies) {
       const distance = updateEnemyAI(enemy, new BABYLON.Vector3(state.player.x, 1.6, state.player.z), delta);
@@ -744,7 +894,8 @@ const renderLoop = () => {
           projectile.mesh.dispose();
           createBurst(scene, projectile.mesh.position.x, projectile.mesh.position.y, projectile.mesh.position.z, new BABYLON.Color3(0.55, 0.83, 1), particles);
           if (enemy.hp <= 0) {
-            enemy.mesh.dispose();
+            const dropAt = enemy.mesh.position.clone();
+            disposeEnemy(enemy);
             const index = enemies.indexOf(enemy);
             if (index >= 0) enemies.splice(index, 1);
             state.score += 50;
@@ -752,7 +903,7 @@ const renderLoop = () => {
             awardQuestProgress('kills', 1);
             awardQuestProgress('score', 50);
             if (Math.random() > 0.72) {
-              spawnPickup(new BABYLON.Vector3(enemy.mesh.position.x, 1.2, enemy.mesh.position.z), Math.random() > 0.5 ? 'ammo' : 'scrap', 1);
+              spawnPickup(new BABYLON.Vector3(dropAt.x, 1.2, dropAt.z), Math.random() > 0.5 ? 'ammo' : 'scrap', 1);
             }
             audio.pickup();
           }
@@ -795,10 +946,11 @@ const renderLoop = () => {
 
       if (state.score > state.best) {
       state.best = state.score;
-      saveGame({ best: Math.floor(state.best), unlocked: Math.max(save.unlocked ?? 1, state.level), sound: audio.enabled });
+      saveGame({ best: Math.floor(state.best), unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
     }
 
-    if (state.kills >= 12 && state.level >= 5) {
+    if (state.kills >= 12) {
+      state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level + 1));
       finishGame(true);
     }
 
@@ -806,8 +958,9 @@ const renderLoop = () => {
     state.progression.medals = Math.max(0, Math.floor(state.kills / 3));
     updateQuestTracker();
     updateHud();
+    }
   } else {
-    updateCamera();
+    updateCamera(delta);
   }
 
   scene.render();
@@ -827,7 +980,7 @@ const loadCustomModel = (file: File) => {
   });
 };
 
-const themeOrder = ['Neon Drift', 'Crimson Surge', 'Arctic Rift'] as const;
+const themeOrder = ['Apex Peak', 'Neon Drift', 'Crimson Surge', 'Arctic Rift'] as const;
 let activeThemeName = typeof devLevelConfig?.theme === 'string' ? devLevelConfig.theme : 'Neon Drift';
 
 const cycleTheme = () => {
@@ -864,14 +1017,10 @@ const renderLevelSelect = () => {
       state.level = level.id;
       state.progression.currentLevel = level.id;
       state.progression.highestUnlocked = Math.max(state.progression.highestUnlocked, level.id);
-      const nextConfig = getLevelDefinition(level.id);
-      state.playerSpeed = nextConfig.playerSpeed;
-      state.fireRate = nextConfig.fireRate;
-      state.enemyHpMultiplier = nextConfig.enemyHp;
-      state.spawnInterval = nextConfig.spawnRate;
-      applyTheme(scene, nextConfig.theme);
+      applyLevelConfig(level);
+      void loadMissionScene(level.path);
       levelSelect.classList.add('hidden');
-      messageText.textContent = `${nextConfig.name} • ${nextConfig.reward}`;
+      messageText.textContent = `${level.name} • ${level.reward}`;
       messageTitle.textContent = 'PH Origins';
       syncStartButtonLabel();
       updateCrosshairVisibility();
@@ -882,11 +1031,13 @@ const renderLevelSelect = () => {
 };
 
 const showLevelSelect = () => {
-  renderLevelSelect();
-  messageTitle.textContent = 'Mission Select';
-  messageText.textContent = 'Choose the next zone and continue your run.';
-  levelSelect.classList.remove('hidden');
-  messageBox.classList.remove('hidden');
+  void loadLevelLibrary().then(() => {
+    renderLevelSelect();
+    messageTitle.textContent = 'Mission Select';
+    messageText.textContent = 'Choose the next zone and continue your run.';
+    levelSelect.classList.remove('hidden');
+    messageBox.classList.remove('hidden');
+  });
 };
 
 loadModelBtn.addEventListener('click', () => {
@@ -918,7 +1069,9 @@ const devActions: Record<string, () => void> = {
     updateHud();
   },
   level: () => {
-    state.level += 1;
+    state.level = Math.min(getLevels().length, state.level + 1);
+    applyLevelConfig(getLevelDefinition(state.level));
+    void loadMissionScene(getLevelDefinition(state.level).path);
     updateHud();
   },
   pause: () => {
@@ -952,23 +1105,8 @@ devToggle.addEventListener('click', () => {
   devPanel.classList.toggle('visible');
 });
 
-if (devLevelConfig) {
-  const cfg = devLevelConfig;
-  state.level = Math.max(1, Number(cfg.difficulty) || 1);
-  state.progression.currentLevel = state.level;
-  state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level));
-  state.playerSpeed = Number(cfg.playerSpeed) || state.playerSpeed;
-  state.fireRate = Number(cfg.fireRate) || state.fireRate;
-  state.enemyHpMultiplier = Number(cfg.enemyHp) || state.enemyHpMultiplier;
-  state.spawnInterval = Number(cfg.spawnRate) || state.spawnInterval;
-  state.arenaSize = Number(cfg.arenaSize) || state.arenaSize;
-  activeThemeName = typeof cfg.theme === 'string' ? cfg.theme : 'Neon Drift';
-  applyTheme(scene, activeThemeName);
-  showMessage('Dev level', `${cfg.levelName || 'Custom'} • ${cfg.theme || 'Neon Drift'} • difficulty ${state.level}`);
-} else {
-  loadModelBtn.style.display = '';
-  showMessage('PH Origins', GAME_COPY.intro);
-}
+loadModelBtn.style.display = '';
+showMessage('PH Origins', GAME_COPY.intro);
 
 updateCrosshairVisibility();
 configureResponsiveUI(root);

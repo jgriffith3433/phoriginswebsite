@@ -362,12 +362,29 @@
         box-shadow: 0 0 20px rgba(103, 210, 255, 0.45);
       }
 
+      .right-controls {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 10px;
+        pointer-events: auto;
+      }
+
+      .right-stick-zone {
+        position: relative;
+        width: 132px;
+        height: 132px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: none;
+      }
+
       .right-action-zone {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 12px;
-        pointer-events: auto;
       }
 
       .touch-btn {
@@ -713,9 +730,16 @@
           </div>
         </div>
 
-        <div class="right-action-zone" aria-label="Action buttons">
-          <button class="action-btn fire" id="fireBtn" aria-label="Fire weapon">✦</button>
-          <button class="action-btn" id="jumpBtn" aria-label="Jump">△</button>
+        <div class="right-controls">
+          <div class="right-stick-zone" id="rightStickZone" aria-label="Camera stick">
+            <div class="stick-ring">
+              <div class="stick-knob" id="rightStickKnob"></div>
+            </div>
+          </div>
+          <div class="right-action-zone" aria-label="Action buttons">
+            <button class="action-btn fire" id="fireBtn" aria-label="Fire weapon">✦</button>
+            <button class="action-btn" id="jumpBtn" aria-label="Jump">△</button>
+          </div>
         </div>
       </div>
 

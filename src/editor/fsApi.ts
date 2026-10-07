@@ -62,3 +62,24 @@ export const importModel = async (
     return { ok: false, error: String(error) };
   }
 };
+
+export const importFbxFile = async (
+  file: File,
+  options: { mode: 'character' | 'animation'; name: string; target?: string },
+): Promise<ImportModelResult> => {
+  try {
+    const params = new URLSearchParams({
+      mode: options.mode,
+      name: options.name,
+      target: options.target ?? 'ch44-hero',
+    });
+    const response = await fetch(`/api/import-fbx?${params.toString()}`, {
+      method: 'POST',
+      headers: { 'X-File-Name': file.name },
+      body: file,
+    });
+    return await response.json();
+  } catch (error) {
+    return { ok: false, error: String(error) };
+  }
+};

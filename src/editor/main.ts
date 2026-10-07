@@ -1,7 +1,9 @@
 import { createEditorViewport, type SelectionTarget } from './viewport';
-import { fetchProjectTree, saveJsonFile, importModel, type FsTreeNode } from './fsApi';
+import { fetchProjectTree, saveJsonFile, importModel, importFbxFile, type FsTreeNode } from './fsApi';
 import { renderProjectTree, inferAssetKind, type DraggableAssetPayload } from './projectPanel';
-import type { SceneAssetInstance, SceneData, SceneTrigger } from '../game/sceneData';
+import { getAssetLibrary, invalidateAssetLibrary, resolveLibraryEntry } from '../game/modelLoader';
+import { LEVEL_LIBRARY_PATH } from '../game/levels';
+import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneTrigger } from '../game/sceneData';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -26,7 +28,7 @@ type LevelManifestEntry = { id: string; name: string; path: string; theme: strin
 // Unity component list.
 const KNOWN_COMPONENTS = ['Transform', 'Collider', 'AudioSource', 'Light', 'Renderer', 'Trigger'];
 
-let currentLevelPath = '/levels/starter-arena.json';
+let currentLevelPath = '/levels/apex-peak.json';
 let sceneData: SceneData | null = null;
 let selection: SelectionTarget | null = null;
 let saveTimer: number | undefined;
@@ -492,7 +494,7 @@ const loadLevel = async (levelPath: string) => {
 
 const populateLevelSelect = async () => {
   try {
-    const response = await fetch('/levels/level-library.json', { cache: 'no-store' });
+    const response = await fetch(LEVEL_LIBRARY_PATH, { cache: 'no-store' });
     const manifest = response.ok ? await response.json() : null;
     const levels: LevelManifestEntry[] = Array.isArray(manifest?.levels) ? manifest.levels : [];
     levelSelectEl.innerHTML = '';
@@ -517,6 +519,7 @@ const collectAssetFiles = (nodes: FsTreeNode[], acc: FsTreeNode[] = []): FsTreeN
 };
 
 const loadProjectTree = async () => {
+  invalidateAssetLibrary();
   const tree = await fetchProjectTree();
   if (!tree) {
     projectTreeEl.innerHTML = '<div class="fs-row">Unable to read project files. Run with `npm run dev`.</div>';
@@ -541,9 +544,128 @@ const loadProjectTree = async () => {
 
 const nextId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-const handleDrop = (event: DragEvent) => {
+const inferClipName = (fileName: string) => {
+  const lower = fileName.toLowerCase();
+  if (lower.includes('jump')) return 'Jump';
+  if (lower.includes('walk')) return 'Walk';
+  if (lower.includes('idle')) return 'Idle';
+  return fileName.replace(/\.fbx$/i, '').replace(/[^a-zA-Z0-9]+/g, '-') || 'Clip';
+};
+
+const fbxOverlay = $('fbxImportOverlay') as HTMLDivElement;
+const fbxFileNameEl = $('fbxImportFileName') as HTMLParagraphElement;
+const fbxClipNameInput = $('fbxClipName') as HTMLInputElement;
+const fbxTargetInput = $('fbxTargetName') as HTMLInputElement;
+const fbxCharacterInput = $('fbxCharacterName') as HTMLInputElement;
+const fbxClipField = $('fbxClipField') as HTMLDivElement;
+const fbxTargetField = $('fbxTargetField') as HTMLDivElement;
+const fbxCharacterField = $('fbxCharacterField') as HTMLDivElement;
+const fbxStatusEl = $('fbxImportStatus') as HTMLDivElement;
+const fbxSubmitBtn = $('fbxImportSubmitBtn') as HTMLButtonElement;
+let pendingFbxFile: File | null = null;
+
+const fbxImportMode = () =>
+  (document.querySelector('input[name="fbxImportMode"]:checked') as HTMLInputElement | null)?.value === 'character'
+    ? 'character'
+    : 'animation';
+
+const syncFbxModeFields = () => {
+  const animation = fbxImportMode() === 'animation';
+  fbxClipField.hidden = !animation;
+  fbxTargetField.hidden = !animation;
+  fbxCharacterField.hidden = animation;
+};
+
+const closeFbxModal = () => {
+  fbxOverlay.hidden = true;
+  pendingFbxFile = null;
+};
+
+const openFbxModal = (file: File) => {
+  pendingFbxFile = file;
+  fbxFileNameEl.textContent = file.name;
+  fbxClipNameInput.value = inferClipName(file.name);
+  fbxCharacterInput.value = file.name.replace(/\.fbx$/i, '').replace(/[^a-zA-Z0-9_-]+/g, '-') || 'character';
+  fbxTargetInput.value = 'ch44-hero';
+  fbxStatusEl.textContent = '';
+  fbxStatusEl.className = 'import-model-status';
+  fbxSubmitBtn.disabled = false;
+  fbxSubmitBtn.textContent = 'Convert & Import';
+  const animationRadio = document.querySelector('input[name="fbxImportMode"][value="animation"]') as HTMLInputElement;
+  animationRadio.checked = true;
+  syncFbxModeFields();
+  fbxOverlay.hidden = false;
+};
+
+const collectFbxFiles = (transfer: DataTransfer | null) =>
+  Array.from(transfer?.files ?? []).filter((file) => file.name.toLowerCase().endsWith('.fbx'));
+
+const handleOsFbxDrop = (event: DragEvent) => {
+  const files = collectFbxFiles(event.dataTransfer);
+  if (!files.length) return false;
   event.preventDefault();
   dropZone.classList.remove('dragover');
+  projectTreeEl.classList.remove('dragover');
+  openFbxModal(files[0]);
+  if (files.length > 1) log(`Queued ${files[0].name}. Drop remaining FBX files one at a time.`);
+  return true;
+};
+
+document.querySelectorAll('input[name="fbxImportMode"]').forEach((input) => {
+  input.addEventListener('change', syncFbxModeFields);
+});
+$('fbxImportCloseBtn').addEventListener('click', closeFbxModal);
+$('fbxImportCancelBtn').addEventListener('click', closeFbxModal);
+fbxOverlay.addEventListener('click', (event) => {
+  if (event.target === fbxOverlay) closeFbxModal();
+});
+
+fbxSubmitBtn.addEventListener('click', async () => {
+  if (!pendingFbxFile) return;
+  const mode = fbxImportMode();
+  const name = mode === 'animation' ? fbxClipNameInput.value.trim() : fbxCharacterInput.value.trim();
+  if (!name) {
+    fbxStatusEl.textContent = mode === 'animation' ? 'Clip name is required.' : 'Asset name is required.';
+    fbxStatusEl.className = 'import-model-status error';
+    return;
+  }
+
+  fbxSubmitBtn.disabled = true;
+  fbxSubmitBtn.textContent = 'Converting...';
+  fbxStatusEl.className = 'import-model-status';
+  fbxStatusEl.textContent = 'Blender is baking the FBX. This can take a minute...';
+
+  const result = await importFbxFile(pendingFbxFile, {
+    mode,
+    name,
+    target: fbxTargetInput.value.trim() || 'ch44-hero',
+  });
+
+  if (!result.ok || !result.asset) {
+    fbxStatusEl.textContent = result.error ?? 'Import failed.';
+    fbxStatusEl.className = 'import-model-status error';
+    fbxSubmitBtn.disabled = false;
+    fbxSubmitBtn.textContent = 'Convert & Import';
+    if (result.log) log(`FBX import failed: ${result.error}`);
+    return;
+  }
+
+  fbxStatusEl.textContent = mode === 'animation'
+    ? `Applied ${name} to ${result.asset.name}${result.clipNames?.length ? ` (${result.clipNames.join(', ')})` : ''}.`
+    : `Imported ${result.asset.name}.`;
+  fbxStatusEl.className = 'import-model-status success';
+  log(fbxStatusEl.textContent);
+  await loadProjectTree();
+  if (sceneData) viewport.rebuildFromScene(sceneData);
+  fbxSubmitBtn.disabled = false;
+  fbxSubmitBtn.textContent = 'Convert & Import';
+  setTimeout(closeFbxModal, 1000);
+});
+
+const handleDrop = async (event: DragEvent) => {
+  event.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (handleOsFbxDrop(event)) return;
   if (!sceneData) return;
   const raw = event.dataTransfer?.getData('application/json');
   if (!raw) return;
@@ -564,12 +686,13 @@ const handleDrop = (event: DragEvent) => {
     return;
   }
 
-  const kind = payload.kind === 'other' ? 'model' : payload.kind;
+  const library = await getAssetLibrary();
+  const entry = resolveLibraryEntry(library, payload.path);
   const asset: SceneAssetInstance = {
     id: nextId('scene'),
-    assetId: payload.path,
-    kind,
-    name: payload.name,
+    assetId: entry?.id ?? payload.path,
+    kind: toSceneAssetKind(entry?.type, payload.kind === 'other' ? 'model' : payload.kind),
+    name: (entry?.name ?? payload.name).replace(/\.(glb|gltf)$/i, ''),
     x: point.x,
     y: point.y,
     z: point.z,
@@ -582,7 +705,7 @@ const handleDrop = (event: DragEvent) => {
   viewport.addAssetNode(asset);
   renderHierarchy();
   scheduleSave(true);
-  log(`Placed ${asset.name} (${kind}) into the scene.`);
+  log(`Placed ${asset.name} (${asset.kind}) into the scene.`);
 };
 
 dropZone.addEventListener('dragover', (event) => {
@@ -594,6 +717,17 @@ dropZone.addEventListener('dragleave', (event) => {
   if (event.target === dropZone) dropZone.classList.remove('dragover');
 });
 dropZone.addEventListener('drop', handleDrop);
+
+projectTreeEl.addEventListener('dragover', (event) => {
+  if (!collectFbxFiles(event.dataTransfer).length) return;
+  event.preventDefault();
+  projectTreeEl.classList.add('dragover');
+});
+projectTreeEl.addEventListener('dragleave', () => projectTreeEl.classList.remove('dragover'));
+projectTreeEl.addEventListener('drop', (event) => {
+  projectTreeEl.classList.remove('dragover');
+  handleOsFbxDrop(event);
+});
 
 $('refreshAssetsBtn').addEventListener('click', () => void loadProjectTree());
 
@@ -715,7 +849,7 @@ const importAnimList = $('importModelAnimList') as HTMLDivElement;
 const importStatusEl = $('importModelStatus') as HTMLDivElement;
 const importSubmitBtn = $('importModelSubmitBtn') as HTMLButtonElement;
 
-const addImportAnimRow = () => {
+const addImportAnimRow = (clipName = '') => {
   const row = document.createElement('div');
   row.className = 'import-anim-row';
   row.innerHTML = `
@@ -723,6 +857,7 @@ const addImportAnimRow = () => {
     <input class="anim-path" type="text" placeholder="C:\\path\\to\\animation.fbx" />
     <button type="button" class="anim-remove">Remove</button>
   `;
+  (row.querySelector('.anim-name') as HTMLInputElement).value = clipName;
   row.querySelector('.anim-remove')!.addEventListener('click', () => row.remove());
   importAnimList.appendChild(row);
 };
@@ -739,6 +874,8 @@ const resetImportModal = () => {
 
 const openImportModal = () => {
   resetImportModal();
+  addImportAnimRow('Idle');
+  addImportAnimRow('Walk');
   importOverlay.hidden = false;
 };
 
@@ -747,7 +884,7 @@ const closeImportModal = () => { importOverlay.hidden = true; };
 $('importModelBtn').addEventListener('click', openImportModal);
 $('importModelCloseBtn').addEventListener('click', closeImportModal);
 $('importModelCancelBtn').addEventListener('click', closeImportModal);
-$('importModelAddAnimBtn').addEventListener('click', addImportAnimRow);
+$('importModelAddAnimBtn').addEventListener('click', () => addImportAnimRow());
 importOverlay.addEventListener('click', (event) => {
   if (event.target === importOverlay) closeImportModal();
 });

@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { loadGlbByAssetId } from './modelLoader';
 import { getSceneTheme } from './scene';
 
 export type SceneVector3 = {
@@ -13,6 +14,11 @@ export type SceneVector3 = {
 // assets like everything else, so they show up in the Hierarchy and can be
 // selected, moved, scaled, duplicated, and deleted like any other object.
 export type SceneAssetKind = 'model' | 'audio' | 'texture' | 'light' | 'trigger' | 'wall' | 'pillar' | 'ground';
+
+const SCENE_ASSET_KINDS: SceneAssetKind[] = ['model', 'audio', 'texture', 'light', 'trigger', 'wall', 'pillar', 'ground'];
+
+export const toSceneAssetKind = (value: string | undefined, fallback: SceneAssetKind = 'model'): SceneAssetKind =>
+  SCENE_ASSET_KINDS.includes(value as SceneAssetKind) ? (value as SceneAssetKind) : fallback;
 
 export type SceneAssetInstance = {
   id: string;
@@ -53,7 +59,7 @@ export type SceneData = {
 };
 
 export const SCENE_DATA_KEY = 'ph-origins-scene-editor';
-export const DEFAULT_SCENE_FILE_PATH = '/levels/starter-arena.json';
+export const DEFAULT_SCENE_FILE_PATH = '/levels/apex-peak.json';
 
 export const DEFAULT_SCENE_DATA: SceneData = {
   id: 'scene_default',
@@ -61,14 +67,26 @@ export const DEFAULT_SCENE_DATA: SceneData = {
   theme: 'Neon Drift',
   assets: [
     { id: 'scene_asset_0', assetId: 'structure-ground', kind: 'ground', name: 'Ground', x: 0, y: -0.5, z: 0, scale: { x: 90, y: 1, z: 90 }, components: ['Transform'] },
-    { id: 'scene_asset_1', assetId: 'asset-hero-model', kind: 'model', name: 'Player', x: 0, y: 0, z: 0, components: ['Transform', 'Collider'] },
+    { id: 'scene_asset_1', assetId: 'asset-ch44-hero', kind: 'model', name: 'Player', x: 0, y: 0, z: 0, components: ['Transform', 'Collider'] },
     { id: 'scene_asset_2', assetId: 'asset-rock-model', kind: 'model', name: 'Rock Cluster', x: 15, y: 0, z: 10, components: ['Transform'] },
     { id: 'scene_asset_3', assetId: 'asset-neon-drift-audio', kind: 'audio', name: 'Music Trigger', x: 0, y: 0, z: 0, components: ['AudioSource'] },
   ],
   triggers: [
-    { id: 'trigger_1', type: 'enter_zone', label: 'Spawn Gate', assetId: 'asset-hero-model', x: 0, y: 0, z: 0 },
+    { id: 'trigger_1', type: 'enter_zone', label: 'Spawn Gate', assetId: 'asset-ch44-hero', x: 0, y: 0, z: 0 },
     { id: 'trigger_2', type: 'checkpoint', label: 'Checkpoint A', assetId: 'asset-lantern-light', x: 10, y: 0, z: 4 },
   ],
+};
+
+const cloneDefaultScene = (): SceneData => JSON.parse(JSON.stringify(DEFAULT_SCENE_DATA));
+
+const parseSceneData = (parsed: unknown): SceneData => {
+  const data = (parsed && typeof parsed === 'object' ? parsed : {}) as Partial<SceneData>;
+  return {
+    ...cloneDefaultScene(),
+    ...data,
+    assets: Array.isArray(data.assets) ? data.assets : DEFAULT_SCENE_DATA.assets,
+    triggers: Array.isArray(data.triggers) ? data.triggers : DEFAULT_SCENE_DATA.triggers,
+  };
 };
 
 const normalizeVector = (vector?: SceneVector3 | null, fallbackX = 0, fallbackY = 0, fallbackZ = 0): BABYLON.Vector3 => {
@@ -79,24 +97,17 @@ const normalizeVector = (vector?: SceneVector3 | null, fallbackX = 0, fallbackY 
 };
 
 export const readSceneData = (): SceneData => {
-  if (typeof localStorage === 'undefined') return JSON.parse(JSON.stringify(DEFAULT_SCENE_DATA));
+  if (typeof localStorage === 'undefined') return cloneDefaultScene();
 
   try {
     const raw = localStorage.getItem(SCENE_DATA_KEY);
     if (!raw) {
       localStorage.setItem(SCENE_DATA_KEY, JSON.stringify(DEFAULT_SCENE_DATA));
-      return JSON.parse(JSON.stringify(DEFAULT_SCENE_DATA));
+      return cloneDefaultScene();
     }
-
-    const parsed = JSON.parse(raw);
-    return {
-      ...DEFAULT_SCENE_DATA,
-      ...parsed,
-      assets: Array.isArray(parsed?.assets) ? parsed.assets : DEFAULT_SCENE_DATA.assets,
-      triggers: Array.isArray(parsed?.triggers) ? parsed.triggers : DEFAULT_SCENE_DATA.triggers,
-    };
+    return parseSceneData(JSON.parse(raw));
   } catch {
-    return JSON.parse(JSON.stringify(DEFAULT_SCENE_DATA));
+    return cloneDefaultScene();
   }
 };
 
@@ -106,20 +117,32 @@ export const writeSceneData = (sceneData: SceneData) => {
   }
 };
 
-export const loadSceneFromJsonFile = async (scene: BABYLON.Scene, path = DEFAULT_SCENE_FILE_PATH): Promise<SceneData | null> => {
+export type LoadSceneOptions = {
+  omitAssetIds?: Iterable<string>;
+  replaceNodes?: BABYLON.Node[];
+  hideTriggers?: boolean;
+};
+
+export type LoadedJsonScene = {
+  data: SceneData;
+  nodes: BABYLON.Node[];
+};
+
+export const loadSceneFromJsonFile = async (
+  scene: BABYLON.Scene,
+  path = DEFAULT_SCENE_FILE_PATH,
+  options?: LoadSceneOptions,
+): Promise<LoadedJsonScene | null> => {
   try {
     const response = await fetch(path, { cache: 'no-store' });
     if (!response.ok) return null;
-    const parsed = await response.json();
-    const nextScene: SceneData = {
-      ...DEFAULT_SCENE_DATA,
-      ...parsed,
-      assets: Array.isArray(parsed?.assets) ? parsed.assets : DEFAULT_SCENE_DATA.assets,
-      triggers: Array.isArray(parsed?.triggers) ? parsed.triggers : DEFAULT_SCENE_DATA.triggers,
-    };
+    const nextScene = parseSceneData(await response.json());
     writeSceneData(nextScene);
-    loadSceneFromJson(scene, nextScene);
-    return nextScene;
+    options?.replaceNodes?.forEach((node) => {
+      if (!node.isDisposed()) node.dispose();
+    });
+    const nodes = loadSceneFromJson(scene, nextScene, options);
+    return { data: nextScene, nodes };
   } catch {
     return null;
   }
@@ -131,9 +154,23 @@ export const loadSceneFromJsonFile = async (scene: BABYLON.Scene, path = DEFAULT
 export type SceneNodeMetadata = {
   sceneAssetId?: string;
   sceneTriggerId?: string;
-  // Names of AnimationGroups loaded from a model's GLB, if any (populated
-  // asynchronously once the model finishes loading).
   animationGroups?: string[];
+};
+
+const attachFurnitureHull = (scene: BABYLON.Scene, mesh: BABYLON.Mesh, scale: BABYLON.Vector3) => {
+  if (scale.y >= 1.2) return;
+  const hull = BABYLON.MeshBuilder.CreateBox(`${mesh.name}-hull`, { size: 1 }, scene);
+  hull.parent = mesh;
+  hull.isVisible = false;
+  hull.isPickable = false;
+  hull.checkCollisions = true;
+  const worldHeight = 1.2;
+  hull.scaling.set(
+    Math.max(1, 0.9 / Math.max(scale.x, 0.01)),
+    worldHeight / Math.max(scale.y, 0.01),
+    Math.max(1, 0.9 / Math.max(scale.z, 0.01)),
+  );
+  hull.position.set(0, (worldHeight / 2 - scale.y / 2) / Math.max(scale.y, 0.01), 0);
 };
 
 // Builds (or rebuilds) the Babylon node for a single scene asset entry.
@@ -163,8 +200,8 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
       position,
       scene,
     );
-    light.intensity = 0.8;
-    light.range = 20;
+    light.intensity = 0.35;
+    light.range = 14;
     light.metadata = metadata;
     return light;
   }
@@ -179,6 +216,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     material.emissiveColor = new BABYLON.Color3(0.45, 0.18, 0.5);
     mesh.material = material;
     mesh.metadata = metadata;
+    mesh.isPickable = false;
     return mesh;
   }
 
@@ -208,31 +246,37 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     material.emissiveColor = theme.ground.scale(0.35);
     ground.material = material;
     ground.metadata = metadata;
+    ground.checkCollisions = true;
     return ground;
   }
 
   if (kind === 'wall') {
+    const theme = getSceneTheme(themeName);
     const mesh = BABYLON.MeshBuilder.CreateBox(asset.name ?? asset.id, { width: 1, height: 1, depth: 1 }, scene);
     mesh.position = position;
     mesh.rotation = rotation;
     mesh.scaling = scale;
     const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
-    material.diffuseColor = new BABYLON.Color3(0.2, 0.24, 0.32);
-    material.emissiveColor = new BABYLON.Color3(0.06, 0.08, 0.1);
+    material.diffuseColor = theme.wall;
+    material.emissiveColor = theme.wall.scale(0.22);
     mesh.material = material;
     mesh.metadata = metadata;
+    mesh.checkCollisions = true;
+    attachFurnitureHull(scene, mesh, scale);
     return mesh;
   }
 
   if (kind === 'pillar') {
+    const theme = getSceneTheme(themeName);
     const mesh = BABYLON.MeshBuilder.CreateCylinder(asset.name ?? asset.id, { height: 1, diameter: 1 }, scene);
     mesh.position = position;
     mesh.rotation = rotation;
     mesh.scaling = scale;
     const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
-    material.diffuseColor = new BABYLON.Color3(0.25, 0.28, 0.35);
+    material.diffuseColor = theme.wall.scale(1.15);
     mesh.material = material;
     mesh.metadata = metadata;
+    mesh.checkCollisions = true;
     return mesh;
   }
 
@@ -262,35 +306,6 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
   return mesh;
 };
 
-// Cached fetch of the project's asset library (assetId -> real file path).
-// Shared by every 'model' node so we only hit the network once per session.
-let assetLibraryPromise: Promise<AssetLibraryEntry[]> | null = null;
-export const getAssetLibrary = (): Promise<AssetLibraryEntry[]> => {
-  if (!assetLibraryPromise) {
-    assetLibraryPromise = fetch('/assets/asset-library.json', { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() : { assets: [] }))
-      .then((json) => (Array.isArray(json?.assets) ? json.assets : []))
-      .catch(() => []);
-  }
-  return assetLibraryPromise;
-};
-
-export type AssetLibraryEntry = {
-  id: string;
-  name: string;
-  path: string;
-  type: string;
-  tags?: string[];
-  source?: string;
-};
-
-// 'model' assets load a real GLB (via the project's asset library lookup)
-// instead of a placeholder primitive. A TransformNode is returned
-// synchronously -- carrying position/rotation/scale/metadata immediately so
-// selection, the gizmo, and the Inspector all work right away -- and the
-// actual mesh/skeleton/animations are parented under it once the async load
-// resolves. If the GLB fails to load (missing file, bad path, etc.) a small
-// placeholder box is shown instead so nothing is silently invisible.
 const createModelAssetNode = (
   scene: BABYLON.Scene,
   asset: SceneAssetInstance,
@@ -305,50 +320,13 @@ const createModelAssetNode = (
   root.scaling = scale;
   root.metadata = metadata;
 
-  const placeholder = BABYLON.MeshBuilder.CreateBox(`${asset.id}-placeholder`, { size: 1.2 }, scene);
-  placeholder.parent = root;
-  const placeholderMat = new BABYLON.StandardMaterial(`${asset.id}-placeholder-mat`, scene);
-  placeholderMat.diffuseColor = new BABYLON.Color3(0.55, 0.8, 1.0);
-  placeholderMat.emissiveColor = new BABYLON.Color3(0.12, 0.18, 0.24);
-  placeholder.material = placeholderMat;
-
-  void (async () => {
-    const library = await getAssetLibrary();
-    const entry = library.find((item) => item.id === asset.assetId);
-    const modelPath = entry?.path;
-    if (!modelPath) {
-      return;
-    }
-
-    try {
-      const lastSlash = modelPath.lastIndexOf('/');
-      const rootUrl = modelPath.slice(0, lastSlash + 1);
-      const fileName = modelPath.slice(lastSlash + 1);
-      const result = await BABYLON.SceneLoader.ImportMeshAsync('', rootUrl, fileName, scene);
-      if (root.isDisposed()) {
-        result.meshes.forEach((mesh) => mesh.dispose());
-        result.animationGroups.forEach((group) => group.dispose());
-        return;
-      }
-
-      placeholder.dispose();
-      result.meshes.forEach((mesh) => {
-        if (mesh.parent === null) {
-          mesh.parent = root;
-        }
-      });
-      // Stop glTF animations from auto-playing on load; expose clip names so
-      // the Inspector/game code can choose which one to play.
-      result.animationGroups.forEach((group) => group.stop());
-      root.metadata = {
-        ...root.metadata,
-        animationGroups: result.animationGroups.map((group) => group.name),
-      } as SceneNodeMetadata;
-      (root as unknown as { _phAnimationGroups?: BABYLON.AnimationGroup[] })._phAnimationGroups = result.animationGroups;
-    } catch (error) {
-      console.warn(`Failed to load model "${modelPath}" for asset ${asset.id}:`, error);
-    }
-  })();
+  void loadGlbByAssetId(scene, asset.assetId, root).then((imported) => {
+    if (!imported || root.isDisposed()) return;
+    root.metadata = {
+      ...root.metadata,
+      animationGroups: imported.animationGroups.map((group) => group.name),
+    } as SceneNodeMetadata;
+  });
 
   return root;
 };
@@ -363,20 +341,28 @@ export const createSceneTriggerNode = (scene: BABYLON.Scene, trigger: SceneTrigg
   triggerMat.diffuseColor = new BABYLON.Color3(1, 0.7, 0.2);
   triggerMat.emissiveColor = new BABYLON.Color3(0.42, 0.2, 0.04);
   marker.metadata = { sceneTriggerId: trigger.id } as SceneNodeMetadata;
+  marker.isPickable = false;
   return marker;
 };
 
-export const loadSceneFromJson = (scene: BABYLON.Scene, sceneData: SceneData): BABYLON.Node[] => {
+export const loadSceneFromJson = (
+  scene: BABYLON.Scene,
+  sceneData: SceneData,
+  options?: LoadSceneOptions,
+): BABYLON.Node[] => {
+  const omit = new Set(options?.omitAssetIds ?? []);
   const created: BABYLON.Node[] = [];
   const assetNodes = new Map<string, BABYLON.Node>();
   const pending: Array<{ node: BABYLON.Node; parentId?: string }> = [];
   sceneData.assets.forEach((asset) => {
+    if (omit.has(asset.assetId)) return;
     const node = createSceneAssetNode(scene, asset, sceneData.theme);
     assetNodes.set(asset.id, node);
     pending.push({ node, parentId: asset.parentId });
     created.push(node);
   });
   sceneData.triggers.forEach((trigger) => {
+    if (options?.hideTriggers) return;
     const node = createSceneTriggerNode(scene, trigger);
     pending.push({ node, parentId: trigger.parentId });
     created.push(node);

@@ -3,8 +3,8 @@
   "assets": [
     {
       "id": "asset-hero-model",
-      "name": "hero.glb",
-      "path": "/assets/models/hero.glb",
+      "name": "ch44-hero.glb",
+      "path": "/assets/models/ch44-hero.glb",
       "type": "model",
       "tags": [
         "player",
@@ -67,10 +67,35 @@
       "path": "/assets/models/ch44-hero.glb",
       "type": "model",
       "tags": [
-        "prop",
+        "character",
+        "mixamo",
+        "player",
         "real-file"
       ],
-      "source": "project"
+      "source": "project",
+      "sourceFbx": "C:/Projects/phoriginsassets/models/Ch44_nonPBR.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "/assets/animations/Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "/assets/animations/Walking.fbx"
+        },
+        {
+          "name": "Jump",
+          "path": "/assets/animations/Jump.fbx"
+        },
+        {
+          "name": "SitIdle",
+          "path": "/assets/animations/Sitting Idle.fbx"
+        },
+        {
+          "name": "SitTalk",
+          "path": "/assets/animations/Sitting Talking.fbx"
+        }
+      ]
     }
   ]
 }

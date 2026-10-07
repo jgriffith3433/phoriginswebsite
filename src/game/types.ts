@@ -15,15 +15,19 @@ export type InventoryState = {
 
 export type LevelDefinition = {
   id: number;
+  libraryId: string;
+  path: string;
   name: string;
   difficulty: number;
   enemyCount: number;
+  combat: boolean;
   spawnRate: number;
   playerSpeed: number;
   fireRate: number;
   enemyHp: number;
   theme: string;
   reward: string;
+  arenaSize: number;
 };
 
 export type ProgressionState = {

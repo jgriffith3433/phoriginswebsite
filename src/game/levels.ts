@@ -1,114 +1,93 @@
 import type { LevelDefinition } from './types';
 
-const DEFAULT_LEVELS: LevelDefinition[] = [
-  {
-    id: 1,
-    name: 'Training Grounds',
-    difficulty: 1,
-    enemyCount: 4,
-    spawnRate: 2.2,
-    playerSpeed: 8.5,
-    fireRate: 0.18,
-    enemyHp: 1,
-    theme: 'Neon Drift',
-    reward: 'Starter Gear',
-  },
-  {
-    id: 2,
-    name: 'Crimson Courtyard',
-    difficulty: 2,
-    enemyCount: 6,
-    spawnRate: 1.8,
-    playerSpeed: 9,
-    fireRate: 0.16,
-    enemyHp: 1.2,
-    theme: 'Crimson Surge',
-    reward: 'Heavy Ammo',
-  },
-  {
-    id: 3,
-    name: 'Glass District',
-    difficulty: 3,
-    enemyCount: 8,
-    spawnRate: 1.4,
-    playerSpeed: 9.4,
-    fireRate: 0.14,
-    enemyHp: 1.5,
-    theme: 'Neon Drift',
-    reward: 'Nanoweave',
-  },
-  {
-    id: 4,
-    name: 'Storm Channel',
-    difficulty: 4,
-    enemyCount: 10,
-    spawnRate: 1.1,
-    playerSpeed: 9.8,
-    fireRate: 0.12,
-    enemyHp: 1.8,
-    theme: 'Arctic Rift',
-    reward: 'Energy Cells',
-  },
-  {
-    id: 5,
-    name: 'Last Signal',
-    difficulty: 5,
-    enemyCount: 12,
-    spawnRate: 0.9,
-    playerSpeed: 10.4,
-    fireRate: 0.1,
-    enemyHp: 2.1,
-    theme: 'Arctic Rift',
-    reward: 'Core Key',
-  },
-];
+export const LEVEL_LIBRARY_PATH = '/levels/level-library.json';
 
-const LEVELS_JSON = JSON.stringify(DEFAULT_LEVELS);
-const LEVELS_KEY = 'ph-origins-levels';
+type LibraryEntry = {
+  id?: string;
+  name?: string;
+  path?: string;
+  theme?: string;
+  difficulty?: number;
+  reward?: string;
+  enemyCount?: number;
+  combat?: boolean;
+  spawnRate?: number;
+  playerSpeed?: number;
+  fireRate?: number;
+  enemyHp?: number;
+  arenaSize?: number;
+};
 
-const normalizeLevel = (entry: Partial<LevelDefinition> | undefined, fallbackId: number): LevelDefinition => ({
-  id: Number(entry?.id ?? fallbackId),
-  name: String(entry?.name ?? `Level ${fallbackId}`),
-  difficulty: Number(entry?.difficulty ?? 1),
-  enemyCount: Number(entry?.enemyCount ?? 4),
-  spawnRate: Number(entry?.spawnRate ?? 1.4),
-  playerSpeed: Number(entry?.playerSpeed ?? 8.5),
-  fireRate: Number(entry?.fireRate ?? 0.14),
-  enemyHp: Number(entry?.enemyHp ?? 1),
-  theme: String(entry?.theme ?? 'Neon Drift'),
-  reward: String(entry?.reward ?? 'Mission reward'),
+const combatFromDifficulty = (difficulty: number) => ({
+  enemyCount: 2 + difficulty * 2,
+  spawnRate: Math.max(0.7, 2.6 - difficulty * 0.45),
+  playerSpeed: 5.2 + difficulty * 0.25,
+  fireRate: Math.max(0.1, 0.2 - difficulty * 0.025),
+  enemyHp: 0.8 + difficulty * 0.35,
 });
 
-export const LEVELS: LevelDefinition[] = JSON.parse(LEVELS_JSON) as LevelDefinition[];
+const FALLBACK_LIBRARY: LibraryEntry[] = [
+  { id: 'apex-peak', name: 'The Apex Peak', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 1, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'Room for Grace' },
+  { id: 'crimson-courtyard', name: 'Crimson Courtyard', path: '/levels/crimson-courtyard.json', theme: 'Crimson Surge', difficulty: 2, reward: 'Heavy Ammo' },
+  { id: 'arctic-rift', name: 'Arctic Rift', path: '/levels/arctic-rift.json', theme: 'Arctic Rift', difficulty: 3, reward: 'Core Key' },
+];
 
-export const loadLevels = (): LevelDefinition[] => {
-  if (typeof localStorage === 'undefined') return [...LEVELS];
-
-  try {
-    const raw = localStorage.getItem(LEVELS_KEY);
-    if (!raw) return [...LEVELS];
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return [...LEVELS];
-
-    return parsed.map((entry, index) => normalizeLevel(entry, index + 1));
-  } catch {
-    return [...LEVELS];
-  }
+const normalizeLevel = (entry: LibraryEntry | Partial<LevelDefinition> | undefined, index: number): LevelDefinition => {
+  const difficulty = Math.max(1, Number(entry?.difficulty ?? index));
+  const combat = combatFromDifficulty(difficulty);
+  const libraryId = String((entry as LibraryEntry)?.id ?? (entry as LevelDefinition)?.libraryId ?? `level-${index}`);
+  return {
+    id: index,
+    libraryId,
+    path: String(entry?.path ?? `/levels/${libraryId}.json`),
+    name: String(entry?.name ?? `Level ${index}`),
+    difficulty,
+    enemyCount: Number(entry?.enemyCount ?? combat.enemyCount),
+    combat: entry?.combat === true || (entry?.combat !== false && Number(entry?.enemyCount ?? combat.enemyCount) > 0),
+    spawnRate: Number(entry?.spawnRate ?? combat.spawnRate),
+    playerSpeed: Number(entry?.playerSpeed ?? combat.playerSpeed),
+    fireRate: Number(entry?.fireRate ?? combat.fireRate),
+    enemyHp: Number(entry?.enemyHp ?? combat.enemyHp),
+    theme: String(entry?.theme ?? 'Neon Drift'),
+    reward: String(entry?.reward ?? 'Mission reward'),
+    arenaSize: Number(entry?.arenaSize ?? 90),
+  };
 };
 
-export const saveLevels = (levels: LevelDefinition[]) => {
-  const nextLevels = levels.map((level, index) => normalizeLevel(level, index + 1));
-  if (typeof localStorage !== 'undefined') localStorage.setItem(LEVELS_KEY, JSON.stringify(nextLevels));
-  return nextLevels;
+let cachedLevels: LevelDefinition[] = FALLBACK_LIBRARY.map((entry, index) => normalizeLevel(entry, index + 1));
+let loadPromise: Promise<LevelDefinition[]> | null = null;
+
+const parseLibrary = (payload: unknown): LevelDefinition[] => {
+  const entries = Array.isArray((payload as { levels?: unknown })?.levels)
+    ? (payload as { levels: LibraryEntry[] }).levels
+    : Array.isArray(payload)
+      ? (payload as LibraryEntry[])
+      : [];
+  if (entries.length === 0) return FALLBACK_LIBRARY.map((entry, index) => normalizeLevel(entry, index + 1));
+  return entries.map((entry, index) => normalizeLevel(entry, index + 1));
 };
 
-export const getLevels = () => loadLevels();
+export const loadLevelLibrary = async (): Promise<LevelDefinition[]> => {
+  if (loadPromise) return loadPromise;
+  loadPromise = (async () => {
+    try {
+      const response = await fetch(LEVEL_LIBRARY_PATH, { cache: 'no-store' });
+      if (!response.ok) return cachedLevels;
+      cachedLevels = parseLibrary(await response.json());
+      return cachedLevels;
+    } catch {
+      return cachedLevels;
+    }
+  })();
+  return loadPromise;
+};
+
+export const getLevels = () => cachedLevels;
 
 export const getLevelDefinition = (level: number): LevelDefinition => {
   const levels = getLevels();
   const boundedLevel = Math.max(1, Math.min(level, levels.length));
-  return normalizeLevel(levels[boundedLevel - 1], boundedLevel);
+  return levels[boundedLevel - 1] ?? normalizeLevel(FALLBACK_LIBRARY[0], 1);
 };
 
 export const getUnlockedLevelCount = (highestUnlocked: number) => {

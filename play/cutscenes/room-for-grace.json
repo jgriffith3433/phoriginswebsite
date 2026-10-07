@@ -1,0 +1,115 @@
+{
+  "id": "room-for-grace",
+  "name": "Room for Grace",
+  "duration": 16.5,
+  "notes": "Absolute times in seconds from cutscene start. Drop VO files at the audio paths; missing files fall back to a voice stub so timing still reads. actor ids match NpcSeat asset ids (chair-s-1 … chair-n-3). Mixamo sit/talk clips will bind via anim names.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": { "x": 37.5, "y": 2.6, "z": 32 },
+      "lookAt": { "x": 45, "y": 1.15, "z": 32 }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "*",
+      "clip": "sit",
+      "loop": true
+    },
+    {
+      "at": 0,
+      "type": "hud",
+      "title": "The Apex Peak",
+      "text": "Hawkes Tower — 58th floor boardroom"
+    },
+    {
+      "at": 0,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/room-for-grace/ambience.wav",
+      "bus": "music",
+      "loop": true,
+      "volume": 0.22
+    },
+    {
+      "at": 1.6,
+      "type": "line",
+      "actor": "chair-n-2",
+      "speaker": "Director Hale",
+      "text": "The quarter is fine. That is not why we are here.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/01-hale-quarter.wav",
+      "anim": "talk",
+      "volume": 0.85
+    },
+    {
+      "at": 5.1,
+      "type": "anim",
+      "actor": "chair-n-2",
+      "clip": "sit",
+      "loop": true
+    },
+    {
+      "at": 5.2,
+      "type": "camera",
+      "position": { "x": 44.2, "y": 3.1, "z": 25.4 },
+      "lookAt": { "x": 44.2, "y": 1.2, "z": 32 }
+    },
+    {
+      "at": 5.4,
+      "type": "line",
+      "actor": "chair-s-1",
+      "speaker": "Voss",
+      "text": "B3 is still dark, Pierce. Compliance wants it sealed.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/02-voss-b3.wav",
+      "anim": "talk",
+      "volume": 0.85
+    },
+    {
+      "at": 9.2,
+      "type": "anim",
+      "actor": "chair-s-1",
+      "clip": "sit",
+      "loop": true
+    },
+    {
+      "at": 9.4,
+      "type": "camera",
+      "position": { "x": 48.4, "y": 2.2, "z": 32 },
+      "lookAt": { "x": 50.6, "y": 1.35, "z": 32 }
+    },
+    {
+      "at": 9.6,
+      "type": "line",
+      "actor": "chair-s-3",
+      "speaker": "Lang",
+      "text": "There is no room left in the model for a miracle.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/03-lang-miracle.wav",
+      "anim": "talk",
+      "volume": 0.85
+    },
+    {
+      "at": 12.8,
+      "type": "anim",
+      "actor": "chair-s-3",
+      "clip": "sit",
+      "loop": true
+    },
+    {
+      "at": 13.0,
+      "type": "hud",
+      "title": "Pierce Hawkes",
+      "text": "There's always room for grace."
+    },
+    {
+      "at": 13.0,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/room-for-grace/04-pierce-grace.wav",
+      "bus": "vo",
+      "volume": 0.9
+    },
+    {
+      "at": 16.5,
+      "type": "end"
+    }
+  ]
+}

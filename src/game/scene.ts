@@ -1,6 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
-export type SceneThemeName = 'Neon Drift' | 'Crimson Surge' | 'Arctic Rift';
+export type SceneThemeName = 'Neon Drift' | 'Crimson Surge' | 'Arctic Rift' | 'Apex Peak';
 
 export type SceneTheme = {
   name: SceneThemeName;
@@ -8,6 +8,7 @@ export type SceneTheme = {
   skyBottom: BABYLON.Color3;
   fog: BABYLON.Color3;
   ground: BABYLON.Color3;
+  wall: BABYLON.Color3;
   ambient: BABYLON.Color3;
   hemiIntensity: number;
   sunIntensity: number;
@@ -21,6 +22,7 @@ const themes: Record<SceneThemeName, SceneTheme> = {
     skyBottom: new BABYLON.Color3(0.06, 0.12, 0.17),
     fog: new BABYLON.Color3(0.04, 0.08, 0.12),
     ground: new BABYLON.Color3(0.13, 0.22, 0.27),
+    wall: new BABYLON.Color3(0.2, 0.24, 0.32),
     ambient: new BABYLON.Color3(0.26, 0.32, 0.40),
     hemiIntensity: 0.8,
     sunIntensity: 0.9,
@@ -32,6 +34,7 @@ const themes: Record<SceneThemeName, SceneTheme> = {
     skyBottom: new BABYLON.Color3(0.18, 0.06, 0.08),
     fog: new BABYLON.Color3(0.09, 0.03, 0.04),
     ground: new BABYLON.Color3(0.2, 0.12, 0.10),
+    wall: new BABYLON.Color3(0.28, 0.16, 0.16),
     ambient: new BABYLON.Color3(0.45, 0.22, 0.20),
     hemiIntensity: 0.9,
     sunIntensity: 1.2,
@@ -43,10 +46,23 @@ const themes: Record<SceneThemeName, SceneTheme> = {
     skyBottom: new BABYLON.Color3(0.10, 0.18, 0.22),
     fog: new BABYLON.Color3(0.08, 0.14, 0.18),
     ground: new BABYLON.Color3(0.12, 0.18, 0.20),
+    wall: new BABYLON.Color3(0.25, 0.28, 0.35),
     ambient: new BABYLON.Color3(0.20, 0.30, 0.38),
     hemiIntensity: 0.7,
     sunIntensity: 0.8,
     fogDistance: 90,
+  },
+  'Apex Peak': {
+    name: 'Apex Peak',
+    skyTop: new BABYLON.Color3(0.02, 0.03, 0.05),
+    skyBottom: new BABYLON.Color3(0.04, 0.05, 0.07),
+    fog: new BABYLON.Color3(0.05, 0.06, 0.08),
+    ground: new BABYLON.Color3(0.07, 0.07, 0.08),
+    wall: new BABYLON.Color3(0.16, 0.16, 0.17),
+    ambient: new BABYLON.Color3(0.18, 0.19, 0.22),
+    hemiIntensity: 0.45,
+    sunIntensity: 0.25,
+    fogDistance: 42,
   },
 };
 

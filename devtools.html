@@ -635,6 +635,26 @@
 
       .import-model-status.error { color: var(--danger); }
       .import-model-status.success { color: var(--success); }
+
+      .import-choice {
+        display: flex;
+        gap: 16px;
+        margin: 8px 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .project-drop-hint {
+        padding: 8px 10px 12px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      #projectTree.dragover {
+        outline: 1px dashed var(--success);
+        background: rgba(142,240,196,0.06);
+      }
     </style>
   </head>
   <body>
@@ -663,6 +683,7 @@
               <button id="refreshAssetsBtn">Refresh</button>
             </div>
             <div class="panel-body">
+              <div class="project-drop-hint">Drop Mixamo FBX files here. Use Animation only for no-skin clips (Idle / Walk / Jump).</div>
               <div id="projectTree"></div>
             </div>
           </div>
@@ -756,6 +777,39 @@
         <div class="modal-footer">
           <button id="importModelCancelBtn">Cancel</button>
           <button id="importModelSubmitBtn" class="primary">Convert &amp; Import</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="fbxImportOverlay" hidden>
+      <div class="modal">
+        <div class="modal-header">
+          <span>Import FBX</span>
+          <button id="fbxImportCloseBtn" class="icon-btn" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="fbxImportFileName" class="project-drop-hint"></p>
+          <div class="import-choice">
+            <label><input type="radio" name="fbxImportMode" value="animation" checked /> Animation only</label>
+            <label><input type="radio" name="fbxImportMode" value="character" /> Character model</label>
+          </div>
+          <div class="field" id="fbxClipField">
+            <label for="fbxClipName">Clip name</label>
+            <input id="fbxClipName" type="text" placeholder="Idle, Walk, Jump..." />
+          </div>
+          <div class="field" id="fbxTargetField">
+            <label for="fbxTargetName">Apply to character</label>
+            <input id="fbxTargetName" type="text" value="ch44-hero" />
+          </div>
+          <div class="field" id="fbxCharacterField" hidden>
+            <label for="fbxCharacterName">Asset name</label>
+            <input id="fbxCharacterName" type="text" placeholder="e.g. ch44-hero" />
+          </div>
+          <div id="fbxImportStatus" class="import-model-status"></div>
+        </div>
+        <div class="modal-footer">
+          <button id="fbxImportCancelBtn">Cancel</button>
+          <button id="fbxImportSubmitBtn" class="primary">Convert &amp; Import</button>
         </div>
       </div>
     </div>
