@@ -16,15 +16,26 @@ const NIGHT_CITY_FACES = [
 const CITY_SKYBOX_THEMES = new Set(['Apex Peak']);
 
 export const disposeSkybox = (scene: BABYLON.Scene) => {
-  scene.getMeshByName(NIGHT_CITY_SKYBOX_NAME)?.dispose(false, true);
+  const box = scene.getMeshByName(NIGHT_CITY_SKYBOX_NAME);
+  const cube = scene.getTextureByName('night-city-cube');
+  box?.dispose(false, true);
+  cube?.dispose();
 };
 
 export const applySkyboxForTheme = (scene: BABYLON.Scene, themeName: string) => {
-  disposeSkybox(scene);
-  if (!CITY_SKYBOX_THEMES.has(themeName)) return;
+  const wantsCity = CITY_SKYBOX_THEMES.has(themeName);
+  const existing = scene.getMeshByName(NIGHT_CITY_SKYBOX_NAME);
+  if (!wantsCity) {
+    disposeSkybox(scene);
+    return;
+  }
+  // Recreating the cube while the previous 6 faces are still loading unbinds the
+  // GL texture; their onload then fires texImage2D / generateMipmap with nothing bound.
+  if (existing) return;
 
-  // Six WebP faces. Do not assign scene.environmentTexture (IBL would chrome PBR).
-  const cube = BABYLON.CubeTexture.CreateFromImages(NIGHT_CITY_FACES, scene);
+  // Six WebP faces. noMipmap: skyboxes don’t need mips, and CreateFromImages
+  // generateMipmap races the cube bind. Do not assign scene.environmentTexture.
+  const cube = BABYLON.CubeTexture.CreateFromImages(NIGHT_CITY_FACES, scene, true);
   cube.name = 'night-city-cube';
   cube.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
 

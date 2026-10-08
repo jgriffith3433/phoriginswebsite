@@ -14,6 +14,20 @@
       "source": "project"
     },
     {
+      "id": "asset-tt-pistol",
+      "name": "tt_pistol.glb",
+      "path": "/assets/models/tt_pistol.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "weapon",
+        "pistol",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\tt_pistol.fbx"
+    },
+    {
       "id": "asset-rock-model",
       "name": "rock-cluster.glb",
       "path": "/assets/models/rock-cluster.glb",
@@ -27,12 +41,12 @@
     },
     {
       "id": "asset-neon-drift-audio",
-      "name": "neon-drift.wav",
-      "path": "/assets/audio/neon-drift.wav",
+      "name": "objective.ogg",
+      "path": "/assets/audio/sfx/objective.ogg",
       "type": "audio",
       "tags": [
-        "music",
-        "ambient",
+        "sfx",
+        "objective",
         "real-file"
       ],
       "source": "project"

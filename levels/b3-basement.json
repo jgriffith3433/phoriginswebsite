@@ -1,0 +1,6207 @@
+{
+  "id": "b3-basement",
+  "name": "B3",
+  "theme": "B3 Basement",
+  "assets": [
+    {
+      "id": "floor-lift",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Elevator Floor",
+      "x": 44,
+      "y": 0,
+      "z": 21.5,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.6,
+        "y": 1,
+        "z": 5
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-floor",
+      "uvScale": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "ceil-lift",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Ceiling",
+      "x": 44,
+      "y": 3.1,
+      "z": 21.4,
+      "scale": {
+        "x": 3.6,
+        "y": 0.12,
+        "z": 4.8
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-b3-ceil"
+    },
+    {
+      "id": "lift-wall-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator West",
+      "x": 42.32,
+      "y": 1.6,
+      "z": 21.4,
+      "scale": {
+        "x": 0.2,
+        "y": 3.2,
+        "z": 4.8
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal",
+      "uvScale": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "lift-wall-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator East",
+      "x": 45.68,
+      "y": 1.6,
+      "z": 21.4,
+      "scale": {
+        "x": 0.2,
+        "y": 3.2,
+        "z": 4.8
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal",
+      "uvScale": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "lift-wall-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Back",
+      "x": 44,
+      "y": 1.6,
+      "z": 19.12,
+      "scale": {
+        "x": 3.6,
+        "y": 3.2,
+        "z": 0.2
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal",
+      "uvScale": [
+        1,
+        1
+      ]
+    },
+    {
+      "id": "lift-door-l",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Door L",
+      "x": 43.42,
+      "y": 1.5,
+      "z": 24,
+      "scale": {
+        "x": 1.35,
+        "y": 3.5,
+        "z": 0.08
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "lift-door-r",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Door R",
+      "x": 44.58,
+      "y": 1.5,
+      "z": 24,
+      "scale": {
+        "x": 1.35,
+        "y": 3.5,
+        "z": 0.08
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "lift-b3-button",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "B3 Button",
+      "x": 45.48,
+      "y": 1.38,
+      "z": 21.2,
+      "scale": {
+        "x": 0.08,
+        "y": 0.14,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-panel",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Floor Panel",
+      "x": 44,
+      "y": 2.68,
+      "z": 23.52,
+      "scale": {
+        "x": 1.86,
+        "y": 0.58,
+        "z": 0.08
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-readout",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor Readout",
+      "x": 44.18,
+      "y": 2.78,
+      "z": 23.44,
+      "scale": {
+        "x": 0.78,
+        "y": 0.24,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-down",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Down Arrow",
+      "x": 43.28,
+      "y": 2.78,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.24,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-58",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor 58",
+      "x": 43.42,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-40",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor 40",
+      "x": 43.64,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-20",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor 20",
+      "x": 43.86,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-L",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor L",
+      "x": 44.08,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-B1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor B1",
+      "x": 44.3,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-B2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor B2",
+      "x": 44.52,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lift-ind-B3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Floor B3",
+      "x": 44.74,
+      "y": 2.48,
+      "z": 23.44,
+      "scale": {
+        "x": 0.16,
+        "y": 0.12,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-door-frame-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Door Frame N",
+      "x": 16.45,
+      "y": 1.25,
+      "z": 40.15,
+      "scale": {
+        "x": 0.24,
+        "y": 2.5,
+        "z": 0.5
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "lab-door-frame-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Door Frame S",
+      "x": 16.45,
+      "y": 1.25,
+      "z": 35.85,
+      "scale": {
+        "x": 0.24,
+        "y": 2.5,
+        "z": 0.5
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "lab-door-l",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Door L",
+      "x": 16.42,
+      "y": 1.25,
+      "z": 36.95,
+      "scale": {
+        "x": 0.1,
+        "y": 2.5,
+        "z": 1.35
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "lab-door-r",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Door R",
+      "x": 16.42,
+      "y": 1.25,
+      "z": 39.05,
+      "scale": {
+        "x": 0.1,
+        "y": 2.5,
+        "z": 1.35
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "vat-shell",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Vat Shell",
+      "x": 7.2,
+      "y": 0.18,
+      "z": 38,
+      "scale": {
+        "x": 2.7,
+        "y": 0.36,
+        "z": 2.7
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-b3-rust"
+    },
+    {
+      "id": "vat-acid",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Vat Acid",
+      "x": 7.2,
+      "y": 0.95,
+      "z": 38,
+      "scale": {
+        "x": 2.15,
+        "y": 1.7,
+        "z": 2.15
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "vat-glass",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Vat Glass",
+      "x": 7.2,
+      "y": 1.15,
+      "z": 38,
+      "scale": {
+        "x": 2.45,
+        "y": 2.2,
+        "z": 2.45
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-b3-wire"
+    },
+    {
+      "id": "b3-creature",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Creature",
+      "x": 10.4,
+      "y": 0.7,
+      "z": 36.4,
+      "scale": {
+        "x": 0.85,
+        "y": 1.4,
+        "z": 1.15
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-hall-1",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Pipe Hall Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 44,
+        "y": 0,
+        "z": 30.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.05,
+        "y": 1,
+        "z": 12.5
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-hall-2",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Hallway B Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 31.5,
+        "y": 0,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 30,
+        "y": 1,
+        "z": 5
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-lab",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Acid Vat Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 8.4,
+        "y": 0,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 17,
+        "y": 1,
+        "z": 14.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-hall-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Pipe Hall Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 44,
+        "y": 3.58,
+        "z": 30.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.05,
+        "y": 0.16,
+        "z": 12.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-hall-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hallway B Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 31.5,
+        "y": 3.58,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 30.1,
+        "y": 0.16,
+        "z": 5.05
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-lab",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Acid Vat Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 8.2,
+        "y": 3.58,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 16.5,
+        "y": 0.16,
+        "z": 14.3
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall-cheek-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Cheek W",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 41.9,
+        "y": 1.75,
+        "z": 24.28
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.9,
+        "y": 3.5,
+        "z": 0.18
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall-cheek-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Cheek E",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 46.1,
+        "y": 1.75,
+        "z": 24.28
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.9,
+        "y": 3.5,
+        "z": 0.18
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall-soffit",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Soffit",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 44,
+        "y": 3.2,
+        "z": 24.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.3,
+        "y": 0.6,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall1-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Pipe Hall West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 41.48,
+        "y": 1.75,
+        "z": 30.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 12.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall1-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Pipe Hall East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 46.52,
+        "y": 1.75,
+        "z": 30.25
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 12.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-s-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B South A",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 19.1,
+        "y": 1.75,
+        "z": 35.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-s-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B South B",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 28.4,
+        "y": 1.75,
+        "z": 35.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 9.6,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-s-c",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B South C",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 37.73279571533203,
+        "y": 1.75,
+        "z": 35.70000076293945
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 11.300000190734863,
+        "y": 3.5,
+        "z": 0.2199999988079071
+      },
+      "components": [
+        "Transform"
+      ],
+      "x": 37.73279571533203,
+      "y": 1.75,
+      "z": 35.70000076293945
+    },
+    {
+      "id": "hall2-n-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B North A",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 19.7,
+        "y": 1.75,
+        "z": 40.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 6.2,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-n-glass-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Wall W",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 25.7,
+        "y": 1.75,
+        "z": 40.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.6,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-n-glass",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Window",
+      "materialId": "mat-b3-wire",
+      "position": {
+        "x": 31,
+        "y": 1.45,
+        "z": 40.42
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.8,
+        "y": 1.8,
+        "z": 0.08
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-n-sill",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Sill",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 31,
+        "y": 0.32,
+        "z": 40.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5,
+        "y": 0.64,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-n-head",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Header",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 31,
+        "y": 2.95,
+        "z": 40.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5,
+        "y": 1.1,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-n-glass-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Wall E",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 36.4,
+        "y": 1.75,
+        "z": 40.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.6,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-n-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B North B",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 40.55,
+        "y": 1.75,
+        "z": 40.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.5,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "hall2-n-c",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B North C",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 45.25,
+        "y": 1.75,
+        "z": 40.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.5,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "junction-e-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Junction East S",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 46.75,
+        "y": 1.75,
+        "z": 33.3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 6.5
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "junction-e-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Junction East N",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 46.75,
+        "y": 1.75,
+        "z": 46.05
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 13.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "junction-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Junction Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 46.75,
+        "y": 3.05,
+        "z": 37.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.28,
+        "y": 0.9,
+        "z": 2.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 0.1,
+        "y": 1.75,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 14.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-e-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab East South",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 16.4,
+        "y": 1.75,
+        "z": 33.3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 4.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-e-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab East North",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 16.4,
+        "y": 1.75,
+        "z": 42.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 4.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-door-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Door Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 16.42,
+        "y": 3.05,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.24,
+        "y": 0.9,
+        "z": 4.9
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-n-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab North W",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 1.5,
+        "y": 1.75,
+        "z": 45.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.2,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-n-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab North E",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 10.9,
+        "y": 1.75,
+        "z": 45.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 11.2,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-s-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab South W",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 2.85,
+        "y": 1.75,
+        "z": 30.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.9,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-s-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab South E",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 12.25,
+        "y": 1.75,
+        "z": 30.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 8.5,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-door-n-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Door Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 4.2,
+        "y": 3.05,
+        "z": 45.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-door-s-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon Door Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 6.9,
+        "y": 3.05,
+        "z": 30.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-bench-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Bench A",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 3.2,
+        "y": 0.45,
+        "z": 42.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.2,
+        "y": 0.9,
+        "z": 1.1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lab-bench-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Bench B",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 3.2,
+        "y": 0.45,
+        "z": 33.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.2,
+        "y": 0.9,
+        "z": 1.1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-screen-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bench Screen A",
+      "materialId": "mat-monitor",
+      "position": {
+        "x": 3.2,
+        "y": 1.05,
+        "z": 43.05
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.1,
+        "y": 0.55,
+        "z": 0.06
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-screen-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bench Screen B",
+      "materialId": "mat-monitor",
+      "position": {
+        "x": 3.2,
+        "y": 1.05,
+        "z": 32.95
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.1,
+        "y": 0.55,
+        "z": 0.06
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-side-vat-a",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Side Vat A",
+      "position": {
+        "x": 3.5,
+        "y": 0.7,
+        "z": 40.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.15,
+        "y": 1.15,
+        "z": 1.15
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-side-glass-a",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Side Glass A",
+      "materialId": "mat-b3-wire",
+      "position": {
+        "x": 3.5,
+        "y": 0.85,
+        "z": 40.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.35,
+        "y": 1.7,
+        "z": 1.35
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-side-vat-b",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Side Vat B",
+      "position": {
+        "x": 13.1,
+        "y": 0.55,
+        "z": 33.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.95,
+        "y": 0.9,
+        "z": 0.95
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-side-glass-b",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Side Glass B",
+      "materialId": "mat-b3-wire",
+      "position": {
+        "x": 13.1,
+        "y": 0.7,
+        "z": 33.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.15,
+        "y": 1.45,
+        "z": 1.15
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "vat-riser",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Vat Riser",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 7.2,
+        "y": 2.55,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 1.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "vat-riser-arm",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Vat Arm",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 9.4,
+        "y": 3.15,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 1.5707963267948966
+      },
+      "scale": {
+        "x": 0.16,
+        "y": 4.6,
+        "z": 0.16
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-decon",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Decon Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 8,
+        "y": 0,
+        "z": 26.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 13.8,
+        "y": 1,
+        "z": 9.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-decon",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 8,
+        "y": 3.58,
+        "z": 26.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 13.9,
+        "y": 0.16,
+        "z": 8.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 1.15,
+        "y": 1.75,
+        "z": 26.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 8.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 14.85,
+        "y": 1.75,
+        "z": 26.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 8.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon South",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 8,
+        "y": 1.75,
+        "z": 22.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 13.9,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-stall-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon Stall A",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 4.4,
+        "y": 1.2,
+        "z": 24.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.12,
+        "y": 2.4,
+        "z": 3.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-stall-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon Stall B",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 11.2,
+        "y": 1.2,
+        "z": 24.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.12,
+        "y": 2.4,
+        "z": 3.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-head-4.4",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Decon Head",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 4.4,
+        "y": 2.35,
+        "z": 24.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.28,
+        "y": 0.7,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-head-8",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Decon Head",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 8,
+        "y": 2.35,
+        "z": 24.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.28,
+        "y": 0.7,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "decon-head-11.2",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Decon Head",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 11.2,
+        "y": 2.35,
+        "z": 24.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.28,
+        "y": 0.7,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-chem-a",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Chem A Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 23.3,
+        "y": 0,
+        "z": 31.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 9.6,
+        "y": 1,
+        "z": 9.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-chem-b",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Chem B Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 34.7,
+        "y": 0,
+        "z": 31.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 11.2,
+        "y": 1,
+        "z": 9.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-chem-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem A Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 23.3,
+        "y": 3.58,
+        "z": 31.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 9.7,
+        "y": 0.16,
+        "z": 8.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-chem-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem B Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 34.7,
+        "y": 3.58,
+        "z": 31.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 11.3,
+        "y": 0.16,
+        "z": 8.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-a-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem A West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 18.45,
+        "y": 1.75,
+        "z": 31.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 8.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-mid",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem Split",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 28.6,
+        "y": 1.75,
+        "z": 31.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 8.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-b-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem B East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 40.35,
+        "y": 1.75,
+        "z": 31.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 8.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-a-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem A South",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 23.5,
+        "y": 1.75,
+        "z": 27.15
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 10.1,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-b-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem B South",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 34.5,
+        "y": 1.75,
+        "z": 27.15
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 11.7,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-a-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem A Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 22.6,
+        "y": 3.05,
+        "z": 35.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-b-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem B Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 34.2,
+        "y": 3.05,
+        "z": 35.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-a1",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-a1",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 20.2,
+        "y": 0.55,
+        "z": 29.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.62,
+        "y": 1.1,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-a1-band",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-a1 band",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 20.2,
+        "y": 0.7,
+        "z": 29.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.68,
+        "y": 0.16,
+        "z": 0.68
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-a2",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-a2",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 21.6,
+        "y": 0.55,
+        "z": 29.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.62,
+        "y": 1.1,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-a2-band",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-a2 band",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 21.6,
+        "y": 0.7,
+        "z": 29.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.68,
+        "y": 0.16,
+        "z": 0.68
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-a3",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-a3",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 20.4,
+        "y": 0.55,
+        "z": 30.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.62,
+        "y": 1.1,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-a3-band",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-a3 band",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 20.4,
+        "y": 0.7,
+        "z": 30.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.68,
+        "y": 0.16,
+        "z": 0.68
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-b1",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-b1",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 37.6,
+        "y": 0.55,
+        "z": 29
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.62,
+        "y": 1.1,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-b1-band",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-b1 band",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 37.6,
+        "y": 0.7,
+        "z": 29
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.68,
+        "y": 0.16,
+        "z": 0.68
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-b2",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-b2",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 38.8,
+        "y": 0.55,
+        "z": 29.3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.62,
+        "y": 1.1,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-b2-band",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-b2 band",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 38.8,
+        "y": 0.7,
+        "z": 29.3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.68,
+        "y": 0.16,
+        "z": 0.68
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-b3",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-b3",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 37.8,
+        "y": 0.55,
+        "z": 30.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.62,
+        "y": 1.1,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "drum-b3-band",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "drum-b3 band",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 37.8,
+        "y": 0.7,
+        "z": 30.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.68,
+        "y": 0.16,
+        "z": 0.68
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chem-rack",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem Rack",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 25.4,
+        "y": 0.7,
+        "z": 28.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.4,
+        "y": 1.4,
+        "z": 0.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-cell",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Containment Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 29.55,
+        "y": 0,
+        "z": 46.85
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 21.7,
+        "y": 1,
+        "z": 12.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-cell",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 29.55,
+        "y": 3.58,
+        "z": 46.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 21.8,
+        "y": 0.16,
+        "z": 12.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cell-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 18.65,
+        "y": 1.75,
+        "z": 46.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 12.3
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cell-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 40.55,
+        "y": 1.75,
+        "z": 46.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 12.3
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cell-n-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell North W",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 20.55,
+        "y": 1.75,
+        "z": 52.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.6,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cell-n-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell North E",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 31.15,
+        "y": 1.75,
+        "z": 52.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 18.8,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cell-n-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Door Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 22.6,
+        "y": 3.05,
+        "z": 52.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-cage-body",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Cage Body",
+      "position": {
+        "x": 31,
+        "y": 1.15,
+        "z": 41.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.25,
+        "y": 2.1,
+        "z": 1.25
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-cage-head",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Cage Head",
+      "position": {
+        "x": 31.1,
+        "y": 1.82,
+        "z": 41.15
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.48,
+        "y": 0.42,
+        "z": 0.48
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-cage-arm",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Cage Arm",
+      "position": {
+        "x": 32.05,
+        "y": 1.25,
+        "z": 41.05
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.28,
+        "y": 1.05,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-cage-crawl",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Cage Crawl",
+      "position": {
+        "x": 29.2,
+        "y": 0.32,
+        "z": 41.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 1.5707963267948966
+      },
+      "scale": {
+        "x": 1.35,
+        "y": 0.42,
+        "z": 1.35
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cell-plinth",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Plinth",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 31,
+        "y": 0.1,
+        "z": 41.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.8,
+        "y": 0.2,
+        "z": 1.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-service",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Service Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 43.6,
+        "y": 0,
+        "z": 46.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.7,
+        "y": 1,
+        "z": 13.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-service",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Service Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 43.6,
+        "y": 3.58,
+        "z": 46.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.8,
+        "y": 0.16,
+        "z": 12.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-control",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Control Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 8.15,
+        "y": 0,
+        "z": 48.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 15.9,
+        "y": 1,
+        "z": 8.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-control",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 8.15,
+        "y": 3.58,
+        "z": 48.95
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 16,
+        "y": 0.16,
+        "z": 7.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 0.15,
+        "y": 1.75,
+        "z": 48.95
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 7.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 16.2,
+        "y": 1.75,
+        "z": 48.95
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 7.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-n-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control North W",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 3.35,
+        "y": 1.75,
+        "z": 52.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 6.4,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-n-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control North E",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 12.3,
+        "y": 1.75,
+        "z": 52.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 7.8,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 7.4,
+        "y": 3.05,
+        "z": 52.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-pier",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Pier",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 17.4,
+        "y": 1.75,
+        "z": 52.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-desk",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Desk",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 1.7,
+        "y": 0.5,
+        "z": 49.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.4,
+        "y": 1,
+        "z": 4.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-control-screen",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Screen",
+      "materialId": "mat-monitor",
+      "position": {
+        "x": 2.48,
+        "y": 1.15,
+        "z": 49.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.06,
+        "y": 0.6,
+        "z": 2.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "control-desk-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Desk B",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 12.4,
+        "y": 0.5,
+        "z": 50.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 1,
+        "z": 3.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-transform",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Transform Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 54.5,
+        "y": 0,
+        "z": 41.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 16.8,
+        "y": 1,
+        "z": 23.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-transform",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 54.85,
+        "y": 3.58,
+        "z": 41.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 16,
+        "y": 0.16,
+        "z": 22.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "transform-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform South",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 54.85,
+        "y": 1.75,
+        "z": 30.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 16.1,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "transform-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 62.85,
+        "y": 1.75,
+        "z": 41.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 22.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "transform-n-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform North W",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 50.7,
+        "y": 1.75,
+        "z": 52.85
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 7.7,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "transform-n-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform North E",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 59.6,
+        "y": 1.75,
+        "z": 52.85
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 6.5,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "transform-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 55.3,
+        "y": 3.05,
+        "z": 52.85
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "gurney-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Gurney A",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 52.2,
+        "y": 0.42,
+        "z": 34.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.7,
+        "z": 0.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "gurney-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Gurney B",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 58.4,
+        "y": 0.42,
+        "z": 34.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.7,
+        "z": 0.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "gurney-pad-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Gurney Pad A",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 52.2,
+        "y": 0.8,
+        "z": 34.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 0.12,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "gurney-pad-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Gurney Pad B",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 58.4,
+        "y": 0.8,
+        "z": 34.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2,
+        "y": 0.12,
+        "z": 0.62
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-side-vat-c",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pod Vat",
+      "position": {
+        "x": 60.2,
+        "y": 0.7,
+        "z": 40.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.2,
+        "y": 1.2,
+        "z": 1.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-pod-glass",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pod Glass",
+      "materialId": "mat-b3-wire",
+      "position": {
+        "x": 60.2,
+        "y": 0.95,
+        "z": 40.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.45,
+        "y": 2.1,
+        "z": 1.45
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-cage-pod",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Pod Shape",
+      "position": {
+        "x": 60.2,
+        "y": 0.9,
+        "z": 40.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.45,
+        "y": 1.5,
+        "z": 0.45
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-step-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Step 1",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 59.6,
+        "y": 0.08,
+        "z": 45.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 0.16,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-step-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Step 2",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 59.6,
+        "y": 0.16,
+        "z": 45.82
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 0.32,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-step-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Step 3",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 59.6,
+        "y": 0.24,
+        "z": 46.440000000000005
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 0.48,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-step-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Step 4",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 59.6,
+        "y": 0.32,
+        "z": 47.06
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 0.64,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-step-4",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Step 5",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 59.6,
+        "y": 0.4,
+        "z": 47.68
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 0.8,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-step-5",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Step 6",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 59.6,
+        "y": 0.48,
+        "z": 48.300000000000004
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 0.96,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-step-6",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Step 7",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 59.6,
+        "y": 0.56,
+        "z": 48.92
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 1.12,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-landing",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stair Landing",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 59.6,
+        "y": 0.56,
+        "z": 50.3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.4,
+        "y": 0.16,
+        "z": 2.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-rail",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stair Rail",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 57.3,
+        "y": 1.15,
+        "z": 47.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.1,
+        "y": 0.7,
+        "z": 5.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "sealed-door",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Sealed Door",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 62.2,
+        "y": 2.15,
+        "z": 50.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.16,
+        "y": 2.5,
+        "z": 1.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-corridor",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Access Corridor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 31.6,
+        "y": 0,
+        "z": 54.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 62.6,
+        "y": 1,
+        "z": 4.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-corridor",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Access Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 31.6,
+        "y": 3.58,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 62.7,
+        "y": 0.16,
+        "z": 3.6
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "corridor-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 0.25,
+        "y": 1.75,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 3.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "corridor-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 62.95,
+        "y": 1.75,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 3.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "corridor-n-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor North A",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 13.2,
+        "y": 1.75,
+        "z": 56.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 25.8,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "corridor-n-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor North B",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 36.2,
+        "y": 1.75,
+        "z": 56.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 16.2,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "corridor-n-c",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor North C",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 53.2,
+        "y": 1.75,
+        "z": 56.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 19.5,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "utility-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Utility Header",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 27.1,
+        "y": 3.05,
+        "z": 56.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 0.9,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "floor-utility",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Utility Floor",
+      "materialId": "mat-b3-floor",
+      "position": {
+        "x": 30,
+        "y": 0,
+        "z": 59.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 28,
+        "y": 1,
+        "z": 6.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "ceil-utility",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Utility Ceiling",
+      "materialId": "mat-b3-ceil",
+      "position": {
+        "x": 30,
+        "y": 3.58,
+        "z": 59.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 28.1,
+        "y": 0.16,
+        "z": 6.3
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "utility-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Utility West",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 15.95,
+        "y": 1.75,
+        "z": 59.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 6.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "utility-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Utility East",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 44.05,
+        "y": 1.75,
+        "z": 59.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 3.5,
+        "z": 6.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "utility-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Utility North",
+      "materialId": "mat-b3-wall",
+      "position": {
+        "x": 30,
+        "y": 1.75,
+        "z": 62.85
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 28.2,
+        "y": 3.5,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "generator",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Generator",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 22.5,
+        "y": 0.7,
+        "z": 60.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.2,
+        "y": 1.4,
+        "z": 1.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "generator-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Generator B",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 36.5,
+        "y": 0.85,
+        "z": 60.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 3.2,
+        "y": 1.7,
+        "z": 1.5
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "gen-stack",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Generator Stack",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 22.5,
+        "y": 2.1,
+        "z": 60.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.45,
+        "y": 1.6,
+        "z": 0.45
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-hall-a",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall Pipe A",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 42.2,
+        "y": 3.22,
+        "z": 30.3
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.2,
+        "y": 11.6,
+        "z": 0.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-hall-b",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall Pipe B",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 43.05,
+        "y": 3.05,
+        "z": 30.3
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.12,
+        "y": 11.6,
+        "z": 0.12
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-hall-c",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall Pipe C",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 45.55,
+        "y": 3.18,
+        "z": 30.3
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.16,
+        "y": 11.6,
+        "z": 0.16
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-hall-drop-a",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall Drop A",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 42.2,
+        "y": 2.2,
+        "z": 27.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.14,
+        "y": 1.8,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-hall-drop-b",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall Drop B",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 45.55,
+        "y": 2.05,
+        "z": 33.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.12,
+        "y": 2.1,
+        "z": 0.12
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-b-a",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall B Pipe A",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 31.6,
+        "y": 3.22,
+        "z": 36.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 1.5707963267948966
+      },
+      "scale": {
+        "x": 0.18,
+        "y": 28.4,
+        "z": 0.18
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-b-b",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall B Pipe B",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 31.6,
+        "y": 3.05,
+        "z": 39.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 1.5707963267948966
+      },
+      "scale": {
+        "x": 0.12,
+        "y": 28.4,
+        "z": 0.12
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-b-drop",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall B Drop",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 24.2,
+        "y": 2.15,
+        "z": 39.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.14,
+        "y": 1.9,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-svc",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Service Pipe",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 43.2,
+        "y": 3.15,
+        "z": 46.6
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.16,
+        "y": 11.4,
+        "z": 0.16
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-cell",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Cell Pipe",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 22,
+        "y": 3.15,
+        "z": 46.6
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.2,
+        "y": 10,
+        "z": 0.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "pipe-transform",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Transform Pipe",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.2,
+        "z": 41.4
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.16,
+        "y": 20,
+        "z": 0.16
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-rust-hall",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Rust",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 41.64,
+        "y": 1.15,
+        "z": 26.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 1.1,
+        "z": 0.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-rust-lab",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Rust",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 0.28,
+        "y": 1.7,
+        "z": 36.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 1.8,
+        "z": 2.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-rust-cell",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Rust",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 18.82,
+        "y": 1.4,
+        "z": 44.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 2.2,
+        "z": 3.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-stripe-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stripe 1",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 44,
+        "y": 0.02,
+        "z": 24.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 0.02,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-stripe-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stripe 2",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 44,
+        "y": 0.02,
+        "z": 25.02
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 0.02,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-stripe-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stripe 3",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 44,
+        "y": 0.02,
+        "z": 25.34
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 0.02,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-stripe-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stripe 4",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 44,
+        "y": 0.02,
+        "z": 25.66
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 0.02,
+        "z": 0.14
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "puddle-hall",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "puddle-hall",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 44.4,
+        "y": 0.025,
+        "z": 31.5
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.6,
+        "y": 2.4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "puddle-junction",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "puddle-junction",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 38.5,
+        "y": 0.025,
+        "z": 37.6
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.2,
+        "y": 1.4,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "puddle-vat",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "puddle-vat",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 8.8,
+        "y": 0.025,
+        "z": 36.2
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.4,
+        "y": 1.8,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "puddle-cell",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "puddle-cell",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 30.4,
+        "y": 0.025,
+        "z": 44.2
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.8,
+        "y": 1.2,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "puddle-decon",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "puddle-decon",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 8,
+        "y": 0.025,
+        "z": 25.2
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.8,
+        "y": 1.6,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-basement",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "BASEMENT",
+      "position": {
+        "x": 41.72,
+        "y": 1.9,
+        "z": 30.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.8,
+        "y": 0.36,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-sector",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "SECTOR 4  /  B-102",
+      "position": {
+        "x": 46.32,
+        "y": 1.85,
+        "z": 29.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 0.38,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-containment",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "CONTAINMENT",
+      "position": {
+        "x": 31,
+        "y": 2.45,
+        "z": 40.18
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.6,
+        "y": 0.36,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-acid",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "ACID VAT",
+      "position": {
+        "x": 17.15,
+        "y": 2.15,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.8,
+        "y": 0.36,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-decon",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "DECON",
+      "position": {
+        "x": 6.9,
+        "y": 2.15,
+        "z": 30.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.5,
+        "y": 0.32,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-control",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "CONTROL",
+      "position": {
+        "x": 4.2,
+        "y": 2.15,
+        "z": 44.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.7,
+        "y": 0.32,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-chem",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "CHEMICAL",
+      "position": {
+        "x": 22.6,
+        "y": 2.15,
+        "z": 35.95
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.7,
+        "y": 0.32,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-transform",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "TRANSFORM",
+      "position": {
+        "x": 46.5,
+        "y": 2.15,
+        "z": 37.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.9,
+        "y": 0.36,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-utility",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "UTILITY",
+      "position": {
+        "x": 27.1,
+        "y": 2.15,
+        "z": 56.28
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.6,
+        "y": 0.32,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-sealed",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "SEALED",
+      "position": {
+        "x": 61.95,
+        "y": 2.2,
+        "z": 50.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.15,
+        "y": 0.32,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-h1-a",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Hall Light A",
+      "position": {
+        "x": 44,
+        "y": 3.15,
+        "z": 27.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 1.15,
+      "range": 11
+    },
+    {
+      "id": "b3-decal-light-h1-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Light A housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 44,
+        "y": 3.23,
+        "z": 27.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-h1-b",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Hall Light B",
+      "position": {
+        "x": 44,
+        "y": 3.15,
+        "z": 33.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 1.05,
+      "range": 11
+    },
+    {
+      "id": "b3-decal-light-h1-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Light B housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 44,
+        "y": 3.23,
+        "z": 33.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-h2-a",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Hall B Light A",
+      "position": {
+        "x": 40,
+        "y": 3.15,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.95,
+      "range": 12
+    },
+    {
+      "id": "b3-decal-light-h2-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B Light A housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 40,
+        "y": 3.23,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-h2-b",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Hall B Light B",
+      "position": {
+        "x": 26,
+        "y": 3.15,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.9,
+      "range": 12
+    },
+    {
+      "id": "b3-decal-light-h2-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall B Light B housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 26,
+        "y": 3.23,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-junction",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Junction Light",
+      "position": {
+        "x": 44.5,
+        "y": 3.15,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.85,
+      "range": 10
+    },
+    {
+      "id": "b3-decal-light-junction",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Junction Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 44.5,
+        "y": 3.23,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-vat",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Vat Light",
+      "position": {
+        "x": 7.2,
+        "y": 2.6,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.35,
+        1,
+        0.42
+      ],
+      "intensity": 2.2,
+      "range": 10
+    },
+    {
+      "id": "b3-decal-light-vat",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Vat Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 7.2,
+        "y": 2.68,
+        "z": 38
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-lab-n",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Lab Light N",
+      "position": {
+        "x": 8,
+        "y": 3.1,
+        "z": 42.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.55,
+      "range": 8
+    },
+    {
+      "id": "b3-decal-light-lab-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Light N housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 8,
+        "y": 3.18,
+        "z": 42.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-lab-s",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Lab Light S",
+      "position": {
+        "x": 11,
+        "y": 3.1,
+        "z": 34.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.45,
+      "range": 8
+    },
+    {
+      "id": "b3-decal-light-lab-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Lab Light S housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 11,
+        "y": 3.18,
+        "z": 34.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-cell",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Cell Light",
+      "position": {
+        "x": 31,
+        "y": 2.35,
+        "z": 40.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.35,
+        1,
+        0.42
+      ],
+      "intensity": 2.8,
+      "range": 6
+    },
+    {
+      "id": "b3-decal-light-cell",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 31,
+        "y": 2.43,
+        "z": 40.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-cell-glass",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Cell Glass Light",
+      "position": {
+        "x": 31,
+        "y": 2.85,
+        "z": 38.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.35,
+        1,
+        0.42
+      ],
+      "intensity": 1.15,
+      "range": 8
+    },
+    {
+      "id": "b3-decal-light-cell-glass",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Glass Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 31,
+        "y": 2.93,
+        "z": 38.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-cell-deep",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Cell Light Deep",
+      "position": {
+        "x": 24,
+        "y": 3.1,
+        "z": 49
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.4,
+      "range": 8
+    },
+    {
+      "id": "b3-decal-light-cell-deep",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Light Deep housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 24,
+        "y": 3.18,
+        "z": 49
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-decon",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Decon Light",
+      "position": {
+        "x": 8,
+        "y": 3.1,
+        "z": 26.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.7,
+      "range": 8
+    },
+    {
+      "id": "b3-decal-light-decon",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 8,
+        "y": 3.18,
+        "z": 26.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-chem-a",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Chem A Light",
+      "position": {
+        "x": 23.2,
+        "y": 3.1,
+        "z": 31.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        1,
+        0.62,
+        0.28
+      ],
+      "intensity": 0.55,
+      "range": 7
+    },
+    {
+      "id": "b3-decal-light-chem-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem A Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 23.2,
+        "y": 3.18,
+        "z": 31.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-chem-b",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Chem B Light",
+      "position": {
+        "x": 34.8,
+        "y": 3.1,
+        "z": 31.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        1,
+        0.62,
+        0.28
+      ],
+      "intensity": 0.5,
+      "range": 7
+    },
+    {
+      "id": "b3-decal-light-chem-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem B Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 34.8,
+        "y": 3.18,
+        "z": 31.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-control",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Control Light",
+      "position": {
+        "x": 8,
+        "y": 3.1,
+        "z": 48.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.85,
+      "range": 9
+    },
+    {
+      "id": "b3-decal-light-control",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 8,
+        "y": 3.18,
+        "z": 48.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-service",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Service Light",
+      "position": {
+        "x": 43.6,
+        "y": 3.1,
+        "z": 46.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.6,
+      "range": 9
+    },
+    {
+      "id": "b3-decal-light-service",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Service Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 43.6,
+        "y": 3.18,
+        "z": 46.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-corridor-a",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Corridor Light A",
+      "position": {
+        "x": 14,
+        "y": 3.15,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.7,
+      "range": 10
+    },
+    {
+      "id": "b3-decal-light-corridor-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor Light A housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 14,
+        "y": 3.23,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-corridor-b",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Corridor Light B",
+      "position": {
+        "x": 34,
+        "y": 3.15,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.65,
+      "range": 10
+    },
+    {
+      "id": "b3-decal-light-corridor-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor Light B housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 34,
+        "y": 3.23,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-corridor-c",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Corridor Light C",
+      "position": {
+        "x": 52,
+        "y": 3.15,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.6,
+      "range": 10
+    },
+    {
+      "id": "b3-decal-light-corridor-c",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor Light C housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 52,
+        "y": 3.23,
+        "z": 54.65
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-transform",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Transform Light",
+      "position": {
+        "x": 54,
+        "y": 3.15,
+        "z": 36
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.72,
+        0.45,
+        1
+      ],
+      "intensity": 0.85,
+      "range": 10
+    },
+    {
+      "id": "b3-decal-light-transform",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 54,
+        "y": 3.23,
+        "z": 36
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-transform-b",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Transform Light B",
+      "position": {
+        "x": 56,
+        "y": 3.15,
+        "z": 46
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.45,
+        0.82,
+        1
+      ],
+      "intensity": 0.55,
+      "range": 9
+    },
+    {
+      "id": "b3-decal-light-transform-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Light B housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 56,
+        "y": 3.23,
+        "z": 46
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-utility",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Utility Light",
+      "position": {
+        "x": 28,
+        "y": 3.1,
+        "z": 59.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        1,
+        0.62,
+        0.28
+      ],
+      "intensity": 0.7,
+      "range": 8
+    },
+    {
+      "id": "b3-decal-light-utility",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Utility Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 28,
+        "y": 3.18,
+        "z": 59.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-lift",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Elevator Cab Light",
+      "position": {
+        "x": 44,
+        "y": 2.9,
+        "z": 21.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.85,
+        0.9,
+        0.95
+      ],
+      "intensity": 0.4,
+      "range": 6
+    },
+    {
+      "id": "b3-decal-light-lift",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Elevator Cab Light housing",
+      "materialId": "mat-b3-lamp",
+      "position": {
+        "x": 44,
+        "y": 2.98,
+        "z": 21.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.55,
+        "y": 0.08,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trigger-lab-door",
+      "type": "cutscene",
+      "label": "Lab Door",
+      "x": 17.6,
+      "y": 0,
+      "z": 38,
+      "data": {
+        "cutscene": "b3-door-reveal",
+        "radius": 1.7
+      }
+    },
+    {
+      "id": "trigger-search-creature",
+      "type": "cutscene",
+      "label": "Search Creature",
+      "x": 9.2,
+      "y": 0,
+      "z": 36.6,
+      "data": {
+        "cutscene": "b3-vat-break",
+        "radius": 2.1
+      }
+    }
+  ]
+}

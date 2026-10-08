@@ -374,20 +374,16 @@
         right: 18px;
         bottom: calc(var(--safe-bottom) + 118px);
         display: flex;
+        flex-direction: column;
+        align-items: flex-end;
         gap: 8px;
-        flex-wrap: wrap;
-        align-items: stretch;
-        justify-content: flex-end;
         z-index: 8;
         pointer-events: none;
       }
 
-      .inventory-hud.open {
-        pointer-events: auto;
-      }
-
       .inventory-hint,
-      .inventory-close {
+      .inventory-close,
+      .weapon-slot {
         appearance: none;
         -webkit-appearance: none;
         margin: 0;
@@ -408,8 +404,8 @@
         font-size: 10px;
         min-width: 108px;
         text-align: center;
-        pointer-events: none;
-        cursor: default;
+        pointer-events: auto;
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -429,8 +425,34 @@
         line-height: 1.2;
       }
 
-      .inventory-close {
+      .inventory-panel {
         display: none;
+        width: min(260px, calc(100vw - 36px));
+        padding: 10px;
+        border-radius: 16px;
+        background: rgba(10, 20, 31, 0.78);
+        border: 1px solid var(--panel-border);
+        backdrop-filter: blur(10px);
+        pointer-events: auto;
+        gap: 8px;
+        flex-direction: column;
+      }
+
+      .inventory-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .inventory-panel-title {
+        font-size: 10px;
+        letter-spacing: 0.16rem;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .inventory-close {
         min-width: 36px;
         font-size: 16px;
         letter-spacing: 0;
@@ -438,25 +460,59 @@
         cursor: pointer;
       }
 
+      .weapon-slot {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        padding: 10px 12px;
+      }
+
+      .weapon-slot.drawn {
+        border-color: rgba(122, 240, 201, 0.55);
+        box-shadow: 0 0 0 1px rgba(122, 240, 201, 0.18);
+      }
+
+      .weapon-slot:disabled {
+        cursor: default;
+        opacity: 0.7;
+      }
+
+      .weapon-slot strong {
+        font-size: 16px;
+        letter-spacing: 0.08rem;
+      }
+
+      .weapon-state {
+        font-size: 10px;
+        letter-spacing: 0.12rem;
+        color: var(--muted);
+      }
+
+      .weapon-slot.drawn .weapon-state {
+        color: var(--good);
+      }
+
       .inventory-items {
-        display: none;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
       }
 
       .inventory-hud.open .inventory-hint {
         display: none;
       }
 
-      .inventory-hud.open .inventory-items,
-      .inventory-hud.open .inventory-close {
+      .inventory-hud.open .inventory-panel {
         display: flex;
       }
 
       .inventory-item {
-        min-width: 72px;
-        padding: 8px 10px;
+        min-width: 0;
+        padding: 7px 8px;
         border-radius: 12px;
         background: rgba(10, 20, 31, 0.54);
         border: 1px solid var(--panel-border);
@@ -475,7 +531,7 @@
       .inventory-item strong {
         display: block;
         margin-top: 4px;
-        font-size: 18px;
+        font-size: 16px;
       }
 
       .controls {
@@ -726,6 +782,13 @@
         color: #07141e;
       }
 
+      .primary:disabled,
+      .secondary:disabled {
+        opacity: 0.45;
+        cursor: wait;
+        transform: none;
+      }
+
       .secondary {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.12);
@@ -834,7 +897,7 @@
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" crossorigin src="./assets/index-BDfqcYjW.js"></script>
+    <script type="module" crossorigin src="./assets/index-D8tXUI1m.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -858,9 +921,19 @@
       </div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <div id="inventoryHud" class="inventory-hud" aria-live="polite">
-        <span id="inventoryHint" class="inventory-hint"><kbd>I</kbd> Inventory</span>
-        <div id="inventoryItems" class="inventory-items"></div>
-        <button type="button" id="inventoryClose" class="inventory-close" aria-label="Close inventory">›</button>
+        <button type="button" id="inventoryHint" class="inventory-hint" aria-label="Open inventory"><kbd>I</kbd> Inventory</button>
+        <div id="inventoryPanel" class="inventory-panel">
+          <div class="inventory-panel-header">
+            <span class="inventory-panel-title">Inventory</span>
+            <button type="button" id="inventoryClose" class="inventory-close" aria-label="Close inventory">›</button>
+          </div>
+          <button type="button" id="weaponSlot" class="weapon-slot" aria-pressed="false">
+            <span class="inventory-label">Weapon</span>
+            <strong id="weaponSlotName">Pistol</strong>
+            <span id="weaponSlotState" class="weapon-state">Holstered</span>
+          </button>
+          <div id="inventoryItems" class="inventory-items"></div>
+        </div>
       </div>
 
       <button id="devToggle" type="button" aria-label="Toggle developer tools">DEV</button>
@@ -916,7 +989,7 @@
         <div class="panel">
           <div class="eyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
-          <p class="subtitle" id="messageText">Get ready to embark on an exciting journey!</p>
+          <p class="subtitle" id="messageText">Loading the office…</p>
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">
@@ -927,7 +1000,7 @@
           </div>
 
           <div class="button-row">
-            <button class="primary" id="startBtn">Start</button>
+            <button class="primary" id="startBtn" disabled aria-busy="true">Loading…</button>
             <button class="secondary" id="resetBtn">Reset</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
           </div>

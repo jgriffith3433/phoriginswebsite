@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "clips": {
+    "Holster": {
+      "start": 0,
+      "end": 4.42
+    },
+    "Jump": {
+      "start": 0.51,
+      "end": 2.01
+    },
+    "PistolAim": {
+      "start": 0.29,
+      "end": 0.94
+    },
+    "PistolJump": {
+      "start": 0.52,
+      "end": 2.03
+    },
+    "Draw": {
+      "start": 1.27,
+      "end": 4.49
+    }
+  },
+  "assets": {
+    "/assets/models/ch33-hero.glb": {
+      "Holster": {
+        "start": 0,
+        "end": 4.42
+      },
+      "Jump": {
+        "start": 0.51,
+        "end": 2.01
+      },
+      "PistolAim": {
+        "start": 0.29,
+        "end": 0.94
+      },
+      "PistolJump": {
+        "start": 0.52,
+        "end": 2.03
+      },
+      "Draw": {
+        "start": 1.27,
+        "end": 4.49
+      }
+    }
+  }
+}

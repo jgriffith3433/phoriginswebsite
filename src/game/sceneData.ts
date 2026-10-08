@@ -1,7 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
 import { applyGlassFlags, applyHologramLook, applyMaterialToMesh, isHologramAsset, parseUvScale, warmupMaterials } from './materials';
-import { loadGlbByAssetId } from './modelLoader';
+import { getAssetLibrary, loadGlbByAssetId, resolveModelPath } from './modelLoader';
 import { getSceneTheme } from './scene';
 
 export type SceneVector3 = {
@@ -43,12 +43,17 @@ export type SceneAssetInstance = {
   /** Alternate JSON form; prefer `uvScale`. */
   uScale?: number;
   vScale?: number;
+  /** Point lights only. Omitted lights keep the default intensity, range, and white diffuse. */
+  intensity?: number;
+  range?: number;
+  color?: [number, number, number];
   // Id of the parent scene asset. Transform fields are local to the parent.
   parentId?: string;
 };
 
 export type SceneTrigger = {
   id: string;
+  /** enter_zone | checkpoint | cutscene | npc_exit | music (bgm) */
   type: string;
   label?: string;
   assetId?: string;
@@ -56,6 +61,7 @@ export type SceneTrigger = {
   x?: number;
   y?: number;
   z?: number;
+  /** Music: { audio|path, radius, loop?, fadeSeconds? }. Others: { radius, cutscene? }. */
   data?: Record<string, unknown>;
   parentId?: string;
 };
@@ -165,6 +171,8 @@ export type SceneNodeMetadata = {
   sceneAssetId?: string;
   sceneTriggerId?: string;
   animationGroups?: string[];
+  clipGroups?: BABYLON.AnimationGroup[];
+  modelPath?: string;
   liftTexture?: BABYLON.DynamicTexture;
   liftLabel?: string;
   materialId?: string;
@@ -203,6 +211,74 @@ export const paintLiftGlyph = (mesh: BABYLON.AbstractMesh | null | undefined, te
   ctx.fillText(text, width / 2, height / 2 + Math.floor(height * 0.04));
   ctx.restore();
   texture.update();
+};
+
+const B3_SIGN_COLOR: Record<string, string> = {
+  'b3-sign-basement': '#9ae8ff',
+  'b3-sign-containment': '#9dff78',
+  'b3-sign-acid': '#c6ff4a',
+  'b3-sign-decon': '#ffd27a',
+  'b3-sign-chem': '#ffb45a',
+  'b3-sign-control': '#b7dcff',
+  'b3-sign-transform': '#e0c2ff',
+  'b3-sign-utility': '#ffbf86',
+  'b3-sign-sealed': '#ff5a4a',
+  'b3-sign-sector': '#d5dde6',
+};
+
+const createStencilSign = (
+  scene: BABYLON.Scene,
+  asset: SceneAssetInstance,
+  position: BABYLON.Vector3,
+  rotation: BABYLON.Vector3,
+  scale: BABYLON.Vector3,
+  metadata: SceneNodeMetadata,
+): BABYLON.Mesh => {
+  const plane = BABYLON.MeshBuilder.CreatePlane(asset.name ?? asset.id, { width: 1, height: 1 }, scene);
+  plane.position = position;
+  plane.rotation = rotation.clone();
+  plane.scaling = new BABYLON.Vector3(Math.max(0.04, Math.abs(scale.x)), Math.max(0.04, scale.y), 1);
+  const label = (asset.name ?? 'B3').toUpperCase();
+  const texture = new BABYLON.DynamicTexture(
+    `${asset.id}-tex`,
+    { width: 1024, height: 256 },
+    scene,
+    false,
+    BABYLON.Texture.BILINEAR_SAMPLINGMODE,
+    BABYLON.Engine.TEXTUREFORMAT_RGBA,
+    false,
+  );
+  texture.hasAlpha = false;
+  const ctx = texture.getContext() as CanvasRenderingContext2D;
+  const { width, height } = texture.getSize();
+  ctx.fillStyle = '#07090c';
+  ctx.fillRect(0, 0, width, height);
+  const fill = B3_SIGN_COLOR[asset.id] ?? '#9ae8ff';
+  ctx.fillStyle = fill;
+  ctx.fillRect(0, height - 18, width, 18);
+  ctx.fillRect(0, 0, 14, height);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const size = label.length > 16 ? 92 : label.length > 10 ? 118 : 148;
+  ctx.font = `700 ${size}px Consolas, "Courier New", monospace`;
+  ctx.save();
+  ctx.translate(width, 0);
+  ctx.scale(-1, 1);
+  ctx.fillText(label, width / 2, height / 2 - 6);
+  ctx.restore();
+  texture.update();
+  const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
+  material.diffuseTexture = texture;
+  material.emissiveTexture = texture;
+  material.specularColor = BABYLON.Color3.Black();
+  material.disableLighting = true;
+  material.backFaceCulling = false;
+  material.diffuseColor = BABYLON.Color3.White();
+  material.emissiveColor = BABYLON.Color3.White();
+  plane.material = material;
+  plane.checkCollisions = false;
+  plane.metadata = { ...metadata, liftTexture: texture, liftLabel: label };
+  return plane;
 };
 
 const createLiftGlyphMesh = (
@@ -380,14 +456,22 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     return createLiftGlyphMesh(scene, asset, position, rotation, scale, metadata);
   }
 
+  if (asset.id.startsWith('b3-sign-')) {
+    return createStencilSign(scene, asset, position, rotation, scale, metadata);
+  }
+
   if (kind === 'light') {
     const light = new BABYLON.PointLight(
       asset.name ?? asset.assetId ?? 'sceneLight',
       position,
       scene,
     );
-    light.intensity = 0.46;
-    light.range = 14;
+    light.intensity = asset.intensity ?? 0.46;
+    light.range = asset.range ?? 14;
+    if (asset.color) {
+      light.diffuse = new BABYLON.Color3(asset.color[0], asset.color[1], asset.color[2]);
+      light.specular = light.diffuse.scale(0.35);
+    }
     light.metadata = metadata;
     return light;
   }
@@ -461,8 +545,9 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     mesh.metadata = metadata;
     const isChair = asset.id.startsWith('chair-') || Boolean(asset.components?.includes('NpcSeat'));
     const isLiftButton = asset.id === 'lift-b3-button';
+    const isDecal = asset.id.startsWith('b3-decal-');
     const jumpOn = isJumpOnFurniture(asset);
-    mesh.checkCollisions = !isChair && !isLiftButton && !jumpOn;
+    mesh.checkCollisions = !isChair && !isLiftButton && !jumpOn && !isDecal;
     if (isLiftButton) {
       material.diffuseColor = new BABYLON.Color3(0.18, 0.2, 0.22);
       material.emissiveColor = new BABYLON.Color3(0.08, 0.1, 0.12);
@@ -483,6 +568,22 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     mesh.material = material;
     mesh.metadata = metadata;
     mesh.checkCollisions = true;
+    if (asset.id === 'vat-acid' || asset.id.startsWith('b3-side-vat')) {
+      material.diffuseColor = new BABYLON.Color3(0.1, 0.55, 0.16);
+      material.emissiveColor = new BABYLON.Color3(0.12, 0.62, 0.16);
+      material.specularColor = new BABYLON.Color3(0.25, 0.55, 0.22);
+      mesh.checkCollisions = false;
+    }
+    if (asset.id === 'b3-creature' || asset.id.startsWith('b3-cage')) {
+      material.diffuseColor = new BABYLON.Color3(0.04, 0.16, 0.05);
+      material.emissiveColor = new BABYLON.Color3(0.05, 0.28, 0.06);
+      material.disableLighting = true;
+      mesh.checkCollisions = false;
+    }
+    if (asset.id === 'vat-glass') {
+      applyGlassFlags(material, 0.28);
+      mesh.checkCollisions = true;
+    }
     return finishMesh(mesh);
   }
 
@@ -526,11 +627,16 @@ const createModelAssetNode = (
   root.scaling = scale;
   root.metadata = metadata;
 
-  void loadGlbByAssetId(scene, asset.assetId, root).then((imported) => {
+  void Promise.all([
+    loadGlbByAssetId(scene, asset.assetId, root),
+    getAssetLibrary().then((library) => resolveModelPath(library, asset.assetId) ?? ''),
+  ]).then(([imported, modelPath]) => {
     if (!imported || root.isDisposed()) return;
     root.metadata = {
       ...root.metadata,
       animationGroups: imported.animationGroups.map((group) => group.name),
+      clipGroups: imported.animationGroups,
+      modelPath,
     } as SceneNodeMetadata;
   });
 

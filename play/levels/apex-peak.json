@@ -116,7 +116,11 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-floor"
+      "materialId": "mat-lift-floor",
+      "uvScale": [
+        1,
+        2
+      ]
     },
     {
       "id": "ceil-hall-1",
@@ -124,17 +128,26 @@
       "kind": "wall",
       "name": "Hall 1 Ceiling",
       "x": 0,
-      "y": 3.26,
-      "z": 16,
+      "y": 3.25,
+      "z": 17.54827880859375,
       "scale": {
-        "x": 5.2,
-        "y": 0.12,
-        "z": 34
+        "x": 5.199999809265137,
+        "y": 0.11999999731779099,
+        "z": 38
       },
       "components": [
         "Transform"
       ],
-      "materialId": "mat-ceil-tile"
+      "materialId": "mat-ceil-tile",
+      "uvScale": [
+        30.33,
+        4.333333333333334
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "ceil-hall-2",
@@ -201,7 +214,7 @@
       "scale": {
         "x": 3.6,
         "y": 0.12,
-        "z": 4.4
+        "z": 5.5
       },
       "components": [
         "Transform"
@@ -541,7 +554,7 @@
         "z": 0
       },
       "scale": {
-        "x": 2.8,
+        "x": 2.87,
         "y": 1.6,
         "z": 1
       },
@@ -899,7 +912,11 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-lift-metal",
+      "uvScale": [
+        1,
+        1
+      ]
     },
     {
       "id": "lift-wall-e",
@@ -917,7 +934,11 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-lift-metal",
+      "uvScale": [
+        1,
+        1
+      ]
     },
     {
       "id": "lift-wall-s",
@@ -935,7 +956,11 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-lift-metal",
+      "uvScale": [
+        1,
+        1
+      ]
     },
     {
       "id": "lift-door-l",
@@ -1273,11 +1298,21 @@
       "name": "Player",
       "x": 0,
       "y": 0,
-      "z": 3,
+      "z": 4.087249279022217,
       "components": [
         "Transform",
         "Collider"
-      ]
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      }
     }
   ],
   "triggers": [
@@ -1371,6 +1406,21 @@
       "data": {
         "cutscene": "elevator-b3",
         "radius": 1.55
+      }
+    },
+    {
+      "id": "trigger-1791414208262-ffaj9",
+      "type": "music",
+      "label": "Music",
+      "x": 0.30570101737976074,
+      "y": 0,
+      "z": -4.531632423400879,
+      "data": {
+        "radius": 100,
+        "audio": "/assets/audio/room-tone.mp3",
+        "loop": true,
+        "fadeSeconds": 2,
+        "volume": 0.28
       }
     }
   ]

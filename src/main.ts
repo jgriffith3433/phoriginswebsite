@@ -1,4 +1,4 @@
-﻿import * as BABYLON from '@babylonjs/core';
+import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
 import { configureResponsiveUI } from './game/mobile';
@@ -16,20 +16,23 @@ import {
   updateNpcDeparture,
   type Npc,
 } from './game/npcs';
-import { createPlayerAvatar } from './game/playerAvatar';
+import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
 import { addItem, createInventoryState, consumeItem, inventorySummary } from './game/inventory';
 import { getLevelDefinition, getLevels, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
 import { clampPlayerToArena, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
+import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
-import { PLAYER_ASSET_IDS } from './game/modelLoader';
+import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
 import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, paintLiftGlyph, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
-import { createTriggerRunner } from './game/triggers';
+import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createUnlockedAudio, getSharedAudioContext, installAudioUnlock, unlockAudio } from './game/audioUnlock';
+import { createMuzzleFlash } from './game/muzzleFlash';
+import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
@@ -40,6 +43,9 @@ const messageBox = document.getElementById('messageBox') as HTMLDivElement;
 const messageTitle = document.getElementById('messageTitle') as HTMLHeadingElement;
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
 const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
+startBtn.disabled = true;
+startBtn.textContent = 'Loading…';
+startBtn.setAttribute('aria-busy', 'true');
 const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
 const jumpBtn = document.getElementById('jumpBtn') as HTMLButtonElement;
 const fireBtn = document.getElementById('fireBtn') as HTMLButtonElement;
@@ -84,6 +90,11 @@ scene.gravity = BABYLON.Vector3.Zero();
 
 const followCamera = createThirdPersonCamera(scene);
 const camera = followCamera.camera;
+const menuCamera = createMenuCamera(scene);
+let menuCameraActive = true;
+activateMenuCamera(scene, menuCamera);
+const muzzleFlash = createMuzzleFlash(scene);
+const playerPistol = createPlayerPistol(scene);
 
 const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
 hemi.intensity = 0.8;
@@ -151,8 +162,37 @@ let elevatorFloorIndex = 0;
 let elevatorDinged = false;
 let elevatorReadoutLabel = '';
 let officeAlarmStarted = false;
-let sequencePhase: 'seat' | 'idle' | 'wait-board' | 'window' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done' = 'idle';
+type SequencePhase =
+  | 'seat' | 'idle' | 'wait-board' | 'window' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
+  | 'arrive' | 'to-lab' | 'reveal' | 'search' | 'transform';
+let sequencePhase: SequencePhase = 'idle';
+let labDoorOpen = 0;
+let b3Transformed = false;
+let playerHeroId = PLAYER_ASSET_ID;
 const objectiveMarker = createObjectiveMarker(scene);
+let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
+playerAvatar.group.rotation.y = Math.PI;
+playerPistol.attachTo(playerAvatar);
+const playerCollider = createPlayerCollider(scene);
+let gameReady = false;
+
+const waitAvatarReady = (avatar: PlayerAvatar) =>
+  new Promise<void>((resolve) => avatar.whenReady(resolve));
+
+const ensurePlayerAvatar = (assetId: string) => {
+  if (playerHeroId === assetId && playerAvatar) return;
+  const prev = playerAvatar;
+  const next = createPlayerAvatar(scene, assetId);
+  next.group.position.copyFrom(prev.group.position);
+  next.group.rotation.copyFrom(prev.group.rotation);
+  next.setArmed(state.player.weaponDrawn);
+  playerPistol.attachTo(null);
+  prev.dispose();
+  playerAvatar = next;
+  playerHeroId = assetId;
+  playerPistol.attachTo(playerAvatar);
+  playerPistol.setVisible(state.player.weaponDrawn);
+};
 
 const OFFICE_WINDOW_POSE = { x: 48, z: 46.2, yaw: 0 };
 const OFFICE_TERMINAL_POSE = { x: 48.15, z: 43.12, yaw: Math.PI };
@@ -188,6 +228,8 @@ const placePierceAtOfficeWindow = () => {
   playerAvatar.group.rotation.y = yaw + Math.PI;
 };
 
+let lastObjectiveCue = '';
+
 const setObjective = (title: string, text: string, target: { x: number; z: number; y?: number } | null) => {
   if (objectiveText) objectiveText.textContent = text;
   if (objectiveHud) {
@@ -196,6 +238,10 @@ const setObjective = (title: string, text: string, target: { x: number; z: numbe
   }
   if (target) objectiveMarker.setTarget({ ...target, title, text });
   else objectiveMarker.setTarget(null);
+  const cue = `${title}|${text}`;
+  if (!text || cue === lastObjectiveCue || !state.running) return;
+  lastObjectiveCue = cue;
+  audio.play(SFX.objective, 0.55);
 };
 
 const showObjectiveHud = (visible: boolean) => {
@@ -206,19 +252,27 @@ const showObjectiveHud = (visible: boolean) => {
 const isApexPeakLevel = () =>
   getLevelDefinition(state.level).libraryId === 'apex-peak' || missionScene?.id === 'apex-peak';
 
+const isB3Level = () =>
+  getLevelDefinition(state.level).libraryId === 'b3-basement' || missionScene?.id === 'b3-basement';
+
 const refreshObjectivePresentation = () => {
   const hideWorld = state.inCutscene
     || sequencePhase === 'idle'
     || sequencePhase === 'done'
     || sequencePhase === 'window'
     || sequencePhase === 'terminal'
-    || sequencePhase === 'ride';
+    || sequencePhase === 'ride'
+    || sequencePhase === 'reveal'
+    || sequencePhase === 'transform';
   if (hideWorld) objectiveMarker.hide();
   else objectiveMarker.show();
   const showHud = sequencePhase === 'seat'
     || sequencePhase === 'wait-board'
     || sequencePhase === 'alarm'
-    || sequencePhase === 'elevator';
+    || sequencePhase === 'elevator'
+    || sequencePhase === 'arrive'
+    || sequencePhase === 'to-lab'
+    || sequencePhase === 'search';
   showObjectiveHud(showHud && !state.inCutscene && state.running);
 };
 
@@ -251,7 +305,7 @@ const officeAlarm = {
     audio.ensure();
     this.wav = createUnlockedAudio('/assets/audio/cutscenes/apex-window/alarm.wav');
     this.wav.loop = true;
-    this.wav.volume = 0.62;
+    this.wav.volume = 0.46;
     this.wav.addEventListener('error', () => {
       this.wav = null;
     });
@@ -296,15 +350,22 @@ const resetApexSequence = () => {
   terminalPierceLocked = false;
   elevatorLocked = false;
   officeAlarmStarted = false;
+  lastObjectiveCue = '';
   sequencePhase = 'idle';
   officeAlarm.stop();
   elevatorDoorOpen = 0;
   elevatorFloorIndex = 0;
   elevatorDinged = false;
   elevatorReadoutLabel = '';
+  labDoorOpen = 0;
+  b3Transformed = false;
   applyElevatorDoors(0);
   applyElevatorIndicators(0, false, false);
   applyElevatorCabLight(0, false);
+  applyLabDoors(0);
+  restoreSceneLights();
+  setCreatureVisible(true);
+  setVatGlassBroken(false);
   objectiveMarker.setTarget(null);
   showObjectiveHud(false);
 };
@@ -353,11 +414,7 @@ const ELEVATOR_POSE = { x: 44.25, z: 21.2, yaw: Math.PI / 2 };
 const sceneMeshById = (id: string) =>
   scene.meshes.find((entry) => entry.metadata?.sceneAssetId === id);
 
-const placePierceInElevator = () => {
-  const x = ELEVATOR_POSE.x;
-  const z = ELEVATOR_POSE.z;
-  const y = PLAYER_STAND_Y;
-  const yaw = ELEVATOR_POSE.yaw;
+const placePierceAt = (x: number, z: number, yaw: number, y = PLAYER_STAND_Y) => {
   state.player.x = x;
   state.player.y = y;
   state.player.z = z;
@@ -367,6 +424,10 @@ const placePierceInElevator = () => {
   playerCollider.position.set(x, y, z);
   playerAvatar.group.position.set(x, playerMeshY(y), z);
   playerAvatar.group.rotation.y = yaw + Math.PI;
+};
+
+const placePierceInElevator = (yaw = ELEVATOR_POSE.yaw) => {
+  placePierceAt(ELEVATOR_POSE.x, ELEVATOR_POSE.z, yaw);
 };
 
 const pulseB3Button = (lit: boolean) => {
@@ -482,14 +543,9 @@ const applyElevatorCabLight = (time: number, riding: boolean) => {
   }
 };
 
-const tickElevatorFloor = (index: number, arrived: boolean) => {
-  if (!audio.enabled) return;
-  if (arrived) {
-    audio.tone(392, 0.12, 'sine', 0.07);
-    window.setTimeout(() => audio.tone(587, 0.22, 'sine', 0.08), 90);
-    return;
-  }
-  audio.tone(620 - index * 28, 0.07, 'square', 0.045);
+const tickElevatorFloor = (_index: number, arrived: boolean) => {
+  if (arrived) return;
+  audio.play('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.34);
 };
 
 const applyElevatorDoors = (openAmount: number) => {
@@ -503,6 +559,176 @@ const applyElevatorDoors = (openAmount: number) => {
   if (doorR) {
     doorR.position.x = ELEVATOR_DOOR_R_CLOSED + (ELEVATOR_DOOR_R_OPEN - ELEVATOR_DOOR_R_CLOSED) * t;
     doorR.checkCollisions = t < 0.45;
+  }
+};
+
+const LAB_DOOR_L_CLOSED = 36.95;
+const LAB_DOOR_R_CLOSED = 39.05;
+const LAB_DOOR_L_OPEN = 35.5;
+const LAB_DOOR_R_OPEN = 40.5;
+
+const applyLabDoors = (openAmount: number) => {
+  const t = Math.max(0, Math.min(1, openAmount));
+  const doorL = sceneMeshById('lab-door-l');
+  const doorR = sceneMeshById('lab-door-r');
+  if (doorL) {
+    doorL.position.z = LAB_DOOR_L_CLOSED + (LAB_DOOR_L_OPEN - LAB_DOOR_L_CLOSED) * t;
+    doorL.checkCollisions = t < 0.45;
+  }
+  if (doorR) {
+    doorR.position.z = LAB_DOOR_R_CLOSED + (LAB_DOOR_R_OPEN - LAB_DOOR_R_CLOSED) * t;
+    doorR.checkCollisions = t < 0.45;
+  }
+};
+
+type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
+let lightBaseline: LightBaseline | null = null;
+
+const captureLightBaseline = () => {
+  if (lightBaseline) return;
+  const points = new Map<BABYLON.Light, number>();
+  scene.lights.forEach((light) => {
+    if (light === hemi || light === sun) return;
+    points.set(light, light.intensity);
+  });
+  lightBaseline = { hemi: hemi.intensity, sun: sun.intensity, points };
+};
+
+const applyCutsceneLight = (on: boolean, intensity?: number, target?: string) => {
+  captureLightBaseline();
+  if (!lightBaseline) return;
+  const apply = (light: BABYLON.Light, base: number) => {
+    if (light.isDisposed()) return;
+    light.intensity = intensity ?? (on ? base : base * 0.04);
+  };
+  const id = (target ?? 'all').toLowerCase();
+  if (id === 'all' || id === 'hemi') apply(hemi, lightBaseline.hemi);
+  if (id === 'all' || id === 'sun') apply(sun, lightBaseline.sun);
+  lightBaseline.points.forEach((base, light) => {
+    const meta = light.metadata as { sceneAssetId?: string } | undefined;
+    if (id !== 'all' && meta?.sceneAssetId !== target && light.name !== target) return;
+    apply(light, base);
+  });
+};
+
+const restoreSceneLights = () => {
+  if (!lightBaseline) {
+    if (isB3Level()) {
+      hemi.intensity = 0.34;
+      sun.intensity = 0.12;
+    }
+    return;
+  }
+  hemi.intensity = lightBaseline.hemi;
+  sun.intensity = lightBaseline.sun;
+  lightBaseline.points.forEach((base, light) => {
+    if (!light.isDisposed()) light.intensity = base;
+  });
+  lightBaseline = null;
+};
+
+const setCreatureVisible = (visible: boolean) => {
+  const mesh = sceneMeshById('b3-creature');
+  if (!mesh) return;
+  mesh.setEnabled(visible);
+};
+
+const setVatGlassBroken = (broken: boolean) => {
+  const glass = sceneMeshById('vat-glass');
+  if (glass) {
+    glass.setEnabled(!broken);
+    glass.checkCollisions = !broken;
+  }
+  const acid = sceneMeshById('vat-acid');
+  if (acid && broken) {
+    acid.scaling.x = 2.55;
+    acid.scaling.z = 2.55;
+    acid.position.y = 0.55;
+  } else if (acid) {
+    acid.scaling.x = 2.15;
+    acid.scaling.z = 2.15;
+    acid.position.y = 0.95;
+  }
+};
+
+const B3_LAB_DOOR = { x: 17.6, z: 38 };
+const B3_SEARCH = { x: 9.2, z: 36.6 };
+const B3_REVEAL_START = { x: 18.5, z: 38, yaw: -Math.PI / 2 };
+const B3_REVEAL_END = { x: 12.6, z: 38, yaw: -Math.PI / 2 };
+
+const beginB3Arrival = () => {
+  if (!isB3Level()) return;
+  ensurePlayerAvatar(PLAYER_ASSET_ID);
+  b3Transformed = false;
+  sequencePhase = 'arrive';
+  labDoorOpen = 0;
+  elevatorDoorOpen = 0;
+  applyLabDoors(0);
+  applyElevatorDoors(0);
+  applyElevatorIndicators(6, false, true);
+  pulseB3Button(true);
+  applyElevatorCabLight(ELEVATOR_ARRIVE_AT, true);
+  audio.play('/assets/audio/cutscenes/elevator-b3/doors.wav', 0.58);
+  placePierceInElevator(0);
+  setCreatureVisible(true);
+  setVatGlassBroken(false);
+  restoreSceneLights();
+  setObjective('Objective', 'Find the lab door', { x: B3_LAB_DOOR.x, y: 2.05, z: B3_LAB_DOOR.z });
+  refreshObjectivePresentation();
+};
+
+const beginLabDoorObjective = () => {
+  if (!isB3Level() || sequencePhase === 'reveal' || sequencePhase === 'search' || sequencePhase === 'transform' || sequencePhase === 'done') return;
+  sequencePhase = 'to-lab';
+  setObjective('Objective', 'Find the lab door', { x: B3_LAB_DOOR.x, y: 2.05, z: B3_LAB_DOOR.z });
+  refreshObjectivePresentation();
+};
+
+const beginSearchObjective = () => {
+  sequencePhase = 'search';
+  restoreSceneLights();
+  setCreatureVisible(false);
+  applyLabDoors(1);
+  labDoorOpen = 1;
+  placePierceAt(B3_REVEAL_END.x, B3_REVEAL_END.z, B3_REVEAL_END.yaw);
+  setObjective('Objective', 'Search the lab for the creature', { x: B3_SEARCH.x, y: 1.85, z: B3_SEARCH.z });
+  refreshObjectivePresentation();
+};
+
+const completeB3 = () => {
+  const alreadyDone = sequencePhase === 'done';
+  sequencePhase = 'done';
+  restoreSceneLights();
+  objectiveMarker.setTarget(null);
+  showObjectiveHud(false);
+  clearInputState();
+  playerAvatar.setLocomotion(false, true);
+  playerAvatar.playClip('idle', true);
+  state.running = false;
+  if (alreadyDone) return;
+  state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level + 1));
+  saveGame({ unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
+  audio.win();
+  updateHud();
+  showMessage('Level Complete', 'B3 incident is done. Pierce is not the man who walked in.');
+};
+
+const stepB3Reveal = (time: number) => {
+  const doorT = Math.min(1, Math.max(0, (time - 0.75) / 1.35));
+  labDoorOpen = doorT;
+  applyLabDoors(doorT);
+  const walkT = Math.min(1, Math.max(0, (time - 2.35) / 3.2));
+  const x = B3_REVEAL_START.x + (B3_REVEAL_END.x - B3_REVEAL_START.x) * walkT;
+  placePierceAt(x, B3_REVEAL_START.z, B3_REVEAL_START.yaw);
+};
+
+const stepB3VatBreak = (time: number) => {
+  placePierceAt(9.5, 36.9, -Math.PI / 2 + 0.35);
+  if (time >= 4.05) setVatGlassBroken(true);
+  if (time >= 7.4 && !b3Transformed) {
+    b3Transformed = true;
+    ensurePlayerAvatar(TRANSFORM_HERO_ASSET_ID);
+    playerAvatar.playClip('idle', true);
   }
 };
 
@@ -540,6 +766,7 @@ const stepElevatorSet = (time: number) => {
 const beginElevatorObjective = () => {
   sequencePhase = 'elevator';
   officeAlarm.stop();
+  audio.play('/assets/audio/cutscenes/elevator-b3/doors.wav', 0.58);
   const lift = missionScene ? resolveElevator(missionScene) : { x: 44, z: 21.35 };
   setObjective('Objective', 'Get to the elevator', { x: lift.x, y: 2.15, z: lift.z });
   refreshObjectivePresentation();
@@ -569,7 +796,7 @@ const completeApexPeak = () => {
   saveGame({ unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
   audio.win();
   updateHud();
-    showMessage('Level Complete', 'Apex Peak Act I is done. Later missions are coming soon.');
+    showMessage('Level Complete', 'Apex Peak Act I is done. B3 is unlocked in Mission Select.');
 };
 
 const beginElevatorCutscene = () => {
@@ -649,11 +876,16 @@ const endCutscene = () => {
     completeApexPeak();
     return;
   }
+  if (finishedId === 'b3-vat-break') {
+    completeB3();
+    return;
+  }
   playerAvatar.resumeLocomotion();
   refreshObjectivePresentation();
   if (finishedId === 'room-for-grace') beginBoardWalkout();
   if (finishedId === 'apex-window') beginAlarmObjective();
   if (finishedId === 'apex-terminal') beginElevatorObjective();
+  if (finishedId === 'b3-door-reveal') beginSearchObjective();
 };
 
 const beginNamedCutscene = (id: string) => {
@@ -690,11 +922,26 @@ const beginNamedCutscene = (id: string) => {
     placePierceInElevator();
     playerAvatar.playClip('idle', true);
   }
+  if (id === 'b3-door-reveal') {
+    sequencePhase = 'reveal';
+    showObjectiveHud(false);
+    objectiveMarker.hide();
+    placePierceAt(B3_REVEAL_START.x, B3_REVEAL_START.z, B3_REVEAL_START.yaw);
+    playerAvatar.playClip('idle', true);
+  }
+  if (id === 'b3-vat-break') {
+    sequencePhase = 'transform';
+    showObjectiveHud(false);
+    objectiveMarker.hide();
+    placePierceAt(9.5, 36.9, -Math.PI / 2 + 0.35);
+    playerAvatar.playClip('idle', true);
+  }
   unlockPointer();
   void startCutscene(id, {
     onCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
     onHud: (title, text) => showCineHud(title, text),
     onAnim: (actor, clip, loop) => applyNpcAnim(npcs, actor, clip, loop, playerAvatar),
+    onLight: (on, intensity, target) => applyCutsceneLight(on, intensity, target),
     audioEnabled: () => audio.enabled,
   }).then((next) => {
     if (!next) {
@@ -703,6 +950,8 @@ const beginNamedCutscene = (id: string) => {
       if (id === 'apex-window') beginAlarmObjective();
       if (id === 'apex-terminal') beginElevatorObjective();
       if (id === 'elevator-b3') completeApexPeak();
+      if (id === 'b3-door-reveal') beginSearchObjective();
+      if (id === 'b3-vat-break') completeB3();
       return;
     }
     activeCutscene = next;
@@ -713,9 +962,21 @@ const beginNamedCutscene = (id: string) => {
   });
 };
 
+const musicTriggerPlayer = createMusicTriggerPlayer();
 const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
+  if (isMusicTrigger(trigger)) return;
   if (trigger.id === 'trigger-elevator-b3') {
     beginElevatorCutscene();
+    return;
+  }
+  if (trigger.id === 'trigger-lab-door') {
+    if (!isB3Level() || (sequencePhase !== 'to-lab' && sequencePhase !== 'arrive')) return;
+    beginNamedCutscene('b3-door-reveal');
+    return;
+  }
+  if (trigger.id === 'trigger-search-creature') {
+    if (!isB3Level() || sequencePhase !== 'search') return;
+    beginNamedCutscene('b3-vat-break');
     return;
   }
   const cutsceneId = trigger.type === 'cutscene'
@@ -727,19 +988,33 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
 });
 
 const loadMissionScene = async (path: string) => {
-  clearNpcs(npcs);
-  clearEnemies(enemies);
-  resetApexSequence();
-  resetCutsceneState();
-  const loaded = await loadSceneFromJsonFile(scene, path, { ...sceneLoadOptions, replaceNodes: sceneNodes });
-  applyLoadedScene(loaded);
-  triggerRunner.bind(loaded?.data.triggers ?? []);
-  if (loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
-  restyleOfficeTerminal(false);
-  pulseB3Button(false);
-  applyElevatorIndicators(0, false, false);
-  applyElevatorCabLight(0, false);
-  beginSeatObjective();
+  gameReady = false;
+  syncStartButtonLabel();
+  try {
+    clearNpcs(npcs);
+    clearEnemies(enemies);
+    resetApexSequence();
+    resetCutsceneState();
+    const loaded = await loadSceneFromJsonFile(scene, path, { ...sceneLoadOptions, replaceNodes: sceneNodes });
+    applyLoadedScene(loaded);
+    triggerRunner.bind(loaded?.data.triggers ?? []);
+    musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
+    if (loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+    restyleOfficeTerminal(false);
+    pulseB3Button(false);
+    applyElevatorIndicators(0, false, false);
+    applyElevatorCabLight(0, false);
+    ensurePlayerAvatar(PLAYER_ASSET_ID);
+    await Promise.all([
+      waitAvatarReady(playerAvatar),
+      ...npcs.map((npc) => waitAvatarReady(npc.avatar)),
+    ]);
+    if (isB3Level() || loaded?.data.id === 'b3-basement') beginB3Arrival();
+    else beginSeatObjective();
+  } finally {
+    gameReady = true;
+    syncStartButtonLabel();
+  }
 };
 
 const saveKey = 'ph-origins-save';
@@ -748,10 +1023,11 @@ const defaultSave: SaveData = { unlocked: 1, sound: true };
 const MAX_HEALTH = 100;
 
 const GAME_COPY = {
-  intro: 'Get ready to embark on an exciting journey!',
+  intro: 'Level 1: The board meeting',
+  loading: 'Loading the office…',
   missionClear: 'Keep pushing into the next mission.',
   defeat: 'Press Start to retry.',
-  reset: 'Get ready to embark on an exciting journey!',
+  reset: 'Level 1: The board meeting',
 } as const;
 
 const loadSave = (): SaveData => {
@@ -818,9 +1094,20 @@ const state = {
 const enemies: Enemy[] = [];
 const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
 const pickups: Array<{ mesh: BABYLON.Mesh; item: InventoryItemType; amount: number; active: boolean }> = [];
-const playerAvatar = createPlayerAvatar(scene);
-playerAvatar.group.rotation.y = Math.PI;
-const playerCollider = createPlayerCollider(scene);
+
+const SFX = {
+  shot: '/assets/audio/sfx/pistol-shot.ogg',
+  jump: '/assets/audio/sfx/jump.ogg',
+  walk: '/assets/audio/sfx/walk.ogg',
+  draw: '/assets/audio/sfx/pistol-draw.ogg',
+  holster: '/assets/audio/sfx/pistol-holster.ogg',
+  start: '/assets/audio/sfx/start.ogg',
+  levelComplete: '/assets/audio/sfx/level-complete.ogg',
+  objective: '/assets/audio/sfx/objective.ogg',
+} as const;
+const oneShotTemplates = new Map<string, HTMLAudioElement>();
+let walkLoop: HTMLAudioElement | null = null;
+let walkStartPending = false;
 
 const audio = {
   enabled: save.sound,
@@ -844,11 +1131,53 @@ const audio = {
     gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
     osc.stop(this.ctx.currentTime + duration);
   },
+  play(url: string, volume: number) {
+    if (!this.enabled) return;
+    this.ensure();
+    let template = oneShotTemplates.get(url);
+    if (!template) {
+      template = createUnlockedAudio(url);
+      oneShotTemplates.set(url, template);
+    }
+    const element = template.cloneNode(true) as HTMLAudioElement;
+    element.volume = volume;
+    element.currentTime = 0;
+    void element.play().catch(() => {});
+  },
+  setWalk(playing: boolean) {
+    if (!playing || !this.enabled) {
+      walkStartPending = false;
+      if (walkLoop) {
+        walkLoop.pause();
+        walkLoop.currentTime = 0;
+      }
+      return;
+    }
+    this.ensure();
+    if (!walkLoop) {
+      walkLoop = createUnlockedAudio(SFX.walk);
+      walkLoop.loop = true;
+      walkLoop.muted = false;
+      walkLoop.volume = 0.62;
+    }
+    if (!walkLoop.paused || walkStartPending) return;
+    walkLoop.muted = false;
+    walkLoop.volume = 0.62;
+    walkStartPending = true;
+    void walkLoop.play().then(() => {
+      walkStartPending = false;
+    }).catch(() => {
+      walkStartPending = false;
+    });
+  },
   hit() { this.tone(170, 0.18, 'square', 0.08); },
-  shoot() { this.tone(600, 0.08, 'triangle', 0.05); },
+  shoot() { this.play(SFX.shot, 0.78); },
+  jump() { this.play(SFX.jump, 0.42); },
+  draw() { this.play(SFX.draw, 0.55); },
+  holster() { this.play(SFX.holster, 0.55); },
   pickup() { this.tone(780, 0.12, 'sine', 0.06); },
-  start() { this.tone(440, 0.1, 'sine', 0.05); this.tone(660, 0.13, 'triangle', 0.04); },
-  win() { this.tone(530, 0.1, 'triangle', 0.06); this.tone(780, 0.18, 'triangle', 0.06); },
+  start() { this.play(SFX.start, 0.7); },
+  win() { this.play(SFX.levelComplete, 0.72); },
 };
 
 const updateHud = () => {
@@ -923,8 +1252,25 @@ inventoryHud.addEventListener('pointerdown', stopInventoryPointer);
 inventoryHud.addEventListener('pointerup', stopInventoryPointer);
 
 const syncStartButtonLabel = () => {
-  const shouldContinue = state.running;
-  startBtn.textContent = shouldContinue ? 'Continue' : 'Start';
+  if (!gameReady) {
+    startBtn.disabled = true;
+    startBtn.textContent = 'Loading…';
+    startBtn.setAttribute('aria-busy', 'true');
+    resetBtn.disabled = true;
+    loadModelBtn.disabled = true;
+    if (messageTitle.textContent === 'PH Origins') {
+      messageText.textContent = GAME_COPY.loading;
+    }
+    return;
+  }
+  startBtn.disabled = false;
+  startBtn.removeAttribute('aria-busy');
+  resetBtn.disabled = false;
+  loadModelBtn.disabled = false;
+  startBtn.textContent = state.running ? 'Continue' : 'Start';
+  if (!state.running && messageTitle.textContent === 'PH Origins') {
+    messageText.textContent = GAME_COPY.intro;
+  }
 };
 
 const unlockPointer = () => {
@@ -946,6 +1292,7 @@ const updateCrosshairVisibility = () => {
 const finishWeaponToggle = (drawn: boolean) => {
   state.player.weaponDrawn = drawn;
   playerAvatar.setArmed(drawn);
+  playerPistol.setVisible(drawn);
   weaponBusy = false;
   playerAvatar.resumeLocomotion();
   updateHud();
@@ -957,12 +1304,15 @@ const toggleWeapon = () => {
   const drawing = !state.player.weaponDrawn;
   weaponBusy = true;
   followCamera.setOverShoulder(drawing);
+  if (drawing) playerPistol.setVisible(true);
   if (!drawing) {
     state.player.weaponDrawn = false;
     updateCrosshairVisibility();
   }
   updateHud();
   const keyword = drawing ? 'draw' : 'holster';
+  if (drawing) audio.draw();
+  else audio.holster();
   const played = playerAvatar.playClip(keyword, false, 4, () => finishWeaponToggle(drawing));
   if (!played) finishWeaponToggle(drawing);
   setInventoryOpen(false);
@@ -1028,7 +1378,9 @@ const resetPlayer = (keepLevel = false) => {
   weaponBusy = false;
   state.player.weaponDrawn = false;
   playerAvatar.setArmed(false);
+  playerPistol.setVisible(false);
   playerAvatar.resumeLocomotion();
+  muzzleFlash.hide();
   followCamera.setOverShoulder(false);
   state.progression.currentLevel = selectedLevel;
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
@@ -1040,14 +1392,19 @@ const resetPlayer = (keepLevel = false) => {
 };
 
 const beginGame = () => {
+  if (!gameReady) return;
   audio.start();
   state.running = true;
+  menuCameraActive = false;
+  activateGameCamera(scene, camera);
   clearDynamicObjects();
   resetPlayer(true);
   syncStartButtonLabel();
   updateHud();
   hideMessage();
-  if (isApexPeakLevel() && (sequencePhase === 'idle' || sequencePhase === 'done' || sequencePhase === 'seat')) {
+  if (isB3Level()) {
+    beginB3Arrival();
+  } else if (isApexPeakLevel() && (sequencePhase === 'idle' || sequencePhase === 'done' || sequencePhase === 'seat')) {
     beginSeatObjective();
   } else {
     refreshObjectivePresentation();
@@ -1149,6 +1506,7 @@ const clearInputState = () => {
 const gatherCameraIgnoreMeshes = () => {
   const ignored: BABYLON.AbstractMesh[] = [
     playerCollider,
+    muzzleFlash.mesh,
     ...playerAvatar.group.getChildMeshes(true),
   ];
   for (const particle of particles) ignored.push(particle.mesh);
@@ -1213,7 +1571,7 @@ const updatePlayer = (delta: number) => {
 
   if (state.input.jump) {
     if (requestJump(state.player)) {
-      audio.tone(360, 0.12, 'triangle', 0.04);
+      audio.jump();
     }
     // One-shot: Space and the on-screen button share this path. Consume even on
     // miss so a press during windup or in air cannot queue a second hop.
@@ -1227,6 +1585,14 @@ const updatePlayer = (delta: number) => {
 
   const jumpAnim = !state.player.grounded || state.player.jumpWindup > 0;
   playerAvatar.setLocomotion(moving, !jumpAnim);
+  audio.setWalk(
+    moving
+    && !jumpAnim
+    && state.running
+    && !state.inCutscene
+    && !inventoryOpen
+    && messageBox.classList.contains('hidden'),
+  );
 
   const forwardDot = moveHeading === null ? 0 : Math.sin(yaw) * Math.sin(moveHeading) + Math.cos(yaw) * Math.cos(moveHeading);
   return { moving, moveHeading: moving && forwardDot > 0.45 ? moveHeading : null };
@@ -1240,12 +1606,14 @@ const fireWeapon = () => {
   }
   state.shootCooldown = state.fireRate;
   audio.shoot();
+  if (playerPistol.isVisible()) muzzleFlash.showAt(playerPistol.muzzle);
+  else muzzleFlash.show(camera, gatherCameraIgnoreMeshes());
   playerAvatar.playClip('shoot', false, 3, () => playerAvatar.resumeLocomotion());
 };
 
 const levelAllowsCombat = () => {
   const config = getLevelDefinition(state.level);
-  return config.combat === true && config.libraryId !== 'apex-peak' && config.enemyCount > 0;
+  return config.combat === true && config.libraryId !== 'apex-peak' && config.libraryId !== 'b3-basement' && config.enemyCount > 0;
 };
 
 const spawnWaveEnemy = () => {
@@ -1491,17 +1859,23 @@ resetBtn.addEventListener('click', () => {
   loadModelBtn.style.display = '';
   syncStartButtonLabel();
   state.running = false;
+  menuCameraActive = true;
+  activateMenuCamera(scene, menuCamera);
 });
 
 const renderLoop = () => {
   const delta = engine.getDeltaTime() / 1000;
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
+  muzzleFlash.update();
 
   if (state.running) {
     if (state.inCutscene && activeCutscene) {
+      audio.setWalk(false);
       if (windowPierceLocked) placePierceAtOfficeWindow();
       if (terminalPierceLocked) placePierceAtTerminal();
       if (elevatorLocked) stepElevatorSet(activeCutscene.time);
+      if (activeCutscene.id === 'b3-door-reveal') stepB3Reveal(activeCutscene.time);
+      if (activeCutscene.id === 'b3-vat-break') stepB3VatBreak(activeCutscene.time);
       if (activeCutscene.id === 'apex-window' && activeCutscene.time >= 42.3) officeAlarm.start();
       const playing = stepCutscene(activeCutscene, delta);
       if (!playing) endCutscene();
@@ -1537,6 +1911,12 @@ const renderLoop = () => {
     if (sequencePhase === 'elevator' && elevatorDoorOpen < 1) {
       elevatorDoorOpen = Math.min(1, elevatorDoorOpen + delta / 1.05);
       applyElevatorDoors(elevatorDoorOpen);
+    }
+
+    if (isB3Level() && (sequencePhase === 'arrive' || sequencePhase === 'to-lab') && elevatorDoorOpen < 1) {
+      elevatorDoorOpen = Math.min(1, elevatorDoorOpen + delta / 1.15);
+      applyElevatorDoors(elevatorDoorOpen);
+      if (elevatorDoorOpen >= 1) beginLabDoorObjective();
     }
 
     if (boardDeparting) {
@@ -1615,8 +1995,16 @@ const renderLoop = () => {
       clearInputState();
       playerAvatar.setLocomotion(false, true);
     }
-    updateCamera(delta);
+    audio.setWalk(false);
+    if (!menuCameraActive) updateCamera(delta);
   }
+
+  musicTriggerPlayer.update(
+    camera.position,
+    delta,
+    state.running && audio.enabled,
+    state.inCutscene ? 0.18 : 1,
+  );
 
   scene.render();
 };
@@ -1635,7 +2023,7 @@ const loadCustomModel = (file: File) => {
   });
 };
 
-const themeOrder = ['Apex Peak', 'Neon Drift', 'Crimson Surge', 'Arctic Rift'] as const;
+const themeOrder = ['Apex Peak', 'B3 Basement', 'Neon Drift', 'Crimson Surge', 'Arctic Rift'] as const;
 let activeThemeName = typeof devLevelConfig?.theme === 'string' ? devLevelConfig.theme : 'Neon Drift';
 
 const cycleTheme = () => {
@@ -1649,13 +2037,15 @@ const cycleTheme = () => {
   }
 };
 
+const isLocalPlay = () => (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
+
 const renderLevelSelect = () => {
   levelList.innerHTML = '';
   const levels = getLevels();
 
   levels.forEach((level) => {
-    const comingSoon = level.comingSoon || level.id > 1;
-    const unlocked = !comingSoon && level.id <= state.progression.highestUnlocked;
+    const comingSoon = level.comingSoon;
+    const unlocked = !comingSoon && (isLocalPlay() || level.id <= state.progression.highestUnlocked);
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `level-item${comingSoon ? ' coming-soon' : unlocked ? '' : ' locked'}`;
@@ -1749,6 +2139,7 @@ const devActions: Record<string, () => void> = {
   },
   audio: () => {
     audio.enabled = !audio.enabled;
+    if (!audio.enabled) audio.setWalk(false);
     saveGame({ sound: audio.enabled });
     devOutput.value = `Audio ${audio.enabled ? 'enabled' : 'muted'}`;
   },

@@ -91,7 +91,7 @@
       "audio": "/assets/audio/cutscenes/room-for-grace/04-hale-b3.wav",
       "anim": "talk",
       "duration": 7.1,
-      "volume": 0.85
+      "volume": 1
     },
     {
       "at": 35.2,

@@ -1,10 +1,25 @@
 import { createEditorViewport, type SelectionTarget } from './viewport';
 import { fetchProjectTree, saveJsonFile, importModel, importFbxFile, importTextureFile, type FsTreeNode } from './fsApi';
 import { renderProjectTree, inferAssetKind, type DraggableAssetPayload } from './projectPanel';
-import { getAssetLibrary, invalidateAssetLibrary, resolveLibraryEntry } from '../game/modelLoader';
+import { getAssetLibrary, invalidateAssetLibrary, resolveLibraryEntry, resolveModelPath } from '../game/modelLoader';
 import { LEVEL_LIBRARY_PATH } from '../game/levels';
 import { applyMaterialToMesh, getMaterialDefs, invalidateMaterials, parseUvScale, resolveMeshUvScale, warmupMaterials, type MaterialDef } from '../game/materials';
-import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneTrigger } from '../game/sceneData';
+import {
+  CLIP_TRIMS_PATH,
+  clipFps,
+  clipFullDurationSec,
+  clipPlayRange,
+  clipTail,
+  loadClipTrims,
+  lookupClipTrim,
+  rememberClipTrims,
+  upsertClipTrim,
+  type ClipTrim,
+  type ClipTrimsFile,
+} from '../game/clipTrims';
+import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneNodeMetadata, type SceneTrigger } from '../game/sceneData';
+import { MUSIC_TRIGGER_TYPE, isMusicTrigger, musicTriggerAudio } from '../game/triggers';
+import { createUnlockedAudio, installAudioUnlock, unlockAudio } from '../game/audioUnlock';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -12,6 +27,7 @@ const canvas = $('viewportCanvas') as HTMLCanvasElement;
 const dropZone = $('sceneDropZone') as HTMLDivElement;
 const projectTreeEl = $('projectTree') as HTMLDivElement;
 const hierarchyTreeEl = $('hierarchyTree') as HTMLDivElement;
+const hierarchySearchEl = $('hierarchySearch') as HTMLInputElement;
 const inspectorEl = $('inspectorContent') as HTMLDivElement;
 const consoleEl = $('consoleOutput') as HTMLTextAreaElement;
 const levelSelectEl = $('levelSelect') as HTMLSelectElement;
@@ -29,17 +45,28 @@ type LevelManifestEntry = { id: string; name?: string; path: string; theme?: str
 // Unity component list.
 const KNOWN_COMPONENTS = ['Transform', 'Collider', 'AudioSource', 'Light', 'Renderer', 'Trigger'];
 
+const TRIGGER_TYPES: { value: string; label: string }[] = [
+  { value: 'enter_zone', label: 'Enter Zone' },
+  { value: 'checkpoint', label: 'Checkpoint' },
+  { value: 'cutscene', label: 'Cutscene' },
+  { value: 'npc_exit', label: 'NPC Exit' },
+  { value: MUSIC_TRIGGER_TYPE, label: 'Music' },
+];
+
 let currentLevelPath = '/levels/apex-peak.json';
 let sceneData: SceneData | null = null;
 let selection: SelectionTarget | null = null;
 let saveTimer: number | undefined;
 let materialOptions: MaterialDef[] = [];
+let projectAudioPaths: string[] = [];
+let previewAudio: HTMLAudioElement | null = null;
 
 const viewport = createEditorViewport(canvas, {
   onSelect: (target) => {
     selection = target;
     renderHierarchy();
     renderInspector();
+    if (!animTrimPanel.hidden && target?.kind === 'asset') void openAnimTrimPanel(target.id);
   },
   onTransformChange: (target) => {
     commitNodeTransformToData(target);
@@ -51,6 +78,27 @@ const viewport = createEditorViewport(canvas, {
 const findAsset = (id: string): SceneAssetInstance | undefined => sceneData?.assets.find((a) => a.id === id);
 const findTrigger = (id: string): SceneTrigger | undefined => sceneData?.triggers.find((t) => t.id === id);
 
+const readAssetPosition = (asset: SceneAssetInstance) => ({
+  x: asset.position?.x ?? asset.x ?? 0,
+  y: asset.position?.y ?? asset.y ?? 0,
+  z: asset.position?.z ?? asset.z ?? 0,
+});
+
+/** Keep `position` and `x/y/z` identical. Load prefers `position`, so a gizmo write to `x` alone is discarded on refresh. */
+const writeAssetPosition = (asset: SceneAssetInstance, x: number, y: number, z: number) => {
+  asset.x = x;
+  asset.y = y;
+  asset.z = z;
+  asset.position = { x, y, z };
+};
+
+const writeTriggerPosition = (trigger: SceneTrigger, x: number, y: number, z: number) => {
+  trigger.x = x;
+  trigger.y = y;
+  trigger.z = z;
+  trigger.position = { x, y, z };
+};
+
 const commitNodeTransformToData = (target: SelectionTarget) => {
   if (!sceneData) return;
   if (target.kind === 'asset') {
@@ -59,9 +107,7 @@ const commitNodeTransformToData = (target: SelectionTarget) => {
     if (!asset || !node) return;
     const transformNode = node as import('@babylonjs/core').TransformNode;
     if (transformNode.position) {
-      asset.x = transformNode.position.x;
-      asset.y = transformNode.position.y;
-      asset.z = transformNode.position.z;
+      writeAssetPosition(asset, transformNode.position.x, transformNode.position.y, transformNode.position.z);
     }
     if (transformNode.rotation) {
       asset.rotation = { x: transformNode.rotation.x, y: transformNode.rotation.y, z: transformNode.rotation.z };
@@ -74,26 +120,34 @@ const commitNodeTransformToData = (target: SelectionTarget) => {
     const node = viewport.getTriggerNode(target.id);
     if (!trigger || !node) return;
     const transformNode = node as import('@babylonjs/core').TransformNode;
-    trigger.x = transformNode.position.x;
-    trigger.y = transformNode.position.y;
-    trigger.z = transformNode.position.z;
+    writeTriggerPosition(trigger, transformNode.position.x, transformNode.position.y, transformNode.position.z);
   }
 };
 
-const scheduleSave = (immediate = false) => {
-  if (!sceneData) return;
+const scheduleSave = (immediate = false): Promise<void> => {
+  if (!sceneData) return Promise.resolve();
   window.clearTimeout(saveTimer);
+  saveTimer = undefined;
   const run = async () => {
     saveStatusEl.textContent = 'Saving…';
     const ok = await saveJsonFile(currentLevelPath, sceneData);
     saveStatusEl.textContent = ok ? 'Saved' : 'Save failed (is npm run dev active?)';
     log(ok ? `Saved ${currentLevelPath}` : `Failed to save ${currentLevelPath}`);
   };
-  if (immediate) {
-    void run();
-  } else {
-    saveTimer = window.setTimeout(run, 450);
-  }
+  if (immediate) return run();
+  return new Promise((resolve) => {
+    saveTimer = window.setTimeout(() => {
+      saveTimer = undefined;
+      void run().then(resolve);
+    }, 450);
+  });
+};
+
+const flushSceneSave = async () => {
+  if (!saveTimer) return;
+  window.clearTimeout(saveTimer);
+  saveTimer = undefined;
+  await scheduleSave(true);
 };
 
 const degToRad = (deg: number) => (deg * Math.PI) / 180;
@@ -112,6 +166,45 @@ const makeField = (label: string, value: number, onChange: (next: number) => voi
   wrap.appendChild(labelEl);
   wrap.appendChild(input);
   return wrap;
+};
+
+const collectAudioPaths = (nodes: FsTreeNode[], acc: string[] = []): string[] => {
+  nodes.forEach((node) => {
+    if (node.isDir) collectAudioPaths(node.children ?? [], acc);
+    else if (inferAssetKind(node.name) === 'audio') acc.push(node.path);
+  });
+  return acc;
+};
+
+const stopPreviewAudio = () => {
+  if (!previewAudio) return;
+  previewAudio.pause();
+  previewAudio.src = '';
+  previewAudio = null;
+};
+
+const playPreviewAudio = (url: string, fadeSeconds: number) => {
+  stopPreviewAudio();
+  if (!url) return;
+  unlockAudio();
+  const element = createUnlockedAudio(url);
+  element.loop = true;
+  element.volume = 0;
+  previewAudio = element;
+  const started = performance.now();
+  const fade = Math.max(0.05, fadeSeconds);
+  const tick = () => {
+    if (previewAudio !== element) return;
+    const t = Math.min(1, (performance.now() - started) / (fade * 1000));
+    element.volume = t;
+    if (t < 1) requestAnimationFrame(tick);
+  };
+  void element.play().then(() => requestAnimationFrame(tick)).catch(() => {});
+};
+
+const ensureTriggerData = (trigger: SceneTrigger): Record<string, unknown> => {
+  if (!trigger.data) trigger.data = {};
+  return trigger.data;
 };
 
 const renderNumberRow = (label: string, value: number, onChange: (next: number) => void): HTMLElement => {
@@ -238,6 +331,7 @@ const applyAssetEdit = (asset: SceneAssetInstance, patch: Partial<SceneAssetInst
   if (node) {
     const t = node as import('@babylonjs/core').TransformNode;
     if (patch.x !== undefined || patch.y !== undefined || patch.z !== undefined) {
+      writeAssetPosition(asset, asset.x ?? asset.position?.x ?? 0, asset.y ?? asset.position?.y ?? 0, asset.z ?? asset.position?.z ?? 0);
       t.position?.set(asset.x ?? 0, asset.y ?? 0, asset.z ?? 0);
     }
     if (patch.rotation && t.rotation) {
@@ -295,6 +389,224 @@ const refreshMaterialOptions = async () => {
   materialOptions = await getMaterialDefs();
 };
 
+const animTrimPanel = $('animTrimPanel');
+const animTrimClipSelect = $('animTrimClipSelect') as HTMLSelectElement;
+const animTrimHint = $('animTrimHint');
+const animTrimMeta = $('animTrimMeta');
+const animTrimStatus = $('animTrimStatus');
+const animTrimStartRange = $('animTrimStartRange') as HTMLInputElement;
+const animTrimEndRange = $('animTrimEndRange') as HTMLInputElement;
+const animTrimStartNum = $('animTrimStartNum') as HTMLInputElement;
+const animTrimEndNum = $('animTrimEndNum') as HTMLInputElement;
+const animTrimStartFrame = $('animTrimStartFrame');
+const animTrimEndFrame = $('animTrimEndFrame');
+
+let clipTrims: ClipTrimsFile = { version: 1, clips: {}, assets: {} };
+let trimAssetId: string | null = null;
+let trimPreviewClipName: string | null = null;
+let trimSaveTimer: number | undefined;
+let trimUiSyncing = false;
+
+const animationGroupsForAsset = (assetId: string) => {
+  const node = viewport.getAssetNode(assetId);
+  if (!node) return [];
+  const meta = node.metadata as SceneNodeMetadata | undefined;
+  const stored = (meta?.clipGroups ?? []).filter((clip) => clip && viewport.scene.animationGroups.includes(clip));
+  if (stored.length) return stored;
+  const ids = new Set<number>();
+  const add = (item: { uniqueId?: number } | null | undefined) => {
+    if (item && typeof item.uniqueId === 'number') ids.add(item.uniqueId);
+  };
+  add(node);
+  node.getChildMeshes?.(true)?.forEach(add);
+  node.getDescendants?.(true)?.forEach(add);
+  return viewport.scene.animationGroups.filter((group) =>
+    group.targetedAnimations.some((ta) => ta.target && ids.has((ta.target as { uniqueId: number }).uniqueId)),
+  );
+};
+
+const glbPathForAsset = async (asset: SceneAssetInstance) => {
+  const node = viewport.getAssetNode(asset.id);
+  const metaPath = (node?.metadata as SceneNodeMetadata | undefined)?.modelPath;
+  if (metaPath) return metaPath;
+  const library = await getAssetLibrary();
+  return resolveModelPath(library, asset.assetId) ?? '';
+};
+
+const waitForAssetClips = async (assetId: string, timeoutMs = 8000) => {
+  const started = performance.now();
+  while (performance.now() - started < timeoutMs) {
+    const clips = animationGroupsForAsset(assetId);
+    if (clips.length) return clips;
+    await new Promise((resolve) => window.setTimeout(resolve, 120));
+  }
+  return animationGroupsForAsset(assetId);
+};
+
+const selectedTrimClip = () => {
+  if (!trimAssetId) return null;
+  const name = animTrimClipSelect.value;
+  return animationGroupsForAsset(trimAssetId).find((clip) => clip.name === name) ?? null;
+};
+
+const stopTrimPreview = () => {
+  if (!trimAssetId) return;
+  animationGroupsForAsset(trimAssetId).forEach((clip) => clip.stop(true));
+};
+
+const playTrimPreview = (loop: boolean) => {
+  const clip = selectedTrimClip();
+  if (!clip || !trimAssetId) return;
+  const trim: ClipTrim = {
+    start: Number(animTrimStartNum.value) || 0,
+    end: Number(animTrimEndNum.value) || 0,
+  };
+  const { from, to } = clipPlayRange(clip, trim);
+  stopTrimPreview();
+  clip.start(loop, 1, from, to, false);
+  trimPreviewClipName = clip.name;
+};
+
+const frameLabel = (seconds: number, fps: number, origin: number) =>
+  `fr ${Math.round(origin + seconds * fps)}`;
+
+const refreshTrimFields = () => {
+  const clip = selectedTrimClip();
+  const asset = trimAssetId ? findAsset(trimAssetId) : undefined;
+  if (!clip || !asset) {
+    animTrimMeta.textContent = '';
+    return;
+  }
+  const fps = clipFps(clip);
+  const duration = clipFullDurationSec(clip);
+  const start = Number(animTrimStartNum.value) || 0;
+  const end = Number(animTrimEndNum.value) || 0;
+  animTrimMeta.textContent = `${clipTail(clip.name)} · ${duration.toFixed(2)}s full · ${fps} fps · local frames ${clip.from.toFixed(0)}–${clip.to.toFixed(0)}`;
+  animTrimStartFrame.textContent = frameLabel(start, fps, clip.from);
+  animTrimEndFrame.textContent = frameLabel(end, fps, clip.from);
+};
+
+const applyTrimToInputs = (clip: import('@babylonjs/core').AnimationGroup, glbPath: string) => {
+  const duration = Math.max(clipFullDurationSec(clip), 0.01);
+  const stored = lookupClipTrim(clipTrims, clipTail(clip.name), glbPath);
+  const start = stored?.start ?? 0;
+  const end = stored?.end ?? duration;
+  trimUiSyncing = true;
+  [animTrimStartRange, animTrimEndRange, animTrimStartNum, animTrimEndNum].forEach((input) => {
+    input.min = '0';
+    input.max = duration.toFixed(3);
+    input.step = '0.01';
+  });
+  animTrimStartRange.value = String(start);
+  animTrimEndRange.value = String(end);
+  animTrimStartNum.value = start.toFixed(2);
+  animTrimEndNum.value = end.toFixed(2);
+  trimUiSyncing = false;
+  refreshTrimFields();
+};
+
+const persistTrim = (immediate = false): Promise<void> => {
+  const clip = selectedTrimClip();
+  const asset = trimAssetId ? findAsset(trimAssetId) : undefined;
+  if (!clip || !asset) return Promise.resolve();
+  window.clearTimeout(trimSaveTimer);
+  trimSaveTimer = undefined;
+  const run = async () => {
+    const glbPath = await glbPathForAsset(asset);
+    const duration = clipFullDurationSec(clip);
+    const start = Math.max(0, Math.min(Number(animTrimStartNum.value) || 0, duration));
+    const end = Math.max(start + 1 / clipFps(clip), Math.min(Number(animTrimEndNum.value) || duration, duration));
+    const isFull = start <= 0.0005 && Math.abs(end - duration) <= 0.0005;
+    clipTrims = upsertClipTrim(clipTrims, clipTail(clip.name), isFull ? null : { start, end }, glbPath);
+    rememberClipTrims(clipTrims);
+    animTrimStatus.textContent = 'Saving trims…';
+    const ok = await saveJsonFile(CLIP_TRIMS_PATH, clipTrims);
+    animTrimStatus.textContent = ok
+      ? `Saved ${clipTail(clip.name)}${isFull ? ' (full clip)' : ''} → ${CLIP_TRIMS_PATH}`
+      : 'Trim save failed (is npm run dev active?)';
+    if (ok) log(`Saved animation trim for ${clipTail(clip.name)}`);
+  };
+  if (immediate) return run();
+  return new Promise((resolve) => {
+    trimSaveTimer = window.setTimeout(() => {
+      trimSaveTimer = undefined;
+      void run().then(resolve);
+    }, 400);
+  });
+};
+
+const flushTrimSave = async () => {
+  if (!trimSaveTimer) return;
+  window.clearTimeout(trimSaveTimer);
+  trimSaveTimer = undefined;
+  await persistTrim(true);
+};
+
+const fillTrimClipSelect = (clips: import('@babylonjs/core').AnimationGroup[], keepName?: string | null) => {
+  const previous = keepName ?? animTrimClipSelect.value;
+  animTrimClipSelect.innerHTML = '';
+  const sorted = [...clips].sort((a, b) => clipTail(a.name).localeCompare(clipTail(b.name)));
+  sorted.forEach((clip) => {
+    const option = document.createElement('option');
+    option.value = clip.name;
+    option.textContent = clipTail(clip.name);
+    animTrimClipSelect.appendChild(option);
+  });
+  const match = sorted.find((clip) => clip.name === previous) ?? sorted[0];
+  if (match) animTrimClipSelect.value = match.name;
+};
+
+const openAnimTrimPanel = async (assetId?: string) => {
+  animTrimPanel.hidden = false;
+  let id = assetId ?? (selection?.kind === 'asset' ? selection.id : null);
+  if (!id && sceneData) {
+    const player = sceneData.assets.find((asset) => asset.assetId === 'asset-ch33-hero' || /player|hero|ch33/i.test(asset.name ?? ''));
+    id = player?.id ?? sceneData.assets.find((asset) => (asset.kind ?? asset.type) === 'model')?.id ?? null;
+    if (id) {
+      const node = viewport.getAssetNode(id);
+      if (node) viewport.selectNode(node);
+    }
+  }
+  trimAssetId = id;
+  if (!id) {
+    animTrimHint.textContent = 'Select a character in the Hierarchy, then open Animation trim.';
+    animTrimClipSelect.innerHTML = '';
+    return;
+  }
+  animTrimHint.textContent = 'Loading clips…';
+  const clips = await waitForAssetClips(id);
+  if (trimAssetId !== id) return;
+  if (!clips.length) {
+    animTrimHint.textContent = 'No AnimationGroups on this object yet (still importing, or not a skinned character).';
+    animTrimClipSelect.innerHTML = '';
+    return;
+  }
+  const asset = findAsset(id);
+  animTrimHint.textContent = asset ? `${asset.name ?? asset.assetId} · exact clip tails` : 'Exact clip tails';
+  fillTrimClipSelect(clips, trimPreviewClipName);
+  const clip = selectedTrimClip();
+  if (clip && asset) applyTrimToInputs(clip, await glbPathForAsset(asset));
+};
+
+const onTrimInput = (source: 'start' | 'end', value: number) => {
+  if (trimUiSyncing) return;
+  const clip = selectedTrimClip();
+  const duration = clip ? clipFullDurationSec(clip) : Number(animTrimEndRange.max) || 1;
+  const minGap = clip ? 1 / clipFps(clip) : 0.01;
+  let start = source === 'start' ? value : Number(animTrimStartNum.value) || 0;
+  let end = source === 'end' ? value : Number(animTrimEndNum.value) || duration;
+  start = Math.max(0, Math.min(start, duration - minGap));
+  end = Math.max(start + minGap, Math.min(end, duration));
+  trimUiSyncing = true;
+  animTrimStartRange.value = String(start);
+  animTrimStartNum.value = start.toFixed(2);
+  animTrimEndRange.value = String(end);
+  animTrimEndNum.value = end.toFixed(2);
+  trimUiSyncing = false;
+  refreshTrimFields();
+  persistTrim();
+};
+
 const renderInspector = () => {
   inspectorEl.innerHTML = '';
 
@@ -326,7 +638,7 @@ const renderInspector = () => {
     inspectorEl.appendChild(kindRow);
 
     inspectorEl.appendChild(
-      renderVectorRow('Position', { x: asset.x ?? 0, y: asset.y ?? 0, z: asset.z ?? 0 }, (next) =>
+      renderVectorRow('Position', readAssetPosition(asset), (next) =>
         applyAssetEdit(asset, { x: next.x, y: next.y, z: next.z }),
       ),
     );
@@ -395,6 +707,19 @@ const renderInspector = () => {
 
     inspectorEl.appendChild(renderComponentsRow(asset));
 
+    const clips = animationGroupsForAsset(asset.id);
+    if (clips.length > 0 || (asset.kind ?? asset.type) === 'model') {
+      const trimRow = document.createElement('div');
+      trimRow.className = 'inspector-row';
+      trimRow.innerHTML = `<div class="label"><span>Animation</span></div>`;
+      const trimBtn = document.createElement('button');
+      trimBtn.type = 'button';
+      trimBtn.textContent = clips.length ? `Trim clips (${clips.length})` : 'Animation trim';
+      trimBtn.addEventListener('click', () => void openAnimTrimPanel(asset.id));
+      trimRow.appendChild(trimBtn);
+      inspectorEl.appendChild(trimRow);
+    }
+
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = 'Delete Object';
     deleteBtn.className = 'danger';
@@ -436,11 +761,142 @@ const renderInspector = () => {
   labelRow.appendChild(labelInput);
   inspectorEl.appendChild(labelRow);
 
+  const typeRow = document.createElement('div');
+  typeRow.className = 'inspector-row';
+  typeRow.innerHTML = `<div class="label"><span>Type</span></div>`;
+  const typeSelect = document.createElement('select');
+  const typeValues = TRIGGER_TYPES.map((entry) => entry.value);
+  TRIGGER_TYPES.forEach((entry) => {
+    const option = document.createElement('option');
+    option.value = entry.value;
+    option.textContent = entry.label;
+    typeSelect.appendChild(option);
+  });
+  if (trigger.type && !typeValues.includes(trigger.type)) {
+    const option = document.createElement('option');
+    option.value = trigger.type;
+    option.textContent = trigger.type;
+    typeSelect.appendChild(option);
+  }
+  typeSelect.value = trigger.type || 'enter_zone';
+  typeSelect.addEventListener('change', () => {
+    trigger.type = typeSelect.value;
+    if (isMusicTrigger(trigger)) {
+      const data = ensureTriggerData(trigger);
+      if (data.audio == null && data.path == null) data.audio = '';
+      if (data.radius == null) data.radius = 8;
+      if (data.loop == null) data.loop = true;
+      if (data.fadeSeconds == null) data.fadeSeconds = 2;
+      if (!trigger.label || trigger.label === 'New Trigger') trigger.label = 'Music';
+    }
+    renderHierarchy();
+    renderInspector();
+    scheduleSave();
+  });
+  typeRow.appendChild(typeSelect);
+  inspectorEl.appendChild(typeRow);
+
   inspectorEl.appendChild(
-    renderVectorRow('Position', { x: trigger.x ?? 0, y: trigger.y ?? 0, z: trigger.z ?? 0 }, (next) => {
-      trigger.x = next.x;
-      trigger.y = next.y;
-      trigger.z = next.z;
+    renderNumberRow('Radius', Number(trigger.data?.radius ?? (isMusicTrigger(trigger) ? 8 : 1.7)), (next) => {
+      ensureTriggerData(trigger).radius = Math.max(0.01, next);
+      scheduleSave();
+    }),
+  );
+
+  if (isMusicTrigger(trigger)) {
+    const audioPath = musicTriggerAudio(trigger);
+    const audioRow = document.createElement('div');
+    audioRow.className = 'inspector-row';
+    audioRow.innerHTML = `<div class="label"><span>Audio</span></div>`;
+    const audioWrap = document.createElement('div');
+    audioWrap.style.display = 'grid';
+    audioWrap.style.gap = '6px';
+    const audioSelect = document.createElement('select');
+    const blank = document.createElement('option');
+    blank.value = '';
+    blank.textContent = 'Custom path…';
+    audioSelect.appendChild(blank);
+    const paths = [...projectAudioPaths];
+    if (audioPath && !paths.includes(audioPath)) paths.unshift(audioPath);
+    paths.forEach((path) => {
+      const option = document.createElement('option');
+      option.value = path;
+      option.textContent = path.replace(/^\/assets\//, '');
+      audioSelect.appendChild(option);
+    });
+    audioSelect.value = paths.includes(audioPath) ? audioPath : '';
+    const audioInput = document.createElement('input');
+    audioInput.type = 'text';
+    audioInput.placeholder = '/assets/audio/loop.wav';
+    audioInput.value = audioPath;
+    const commitAudio = (value: string) => {
+      const data = ensureTriggerData(trigger);
+      data.audio = value;
+      delete data.path;
+      scheduleSave();
+    };
+    audioSelect.addEventListener('change', () => {
+      if (audioSelect.value) {
+        audioInput.value = audioSelect.value;
+        commitAudio(audioSelect.value);
+      }
+    });
+    audioInput.addEventListener('change', () => commitAudio(audioInput.value.trim()));
+    audioWrap.appendChild(audioSelect);
+    audioWrap.appendChild(audioInput);
+    audioRow.appendChild(audioWrap);
+    inspectorEl.appendChild(audioRow);
+
+    const loopRow = document.createElement('div');
+    loopRow.className = 'inspector-row';
+    loopRow.innerHTML = `<div class="label"><span>Loop</span></div>`;
+    const loopInput = document.createElement('input');
+    loopInput.type = 'checkbox';
+    loopInput.checked = trigger.data?.loop !== false;
+    loopInput.addEventListener('change', () => {
+      ensureTriggerData(trigger).loop = loopInput.checked;
+      scheduleSave();
+    });
+    loopRow.appendChild(loopInput);
+    inspectorEl.appendChild(loopRow);
+
+    inspectorEl.appendChild(
+      renderNumberRow('Fade (s)', Number(trigger.data?.fadeSeconds ?? 2), (next) => {
+        ensureTriggerData(trigger).fadeSeconds = Math.max(0, next);
+        scheduleSave();
+      }),
+    );
+
+    const previewRow = document.createElement('div');
+    previewRow.className = 'inspector-row';
+    previewRow.innerHTML = `<div class="label"><span>Preview</span></div>`;
+    const previewBtn = document.createElement('button');
+    previewBtn.type = 'button';
+    previewBtn.textContent = 'Play';
+    previewBtn.addEventListener('click', () => {
+      const url = musicTriggerAudio(trigger);
+      if (!url) {
+        log('Set an audio path before previewing.');
+        return;
+      }
+      playPreviewAudio(url, Number(trigger.data?.fadeSeconds ?? 2));
+      log(`Preview ${url}`);
+    });
+    const stopBtn = document.createElement('button');
+    stopBtn.type = 'button';
+    stopBtn.textContent = 'Stop';
+    stopBtn.addEventListener('click', () => stopPreviewAudio());
+    const btnWrap = document.createElement('div');
+    btnWrap.className = 'field-row';
+    btnWrap.appendChild(previewBtn);
+    btnWrap.appendChild(stopBtn);
+    previewRow.appendChild(btnWrap);
+    inspectorEl.appendChild(previewRow);
+  }
+
+  inspectorEl.appendChild(
+    renderVectorRow('Position', { x: trigger.position?.x ?? trigger.x ?? 0, y: trigger.position?.y ?? trigger.y ?? 0, z: trigger.position?.z ?? trigger.z ?? 0 }, (next) => {
+      writeTriggerPosition(trigger, next.x, next.y, next.z);
       const node = viewport.getTriggerNode(trigger.id);
       (node as import('@babylonjs/core').TransformNode)?.position?.set(next.x, next.y, next.z);
       scheduleSave();
@@ -518,20 +974,48 @@ const renderHierarchy = () => {
     ...sceneData.triggers.map((trigger) => ({
       target: { kind: 'trigger' as const, id: trigger.id },
       label: trigger.label ?? trigger.type,
-      tag: 'trigger',
+      tag: trigger.type || 'trigger',
       parentId: trigger.parentId,
     })),
   ];
+  const needle = hierarchySearchEl.value.trim().toLowerCase();
+  const matchesQuery = (entry: HierarchyEntry) => {
+    if (!needle) return true;
+    return [entry.label, entry.tag, entry.target.id].some((value) => String(value).toLowerCase().includes(needle));
+  };
   const assetIds = new Set(sceneData.assets.map((a) => a.id));
+  const byId = new Map(entries.map((entry) => [entry.target.id, entry]));
+  const visible = new Set<string>();
+  if (!needle) {
+    entries.forEach((entry) => visible.add(entry.target.id));
+  } else {
+    entries.forEach((entry) => {
+      if (!matchesQuery(entry)) return;
+      let current: string | undefined = entry.target.id;
+      const seen = new Set<string>();
+      while (current && !seen.has(current)) {
+        seen.add(current);
+        visible.add(current);
+        const parent: string | undefined = byId.get(current)?.parentId;
+        current = parent && assetIds.has(parent) ? parent : undefined;
+      }
+    });
+  }
+
   const childrenOf = new Map<string | undefined, HierarchyEntry[]>();
   entries.forEach((entry) => {
     const key = entry.parentId && assetIds.has(entry.parentId) ? entry.parentId : undefined;
     childrenOf.set(key, [...(childrenOf.get(key) ?? []), entry]);
   });
 
+  if (needle && visible.size === 0) {
+    hierarchyTreeEl.innerHTML = '<div class="hierarchy-empty">No matching objects</div>';
+    return;
+  }
+
   const renderLevel = (parentKey: string | undefined, depth: number, visited: Set<string>) => {
     (childrenOf.get(parentKey) ?? []).forEach((entry) => {
-      if (visited.has(entry.target.id)) return;
+      if (visited.has(entry.target.id) || !visible.has(entry.target.id)) return;
       const row = document.createElement('div');
       const isActive = selection?.kind === entry.target.kind && selection.id === entry.target.id;
       row.className = `hierarchy-item${isActive ? ' active' : ''}`;
@@ -577,6 +1061,10 @@ const renderHierarchy = () => {
   };
   renderLevel(undefined, 0, new Set());
 };
+
+hierarchySearchEl.addEventListener('input', () => {
+  renderHierarchy();
+});
 
 hierarchyTreeEl.addEventListener('dragover', (e) => {
   if (!dragged) return;
@@ -641,6 +1129,7 @@ const loadProjectTree = async () => {
     projectTreeEl.innerHTML = '<div class="fs-row">Unable to read project files. Run with `npm run dev`.</div>';
     return;
   }
+  projectAudioPaths = collectAudioPaths(tree.assets ?? []).sort();
   renderProjectTree(
     projectTreeEl,
     [
@@ -850,7 +1339,10 @@ $('refreshAssetsBtn').addEventListener('click', () => void loadProjectTree());
 $('saveJsonBtn').addEventListener('click', () => scheduleSave(true));
 
 $('playSceneBtn').addEventListener('click', () => {
-  window.location.href = '/game.html?dev=1';
+  void (async () => {
+    await Promise.all([flushSceneSave(), flushTrimSave()]);
+    window.location.href = '/game.html?dev=1';
+  })();
 });
 
 $('exportSceneBtn').addEventListener('click', () => {
@@ -899,10 +1391,11 @@ $('addTriggerBtn').addEventListener('click', () => {
     z: point.z,
   };
   sceneData.triggers.push(trigger);
-  viewport.addTriggerNode(trigger);
+  const node = viewport.addTriggerNode(trigger);
+  viewport.selectNode(node);
   renderHierarchy();
   scheduleSave(true);
-  log('Added trigger to scene.');
+  log('Added trigger to scene. Set Type to Music for ambience.');
 });
 
 $('addObjectBtn').addEventListener('click', () => {
@@ -1108,6 +1601,35 @@ toolsMenuBtn.addEventListener('click', (event) => {
 document.addEventListener('click', () => setToolsMenuOpen(false));
 toolsMenuDropdown.addEventListener('click', (event) => event.stopPropagation());
 
+$('animTrimBtn').addEventListener('click', () => {
+  setToolsMenuOpen(false);
+  void openAnimTrimPanel();
+});
+$('animTrimCloseBtn').addEventListener('click', () => {
+  stopTrimPreview();
+  animTrimPanel.hidden = true;
+});
+animTrimClipSelect.addEventListener('change', () => {
+  const clip = selectedTrimClip();
+  const asset = trimAssetId ? findAsset(trimAssetId) : undefined;
+  if (!clip || !asset) return;
+  void glbPathForAsset(asset).then((path) => applyTrimToInputs(clip, path));
+});
+animTrimStartRange.addEventListener('input', () => onTrimInput('start', Number(animTrimStartRange.value)));
+animTrimEndRange.addEventListener('input', () => onTrimInput('end', Number(animTrimEndRange.value)));
+animTrimStartNum.addEventListener('change', () => onTrimInput('start', Number(animTrimStartNum.value)));
+animTrimEndNum.addEventListener('change', () => onTrimInput('end', Number(animTrimEndNum.value)));
+$('animTrimPreviewBtn').addEventListener('click', () => playTrimPreview(false));
+$('animTrimLoopBtn').addEventListener('click', () => playTrimPreview(true));
+$('animTrimStopBtn').addEventListener('click', () => stopTrimPreview());
+$('animTrimResetBtn').addEventListener('click', () => {
+  const clip = selectedTrimClip();
+  if (!clip) return;
+  onTrimInput('start', 0);
+  onTrimInput('end', clipFullDurationSec(clip));
+  persistTrim(true);
+});
+
 const closeTextureImport = () => {
   textureImportOverlay.hidden = true;
   textureImportPickBtn.disabled = false;
@@ -1207,12 +1729,15 @@ textureImportOverlay.addEventListener('click', (event) => {
   if (event.target === textureImportOverlay) closeTextureImport();
 });
 
+installAudioUnlock();
+
 (async function init() {
+  clipTrims = await loadClipTrims();
   await populateLevelSelect();
   await loadProjectTree();
   await refreshMaterialOptions();
   await loadLevel(currentLevelPath);
-  log('Editor ready. Tools → Add Textures to import maps. Select a mesh to assign a material.');
+  log('Editor ready. Tools → Animation trim to set clip start/end. Tools → Add Textures to import maps.');
 })();
 
 // Exposed for debugging in the browser console.

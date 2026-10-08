@@ -3,61 +3,138 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#08131d" />
+    <meta name="theme-color" content="#05080c" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>PH Origins</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --bg: #07141e;
-        --panel: rgba(10, 18, 28, 0.82);
-        --border: rgba(255,255,255,0.12);
-        --text: #eefaff;
-        --muted: #9bb0c1;
+        --bg: #05080c;
+        --text: #f3f1ea;
+        --muted: #b7c0c8;
         --accent: #67d2ff;
         --good: #7af0c9;
+        --gold: #d4b483;
       }
 
       * { box-sizing: border-box; }
+
       html, body {
         margin: 0;
         width: 100%;
-        min-height: 100vh;
+        min-height: 100%;
+        min-height: 100dvh;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Barlow Condensed", Arial, Helvetica, sans-serif;
+      }
+
+      body {
         display: grid;
         place-items: center;
-        background: radial-gradient(circle at top, #102637 0%, #07141e 45%, #030a10 100%);
-        color: var(--text);
-        font-family: Arial, Helvetica, sans-serif;
+        overflow: hidden;
+      }
+
+      .stage {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background: #000;
+        pointer-events: none;
+      }
+
+      .stage-shot {
+        position: absolute;
+        inset: 0;
+        background: #000 center / cover no-repeat;
+        opacity: 0;
+        transform: scale(1.04);
+        will-change: opacity, transform;
+      }
+
+      .stage-shot.is-live {
+        opacity: 1;
+        animation: ken 28s linear forwards;
+      }
+
+      .stage-black {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        opacity: 0;
+        transition: opacity 1.8s ease-in-out;
+        will-change: opacity;
+      }
+
+      .stage-black.is-in {
+        opacity: 1;
+      }
+
+      .stage-vignette {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 50% 42%, transparent 18%, rgba(0, 0, 0, 0.55) 58%, rgba(0, 0, 0, 0.88) 100%),
+          linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, transparent 22%, transparent 62%, rgba(0, 0, 0, 0.72) 100%);
+      }
+
+      .stage-grain {
+        position: absolute;
+        inset: 0;
+        opacity: 0.07;
+        background-image: repeating-radial-gradient(circle at 20% 20%, #fff 0 0.5px, transparent 0.6px 3px);
+        mix-blend-mode: overlay;
+      }
+
+      @keyframes ken {
+        from { transform: scale(1.04); }
+        to { transform: scale(1.12); }
       }
 
       .panel {
+        position: relative;
+        z-index: 1;
         width: min(560px, calc(100vw - 32px));
-        padding: 36px 28px;
-        border-radius: 24px;
-        border: 1px solid var(--border);
-        background: rgba(7, 14, 20, 0.82);
-        box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+        padding: 36px 28px 32px;
+        border-radius: 4px;
+        border: 1px solid rgba(212, 180, 131, 0.22);
+        background: rgba(6, 10, 14, 0.62);
+        box-shadow:
+          0 30px 80px rgba(0, 0, 0, 0.55),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
         text-align: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
       }
 
       .eyebrow {
-        margin: 0 0 12px;
-        color: var(--good);
-        letter-spacing: 0.28rem;
+        margin: 0 0 10px;
+        color: var(--gold);
+        letter-spacing: 0.38rem;
         text-transform: uppercase;
-        font-size: 11px;
-        font-weight: 800;
+        font-size: 12px;
+        font-weight: 700;
       }
 
       h1 {
-        margin: 0 0 12px;
-        font-size: clamp(38px, 8vw, 64px);
+        margin: 0 0 10px;
+        font-family: "Cormorant Garamond", Georgia, serif;
+        font-size: clamp(42px, 9vw, 72px);
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        line-height: 0.95;
       }
 
       p {
-        margin: 0;
+        margin: 0 auto;
+        max-width: 38ch;
         color: var(--muted);
-        line-height: 1.6;
-        font-size: 16px;
+        line-height: 1.55;
+        font-size: 18px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
       }
 
       .button-wrap {
@@ -74,9 +151,9 @@
         padding: 16px 26px;
         border-radius: 999px;
         text-decoration: none;
-        font-size: 12px;
-        font-weight: 900;
-        letter-spacing: 0.2rem;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.22rem;
         text-transform: uppercase;
       }
 
@@ -86,16 +163,93 @@
         box-shadow: 0 16px 34px rgba(103, 210, 255, 0.28);
       }
 
+      .play-btn:focus-visible,
+      .music-btn:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 3px;
+      }
+
       .dev-btn {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.12);
         color: var(--text);
+      }
+
+      .music-btn {
+        position: fixed;
+        z-index: 2;
+        top: max(16px, env(safe-area-inset-top));
+        right: max(16px, env(safe-area-inset-right));
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid rgba(212, 180, 131, 0.35);
+        background: rgba(8, 12, 16, 0.72);
+        color: var(--gold);
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      .music-btn svg {
+        width: 20px;
+        height: 20px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .music-btn .icon-on { display: none; }
+      .music-btn.is-on .icon-off { display: none; }
+      .music-btn.is-on .icon-on { display: block; }
+      .music-btn.is-on {
+        color: var(--good);
+        border-color: rgba(122, 240, 201, 0.4);
+      }
+
+      @media (max-width: 640px) {
+        body { overflow: auto; }
+        .panel {
+          padding: 28px 20px 24px;
+          background: rgba(6, 10, 14, 0.72);
+        }
+        p { font-size: 16px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .stage-shot.is-live { animation: none; transform: none; }
+        .stage-black { transition-duration: 0.4s; }
       }
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
   </head>
   <body>
+    <div class="stage" aria-hidden="true">
+      <div class="stage-shot" id="shotA"></div>
+      <div class="stage-shot" id="shotB"></div>
+      <div class="stage-black" id="fadeBlack"></div>
+      <div class="stage-vignette"></div>
+      <div class="stage-grain"></div>
+    </div>
+
+    <button type="button" class="music-btn" id="musicBtn" aria-pressed="false" aria-label="Play music">
+      <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 10v4h3l4 3V7L7 10H4z" />
+        <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+        <path d="M18 6a8.5 8.5 0 0 1 0 12" />
+      </svg>
+      <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 10v4h3l4 3V7L7 10H4z" />
+        <path d="M16 9l5 6M21 9l-5 6" />
+      </svg>
+    </button>
+
     <main class="panel">
       <div class="eyebrow">PH Origins</div>
       <h1>WELCOME</h1>
@@ -104,10 +258,125 @@
         <a id="playButton" class="play-btn" href="/game.html">Play now</a>
       </div>
     </main>
+
+    <audio id="landingAudio" src="./assets/audio/landing-page-song.mp3" loop preload="metadata" playsinline></audio>
+
     <script>
       const isLocalDev = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && location.port === '5173';
       const shouldUsePlayFolder = !isLocalDev;
       document.getElementById('playButton').href = shouldUsePlayFolder ? '/play/index.html' : '/game.html';
+
+      const BACKGROUNDS = [
+        './assets/landing/bg-1.jpg',
+        './assets/landing/bg-2.jpg',
+        './assets/landing/bg-3.jpg',
+      ];
+      const HOLD_MS = 9000;
+      const BLACK_IN_MS = 1800;
+      const BLACK_HOLD_MS = 450;
+      const MUSIC_KEY = 'ph-origins-landing-music';
+
+      const shotA = document.getElementById('shotA');
+      const shotB = document.getElementById('shotB');
+      const fadeBlack = document.getElementById('fadeBlack');
+      const audio = document.getElementById('landingAudio');
+      const musicBtn = document.getElementById('musicBtn');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const isMobile = window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 768px)').matches;
+
+      let index = 0;
+      let showingA = true;
+
+      BACKGROUNDS.forEach((src) => { const img = new Image(); img.src = src; });
+
+      const setShot = (el, src) => {
+        el.style.backgroundImage = `url("${src}")`;
+      };
+
+      const show = (el, on) => {
+        el.classList.toggle('is-live', on);
+        if (on && !reduceMotion) {
+          el.style.animation = 'none';
+          void el.offsetWidth;
+          el.style.animation = '';
+        }
+      };
+
+      setShot(shotA, BACKGROUNDS[0]);
+      setShot(shotB, BACKGROUNDS[1]);
+      show(shotA, true);
+
+      const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+      const cycleOnce = async () => {
+        fadeBlack.classList.add('is-in');
+        await wait(BLACK_IN_MS);
+        index = (index + 1) % BACKGROUNDS.length;
+        const incoming = showingA ? shotB : shotA;
+        const outgoing = showingA ? shotA : shotB;
+        setShot(incoming, BACKGROUNDS[index]);
+        show(incoming, true);
+        show(outgoing, false);
+        showingA = !showingA;
+        await wait(BLACK_HOLD_MS);
+        fadeBlack.classList.remove('is-in');
+        await wait(BLACK_IN_MS);
+      };
+
+      const runCycle = async () => {
+        while (true) {
+          await wait(HOLD_MS);
+          await cycleOnce();
+        }
+      };
+
+      runCycle();
+
+      audio.volume = 0.42;
+
+      const setMusicUi = (on) => {
+        musicBtn.classList.toggle('is-on', on);
+        musicBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        musicBtn.setAttribute('aria-label', on ? 'Mute music' : 'Play music');
+      };
+
+      const musicIsAudible = () => !audio.paused && !audio.muted;
+
+      const startMusic = async () => {
+        audio.muted = false;
+        audio.currentTime = 0;
+        await audio.play();
+        setMusicUi(true);
+        try { localStorage.setItem(MUSIC_KEY, 'on'); } catch (_) {}
+      };
+
+      const stopMusic = () => {
+        audio.pause();
+        audio.muted = true;
+        setMusicUi(false);
+        try { localStorage.setItem(MUSIC_KEY, 'off'); } catch (_) {}
+      };
+
+      musicBtn.addEventListener('click', async () => {
+        try {
+          if (musicIsAudible()) stopMusic();
+          else await startMusic();
+        } catch (_) {
+          setMusicUi(false);
+        }
+      });
+
+      const wantOn = (() => {
+        try { return localStorage.getItem(MUSIC_KEY) === 'on'; } catch (_) { return false; }
+      })();
+
+      if (!isMobile) {
+        audio.muted = true;
+        audio.play().catch(() => {});
+        if (wantOn) {
+          startMusic().catch(() => setMusicUi(false));
+        }
+      }
     </script>
   </body>
 </html>

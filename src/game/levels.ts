@@ -31,7 +31,7 @@ const combatFromDifficulty = (difficulty: number) => ({
 
 const FALLBACK_LIBRARY: LibraryEntry[] = [
   { id: 'apex-peak', name: 'The Apex Peak', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 1, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'Room for Grace' },
-  { id: 'crimson-courtyard', path: '/levels/crimson-courtyard.json', comingSoon: true },
+  { id: 'b3-basement', name: 'B3', path: '/levels/b3-basement.json', theme: 'B3 Basement', difficulty: 2, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'The vat' },
   { id: 'arctic-rift', path: '/levels/arctic-rift.json', comingSoon: true },
 ];
 
@@ -39,7 +39,7 @@ const normalizeLevel = (entry: LibraryEntry | Partial<LevelDefinition> | undefin
   const difficulty = Math.max(1, Number(entry?.difficulty ?? index));
   const combat = combatFromDifficulty(difficulty);
   const libraryId = String((entry as LibraryEntry)?.id ?? (entry as LevelDefinition)?.libraryId ?? `level-${index}`);
-  const comingSoon = entry?.comingSoon === true || index > 1;
+  const comingSoon = entry?.comingSoon === true;
   return {
     id: index,
     libraryId,

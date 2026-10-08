@@ -9,8 +9,8 @@ export const PLAYER_MESH_Y_OFFSET = 1.6;
 
 export const playerMeshY = (playerY: number) => playerY - PLAYER_MESH_Y_OFFSET;
 
-/** Delay after jump press before vertical velocity is applied (matches 2× jump clip). */
-export const JUMP_WINDUP = 0.5;
+/** Delay after jump press before vertical velocity is applied. */
+export const JUMP_WINDUP = 0.1;
 
 export const createPlayerState = (): PlayerState => ({
   x: 0,

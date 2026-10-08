@@ -782,6 +782,13 @@
         color: #07141e;
       }
 
+      .primary:disabled,
+      .secondary:disabled {
+        opacity: 0.45;
+        cursor: wait;
+        transform: none;
+      }
+
       .secondary {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.12);
@@ -982,7 +989,7 @@
         <div class="panel">
           <div class="eyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
-          <p class="subtitle" id="messageText">Get ready to embark on an exciting journey!</p>
+          <p class="subtitle" id="messageText">Loading the office…</p>
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">
@@ -993,7 +1000,7 @@
           </div>
 
           <div class="button-row">
-            <button class="primary" id="startBtn">Start</button>
+            <button class="primary" id="startBtn" disabled aria-busy="true">Loading…</button>
             <button class="secondary" id="resetBtn">Reset</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
           </div>

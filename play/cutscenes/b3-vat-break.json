@@ -1,0 +1,136 @@
+{
+  "id": "b3-vat-break",
+  "name": "Acid",
+  "duration": 12.2,
+  "notes": "Vat glass breaks. Acid hits Pierce. Avatar swaps to Ch44 at ~7.4s in main.ts. Then Level Complete.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": { "x": 11.8, "y": 1.62, "z": 35.2 },
+      "lookAt": { "x": 7.4, "y": 1.2, "z": 38.0 }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0.3,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "The glass is wrong. That vat is breathing.",
+      "anim": "idle",
+      "duration": 3.4,
+      "volume": 0.92
+    },
+    {
+      "at": 2.2,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 2.45,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 2.8,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 3.1,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 3.8,
+      "type": "camera",
+      "position": { "x": 10.4, "y": 1.85, "z": 39.8 },
+      "lookAt": { "x": 7.2, "y": 1.35, "z": 38.0 }
+    },
+    {
+      "at": 4.0,
+      "type": "hud",
+      "title": "Containment",
+      "text": "Vat integrity failing"
+    },
+    {
+      "at": 4.2,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 4.45,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 4.7,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 5.05,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 5.4,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "No—",
+      "anim": "idle",
+      "duration": 1.1,
+      "volume": 0.95
+    },
+    {
+      "at": 6.4,
+      "type": "camera",
+      "position": { "x": 9.6, "y": 1.48, "z": 36.1 },
+      "lookAt": { "x": 8.6, "y": 1.35, "z": 37.2 }
+    },
+    {
+      "at": 7.4,
+      "type": "hud",
+      "title": "Metamorphosis",
+      "text": "The acid writes him into something else"
+    },
+    {
+      "at": 7.4,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 7.85,
+      "type": "light",
+      "on": true,
+      "intensity": 0.22
+    },
+    {
+      "at": 9.2,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "…I can still think. That is not the same as still being me.",
+      "anim": "idle",
+      "duration": 2.6,
+      "volume": 0.92
+    },
+    {
+      "at": 11.4,
+      "type": "hud",
+      "title": "Level Complete",
+      "text": "B3 incident"
+    },
+    {
+      "at": 12.2,
+      "type": "end"
+    }
+  ]
+}

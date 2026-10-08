@@ -214,7 +214,7 @@
       "scale": {
         "x": 3.6,
         "y": 0.12,
-        "z": 4.4
+        "z": 5.5
       },
       "components": [
         "Transform"
@@ -554,7 +554,7 @@
         "z": 0
       },
       "scale": {
-        "x": 2.8,
+        "x": 2.87,
         "y": 1.6,
         "z": 1
       },
@@ -1298,11 +1298,21 @@
       "name": "Player",
       "x": 0,
       "y": 0,
-      "z": 3,
+      "z": 4.087249279022217,
       "components": [
         "Transform",
         "Collider"
-      ]
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      }
     }
   ],
   "triggers": [
@@ -1396,6 +1406,21 @@
       "data": {
         "cutscene": "elevator-b3",
         "radius": 1.55
+      }
+    },
+    {
+      "id": "trigger-1791414208262-ffaj9",
+      "type": "music",
+      "label": "Music",
+      "x": 0.30570101737976074,
+      "y": 0,
+      "z": -4.531632423400879,
+      "data": {
+        "radius": 100,
+        "audio": "/assets/audio/room-tone.mp3",
+        "loop": true,
+        "fadeSeconds": 2,
+        "volume": 0.28
       }
     }
   ]

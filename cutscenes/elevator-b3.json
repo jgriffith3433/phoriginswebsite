@@ -23,7 +23,7 @@
       "clip": "/assets/audio/cutscenes/elevator-b3/hum.wav",
       "bus": "music",
       "loop": true,
-      "volume": 0.22
+      "volume": 0.3
     },
     {
       "at": 2.5,
@@ -53,7 +53,7 @@
       "clip": "/assets/audio/cutscenes/elevator-b3/rumble.wav",
       "bus": "sfx",
       "loop": true,
-      "volume": 0.5
+      "volume": 0.38
     },
     {
       "at": 8.4,

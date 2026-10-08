@@ -1,6 +1,13 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
+/** glTF default is ALL — that starts PistolIdle/Aim with Idle and the last clip wins the bind pose. */
+BABYLON.SceneLoader.OnPluginActivatedObservable.add((plugin) => {
+  if (plugin.name !== 'gltf') return;
+  const loader = plugin as { animationStartMode?: number };
+  loader.animationStartMode = 0;
+});
+
 export const PLAYER_ASSET_ID = 'asset-ch33-hero';
 export const PLAYER_ASSET_IDS = new Set([PLAYER_ASSET_ID, 'asset-hero-model']);
 /** Reserved Mixamo mesh for Pierce after the God Complex transformation. Not the current player. */
@@ -167,6 +174,7 @@ export const importGlbUnderParent = async (
   scene: BABYLON.Scene,
   modelPath: string,
   parent: BABYLON.TransformNode,
+  options?: { matte?: boolean },
 ): Promise<ImportedModel> => {
   const { rootUrl, fileName } = splitModelUrl(modelPath);
   return enqueueImport(async () => {
@@ -177,7 +185,9 @@ export const importGlbUnderParent = async (
     }
 
     container.addAllToScene();
-    applyMatteCharacterMaterials(container.meshes, container.materials);
+    if (options?.matte !== false) {
+      applyMatteCharacterMaterials(container.meshes, container.materials);
+    }
 
     const skeleton = container.skeletons[0] ?? null;
     const deformBySuffix = new Map<string, BABYLON.Node>();
@@ -224,8 +234,7 @@ export const importGlbUnderParent = async (
         }
         targeted.target = deform;
       }
-      group.stop();
-      group.reset();
+      group.stop(true);
     }
 
     for (const node of container.rootNodes) {

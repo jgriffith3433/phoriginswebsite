@@ -14,10 +14,16 @@
       "reward": "Room for Grace"
     },
     {
-      "id": "crimson-courtyard",
-      "path": "/levels/crimson-courtyard.json",
-      "comingSoon": true,
-      "difficulty": 2
+      "id": "b3-basement",
+      "name": "B3",
+      "path": "/levels/b3-basement.json",
+      "theme": "B3 Basement",
+      "difficulty": 2,
+      "enemyCount": 0,
+      "combat": false,
+      "playerSpeed": 3.4,
+      "arenaSize": 140,
+      "reward": "The vat"
     },
     {
       "id": "arctic-rift",

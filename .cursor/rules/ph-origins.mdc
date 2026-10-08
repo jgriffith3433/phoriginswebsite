@@ -1,0 +1,17 @@
+---
+description: PH Origins hard constraints and where the project brain lives
+alwaysApply: true
+---
+
+# PH Origins
+
+Read **`AGENTS.md`** at the repo root before changing gameplay, assets, or the editor. Keep it updated when you change IDs, clip names, sequence, or constraints.
+
+- User is **J**. Do not commit unless asked.
+- **GLB-only** in this repo. FBX stays in `C:\Projects\phoriginsassets`. Convert, do not serve `.fbx`.
+- **`play/` is build output.** Edit `src/`, `levels/`, `cutscenes/`, `assets/`, `game.html`, `index.html`, `devtools.html`.
+- **Do not** reintroduce Mixamo JSON / mixamorig retarget. Bake in Blender. Match clips by exact tails (`Idle` ≠ `PistolIdle`).
+- Combat **off** on Apex Peak and B3. Level 3 is Coming soon.
+- Do not paste agent instructions into ElevenLabs / VO prompts.
+- Start must stay gated on avatar `whenReady` (no T-pose). Pistol albedo `hasAlpha = false`. Skybox: do not dispose while cube faces load.
+- After architecture changes, update `AGENTS.md`.

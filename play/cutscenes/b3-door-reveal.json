@@ -1,0 +1,120 @@
+{
+  "id": "b3-door-reveal",
+  "name": "The Vat Room",
+  "duration": 14.5,
+  "notes": "Lab door opens. Pierce walks in and sees a creature by the acid vat. Lights flash. Gameplay then sends him to search the room. Doors and walk are driven in main.ts.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": { "x": 21.4, "y": 1.62, "z": 38.55 },
+      "lookAt": { "x": 16.4, "y": 1.35, "z": 38.0 }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0,
+      "type": "hud",
+      "title": "B3",
+      "text": "Restricted lab"
+    },
+    {
+      "at": 0.8,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/doors.wav",
+      "bus": "sfx",
+      "volume": 0.62
+    },
+    {
+      "at": 2.4,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "walk",
+      "loop": true
+    },
+    {
+      "at": 3.2,
+      "type": "camera",
+      "position": { "x": 18.6, "y": 1.7, "z": 40.4 },
+      "lookAt": { "x": 10.2, "y": 1.15, "z": 37.4 }
+    },
+    {
+      "at": 4.6,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 4.85,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 5.15,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 5.45,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 5.7,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 5.8,
+      "type": "camera",
+      "position": { "x": 13.15, "y": 1.55, "z": 39.6 },
+      "lookAt": { "x": 10.2, "y": 0.95, "z": 36.5 }
+    },
+    {
+      "at": 6.0,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "There you are. Not a chart. Not a leak. Standing next to a vat like it owns the floor.",
+      "anim": "idle",
+      "duration": 6.2,
+      "volume": 0.92
+    },
+    {
+      "at": 8.4,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 8.7,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 9.05,
+      "type": "light",
+      "on": false
+    },
+    {
+      "at": 9.4,
+      "type": "light",
+      "on": true
+    },
+    {
+      "at": 12.6,
+      "type": "hud",
+      "title": "Objective",
+      "text": "Search the lab for the creature"
+    },
+    {
+      "at": 14.5,
+      "type": "end"
+    }
+  ]
+}

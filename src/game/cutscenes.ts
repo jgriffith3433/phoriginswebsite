@@ -4,7 +4,7 @@ export type CutsceneVec3 = { x: number; y: number; z: number };
 
 export type TimelineEvent = {
   at: number;
-  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'end';
+  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'light' | 'end';
   position?: CutsceneVec3;
   lookAt?: CutsceneVec3;
   title?: string;
@@ -18,6 +18,9 @@ export type TimelineEvent = {
   speaker?: string;
   anim?: string;
   duration?: number;
+  on?: boolean;
+  intensity?: number;
+  target?: string;
 };
 
 export type CutsceneTimeline = {
@@ -32,6 +35,7 @@ export type CutsceneHooks = {
   onCamera: (position: CutsceneVec3, lookAt: CutsceneVec3) => void;
   onHud: (title?: string, text?: string) => void;
   onAnim: (actor: string, clip: string, loop: boolean) => void;
+  onLight?: (on: boolean, intensity?: number, target?: string) => void;
   audioEnabled: () => boolean;
 };
 
@@ -153,6 +157,10 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
   }
   if (event.type === 'anim' && event.actor && event.clip) {
     cutscene.hooks.onAnim(event.actor, event.clip, event.loop !== false);
+    return;
+  }
+  if (event.type === 'light') {
+    cutscene.hooks.onLight?.(event.on !== false, event.intensity, event.target);
     return;
   }
   if (event.type === 'line') {

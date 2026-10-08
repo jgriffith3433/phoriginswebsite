@@ -266,27 +266,51 @@ export const applyMaterialToMesh = (
   material.specularColor = color(def.specular, new BABYLON.Color3(0.12, 0.12, 0.14));
   material.specularPower = def.specularPower ?? 24;
   if (def.transparent || isGlassAsset(asset)) {
-    applyGlassFlags(material, def.alpha ?? 0.72);
+    const visibility = def.alpha ?? 0.45;
+    applyGlassFlags(material, 1);
+    mesh.visibility = visibility;
     mesh.renderingGroupId = 0;
   }
   mesh.material = material;
 };
 
-/** Cyan hologram: alpha blend, no depth write, unlit, same group as walls. */
+const BOARD_HOLOGRAM_TEXTURE = '/assets/textures/board-hologram.webp';
+
+/** Cyan hologram: HUD lines over a faint glass sheet, unlit, same group as walls. */
 export const applyHologramLook = (
   mesh: BABYLON.AbstractMesh,
   material: BABYLON.StandardMaterial,
   alpha = 0.32,
 ) => {
-  material.diffuseTexture = null;
   material.opacityTexture = null;
-  material.emissiveTexture = null;
   material.diffuseColor = new BABYLON.Color3(0.18, 0.62, 0.92);
   material.emissiveColor = new BABYLON.Color3(0.08, 0.38, 0.58);
   material.specularColor = BABYLON.Color3.Black();
   material.specularPower = 8;
   material.disableLighting = true;
   applyGlassFlags(material, alpha);
+
+  const texture = cachedTexture(mesh.getScene(), BOARD_HOLOGRAM_TEXTURE);
+  texture.hasAlpha = true;
+  texture.uScale = 1;
+  texture.vScale = 1;
+  texture.uOffset = 0;
+  texture.vOffset = 0;
+  texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
+  texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+  material.diffuseTexture = texture;
+  material.emissiveTexture = texture;
+
+  const reveal = () => {
+    if ((material as { isDisposed?: () => boolean }).isDisposed?.()) return;
+    material.diffuseColor = BABYLON.Color3.White();
+    material.emissiveColor = BABYLON.Color3.White();
+    material.alpha = 1;
+    material.useAlphaFromDiffuseTexture = true;
+  };
+  if (texture.isReady()) reveal();
+  else texture.onLoadObservable.addOnce(reveal);
+
   mesh.renderingGroupId = 0;
   mesh.checkCollisions = false;
 };
