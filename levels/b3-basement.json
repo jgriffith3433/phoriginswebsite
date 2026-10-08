@@ -6253,18 +6253,6 @@
         "cutscene": "b3-door-reveal",
         "radius": 1.7
       }
-    },
-    {
-      "id": "trigger-search-creature",
-      "type": "cutscene",
-      "label": "Search Creature",
-      "x": 9.2,
-      "y": 0,
-      "z": 36.6,
-      "data": {
-        "cutscene": "b3-vat-break",
-        "radius": 2.1
-      }
     }
   ]
 }

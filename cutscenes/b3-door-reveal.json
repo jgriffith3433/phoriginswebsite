@@ -1,8 +1,8 @@
 {
   "id": "b3-door-reveal",
   "name": "The Vat Room",
-  "duration": 14.5,
-  "notes": "Lab door opens. Pierce walks in and sees a creature by the acid vat. Lights flash. Gameplay then sends him to search the room. Doors and walk are driven in main.ts.",
+  "duration": 14.2,
+  "notes": "Lab door opens. Pierce walks in, sees the creature, and is shocked. The creature then runs. Gameplay chains straight into the vat break — no search objective. Doors, Pierce's walk, and the creature's flee are driven in main.ts.",
   "events": [
     {
       "at": 0,
@@ -81,10 +81,25 @@
       "type": "line",
       "actor": "pierce",
       "speaker": "Pierce",
-      "text": "There you are. Not a chart. Not a leak. Standing next to a vat like it owns the floor.",
+      "text": "No. That is not a specimen. That thing is looking at me.",
+      "audio": "/assets/audio/cutscenes/b3-door-reveal/01-pierce-shock.wav",
       "anim": "idle",
-      "duration": 6.2,
+      "duration": 4.5,
       "volume": 0.92
+    },
+    {
+      "at": 5.8,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/b3-door-reveal/creature-breath.wav",
+      "bus": "sfx",
+      "volume": 0.38
+    },
+    {
+      "at": 8.8,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/b3-door-reveal/creature-run.wav",
+      "bus": "sfx",
+      "volume": 0.55
     },
     {
       "at": 8.4,
@@ -107,13 +122,25 @@
       "on": true
     },
     {
-      "at": 12.6,
-      "type": "hud",
-      "title": "Objective",
-      "text": "Search the lab for the creature"
+      "at": 8.8,
+      "type": "camera",
+      "position": { "x": 14.4, "y": 1.72, "z": 33.4 },
+      "lookAt": { "x": 7.2, "y": 1.05, "z": 35.2 }
     },
     {
-      "at": 14.5,
+      "at": 11.4,
+      "type": "camera",
+      "position": { "x": 8.8, "y": 1.62, "z": 30.6 },
+      "lookAt": { "x": 3.2, "y": 1.0, "z": 33.0 }
+    },
+    {
+      "at": 13.2,
+      "type": "camera",
+      "position": { "x": 12.4, "y": 1.58, "z": 35.2 },
+      "lookAt": { "x": 7.2, "y": 1.25, "z": 38.0 }
+    },
+    {
+      "at": 14.2,
       "type": "end"
     }
   ]

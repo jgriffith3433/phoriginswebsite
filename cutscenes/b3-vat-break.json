@@ -1,8 +1,8 @@
 {
   "id": "b3-vat-break",
   "name": "Acid",
-  "duration": 12.2,
-  "notes": "Vat glass breaks. Acid hits Pierce. Avatar swaps to Ch44 at ~7.4s in main.ts. Then Level Complete.",
+  "duration": 14.2,
+  "notes": "Plays the moment the creature finishes running. The vat glass breaks. Acid hits Pierce. Avatar swaps to Ch44 at ~7.4s in main.ts. Then Level Complete. No search beat before this.",
   "events": [
     {
       "at": 0,
@@ -22,9 +22,10 @@
       "type": "line",
       "actor": "pierce",
       "speaker": "Pierce",
-      "text": "The glass is wrong. That vat is breathing.",
+      "text": "It ran. The vat went with it.",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/01-pierce-it-ran.wav",
       "anim": "idle",
-      "duration": 3.4,
+      "duration": 3.2,
       "volume": 0.92
     },
     {
@@ -60,6 +61,20 @@
       "text": "Vat integrity failing"
     },
     {
+      "at": 4.05,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/b3-vat-break/vat-glass.wav",
+      "bus": "sfx",
+      "volume": 0.78
+    },
+    {
+      "at": 4.25,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/b3-vat-break/vat-splash.wav",
+      "bus": "sfx",
+      "volume": 0.68
+    },
+    {
       "at": 4.2,
       "type": "light",
       "on": false
@@ -85,6 +100,7 @@
       "actor": "pierce",
       "speaker": "Pierce",
       "text": "No—",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/02-pierce-no.wav",
       "anim": "idle",
       "duration": 1.1,
       "volume": 0.95
@@ -118,18 +134,19 @@
       "actor": "pierce",
       "speaker": "Pierce",
       "text": "…I can still think. That is not the same as still being me.",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/03-pierce-still-think.wav",
       "anim": "idle",
-      "duration": 2.6,
+      "duration": 4.0,
       "volume": 0.92
     },
     {
-      "at": 11.4,
+      "at": 13.3,
       "type": "hud",
       "title": "Level Complete",
       "text": "B3 incident"
     },
     {
-      "at": 12.2,
+      "at": 14.2,
       "type": "end"
     }
   ]

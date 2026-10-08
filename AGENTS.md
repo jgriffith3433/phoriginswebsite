@@ -98,7 +98,7 @@ Music trigger: `/assets/audio/room-tone.mp3`, volume **0.28**, ducks to **0.18**
 
 **Level 2 — B3** (`levels/b3-basement.json`)
 
-Basement / lab. Combat off. Cutscenes: `b3-door-reveal`, `b3-vat-break`. The vat-room creature is `asset-parasite-starkie` (scene id `b3-creature`), feet on the floor beside the acid vat, Idle looping. It hides when the search objective starts. Layout follows the Sector 4 blueprint around the existing elevator → Hallway B → vat-door anchors: pipe hall, containment glass, two chemical stores, decon, control, transformation wing, utility. Dark plate / diamond / wired-glass (`mat-b3-*`). Practicals are colored point lights (cyan halls, green vat and cell). Do not flatten those intensities on arrival. VO is still thin.
+Basement / lab. Combat off. Cutscenes: `b3-door-reveal`, `b3-vat-break`. Pierce finds the lab door, sees `b3-creature` (`asset-parasite-starkie`), and the reveal cutscene plays his shock. The creature then walks off (Idle until 8.8s, Walk through 13.2s, then hidden). That chains straight into the vat break — there is no search objective. Feet start on the floor beside the acid vat. Layout follows the Sector 4 blueprint around the existing elevator → Hallway B → vat-door anchors: pipe hall, containment glass, two chemical stores, decon, control, transformation wing, utility. Dark plate / diamond / wired-glass (`mat-b3-*`). Practicals are colored point lights (cyan halls, green vat and cell). Do not flatten those intensities on arrival. Reveal and vat-break VO is Pierce (Jackson). Creature breath and run, plus vat glass and splash, live on those timelines.
 
 **Level 3** — coming soon.
 
@@ -141,6 +141,8 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 - UI one-shots: `assets/audio/sfx/start.ogg` (Start, **0.7**), `assets/audio/sfx/level-complete.ogg` (Level Complete / Mission Clear, **0.72**), `assets/audio/sfx/objective.ogg` (new objective, **0.55**).
 - Office terminal alarm: looping `assets/audio/cutscenes/apex-window/alarm.wav` at **0.46**, from 42.3s in the window cutscene until the terminal beat.
 - Elevator ride (`cutscenes/elevator-b3.json`): cab hum loop **0.3**, door slide, floor chime (`beep.wav`), descent rumble loop **0.38**. Passing floors reuse the chime at **0.34**; arrival uses the timeline chime only.
+- B3 reveal (`cutscenes/b3-door-reveal.json`): Pierce shock VO **0.92**, creature breath **0.38** at 5.8s, creature run **0.55** from 8.8s (matches the Walk flee). Door slide reuses the elevator door clip.
+- B3 vat break (`cutscenes/b3-vat-break.json`): Pierce lines **0.92** (“It ran…”, “I can still think…”), “No—” **0.95**. Glass **0.78** at 4.05s with the mesh break, splash **0.68** at 4.25s. Timeline runs to **14.2s** so the last line finishes before Level Complete.
 
 ## Known pitfalls
 
@@ -154,6 +156,6 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 
 ## Nearby leftovers (not blockers)
 
-Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would beat `PistolAim` fallback. B3 needs more art + VO. Landing stills are placeholders. Combat systems exist but story levels do not use them.
+Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would beat `PistolAim` fallback. B3 still needs more art. Landing stills are placeholders. Combat systems exist but story levels do not use them.
 
 When you change IDs, clip names, sequence phases, or these constraints, **update this file**.

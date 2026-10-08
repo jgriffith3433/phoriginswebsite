@@ -16,7 +16,7 @@ import {
   updateNpcDeparture,
   type Npc,
 } from './game/npcs';
-import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
+import { createPlayerAvatar, findClip, type PlayerAvatar } from './game/playerAvatar';
 import { addItem, createInventoryState, consumeItem, inventorySummary } from './game/inventory';
 import { getLevelDefinition, getLevels, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
 import { clampPlayerToArena, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
@@ -164,7 +164,7 @@ let elevatorReadoutLabel = '';
 let officeAlarmStarted = false;
 type SequencePhase =
   | 'seat' | 'idle' | 'wait-board' | 'window' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
-  | 'arrive' | 'to-lab' | 'reveal' | 'search' | 'transform';
+  | 'arrive' | 'to-lab' | 'reveal' | 'transform';
 let sequencePhase: SequencePhase = 'idle';
 let labDoorOpen = 0;
 let b3Transformed = false;
@@ -271,8 +271,7 @@ const refreshObjectivePresentation = () => {
     || sequencePhase === 'alarm'
     || sequencePhase === 'elevator'
     || sequencePhase === 'arrive'
-    || sequencePhase === 'to-lab'
-    || sequencePhase === 'search';
+    || sequencePhase === 'to-lab';
   showObjectiveHud(showHud && !state.inCutscene && state.running);
 };
 
@@ -627,9 +626,59 @@ const restoreSceneLights = () => {
   lightBaseline = null;
 };
 
+const creatureNode = () =>
+  scene.transformNodes.find((entry) => entry.metadata?.sceneAssetId === 'b3-creature') ?? null;
+
+const playCreatureClip = (keyword: 'idle' | 'walk', speed = 1) => {
+  const groups = creatureNode()?.metadata?.clipGroups as BABYLON.AnimationGroup[] | undefined;
+  if (!groups?.length) return;
+  const clip = findClip(groups, keyword);
+  if (!clip) return;
+  if (creatureClip === keyword && clip.isPlaying) {
+    clip.speedRatio = speed;
+    return;
+  }
+  for (const group of groups) {
+    if (group !== clip && group.isPlaying) group.stop();
+  }
+  clip.speedRatio = speed;
+  if (!clip.isPlaying) clip.start(true);
+  creatureClip = keyword;
+};
+
+const resetCreature = () => {
+  const node = creatureNode();
+  creatureClip = null;
+  if (!node) return;
+  node.setEnabled(true);
+  node.position.set(CREATURE_HOME.x, CREATURE_HOME.y, CREATURE_HOME.z);
+  node.rotation.set(0, CREATURE_HOME.yaw, 0);
+  playCreatureClip('idle', 1);
+};
+
+const stepCreatureFlee = (time: number) => {
+  const node = creatureNode();
+  if (!node) return;
+  if (time < CREATURE_FLEE_AT) {
+    node.setEnabled(true);
+    node.position.set(CREATURE_HOME.x, CREATURE_HOME.y, CREATURE_HOME.z);
+    node.rotation.y = CREATURE_HOME.yaw;
+    playCreatureClip('idle', 1);
+    return;
+  }
+  const span = CREATURE_FLEE_END - CREATURE_FLEE_AT;
+  const raw = Math.min(1, Math.max(0, (time - CREATURE_FLEE_AT) / span));
+  const eased = raw * raw * (3 - 2 * raw);
+  node.setEnabled(raw < 1);
+  node.position.x = CREATURE_HOME.x + (CREATURE_FLEE.x - CREATURE_HOME.x) * eased;
+  node.position.y = CREATURE_HOME.y;
+  node.position.z = CREATURE_HOME.z + (CREATURE_FLEE.z - CREATURE_HOME.z) * eased;
+  node.rotation.y = CREATURE_FLEE_YAW;
+  playCreatureClip('walk', 1.7);
+};
+
 const setCreatureVisible = (visible: boolean) => {
-  const node = sceneMeshById('b3-creature')
-    ?? scene.transformNodes.find((entry) => entry.metadata?.sceneAssetId === 'b3-creature');
+  const node = sceneMeshById('b3-creature') ?? creatureNode();
   node?.setEnabled(visible);
 };
 
@@ -652,9 +701,14 @@ const setVatGlassBroken = (broken: boolean) => {
 };
 
 const B3_LAB_DOOR = { x: 17.6, z: 38 };
-const B3_SEARCH = { x: 9.2, z: 36.6 };
 const B3_REVEAL_START = { x: 18.5, z: 38, yaw: -Math.PI / 2 };
 const B3_REVEAL_END = { x: 12.6, z: 38, yaw: -Math.PI / 2 };
+const CREATURE_HOME = { x: 10.4, y: 0, z: 36.4, yaw: Math.PI / 2 };
+const CREATURE_FLEE = { x: 1.6, y: 0, z: 32.4 };
+const CREATURE_FLEE_YAW = Math.atan2(CREATURE_FLEE.x - CREATURE_HOME.x, CREATURE_FLEE.z - CREATURE_HOME.z);
+const CREATURE_FLEE_AT = 8.8;
+const CREATURE_FLEE_END = 13.2;
+let creatureClip: 'idle' | 'walk' | null = null;
 
 const beginB3Arrival = () => {
   if (!isB3Level()) return;
@@ -670,7 +724,7 @@ const beginB3Arrival = () => {
   applyElevatorCabLight(ELEVATOR_ARRIVE_AT, true);
   audio.play('/assets/audio/cutscenes/elevator-b3/doors.wav', 0.58);
   placePierceInElevator(0);
-  setCreatureVisible(true);
+  resetCreature();
   setVatGlassBroken(false);
   restoreSceneLights();
   setObjective('Objective', 'Find the lab door', { x: B3_LAB_DOOR.x, y: 2.05, z: B3_LAB_DOOR.z });
@@ -678,21 +732,15 @@ const beginB3Arrival = () => {
 };
 
 const beginLabDoorObjective = () => {
-  if (!isB3Level() || sequencePhase === 'reveal' || sequencePhase === 'search' || sequencePhase === 'transform' || sequencePhase === 'done') return;
+  if (!isB3Level() || sequencePhase === 'reveal' || sequencePhase === 'transform' || sequencePhase === 'done') return;
   sequencePhase = 'to-lab';
   setObjective('Objective', 'Find the lab door', { x: B3_LAB_DOOR.x, y: 2.05, z: B3_LAB_DOOR.z });
   refreshObjectivePresentation();
 };
 
-const beginSearchObjective = () => {
-  sequencePhase = 'search';
-  restoreSceneLights();
+const beginCreatureVatBreak = () => {
   setCreatureVisible(false);
-  applyLabDoors(1);
-  labDoorOpen = 1;
-  placePierceAt(B3_REVEAL_END.x, B3_REVEAL_END.z, B3_REVEAL_END.yaw);
-  setObjective('Objective', 'Search the lab for the creature', { x: B3_SEARCH.x, y: 1.85, z: B3_SEARCH.z });
-  refreshObjectivePresentation();
+  beginNamedCutscene('b3-vat-break');
 };
 
 const completeB3 = () => {
@@ -720,6 +768,7 @@ const stepB3Reveal = (time: number) => {
   const walkT = Math.min(1, Math.max(0, (time - 2.35) / 3.2));
   const x = B3_REVEAL_START.x + (B3_REVEAL_END.x - B3_REVEAL_START.x) * walkT;
   placePierceAt(x, B3_REVEAL_START.z, B3_REVEAL_START.yaw);
+  stepCreatureFlee(time);
 };
 
 const stepB3VatBreak = (time: number) => {
@@ -880,12 +929,15 @@ const endCutscene = () => {
     completeB3();
     return;
   }
+  if (finishedId === 'b3-door-reveal') {
+    beginCreatureVatBreak();
+    return;
+  }
   playerAvatar.resumeLocomotion();
   refreshObjectivePresentation();
   if (finishedId === 'room-for-grace') beginBoardWalkout();
   if (finishedId === 'apex-window') beginAlarmObjective();
   if (finishedId === 'apex-terminal') beginElevatorObjective();
-  if (finishedId === 'b3-door-reveal') beginSearchObjective();
 };
 
 const beginNamedCutscene = (id: string) => {
@@ -928,6 +980,7 @@ const beginNamedCutscene = (id: string) => {
     objectiveMarker.hide();
     placePierceAt(B3_REVEAL_START.x, B3_REVEAL_START.z, B3_REVEAL_START.yaw);
     playerAvatar.playClip('idle', true);
+    resetCreature();
   }
   if (id === 'b3-vat-break') {
     sequencePhase = 'transform';
@@ -950,7 +1003,7 @@ const beginNamedCutscene = (id: string) => {
       if (id === 'apex-window') beginAlarmObjective();
       if (id === 'apex-terminal') beginElevatorObjective();
       if (id === 'elevator-b3') completeApexPeak();
-      if (id === 'b3-door-reveal') beginSearchObjective();
+      if (id === 'b3-door-reveal') beginCreatureVatBreak();
       if (id === 'b3-vat-break') completeB3();
       return;
     }
@@ -972,11 +1025,6 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
   if (trigger.id === 'trigger-lab-door') {
     if (!isB3Level() || (sequencePhase !== 'to-lab' && sequencePhase !== 'arrive')) return;
     beginNamedCutscene('b3-door-reveal');
-    return;
-  }
-  if (trigger.id === 'trigger-search-creature') {
-    if (!isB3Level() || sequencePhase !== 'search') return;
-    beginNamedCutscene('b3-vat-break');
     return;
   }
   const cutsceneId = trigger.type === 'cutscene'
