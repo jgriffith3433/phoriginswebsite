@@ -4,8 +4,8 @@
   "materials": [
     {
       "id": "mat-hall-wall",
-      "name": "Hall wall — acoustic felt",
-      "albedo": "/assets/textures/office-wall.webp",
+      "name": "Hall wall \u2014 acoustic felt",
+      "albedo": "/assets/textures/office-wall-flat.webp",
       "tileMeters": 4,
       "specular": [
         0.06,
@@ -21,12 +21,15 @@
       "tags": [
         "wall",
         "hall"
-      ]
+      ],
+      "normal": "/assets/textures/office-wall-n.webp",
+      "roughnessMap": "/assets/textures/office-wall-r.webp",
+      "roughness": 0.92
     },
     {
       "id": "mat-office-wall",
-      "name": "Office wall — plaster",
-      "albedo": "/assets/textures/office-plaster.webp",
+      "name": "Office wall \u2014 plaster",
+      "albedo": "/assets/textures/office-plaster-flat.webp",
       "tileMeters": 3.6,
       "specular": [
         0.08,
@@ -42,12 +45,15 @@
       "tags": [
         "wall",
         "office"
-      ]
+      ],
+      "normal": "/assets/textures/office-plaster-n.webp",
+      "roughnessMap": "/assets/textures/office-plaster-r.webp",
+      "roughness": 0.84
     },
     {
       "id": "mat-board-wall",
-      "name": "Boardroom wall — plaster",
-      "albedo": "/assets/textures/office-plaster.webp",
+      "name": "Boardroom wall \u2014 plaster",
+      "albedo": "/assets/textures/office-plaster-flat.webp",
       "tileMeters": 4.2,
       "specular": [
         0.09,
@@ -63,12 +69,15 @@
       "tags": [
         "wall",
         "boardroom"
-      ]
+      ],
+      "normal": "/assets/textures/office-plaster-n.webp",
+      "roughnessMap": "/assets/textures/office-plaster-r.webp",
+      "roughness": 0.84
     },
     {
       "id": "mat-hall-floor",
-      "name": "Hall floor — grey satin",
-      "albedo": "/assets/textures/office-floor.webp",
+      "name": "Hall floor \u2014 grey satin",
+      "albedo": "/assets/textures/office-floor-flat.webp",
       "tileMeters": 8,
       "uTileMeters": 28,
       "vTileMeters": 8,
@@ -86,12 +95,15 @@
       "tags": [
         "floor",
         "hall"
-      ]
+      ],
+      "normal": "/assets/textures/office-floor-n.webp",
+      "roughnessMap": "/assets/textures/office-floor-r.webp",
+      "roughness": 0.46
     },
     {
       "id": "mat-board-floor",
-      "name": "Office floor — grey satin",
-      "albedo": "/assets/textures/office-floor.webp",
+      "name": "Office floor \u2014 grey satin",
+      "albedo": "/assets/textures/office-floor-flat.webp",
       "tileMeters": 3.4,
       "specular": [
         0.16,
@@ -108,12 +120,15 @@
         "floor",
         "boardroom",
         "office"
-      ]
+      ],
+      "normal": "/assets/textures/office-floor-n.webp",
+      "roughnessMap": "/assets/textures/office-floor-r.webp",
+      "roughness": 0.46
     },
     {
       "id": "mat-lift-floor",
-      "name": "Elevator floor — diamond plate",
-      "albedo": "/assets/textures/hall-floor.webp",
+      "name": "Elevator floor \u2014 diamond plate",
+      "albedo": "/assets/textures/hall-floor-flat.webp",
       "tileMeters": 1.4,
       "specular": [
         0.14,
@@ -129,12 +144,15 @@
       "tags": [
         "floor",
         "elevator"
-      ]
+      ],
+      "normal": "/assets/textures/hall-floor-n.webp",
+      "roughnessMap": "/assets/textures/hall-floor-r.webp",
+      "roughness": 0.38
     },
     {
       "id": "mat-ceil-tile",
       "name": "Perforated ceiling",
-      "albedo": "/assets/textures/ceil-tile.webp",
+      "albedo": "/assets/textures/ceil-tile-flat.webp",
       "tileMeters": 1.2,
       "specular": [
         0.18,
@@ -149,12 +167,15 @@
       ],
       "tags": [
         "ceiling"
-      ]
+      ],
+      "normal": "/assets/textures/ceil-tile-n.webp",
+      "roughnessMap": "/assets/textures/ceil-tile-r.webp",
+      "roughness": 0.58
     },
     {
       "id": "mat-lift-metal",
       "name": "Elevator stainless",
-      "albedo": "/assets/textures/lift-metal.webp",
+      "albedo": "/assets/textures/lift-metal-flat.webp",
       "tileMeters": 1.5,
       "specular": [
         0.32,
@@ -170,12 +191,15 @@
       "tags": [
         "wall",
         "elevator"
-      ]
+      ],
+      "normal": "/assets/textures/lift-metal-n.webp",
+      "roughnessMap": "/assets/textures/lift-metal-r.webp",
+      "roughness": 0.34
     },
     {
       "id": "mat-wood-desk",
       "name": "Light oak furniture",
-      "albedo": "/assets/textures/office-desk.webp",
+      "albedo": "/assets/textures/office-desk-flat.webp",
       "tileMeters": 1.2,
       "specular": [
         0.16,
@@ -191,12 +215,15 @@
       "tags": [
         "furniture",
         "wood"
-      ]
+      ],
+      "normal": "/assets/textures/office-desk-n.webp",
+      "roughnessMap": "/assets/textures/office-desk-r.webp",
+      "roughness": 0.5
     },
     {
       "id": "mat-chair-leather",
       "name": "Office chair mesh",
-      "albedo": "/assets/textures/office-chair.webp",
+      "albedo": "/assets/textures/office-chair-flat.webp",
       "tileMeters": 0.35,
       "specular": [
         0.05,
@@ -212,7 +239,10 @@
       "tags": [
         "furniture",
         "chair"
-      ]
+      ],
+      "normal": "/assets/textures/office-chair-n.webp",
+      "roughnessMap": "/assets/textures/office-chair-r.webp",
+      "roughness": 0.62
     },
     {
       "id": "mat-monitor",
@@ -272,103 +302,260 @@
       "name": "Basement plate",
       "albedo": "/assets/textures/hall-wall.webp",
       "tileMeters": 1.7,
-      "diffuse": [0.48, 0.5, 0.53],
-      "specular": [0.22, 0.22, 0.24],
+      "diffuse": [
+        0.48,
+        0.5,
+        0.53
+      ],
+      "specular": [
+        0.22,
+        0.22,
+        0.24
+      ],
       "specularPower": 28,
-      "emissive": [0.015, 0.016, 0.018],
-      "tags": ["wall", "basement"]
+      "emissive": [
+        0.015,
+        0.016,
+        0.018
+      ],
+      "tags": [
+        "wall",
+        "basement"
+      ]
     },
     {
       "id": "mat-b3-floor",
       "name": "Wet diamond plate",
-      "albedo": "/assets/textures/hall-floor.webp",
+      "albedo": "/assets/textures/hall-floor-flat.webp",
       "tileMeters": 1.35,
-      "diffuse": [0.8, 0.82, 0.8],
-      "specular": [0.55, 0.58, 0.56],
+      "diffuse": [
+        0.8,
+        0.82,
+        0.8
+      ],
+      "specular": [
+        0.55,
+        0.58,
+        0.56
+      ],
       "specularPower": 72,
-      "emissive": [0.012, 0.014, 0.012],
-      "tags": ["floor", "basement"]
+      "emissive": [
+        0.012,
+        0.014,
+        0.012
+      ],
+      "tags": [
+        "floor",
+        "basement"
+      ],
+      "normal": "/assets/textures/hall-floor-n.webp",
+      "roughnessMap": "/assets/textures/hall-floor-r.webp",
+      "roughness": 0.38
     },
     {
       "id": "mat-b3-pipe",
       "name": "Basement pipe",
-      "albedo": "/assets/textures/lift-metal.webp",
+      "albedo": "/assets/textures/lift-metal-flat.webp",
       "tileMeters": 0.85,
-      "diffuse": [0.34, 0.37, 0.4],
-      "specular": [0.48, 0.5, 0.54],
+      "diffuse": [
+        0.34,
+        0.37,
+        0.4
+      ],
+      "specular": [
+        0.48,
+        0.5,
+        0.54
+      ],
       "specularPower": 42,
-      "emissive": [0.02, 0.024, 0.028],
-      "tags": ["pipe", "basement"]
+      "emissive": [
+        0.02,
+        0.024,
+        0.028
+      ],
+      "tags": [
+        "pipe",
+        "basement"
+      ],
+      "normal": "/assets/textures/lift-metal-n.webp",
+      "roughnessMap": "/assets/textures/lift-metal-r.webp",
+      "roughness": 0.34
     },
     {
       "id": "mat-b3-rust",
       "name": "Oxidized steel",
       "albedo": "/assets/textures/hall-wall.webp",
       "tileMeters": 1.1,
-      "diffuse": [0.36, 0.2, 0.12],
-      "specular": [0.1, 0.06, 0.04],
+      "diffuse": [
+        0.36,
+        0.2,
+        0.12
+      ],
+      "specular": [
+        0.1,
+        0.06,
+        0.04
+      ],
       "specularPower": 16,
-      "emissive": [0.03, 0.012, 0.006],
-      "tags": ["wall", "basement", "rust"]
+      "emissive": [
+        0.03,
+        0.012,
+        0.006
+      ],
+      "tags": [
+        "wall",
+        "basement",
+        "rust"
+      ]
     },
     {
       "id": "mat-b3-wire",
       "name": "Wired containment glass",
-      "albedo": "/assets/textures/wired-glass.webp",
+      "albedo": "/assets/textures/wired-glass-flat.webp",
       "tileMeters": 0.55,
       "transparent": true,
       "alpha": 0.42,
-      "diffuse": [0.75, 1, 0.86],
-      "specular": [0.4, 0.48, 0.44],
+      "diffuse": [
+        0.75,
+        1,
+        0.86
+      ],
+      "specular": [
+        0.4,
+        0.48,
+        0.44
+      ],
       "specularPower": 56,
-      "emissive": [0.1, 0.28, 0.16],
-      "tags": ["glass", "basement"]
+      "emissive": [
+        0.1,
+        0.28,
+        0.16
+      ],
+      "tags": [
+        "glass",
+        "basement"
+      ],
+      "normal": "/assets/textures/wired-glass-n.webp",
+      "roughnessMap": "/assets/textures/wired-glass-r.webp",
+      "roughness": 0.18
     },
     {
       "id": "mat-b3-ceil",
       "name": "Dark deck",
-      "albedo": "/assets/textures/ceil-tile.webp",
+      "albedo": "/assets/textures/ceil-tile-flat.webp",
       "tileMeters": 2.2,
-      "diffuse": [0.16, 0.17, 0.18],
-      "specular": [0.06, 0.06, 0.07],
+      "diffuse": [
+        0.16,
+        0.17,
+        0.18
+      ],
+      "specular": [
+        0.06,
+        0.06,
+        0.07
+      ],
       "specularPower": 10,
-      "emissive": [0.01, 0.01, 0.012],
-      "tags": ["ceiling", "basement"]
+      "emissive": [
+        0.01,
+        0.01,
+        0.012
+      ],
+      "tags": [
+        "ceiling",
+        "basement"
+      ],
+      "normal": "/assets/textures/ceil-tile-n.webp",
+      "roughnessMap": "/assets/textures/ceil-tile-r.webp",
+      "roughness": 0.58
     },
     {
       "id": "mat-b3-hazard",
       "name": "Caution stripe",
-      "albedo": "/assets/textures/lift-metal.webp",
+      "albedo": "/assets/textures/lift-metal-flat.webp",
       "tileMeters": 0.35,
-      "diffuse": [0.95, 0.68, 0.08],
-      "specular": [0.22, 0.16, 0.04],
+      "diffuse": [
+        0.95,
+        0.68,
+        0.08
+      ],
+      "specular": [
+        0.22,
+        0.16,
+        0.04
+      ],
       "specularPower": 18,
-      "emissive": [0.32, 0.18, 0.02],
-      "tags": ["floor", "basement"]
+      "emissive": [
+        0.32,
+        0.18,
+        0.02
+      ],
+      "tags": [
+        "floor",
+        "basement"
+      ],
+      "normal": "/assets/textures/lift-metal-n.webp",
+      "roughnessMap": "/assets/textures/lift-metal-r.webp",
+      "roughness": 0.34
     },
     {
       "id": "mat-b3-puddle",
       "name": "Wet floor",
-      "albedo": "/assets/textures/hall-floor.webp",
+      "albedo": "/assets/textures/hall-floor-flat.webp",
       "tileMeters": 1.6,
       "transparent": true,
       "alpha": 0.38,
-      "diffuse": [0.2, 0.28, 0.24],
-      "specular": [0.7, 0.78, 0.72],
+      "diffuse": [
+        0.2,
+        0.28,
+        0.24
+      ],
+      "specular": [
+        0.7,
+        0.78,
+        0.72
+      ],
       "specularPower": 96,
-      "emissive": [0.02, 0.05, 0.03],
-      "tags": ["floor", "basement"]
+      "emissive": [
+        0.02,
+        0.05,
+        0.03
+      ],
+      "tags": [
+        "floor",
+        "basement"
+      ],
+      "normal": "/assets/textures/hall-floor-n.webp",
+      "roughnessMap": "/assets/textures/hall-floor-r.webp",
+      "roughness": 0.38
     },
     {
       "id": "mat-b3-lamp",
       "name": "Cyan practical",
-      "albedo": "/assets/textures/lift-metal.webp",
+      "albedo": "/assets/textures/lift-metal-flat.webp",
       "tileMeters": 0.4,
-      "diffuse": [0.45, 0.85, 1],
-      "specular": [0.3, 0.4, 0.45],
+      "diffuse": [
+        0.45,
+        0.85,
+        1
+      ],
+      "specular": [
+        0.3,
+        0.4,
+        0.45
+      ],
       "specularPower": 32,
-      "emissive": [0.25, 0.7, 0.9],
-      "tags": ["light", "basement"]
+      "emissive": [
+        0.25,
+        0.7,
+        0.9
+      ],
+      "tags": [
+        "light",
+        "basement"
+      ],
+      "normal": "/assets/textures/lift-metal-n.webp",
+      "roughnessMap": "/assets/textures/lift-metal-r.webp",
+      "roughness": 0.34
     }
   ]
 }

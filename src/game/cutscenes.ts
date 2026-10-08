@@ -4,7 +4,7 @@ export type CutsceneVec3 = { x: number; y: number; z: number };
 
 export type TimelineEvent = {
   at: number;
-  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'light' | 'end';
+  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'light' | 'end' | 'mesh' | 'objective' | 'avatar' | 'carry';
   position?: CutsceneVec3;
   lookAt?: CutsceneVec3;
   title?: string;
@@ -21,6 +21,8 @@ export type TimelineEvent = {
   on?: boolean;
   intensity?: number;
   target?: string;
+  /** Avatar swap (`avatar`) or carry id override. */
+  assetId?: string;
 };
 
 export type CutsceneTimeline = {
@@ -36,6 +38,10 @@ export type CutsceneHooks = {
   onHud: (title?: string, text?: string) => void;
   onAnim: (actor: string, clip: string, loop: boolean) => void;
   onLight?: (on: boolean, intensity?: number, target?: string) => void;
+  onMesh?: (target: string, enabled: boolean, position?: CutsceneVec3) => void;
+  onObjective?: (title?: string, text?: string) => void;
+  onAvatar?: (assetId: string) => void;
+  onCarry?: (id: string, name: string, note?: string) => void;
   audioEnabled: () => boolean;
 };
 
@@ -161,6 +167,23 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
   }
   if (event.type === 'light') {
     cutscene.hooks.onLight?.(event.on !== false, event.intensity, event.target);
+    return;
+  }
+  if (event.type === 'mesh' && event.target) {
+    cutscene.hooks.onMesh?.(event.target, event.on !== false, event.position);
+    return;
+  }
+  if (event.type === 'objective') {
+    cutscene.hooks.onObjective?.(event.title, event.text);
+    return;
+  }
+  if (event.type === 'avatar') {
+    const assetId = event.assetId ?? event.target;
+    if (assetId) cutscene.hooks.onAvatar?.(assetId);
+    return;
+  }
+  if (event.type === 'carry') {
+    cutscene.hooks.onCarry?.(event.target ?? event.assetId ?? 'item', event.title ?? 'Item', event.text);
     return;
   }
   if (event.type === 'line') {

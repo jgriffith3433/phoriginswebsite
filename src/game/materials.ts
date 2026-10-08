@@ -1,6 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
-import { getAssetLibrary, type AssetLibraryEntry } from './modelLoader';
+import { characterProbe, getAssetLibrary, type AssetLibraryEntry } from './modelLoader';
 import type { SceneAssetInstance, SceneAssetKind } from './sceneData';
 
 const asFinitePositive = (value: unknown): number | undefined =>
@@ -37,6 +37,10 @@ export type MaterialDef = {
   emissive?: [number, number, number];
   specular?: [number, number, number];
   specularPower?: number;
+  /** 0 slick, 1 matte. Used when the material is PBR. */
+  roughness?: number;
+  normal?: string;
+  roughnessMap?: string;
   tags?: string[];
 };
 
@@ -258,6 +262,41 @@ export const applyMaterialToMesh = (
     mesh.renderingGroupId = 0;
     mesh.material = material;
     mesh.checkCollisions = true;
+    return;
+  }
+  if (!def.transparent && !isGlassAsset(asset)) {
+    if (material !== mesh.material) material.dispose();
+    const pbrName = `${uniqueName}-pbr`;
+    const previous = mesh.material;
+    const pbr = new BABYLON.PBRMaterial(pbrName, scene);
+    pbr.albedoTexture = albedo;
+    pbr.albedoColor = color(def.diffuse, BABYLON.Color3.White());
+    pbr.emissiveColor = color(def.emissive, new BABYLON.Color3(0.03, 0.03, 0.035));
+    pbr.metallic = 0;
+    pbr.roughness = def.roughness ?? 0.72;
+    pbr.maxSimultaneousLights = 4;
+    pbr.reflectionTexture = characterProbe(scene);
+    pbr.environmentIntensity = 0.28;
+    pbr.metadata = { prop: true };
+    if (def.normal) {
+      const normal = cachedTexture(scene, def.normal).clone();
+      normal.name = `${asset.id}:${materialId}:normal`;
+      normal.uScale = tile.u;
+      normal.vScale = tile.v;
+      normal.level = 0.65;
+      pbr.bumpTexture = normal;
+    }
+    if (def.roughnessMap) {
+      const rough = cachedTexture(scene, def.roughnessMap).clone();
+      rough.name = `${asset.id}:${materialId}:rough`;
+      rough.uScale = tile.u;
+      rough.vScale = tile.v;
+      pbr.metallicTexture = rough;
+      pbr.useRoughnessFromMetallicTextureGreen = true;
+      pbr.useMetallnessFromMetallicTextureBlue = false;
+    }
+    mesh.material = pbr;
+    if (previous && previous !== pbr && previous.getBindedMeshes().length === 0) previous.dispose();
     return;
   }
   material.diffuseTexture = albedo;

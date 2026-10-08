@@ -119,7 +119,40 @@ const enqueueImport = <T>(work: () => Promise<T>): Promise<T> => {
 };
 
 /** Graybox walls use StandardMaterial. Mixamo glTF PBR lands as metal + extra specular. */
-const CHARACTER_MIN_ROUGHNESS = 0.82;
+const CHARACTER_MIN_ROUGHNESS = 0.62;
+const CHARACTER_ENV_INTENSITY = 0.32;
+
+const FACES = ['px', 'py', 'pz', 'nx', 'ny', 'nz'] as const;
+
+const probeFaces = (themeName: string) => {
+  const set = themeName === 'B3 Basement' ? 'lab' : 'office';
+  return FACES.map((face) => `/assets/textures/probe/${set}_${face}.webp`);
+};
+
+const probeCache = new WeakMap<BABYLON.Scene, { theme: string; cube: BABYLON.CubeTexture }>();
+
+/** Flat interior cube. Not assigned to scene.environmentTexture — that races the skybox. */
+export const characterProbe = (scene: BABYLON.Scene) => {
+  const theme = (scene.metadata as { themeName?: string } | null)?.themeName ?? 'Apex Peak';
+  const cached = probeCache.get(scene);
+  if (cached && cached.theme === theme) return cached.cube;
+  if (cached) cached.cube.dispose();
+  const cube = BABYLON.CubeTexture.CreateFromImages(probeFaces(theme), scene, true);
+  cube.name = 'character-probe';
+  probeCache.set(scene, { theme, cube });
+  return cube;
+};
+
+export const refreshCharacterProbe = (scene: BABYLON.Scene) => {
+  const cube = characterProbe(scene);
+  for (const material of scene.materials) {
+    if (!(material instanceof BABYLON.PBRMaterial)) continue;
+    const tagged = (material.metadata as { character?: boolean; prop?: boolean } | null);
+    if (!tagged?.character && !tagged?.prop) continue;
+    material.reflectionTexture = cube;
+    material.environmentIntensity = tagged.character ? CHARACTER_ENV_INTENSITY : 0.5;
+  }
+};
 
 type SpecularLikePlugin = {
   name?: string;
@@ -168,7 +201,9 @@ export const applyMatteCharacterMaterials = (meshes: BABYLON.AbstractMesh[], ext
       material.useMetallnessFromMetallicTextureBlue = false;
       material.useRoughnessFromMetallicTextureGreen = false;
       material.useRoughnessFromMetallicTextureAlpha = false;
-      material.environmentIntensity = 0;
+      material.environmentIntensity = CHARACTER_ENV_INTENSITY;
+      material.reflectionTexture = characterProbe(material.getScene());
+      material.metadata = { ...(material.metadata ?? {}), character: true };
       material.metallicF0Factor = 0;
       material.useRadianceOverAlpha = false;
       material.useSpecularOverAlpha = false;
@@ -207,6 +242,15 @@ export const importGlbUnderParent = async (
     container.addAllToScene();
     if (options?.matte !== false) {
       applyMatteCharacterMaterials(container.meshes, container.materials);
+    } else {
+      const cube = characterProbe(scene);
+      for (const material of container.materials) {
+        if (!(material instanceof BABYLON.PBRMaterial)) continue;
+        material.reflectionTexture = cube;
+        material.environmentIntensity = 0.5;
+        material.maxSimultaneousLights = 4;
+        material.metadata = { ...(material.metadata ?? {}), prop: true };
+      }
     }
 
     const skeleton = container.skeletons[0] ?? null;
@@ -281,7 +325,8 @@ export const loadGlbByAssetId = async (
     return null;
   }
   try {
-    return await importGlbUnderParent(scene, modelPath, parent);
+    const matte = /asset-ch|parasite|hero/i.test(assetIdOrPath);
+    return await importGlbUnderParent(scene, modelPath, parent, { matte });
   } catch (error) {
     console.warn(`Failed to load model "${modelPath}":`, error);
     return null;

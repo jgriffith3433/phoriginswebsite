@@ -29,6 +29,13 @@
       "volume": 0.92
     },
     {
+      "at": 4.6,
+      "type": "carry",
+      "target": "clearance",
+      "title": "B3 clearance",
+      "text": "The terminal authorized the descent."
+    },
+    {
       "at": 4.7,
       "type": "hud",
       "title": "Objective",

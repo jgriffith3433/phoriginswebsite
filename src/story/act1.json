@@ -1,0 +1,36 @@
+{
+  "objectives": {
+    "seat": { "title": "Take your seat", "text": "Join the board" },
+    "wait-board": { "title": "Objective", "text": "Wait for the board to leave" },
+    "alarm": { "title": "Objective", "text": "Investigate the terminal" },
+    "elevator": { "title": "Objective", "text": "Get to the elevator" },
+    "lab": { "title": "Objective", "text": "Find the lab door" }
+  },
+  "carry": {
+    "sidearm": [
+      { "id": "sidearm", "name": "Sidearm", "note": "Company issue. Draw it from the weapon slot." }
+    ],
+    "clearance": [
+      { "id": "sidearm", "name": "Sidearm", "note": "Company issue. Draw it from the weapon slot." },
+      { "id": "clearance", "name": "B3 clearance", "note": "The terminal authorized the descent." }
+    ],
+    "b3": [
+      { "id": "sidearm", "name": "Sidearm", "note": "Still holstered." },
+      { "id": "clearance", "name": "B3 clearance", "note": "The cab stopped on its own." }
+    ],
+    "changed": [
+      { "id": "sidearm", "name": "Sidearm", "note": "The hand still closes around it." },
+      { "id": "voice", "name": "Still thinking", "note": "The vat took the body. The voice stayed." }
+    ]
+  },
+  "complete": {
+    "apex": {
+      "title": "Level Complete",
+      "text": "Apex Peak Act I is done. B3 is unlocked in Mission Select."
+    },
+    "b3": {
+      "title": "Level Complete",
+      "text": "B3 incident is done. Pierce is not the man who walked in."
+    }
+  }
+}

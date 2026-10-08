@@ -524,21 +524,25 @@
     },
     {
       "id": "board-table",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-board-table",
+      "kind": "model",
       "name": "Board Table",
       "x": 44.2,
-      "y": 0.42,
+      "y": 0,
       "z": 32,
       "scale": {
-        "x": 10.4,
-        "y": 0.84,
-        "z": 3.2
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform"
       ],
-      "materialId": "mat-wood-desk"
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "board-hologram",
@@ -564,141 +568,169 @@
     },
     {
       "id": "chair-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-chair",
+      "kind": "model",
       "name": "Chair S1",
       "x": 40.2,
-      "y": 0.22,
+      "y": 0,
       "z": 29.7,
       "scale": {
-        "x": 0.62,
-        "y": 0.44,
-        "z": 0.62
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform",
         "NpcSeat"
       ],
       "npcAssetId": "asset-ch08-npc",
-      "materialId": "mat-chair-leather"
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      }
     },
     {
       "id": "chair-s-2",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-chair",
+      "kind": "model",
       "name": "Chair S2",
       "x": 44.2,
-      "y": 0.22,
+      "y": 0,
       "z": 29.7,
       "scale": {
-        "x": 0.62,
-        "y": 0.44,
-        "z": 0.62
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform",
         "NpcSeat"
       ],
       "npcAssetId": "asset-ch23-npc",
-      "materialId": "mat-chair-leather"
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      }
     },
     {
       "id": "chair-s-3",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-chair",
+      "kind": "model",
       "name": "Chair S3",
       "x": 48.2,
-      "y": 0.22,
+      "y": 0,
       "z": 29.7,
       "scale": {
-        "x": 0.62,
-        "y": 0.44,
-        "z": 0.62
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform",
         "NpcSeat"
       ],
       "npcAssetId": "asset-ch28-npc",
-      "materialId": "mat-chair-leather"
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      }
     },
     {
       "id": "chair-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-chair",
+      "kind": "model",
       "name": "Chair N1",
       "x": 40.2,
-      "y": 0.22,
+      "y": 0,
       "z": 34.3,
       "scale": {
-        "x": 0.62,
-        "y": 0.44,
-        "z": 0.62
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform",
         "NpcSeat"
       ],
       "npcAssetId": "asset-ch31-npc",
-      "materialId": "mat-chair-leather"
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "chair-n-2",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-chair",
+      "kind": "model",
       "name": "Chair N2",
       "x": 44.2,
-      "y": 0.22,
+      "y": 0,
       "z": 34.3,
       "scale": {
-        "x": 0.62,
-        "y": 0.44,
-        "z": 0.62
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform",
         "NpcSeat"
       ],
       "npcAssetId": "asset-ch37-npc",
-      "materialId": "mat-chair-leather"
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "chair-n-3",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-chair",
+      "kind": "model",
       "name": "Chair N3",
       "x": 48.2,
-      "y": 0.22,
+      "y": 0,
       "z": 34.3,
       "scale": {
-        "x": 0.62,
-        "y": 0.44,
-        "z": 0.62
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform",
         "NpcSeat"
       ],
       "npcAssetId": "asset-ch08-npc",
-      "materialId": "mat-chair-leather"
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "chair-head",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-chair",
+      "kind": "model",
       "name": "Pierce Chair",
       "x": 50.55,
-      "y": 0.22,
+      "y": 0,
       "z": 32,
       "scale": {
-        "x": 0.7,
-        "y": 0.44,
-        "z": 0.7
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform"
       ],
-      "materialId": "mat-chair-leather"
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      }
     },
     {
       "id": "col-sw",
@@ -821,56 +853,20 @@
     },
     {
       "id": "office-desk",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-office-desk",
+      "kind": "model",
       "name": "Pierce Desk",
       "x": 48,
-      "y": 0.4,
+      "y": 0,
       "z": 42.35,
       "scale": {
-        "x": 2.4,
-        "y": 0.8,
-        "z": 1.1
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform"
       ],
-      "materialId": "mat-wood-desk"
-    },
-    {
-      "id": "office-whiskey",
-      "assetId": "structure-pillar",
-      "kind": "pillar",
-      "name": "Whiskey Glass",
-      "x": 47.4,
-      "y": 0.92,
-      "z": 42.2,
-      "scale": {
-        "x": 0.12,
-        "y": 0.22,
-        "z": 0.12
-      },
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "office-trophy",
-      "assetId": "structure-pillar",
-      "kind": "pillar",
-      "name": "Corporate Trophy",
-      "x": 52.109840393066406,
-      "y": 0.3374939262866974,
-      "z": 46.20000076293945,
-      "scale": {
-        "x": 0.2800000011920929,
-        "y": 0.699999988079071,
-        "z": 0.2800000011920929
-      },
-      "components": [
-        "Transform"
-      ],
-      "materialId": "mat-lift-metal",
       "rotation": {
         "x": 0,
         "y": 0,
@@ -878,23 +874,72 @@
       }
     },
     {
+      "id": "office-whiskey",
+      "assetId": "asset-whiskey-glass",
+      "kind": "model",
+      "name": "Whiskey Glass",
+      "x": 47.4,
+      "y": 0.76,
+      "z": 42.2,
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "office-trophy",
+      "assetId": "asset-trophy",
+      "kind": "model",
+      "name": "Corporate Trophy",
+      "x": 52.109840393066406,
+      "y": 0,
+      "z": 46.20000076293945,
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal",
+      "rotation": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      }
+    },
+    {
       "id": "office-terminal",
-      "assetId": "asset-window",
-      "kind": "texture",
+      "assetId": "asset-office-terminal",
+      "kind": "model",
       "name": "Office Terminal",
       "x": 48.15,
-      "y": 1.12,
+      "y": 0.74,
       "z": 42.72,
       "scale": {
-        "x": 0.78,
-        "y": 0.52,
+        "x": 1,
+        "y": 1,
         "z": 1
       },
       "components": [
         "Transform",
         "Renderer"
       ],
-      "materialId": "mat-monitor"
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "lift-wall-w",
@@ -1312,6 +1357,209 @@
         "x": 1,
         "y": 1,
         "z": 1
+      }
+    },
+    {
+      "id": "fixture-light-lift",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Elevator Cab Light Fixture",
+      "x": 44,
+      "y": 3.02,
+      "z": 21.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h1-a",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall 1 Light A Fixture",
+      "x": 0,
+      "y": 3.05,
+      "z": 6,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h1-b",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall 1 Light B Fixture",
+      "x": 0,
+      "y": 3.05,
+      "z": 16,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h1-c",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall 1 Light C Fixture",
+      "x": 0,
+      "y": 3.05,
+      "z": 26,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h2-a",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall 2 Light A Fixture",
+      "x": 12,
+      "y": 3.05,
+      "z": 32,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h2-b",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall 2 Light B Fixture",
+      "x": 24,
+      "y": 3.05,
+      "z": 32,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-board",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Boardroom Light Fixture",
+      "x": 44.2,
+      "y": 3.05,
+      "z": 32,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-office",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Office Light Fixture",
+      "x": 48,
+      "y": 3.05,
+      "z": 43.5,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "scene-1791483886762-34bov",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "office-chair",
+      "x": 38.22774887084961,
+      "y": 0,
+      "z": 32,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948968,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "position": {
+        "x": 38.22774887084961,
+        "y": 0,
+        "z": 32
       }
     }
   ],

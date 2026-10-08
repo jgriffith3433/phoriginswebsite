@@ -45,7 +45,8 @@ about.html                  About the game
 characters.html             Cast: Pierce Hawkes, Hale, Voss, Lang
 site/marketing.css          Shared marketing styles
 site/marketing.js           Nav, play link, landing music, hero cycle
-src/main.ts                 Game loop, HUD, Act I sequence, input, audio bus
+src/main.ts                 Boot, HUD, input, render loop
+src/story/                  Act I director and objective copy
 src/game/                   Runtime systems
 src/editor/                 Dev Tools (devtools.html)
 levels/                     Scene JSON + level-library.json
@@ -80,6 +81,9 @@ Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman
 | `modelLoader.ts` | Asset library, GLB import, `PLAYER_ASSET_ID` |
 | `materials.ts` | Office materials, per-mesh UV, hologram/glass |
 | `objectiveMarker.ts` | World marker for Act I objectives |
+| `grade.ts` | Per-theme ACES grade, bloom, vignette, SSAO |
+
+Act I phases, elevator and vat choreography, and story inventory live in `src/story/act1.ts`. Timelines can also `mesh` (show/hide), `objective`, `avatar`, and `carry`. `main.ts` boots the canvas and calls the director.
 | `clipTrims.ts` | Dev Tools clip in/out (`assets/animations/clip-trims.json`) |
 
 `PLAYER_ASSET_ID` = `asset-ch33-hero` (Pierce). `TRANSFORM_HERO_ASSET_ID` = `asset-ch44-hero` (post-transform; reserved). Other `asset-ch*-npc` are board NPCs. B3 creature is `asset-parasite-starkie` (`parasite-starkie.glb`, Idle + Walk).
@@ -88,7 +92,7 @@ Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman
 
 **Level 1 — The Apex Peak** (`levels/apex-peak.json`)
 
-Office, boardroom, window, terminal, elevator. Combat off. Sequence in `src/main.ts` (`sequencePhase`): seat → board cutscene → wait-board (NPCs leave) → window VO → alarm → terminal → elevator ride → B3.
+Office, boardroom, window, terminal, elevator. Combat off. Sequence in `src/story/act1.ts`: seat → board cutscene → wait-board (NPCs leave) → window VO → alarm → terminal → elevator ride → B3. Chairs, the board table, Pierce’s desk, the terminal, and ceiling troffers are GLB props. Story inventory is the sidearm plus B3 clearance, not arena ammo.
 
 Cutscenes: `room-for-grace`, `apex-window`, `apex-terminal`, `elevator-b3`.
 
@@ -142,7 +146,7 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 - Office terminal alarm: looping `assets/audio/cutscenes/apex-window/alarm.wav` at **0.46**, from 42.3s in the window cutscene until the terminal beat.
 - Elevator ride (`cutscenes/elevator-b3.json`): cab hum loop **0.3**, door slide, floor chime (`beep.wav`), descent rumble loop **0.38**. Passing floors reuse the chime at **0.34**; arrival uses the timeline chime only.
 - B3 reveal (`cutscenes/b3-door-reveal.json`): Pierce shock VO **0.92**, creature breath **0.38** at 5.8s, creature run **0.55** from 8.8s (matches the Walk flee). Door slide reuses the elevator door clip.
-- B3 vat break (`cutscenes/b3-vat-break.json`): Pierce lines **0.92** (“It ran…”, “I can still think…”), “No—” **0.95**. Glass **0.78** at 4.05s with the mesh break, splash **0.68** at 4.25s. Timeline runs to **14.2s** so the last line finishes before Level Complete.
+- B3 vat break (`cutscenes/b3-vat-break.json`): Pierce lines **0.92** (“It ran…”, “I can still think…”), “No—” **0.95**. Glass **0.78** at 4.05s with a `mesh` event that hides `vat-glass`, splash **0.68** at 4.25s. Avatar swaps to Ch44 at 7.4s via an `avatar` event. Timeline runs to **14.2s** so the last line finishes before Level Complete.
 
 ## Known pitfalls
 
@@ -156,6 +160,6 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 
 ## Nearby leftovers (not blockers)
 
-Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would beat `PistolAim` fallback. B3 still needs more art. Landing stills are placeholders. Combat systems exist but story levels do not use them.
+Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would beat `PistolAim` fallback. The B3 control desk is a console prop; most of the basement is still boxes. Landing stills are placeholders. Arena combat code still exists and stays off on story levels. Opaque level materials are PBR (albedo, normal, roughness). Do not assign `scene.environmentTexture`; characters and props use the flat probe in `assets/textures/probe/`.
 
 When you change IDs, clip names, sequence phases, or these constraints, **update this file**.

@@ -10,13 +10,14 @@
     <title>PH Origins 3D</title>
     <style>
       :root {
-        --bg: #07141e;
-        --panel: rgba(10, 18, 28, 0.82);
-        --panel-border: rgba(255,255,255,0.12);
-        --text: #eefaff;
-        --muted: #9bb0c1;
+        --bg: #05080c;
+        --panel: rgba(8, 12, 16, 0.86);
+        --panel-border: rgba(212, 180, 131, 0.28);
+        --text: #f3f1ea;
+        --muted: #b7c0c8;
         --accent: #67d2ff;
         --good: #7af0c9;
+        --gold: #d4b483;
         --warning: #ffd86a;
       }
 
@@ -332,7 +333,7 @@
         font-size: 9px;
         letter-spacing: 0.22rem;
         text-transform: uppercase;
-        color: var(--good);
+        color: var(--gold);
         margin-bottom: 4px;
       }
 
@@ -498,7 +499,7 @@
 
       .inventory-items {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
         gap: 6px;
       }
 
@@ -512,11 +513,11 @@
 
       .inventory-item {
         min-width: 0;
-        padding: 7px 8px;
+        padding: 8px 10px;
         border-radius: 12px;
-        background: rgba(10, 20, 31, 0.54);
+        background: rgba(10, 14, 18, 0.54);
         border: 1px solid var(--panel-border);
-        text-align: center;
+        text-align: left;
         pointer-events: none;
       }
 
@@ -530,8 +531,18 @@
 
       .inventory-item strong {
         display: block;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        color: var(--text);
+      }
+
+      .inventory-note {
+        display: block;
         margin-top: 4px;
-        font-size: 16px;
+        font-size: 12px;
+        line-height: 1.35;
+        color: var(--muted);
       }
 
       .controls {
@@ -929,7 +940,7 @@
           </div>
           <button type="button" id="weaponSlot" class="weapon-slot" aria-pressed="false">
             <span class="inventory-label">Weapon</span>
-            <strong id="weaponSlotName">Pistol</strong>
+            <strong id="weaponSlotName">Sidearm</strong>
             <span id="weaponSlotState" class="weapon-state">Holstered</span>
           </button>
           <div id="inventoryItems" class="inventory-items"></div>

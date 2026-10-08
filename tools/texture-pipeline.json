@@ -10,49 +10,49 @@
       "source": "office/Modern_acoustic_felt_wall_panel",
       "out": "office-wall.webp",
       "maxDim": 1024,
-      "note": "Acoustic felt — hall walls (soft, seamless tile)"
+      "note": "Acoustic felt \u2014 hall walls (soft, seamless tile)"
     },
     {
       "id": "office-plaster",
       "source": "office/Off-white_plaster_wall_texture",
       "out": "office-plaster.webp",
       "maxDim": 1024,
-      "note": "Off-white plaster — boardroom / Pierce office walls"
+      "note": "Off-white plaster \u2014 boardroom / Pierce office walls"
     },
     {
       "id": "office-floor",
       "source": "office/Dark_grey_satin_texture_sample",
       "out": "office-floor.webp",
       "maxDim": 1024,
-      "note": "Dark grey satin — hall / board / office floors"
+      "note": "Dark grey satin \u2014 hall / board / office floors"
     },
     {
       "id": "office-desk",
       "source": "office/Light_oak_wood_veneer_sample",
       "out": "office-desk.webp",
       "maxDim": 1024,
-      "note": "Light oak veneer — desks and board table"
+      "note": "Light oak veneer \u2014 desks and board table"
     },
     {
       "id": "office-chair",
       "source": "office/Office_chair_mesh_texture_sample",
       "out": "office-chair.webp",
       "maxDim": 512,
-      "note": "Black chair mesh — seating (small meshes, 512)"
+      "note": "Black chair mesh \u2014 seating (small meshes, 512)"
     },
     {
       "id": "office-glass",
       "source": "office/Architectural_glass_texture_sample",
       "out": "office-glass.webp",
       "maxDim": 1024,
-      "note": "Frosted architectural glass — Apex windows (alpha at runtime)"
+      "note": "Frosted architectural glass \u2014 Apex windows (alpha at runtime)"
     },
     {
       "id": "hall-floor",
       "source": "Rubber_floor_matting",
       "out": "hall-floor.webp",
       "maxDim": 1024,
-      "note": "Diamond plate — elevator floor only"
+      "note": "Diamond plate \u2014 elevator floor only"
     },
     {
       "id": "ceil-tile",
@@ -66,143 +66,311 @@
       "source": "Brushed_stainless_steel_panel",
       "out": "lift-metal.webp",
       "maxDim": 1024,
-      "note": "Brushed stainless — elevator cab / doors"
+      "note": "Brushed stainless \u2014 elevator cab / doors"
     },
     {
       "id": "monitor",
       "source": "Security_monitor_pixel",
       "out": "monitor.webp",
       "maxDim": 512,
-      "note": "Pixel grid — office terminal"
+      "note": "Pixel grid \u2014 office terminal"
     }
   ],
   "materials": [
     {
       "id": "mat-hall-wall",
-      "name": "Hall wall — acoustic felt",
-      "albedo": "office-wall.webp",
+      "name": "Hall wall \u2014 acoustic felt",
+      "albedo": "/assets/textures/office-wall-flat.webp",
       "tileMeters": 4,
-      "specular": [0.06, 0.06, 0.06],
+      "specular": [
+        0.06,
+        0.06,
+        0.06
+      ],
       "specularPower": 12,
-      "emissive": [0.04, 0.04, 0.042],
-      "tags": ["wall", "hall"]
+      "emissive": [
+        0.04,
+        0.04,
+        0.042
+      ],
+      "tags": [
+        "wall",
+        "hall"
+      ],
+      "normal": "/assets/textures/office-wall-n.webp",
+      "roughnessMap": "/assets/textures/office-wall-r.webp",
+      "roughness": 0.92
     },
     {
       "id": "mat-office-wall",
-      "name": "Office wall — plaster",
-      "albedo": "office-plaster.webp",
+      "name": "Office wall \u2014 plaster",
+      "albedo": "/assets/textures/office-plaster-flat.webp",
       "tileMeters": 3.6,
-      "specular": [0.08, 0.08, 0.085],
+      "specular": [
+        0.08,
+        0.08,
+        0.085
+      ],
       "specularPower": 16,
-      "emissive": [0.05, 0.05, 0.048],
-      "tags": ["wall", "office"]
+      "emissive": [
+        0.05,
+        0.05,
+        0.048
+      ],
+      "tags": [
+        "wall",
+        "office"
+      ],
+      "normal": "/assets/textures/office-plaster-n.webp",
+      "roughnessMap": "/assets/textures/office-plaster-r.webp",
+      "roughness": 0.84
     },
     {
       "id": "mat-board-wall",
-      "name": "Boardroom wall — plaster",
-      "albedo": "office-plaster.webp",
+      "name": "Boardroom wall \u2014 plaster",
+      "albedo": "/assets/textures/office-plaster-flat.webp",
       "tileMeters": 4.2,
-      "specular": [0.09, 0.09, 0.095],
+      "specular": [
+        0.09,
+        0.09,
+        0.095
+      ],
       "specularPower": 18,
-      "emissive": [0.05, 0.05, 0.048],
-      "tags": ["wall", "boardroom"]
+      "emissive": [
+        0.05,
+        0.05,
+        0.048
+      ],
+      "tags": [
+        "wall",
+        "boardroom"
+      ],
+      "normal": "/assets/textures/office-plaster-n.webp",
+      "roughnessMap": "/assets/textures/office-plaster-r.webp",
+      "roughness": 0.84
     },
     {
       "id": "mat-hall-floor",
-      "name": "Hall floor — grey satin",
-      "albedo": "office-floor.webp",
+      "name": "Hall floor \u2014 grey satin",
+      "albedo": "/assets/textures/office-floor-flat.webp",
       "tileMeters": 8,
       "uTileMeters": 28,
       "vTileMeters": 8,
-      "specular": [0.14, 0.14, 0.145],
+      "specular": [
+        0.14,
+        0.14,
+        0.145
+      ],
       "specularPower": 28,
-      "emissive": [0.025, 0.025, 0.026],
-      "tags": ["floor", "hall"]
+      "emissive": [
+        0.025,
+        0.025,
+        0.026
+      ],
+      "tags": [
+        "floor",
+        "hall"
+      ],
+      "normal": "/assets/textures/office-floor-n.webp",
+      "roughnessMap": "/assets/textures/office-floor-r.webp",
+      "roughness": 0.46
     },
     {
       "id": "mat-board-floor",
-      "name": "Office floor — grey satin",
-      "albedo": "office-floor.webp",
+      "name": "Office floor \u2014 grey satin",
+      "albedo": "/assets/textures/office-floor-flat.webp",
       "tileMeters": 3.4,
-      "specular": [0.16, 0.16, 0.17],
+      "specular": [
+        0.16,
+        0.16,
+        0.17
+      ],
       "specularPower": 36,
-      "emissive": [0.028, 0.028, 0.03],
-      "tags": ["floor", "boardroom", "office"]
+      "emissive": [
+        0.028,
+        0.028,
+        0.03
+      ],
+      "tags": [
+        "floor",
+        "boardroom",
+        "office"
+      ],
+      "normal": "/assets/textures/office-floor-n.webp",
+      "roughnessMap": "/assets/textures/office-floor-r.webp",
+      "roughness": 0.46
     },
     {
       "id": "mat-lift-floor",
-      "name": "Elevator floor — diamond plate",
-      "albedo": "hall-floor.webp",
+      "name": "Elevator floor \u2014 diamond plate",
+      "albedo": "/assets/textures/hall-floor-flat.webp",
       "tileMeters": 1.4,
-      "specular": [0.14, 0.14, 0.14],
+      "specular": [
+        0.14,
+        0.14,
+        0.14
+      ],
       "specularPower": 18,
-      "emissive": [0.02, 0.02, 0.022],
-      "tags": ["floor", "elevator"]
+      "emissive": [
+        0.02,
+        0.02,
+        0.022
+      ],
+      "tags": [
+        "floor",
+        "elevator"
+      ],
+      "normal": "/assets/textures/hall-floor-n.webp",
+      "roughnessMap": "/assets/textures/hall-floor-r.webp",
+      "roughness": 0.38
     },
     {
       "id": "mat-ceil-tile",
       "name": "Perforated ceiling",
-      "albedo": "ceil-tile.webp",
+      "albedo": "/assets/textures/ceil-tile-flat.webp",
       "tileMeters": 1.2,
-      "specular": [0.18, 0.18, 0.2],
+      "specular": [
+        0.18,
+        0.18,
+        0.2
+      ],
       "specularPower": 20,
-      "emissive": [0.08, 0.08, 0.085],
-      "tags": ["ceiling"]
+      "emissive": [
+        0.08,
+        0.08,
+        0.085
+      ],
+      "tags": [
+        "ceiling"
+      ],
+      "normal": "/assets/textures/ceil-tile-n.webp",
+      "roughnessMap": "/assets/textures/ceil-tile-r.webp",
+      "roughness": 0.58
     },
     {
       "id": "mat-lift-metal",
       "name": "Elevator stainless",
-      "albedo": "lift-metal.webp",
+      "albedo": "/assets/textures/lift-metal-flat.webp",
       "tileMeters": 1.5,
-      "specular": [0.32, 0.32, 0.34],
+      "specular": [
+        0.32,
+        0.32,
+        0.34
+      ],
       "specularPower": 48,
-      "emissive": [0.04, 0.04, 0.045],
-      "tags": ["wall", "elevator"]
+      "emissive": [
+        0.04,
+        0.04,
+        0.045
+      ],
+      "tags": [
+        "wall",
+        "elevator"
+      ],
+      "normal": "/assets/textures/lift-metal-n.webp",
+      "roughnessMap": "/assets/textures/lift-metal-r.webp",
+      "roughness": 0.34
     },
     {
       "id": "mat-wood-desk",
       "name": "Light oak furniture",
-      "albedo": "office-desk.webp",
+      "albedo": "/assets/textures/office-desk-flat.webp",
       "tileMeters": 1.2,
-      "specular": [0.16, 0.13, 0.08],
+      "specular": [
+        0.16,
+        0.13,
+        0.08
+      ],
       "specularPower": 32,
-      "emissive": [0.04, 0.035, 0.025],
-      "tags": ["furniture", "wood"]
+      "emissive": [
+        0.04,
+        0.035,
+        0.025
+      ],
+      "tags": [
+        "furniture",
+        "wood"
+      ],
+      "normal": "/assets/textures/office-desk-n.webp",
+      "roughnessMap": "/assets/textures/office-desk-r.webp",
+      "roughness": 0.5
     },
     {
       "id": "mat-chair-leather",
       "name": "Office chair mesh",
-      "albedo": "office-chair.webp",
+      "albedo": "/assets/textures/office-chair-flat.webp",
       "tileMeters": 0.35,
-      "specular": [0.05, 0.05, 0.05],
+      "specular": [
+        0.05,
+        0.05,
+        0.05
+      ],
       "specularPower": 10,
-      "emissive": [0.012, 0.012, 0.012],
-      "tags": ["furniture", "chair"]
+      "emissive": [
+        0.012,
+        0.012,
+        0.012
+      ],
+      "tags": [
+        "furniture",
+        "chair"
+      ],
+      "normal": "/assets/textures/office-chair-n.webp",
+      "roughnessMap": "/assets/textures/office-chair-r.webp",
+      "roughness": 0.62
     },
     {
       "id": "mat-monitor",
       "name": "Hologram terminal glass",
-      "albedo": "office-glass.webp",
+      "albedo": "/assets/textures/office-glass.webp",
       "tileMeters": 0.7,
       "transparent": true,
       "alpha": 0.38,
-      "diffuse": [0.35, 0.72, 0.95],
-      "specular": [0.38, 0.52, 0.62],
+      "diffuse": [
+        0.35,
+        0.72,
+        0.95
+      ],
+      "specular": [
+        0.38,
+        0.52,
+        0.62
+      ],
       "specularPower": 64,
-      "emissive": [0.18, 0.48, 0.62],
-      "tags": ["prop", "screen", "glass", "hologram"]
+      "emissive": [
+        0.18,
+        0.48,
+        0.62
+      ],
+      "tags": [
+        "prop",
+        "screen",
+        "glass",
+        "hologram"
+      ]
     },
     {
       "id": "mat-office-glass",
       "name": "Frosted office glass",
-      "albedo": "office-glass.webp",
+      "albedo": "/assets/textures/office-glass.webp",
       "tileMeters": 2.4,
       "transparent": true,
       "alpha": 0.48,
-      "specular": [0.42, 0.44, 0.46],
+      "specular": [
+        0.42,
+        0.44,
+        0.46
+      ],
       "specularPower": 72,
-      "emissive": [0.06, 0.07, 0.08],
-      "tags": ["glass", "office"]
+      "emissive": [
+        0.06,
+        0.07,
+        0.08
+      ],
+      "tags": [
+        "glass",
+        "office"
+      ]
     }
   ],
   "skip": [

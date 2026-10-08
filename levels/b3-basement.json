@@ -3063,53 +3063,25 @@
     },
     {
       "id": "control-desk",
-      "assetId": "structure-wall",
-      "kind": "wall",
+      "assetId": "asset-lab-console",
+      "kind": "model",
       "name": "Control Desk",
-      "materialId": "mat-b3-pipe",
-      "position": {
-        "x": 1.7,
-        "y": 0.5,
-        "z": 49.2
-      },
       "rotation": {
         "x": 0,
         "y": 0,
         "z": 0
       },
       "scale": {
-        "x": 1.4,
+        "x": 1,
         "y": 1,
-        "z": 4.2
+        "z": 1
       },
       "components": [
         "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-control-screen",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "Control Screen",
-      "materialId": "mat-monitor",
-      "position": {
-        "x": 2.48,
-        "y": 1.15,
-        "z": 49.2
-      },
-      "rotation": {
-        "x": 0,
-        "y": 0,
-        "z": 0
-      },
-      "scale": {
-        "x": 0.06,
-        "y": 0.6,
-        "z": 2.2
-      },
-      "components": [
-        "Transform"
-      ]
+      ],
+      "x": 1.7,
+      "y": 0,
+      "z": 49.2
     },
     {
       "id": "control-desk-b",
@@ -6235,6 +6207,490 @@
         "x": 0.55,
         "y": 0.08,
         "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h1-a",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall Light A Fixture",
+      "x": 44,
+      "y": 3.05,
+      "z": 27.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h1-b",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall Light B Fixture",
+      "x": 44,
+      "y": 3.05,
+      "z": 33.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h2-a",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall B Light A Fixture",
+      "x": 40,
+      "y": 3.05,
+      "z": 38,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h2-b",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall B Light B Fixture",
+      "x": 26,
+      "y": 3.05,
+      "z": 38,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-junction",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Junction Light Fixture",
+      "x": 44.5,
+      "y": 3.05,
+      "z": 38,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-vat",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Vat Light Fixture",
+      "x": 7.2,
+      "y": 2.5500000000000003,
+      "z": 38,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-lab-n",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Lab Light N Fixture",
+      "x": 8,
+      "y": 3.05,
+      "z": 42.4,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-lab-s",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Lab Light S Fixture",
+      "x": 11,
+      "y": 3.05,
+      "z": 34.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-cell-glass",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Cell Glass Light Fixture",
+      "x": 31,
+      "y": 2.8000000000000003,
+      "z": 38.6,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-cell-deep",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Cell Light Deep Fixture",
+      "x": 24,
+      "y": 3.05,
+      "z": 49,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-decon",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Decon Light Fixture",
+      "x": 8,
+      "y": 3.05,
+      "z": 26.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-chem-a",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Chem A Light Fixture",
+      "x": 23.2,
+      "y": 3.05,
+      "z": 31.4,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-chem-b",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Chem B Light Fixture",
+      "x": 34.8,
+      "y": 3.05,
+      "z": 31.4,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-control",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Control Light Fixture",
+      "x": 8,
+      "y": 3.05,
+      "z": 48.6,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-service",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Service Light Fixture",
+      "x": 43.6,
+      "y": 3.05,
+      "z": 46.5,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-corridor-a",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Corridor Light A Fixture",
+      "x": 14,
+      "y": 3.05,
+      "z": 54.65,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-corridor-b",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Corridor Light B Fixture",
+      "x": 34,
+      "y": 3.05,
+      "z": 54.65,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-corridor-c",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Corridor Light C Fixture",
+      "x": 52,
+      "y": 3.05,
+      "z": 54.65,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-transform",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Transform Light Fixture",
+      "x": 54,
+      "y": 3.05,
+      "z": 36,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-transform-b",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Transform Light B Fixture",
+      "x": 56,
+      "y": 3.05,
+      "z": 46,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-utility",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Utility Light Fixture",
+      "x": 28,
+      "y": 3.05,
+      "z": 59.6,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-lift",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Elevator Cab Light Fixture",
+      "x": 44,
+      "y": 2.85,
+      "z": 21.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
       },
       "components": [
         "Transform"
