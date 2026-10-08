@@ -482,6 +482,31 @@
       ],
       "source": "pipeline",
       "tileMeters": 2.4
+    },
+    {
+      "id": "asset-parasite-starkie",
+      "name": "parasite-starkie.glb",
+      "path": "/assets/models/parasite-starkie.glb",
+      "type": "model",
+      "tags": [
+        "character",
+        "mixamo",
+        "creature",
+        "b3",
+        "real-file"
+      ],
+      "source": "project",
+      "sourceFbx": "C:\\Projects\\phoriginsassets\\models\\Parasite L Starkie.fbx",
+      "animations": [
+        {
+          "name": "Idle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Idle.fbx"
+        },
+        {
+          "name": "Walk",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        }
+      ]
     }
   ]
 }

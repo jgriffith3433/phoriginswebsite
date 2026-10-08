@@ -628,9 +628,9 @@ const restoreSceneLights = () => {
 };
 
 const setCreatureVisible = (visible: boolean) => {
-  const mesh = sceneMeshById('b3-creature');
-  if (!mesh) return;
-  mesh.setEnabled(visible);
+  const node = sceneMeshById('b3-creature')
+    ?? scene.transformNodes.find((entry) => entry.metadata?.sceneAssetId === 'b3-creature');
+  node?.setEnabled(visible);
 };
 
 const setVatGlassBroken = (broken: boolean) => {
@@ -1023,11 +1023,8 @@ const defaultSave: SaveData = { unlocked: 1, sound: true };
 const MAX_HEALTH = 100;
 
 const GAME_COPY = {
-  intro: 'Level 1: The board meeting',
-  loading: 'Loading the office…',
   missionClear: 'Keep pushing into the next mission.',
   defeat: 'Press Start to retry.',
-  reset: 'Level 1: The board meeting',
 } as const;
 
 const loadSave = (): SaveData => {
@@ -1090,6 +1087,12 @@ const state = {
   stickDragging: false,
   inCutscene: false,
 };
+
+const levelStartLine = (level = getLevelDefinition(state.level)) =>
+  `Level ${level.id}: ${level.name}`;
+
+const levelLoadingLine = (level = getLevelDefinition(state.level)) =>
+  level.libraryId === 'apex-peak' ? 'Loading the office…' : `Loading ${level.name}…`;
 
 const enemies: Enemy[] = [];
 const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
@@ -1259,7 +1262,7 @@ const syncStartButtonLabel = () => {
     resetBtn.disabled = true;
     loadModelBtn.disabled = true;
     if (messageTitle.textContent === 'PH Origins') {
-      messageText.textContent = GAME_COPY.loading;
+      messageText.textContent = levelLoadingLine();
     }
     return;
   }
@@ -1269,7 +1272,7 @@ const syncStartButtonLabel = () => {
   loadModelBtn.disabled = false;
   startBtn.textContent = state.running ? 'Continue' : 'Start';
   if (!state.running && messageTitle.textContent === 'PH Origins') {
-    messageText.textContent = GAME_COPY.intro;
+    messageText.textContent = levelStartLine();
   }
 };
 
@@ -1855,7 +1858,7 @@ resetBtn.addEventListener('click', () => {
   resetPlayer();
   void loadMissionScene(getLevelDefinition(1).path);
   updateHud();
-  showMessage('PH Origins', GAME_COPY.reset);
+  showMessage('PH Origins', levelStartLine());
   loadModelBtn.style.display = '';
   syncStartButtonLabel();
   state.running = false;
@@ -2039,6 +2042,8 @@ const cycleTheme = () => {
 
 const isLocalPlay = () => (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
 
+if (isLocalPlay()) devToggle.hidden = false;
+
 const renderLevelSelect = () => {
   levelList.innerHTML = '';
   const levels = getLevels();
@@ -2075,12 +2080,11 @@ const renderLevelSelect = () => {
       if (!unlocked) return;
       state.level = level.id;
       state.progression.currentLevel = level.id;
-      state.progression.highestUnlocked = Math.max(state.progression.highestUnlocked, level.id);
       applyLevelConfig(level);
       void loadMissionScene(level.path);
       levelSelect.classList.add('hidden');
-      messageText.textContent = `${level.name} • ${level.reward}`;
       messageTitle.textContent = 'PH Origins';
+      messageText.textContent = levelStartLine(level);
       syncStartButtonLabel();
       updateCrosshairVisibility();
     });
@@ -2104,8 +2108,8 @@ loadModelBtn.addEventListener('click', () => {
 });
 closeLevelSelectBtn.addEventListener('click', () => {
   levelSelect.classList.add('hidden');
-  messageText.textContent = GAME_COPY.intro;
   messageTitle.textContent = 'PH Origins';
+  messageText.textContent = levelStartLine();
 });
 modelInput.addEventListener('change', (event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
@@ -2162,7 +2166,7 @@ devToggle.addEventListener('click', () => {
 });
 
 loadModelBtn.style.display = '';
-showMessage('PH Origins', GAME_COPY.intro);
+showMessage('PH Origins', levelStartLine());
 updateHud();
 
 updateCrosshairVisibility();

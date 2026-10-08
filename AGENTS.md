@@ -40,6 +40,11 @@ Build: `npm run build`. Preview: `npm run preview` (port 4173).
 ## Layout
 
 ```
+index.html                  Marketing home (hero, film, Act I, cast)
+about.html                  About the game
+characters.html             Cast: Pierce Hawkes, Hale, Voss, Lang
+site/marketing.css          Shared marketing styles
+site/marketing.js           Nav, play link, landing music, hero cycle
 src/main.ts                 Game loop, HUD, Act I sequence, input, audio bus
 src/game/                   Runtime systems
 src/editor/                 Dev Tools (devtools.html)
@@ -51,6 +56,12 @@ assets/audio/               BGM, SFX, cutscene VO
 assets/asset-library.json   IDs the editor and loader use
 tools/                      Blender convert, bake anims, texture pipeline
 ```
+
+### Marketing site
+
+Home, About, and Characters share `site/marketing.css` and `site/marketing.js`. Play goes to `/game.html` on a local dev host (any port except the preview server on 4173) and `/play/index.html` elsewhere. Landing music key stays `ph-origins-landing-music`, volume **0.42**.
+
+Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman), **Voss** (man), **Lang** (man). Do not invent first names. The post-vat figure on Characters is concept art; Ch44 is still reserved and not swapped in.
 
 ### Important `src/game` modules
 
@@ -71,7 +82,7 @@ tools/                      Blender convert, bake anims, texture pipeline
 | `objectiveMarker.ts` | World marker for Act I objectives |
 | `clipTrims.ts` | Dev Tools clip in/out (`assets/animations/clip-trims.json`) |
 
-`PLAYER_ASSET_ID` = `asset-ch33-hero` (Pierce). `TRANSFORM_HERO_ASSET_ID` = `asset-ch44-hero` (post-transform; reserved). Other `asset-ch*-npc` are board NPCs.
+`PLAYER_ASSET_ID` = `asset-ch33-hero` (Pierce). `TRANSFORM_HERO_ASSET_ID` = `asset-ch44-hero` (post-transform; reserved). Other `asset-ch*-npc` are board NPCs. B3 creature is `asset-parasite-starkie` (`parasite-starkie.glb`, Idle + Walk).
 
 ## Story / levels (current)
 
@@ -87,7 +98,7 @@ Music trigger: `/assets/audio/room-tone.mp3`, volume **0.28**, ducks to **0.18**
 
 **Level 2 — B3** (`levels/b3-basement.json`)
 
-Basement / lab. Combat off. Cutscenes: `b3-door-reveal`, `b3-vat-break`. Layout follows the Sector 4 blueprint around the existing elevator → Hallway B → vat-door anchors: pipe hall, containment glass, two chemical stores, decon, control, transformation wing, utility. Dark plate / diamond / wired-glass (`mat-b3-*`). Practicals are colored point lights (cyan halls, green vat and cell). Do not flatten those intensities on arrival. VO is still thin.
+Basement / lab. Combat off. Cutscenes: `b3-door-reveal`, `b3-vat-break`. The vat-room creature is `asset-parasite-starkie` (scene id `b3-creature`), feet on the floor beside the acid vat, Idle looping. It hides when the search objective starts. Layout follows the Sector 4 blueprint around the existing elevator → Hallway B → vat-door anchors: pipe hall, containment glass, two chemical stores, decon, control, transformation wing, utility. Dark plate / diamond / wired-glass (`mat-b3-*`). Practicals are colored point lights (cyan halls, green vat and cell). Do not flatten those intensities on arrival. VO is still thin.
 
 **Level 3** — coming soon.
 

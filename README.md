@@ -56,7 +56,7 @@ The title screen looks out over a night-city skybox until you press Start (the b
 | `cutscenes/` | Timed dialogue / camera / audio scripts |
 | `assets/` | Runtime models (GLB), textures, audio |
 | `game.html` | Game shell + HUD CSS |
-| `index.html` | Marketing / landing page |
+| `index.html`, `about.html`, `characters.html` | Marketing site (home, story, cast) |
 | `devtools.html` | Editor shell |
 | `tools/` | FBX→GLB, animation bake, texture compress |
 | `play/` | **Build output** — do not edit by hand |

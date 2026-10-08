@@ -45,6 +45,7 @@ const playerPistolClips = [
 ];
 
 const npcClips = locomoClips.filter((clip) => clip.name !== 'Jump');
+const creatureClips = locomoClips.filter((clip) => clip.name === 'Idle' || clip.name === 'Walk');
 
 const jobs = [
   {
@@ -88,6 +89,12 @@ const jobs = [
     fbx: 'Ch37_nonPBR.fbx',
     animations: npcClips,
     tags: ['character', 'mixamo', 'npc', 'professional_npc', 'real-file'],
+  },
+  {
+    outputName: 'parasite-starkie',
+    fbx: 'Parasite L Starkie.fbx',
+    animations: creatureClips,
+    tags: ['character', 'mixamo', 'creature', 'b3', 'real-file'],
   },
 ];
 

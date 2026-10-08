@@ -4,379 +4,190 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#05080c" />
+    <meta
+      name="description"
+      content="PH Origins is a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark."
+    />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>PH Origins</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet" />
-    <style>
-      :root {
-        --bg: #05080c;
-        --text: #f3f1ea;
-        --muted: #b7c0c8;
-        --accent: #67d2ff;
-        --good: #7af0c9;
-        --gold: #d4b483;
-      }
-
-      * { box-sizing: border-box; }
-
-      html, body {
-        margin: 0;
-        width: 100%;
-        min-height: 100%;
-        min-height: 100dvh;
-        background: var(--bg);
-        color: var(--text);
-        font-family: "Barlow Condensed", Arial, Helvetica, sans-serif;
-      }
-
-      body {
-        display: grid;
-        place-items: center;
-        overflow: hidden;
-      }
-
-      .stage {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        background: #000;
-        pointer-events: none;
-      }
-
-      .stage-shot {
-        position: absolute;
-        inset: 0;
-        background: #000 center / cover no-repeat;
-        opacity: 0;
-        transform: scale(1.04);
-        will-change: opacity, transform;
-      }
-
-      .stage-shot.is-live {
-        opacity: 1;
-        animation: ken 28s linear forwards;
-      }
-
-      .stage-black {
-        position: absolute;
-        inset: 0;
-        background: #000;
-        opacity: 0;
-        transition: opacity 1.8s ease-in-out;
-        will-change: opacity;
-      }
-
-      .stage-black.is-in {
-        opacity: 1;
-      }
-
-      .stage-vignette {
-        position: absolute;
-        inset: 0;
-        background:
-          radial-gradient(ellipse at 50% 42%, transparent 18%, rgba(0, 0, 0, 0.55) 58%, rgba(0, 0, 0, 0.88) 100%),
-          linear-gradient(180deg, rgba(0, 0, 0, 0.42) 0%, transparent 22%, transparent 62%, rgba(0, 0, 0, 0.72) 100%);
-      }
-
-      .stage-grain {
-        position: absolute;
-        inset: 0;
-        opacity: 0.07;
-        background-image: repeating-radial-gradient(circle at 20% 20%, #fff 0 0.5px, transparent 0.6px 3px);
-        mix-blend-mode: overlay;
-      }
-
-      @keyframes ken {
-        from { transform: scale(1.04); }
-        to { transform: scale(1.12); }
-      }
-
-      .panel {
-        position: relative;
-        z-index: 1;
-        width: min(560px, calc(100vw - 32px));
-        padding: 36px 28px 32px;
-        border-radius: 4px;
-        border: 1px solid rgba(212, 180, 131, 0.22);
-        background: rgba(6, 10, 14, 0.62);
-        box-shadow:
-          0 30px 80px rgba(0, 0, 0, 0.55),
-          inset 0 1px 0 rgba(255, 255, 255, 0.06);
-        text-align: center;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-      }
-
-      .eyebrow {
-        margin: 0 0 10px;
-        color: var(--gold);
-        letter-spacing: 0.38rem;
-        text-transform: uppercase;
-        font-size: 12px;
-        font-weight: 700;
-      }
-
-      h1 {
-        margin: 0 0 10px;
-        font-family: "Cormorant Garamond", Georgia, serif;
-        font-size: clamp(42px, 9vw, 72px);
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        line-height: 0.95;
-      }
-
-      p {
-        margin: 0 auto;
-        max-width: 38ch;
-        color: var(--muted);
-        line-height: 1.55;
-        font-size: 18px;
-        font-weight: 500;
-        letter-spacing: 0.04em;
-      }
-
-      .button-wrap {
-        margin-top: 26px;
-        display: flex;
-        justify-content: center;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .play-btn,
-      .dev-btn {
-        display: inline-block;
-        padding: 16px 26px;
-        border-radius: 999px;
-        text-decoration: none;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 0.22rem;
-        text-transform: uppercase;
-      }
-
-      .play-btn {
-        background: linear-gradient(135deg, var(--accent), var(--good));
-        color: #07141e;
-        box-shadow: 0 16px 34px rgba(103, 210, 255, 0.28);
-      }
-
-      .play-btn:focus-visible,
-      .music-btn:focus-visible {
-        outline: 2px solid var(--gold);
-        outline-offset: 3px;
-      }
-
-      .dev-btn {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.12);
-        color: var(--text);
-      }
-
-      .music-btn {
-        position: fixed;
-        z-index: 2;
-        top: max(16px, env(safe-area-inset-top));
-        right: max(16px, env(safe-area-inset-right));
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        border: 1px solid rgba(212, 180, 131, 0.35);
-        background: rgba(8, 12, 16, 0.72);
-        color: var(--gold);
-        cursor: pointer;
-        display: grid;
-        place-items: center;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
-      }
-
-      .music-btn svg {
-        width: 20px;
-        height: 20px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.7;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-      }
-
-      .music-btn .icon-on { display: none; }
-      .music-btn.is-on .icon-off { display: none; }
-      .music-btn.is-on .icon-on { display: block; }
-      .music-btn.is-on {
-        color: var(--good);
-        border-color: rgba(122, 240, 201, 0.4);
-      }
-
-      @media (max-width: 640px) {
-        body { overflow: auto; }
-        .panel {
-          padding: 28px 20px 24px;
-          background: rgba(6, 10, 14, 0.72);
-        }
-        p { font-size: 16px; }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .stage-shot.is-live { animation: none; transform: none; }
-        .stage-black { transition-duration: 0.4s; }
-      }
-    </style>
-    <script data-goatcounter="https://phorigins.goatcounter.com/count"
-            async src="//gc.zgo.at/count.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./site/marketing.css" />
+    <script
+      data-goatcounter="https://phorigins.goatcounter.com/count"
+      async
+      src="//gc.zgo.at/count.js"
+    ></script>
   </head>
-  <body>
-    <div class="stage" aria-hidden="true">
-      <div class="stage-shot" id="shotA"></div>
-      <div class="stage-shot" id="shotB"></div>
-      <div class="stage-black" id="fadeBlack"></div>
-      <div class="stage-vignette"></div>
-      <div class="stage-grain"></div>
-    </div>
+  <body data-page="home">
+    <a class="skip" href="#content">Skip to content</a>
 
-    <button type="button" class="music-btn" id="musicBtn" aria-pressed="false" aria-label="Play music">
-      <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 10v4h3l4 3V7L7 10H4z" />
-        <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-        <path d="M18 6a8.5 8.5 0 0 1 0 12" />
-      </svg>
-      <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 10v4h3l4 3V7L7 10H4z" />
-        <path d="M16 9l5 6M21 9l-5 6" />
-      </svg>
-    </button>
-
-    <main class="panel">
-      <div class="eyebrow">PH Origins</div>
-      <h1>WELCOME</h1>
-      <p>This is the PH Origins game. Get ready to embark on an exciting journey!</p>
-      <div class="button-wrap">
-        <a id="playButton" class="play-btn" href="/game.html">Play now</a>
+    <header class="nav">
+      <div class="nav-inner">
+        <a class="brand" href="./index.html">
+          <svg viewBox="0 0 256 256" aria-hidden="true">
+            <path d="M72 176L128 52l56 124H72zm28-18h60L128 94l-28 64z" fill="#67d2ff" />
+            <circle cx="128" cy="86" r="20" fill="#7af0c9" />
+          </svg>
+          PH Origins
+        </a>
+        <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="nav-links">
+          Menu
+        </button>
+        <nav class="nav-links" id="nav-links" aria-label="Primary">
+          <a href="./index.html" data-nav="home">Home</a>
+          <a href="./about.html" data-nav="about">About</a>
+          <a href="./characters.html" data-nav="characters">Characters</a>
+        </nav>
+        <div class="nav-tools">
+          <button type="button" class="music-btn" id="musicBtn" aria-pressed="false" aria-label="Play music">
+            <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 10v4h3l4 3V7L7 10H4z" />
+              <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+              <path d="M18 6a8.5 8.5 0 0 1 0 12" />
+            </svg>
+            <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 10v4h3l4 3V7L7 10H4z" />
+              <path d="M16 9l5 6M21 9l-5 6" />
+            </svg>
+          </button>
+          <a class="nav-play" data-play href="/game.html">Play</a>
+        </div>
       </div>
+    </header>
+
+    <main id="content">
+      <section class="hero" aria-label="Introduction">
+        <div class="stage" aria-hidden="true">
+          <div class="stage-shot" id="shotA"></div>
+          <div class="stage-shot" id="shotB"></div>
+          <div class="stage-vignette"></div>
+        </div>
+        <div class="hero-copy">
+          <p class="eyebrow">Hawkes Biomedical</p>
+          <h1 class="display">PH Origins</h1>
+          <p class="lede">
+            Pierce Hawkes sells dominance from the 58th floor. Below the tower, B3 has started writing back.
+          </p>
+          <div class="actions">
+            <a class="play-btn" data-play href="/game.html">Play now</a>
+            <a class="text-link" href="./about.html">About the game</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-tight" aria-labelledby="film-title">
+        <div class="wrap-wide">
+          <div class="section-head">
+            <h2 class="section-title" id="film-title">The film</h2>
+          </div>
+          <div class="frame">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/aRhSKgHfWps?rel=0&modestbranding=1&playsinline=1"
+              title="PH Origins"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              referrerpolicy="strict-origin-when-cross-origin"
+            ></iframe>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="night-title">
+        <div class="wrap-wide">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Act I</p>
+              <h2 class="section-title" id="night-title">One night in the tower</h2>
+            </div>
+            <a class="text-link" href="./about.html">Read the story</a>
+          </div>
+          <div class="beats">
+            <a class="beat" href="./about.html#board">
+              <div class="beat-media">
+                <img src="./assets/landing/bg-3.jpg" alt="The board seated along a long table under a blue hologram, city lights behind the glass." />
+              </div>
+              <div class="beat-body">
+                <p class="kicker">01 — The Apex Peak</p>
+                <h3>Room for Grace</h3>
+                <p>A meeting about market ownership. The basement is the thing nobody puts on the slide.</p>
+              </div>
+            </a>
+            <a class="beat" href="./about.html#glass">
+              <div class="beat-media">
+                <img src="./assets/landing/Man_gazing_at_city_skyline_20261007170747.jpg" alt="Pierce Hawkes standing at the office glass, looking out over a night city." />
+              </div>
+              <div class="beat-body">
+                <p class="kicker">02 — The glass</p>
+                <h3>Fifty-eight</h3>
+                <p>The board files out. Pierce stays at the window until the next room starts screaming.</p>
+              </div>
+            </a>
+            <a class="beat" href="./about.html#basement">
+              <div class="beat-media">
+                <img src="./assets/landing/Man_standing_in_elevator_20261007172913.jpg" alt="Pierce in profile inside an elevator stopped on floor 58, with B3 lit on the panel." />
+              </div>
+              <div class="beat-body">
+                <p class="kicker">03 — B3</p>
+                <h3>The ride down</h3>
+                <p>He does not send a team. The cab drops past the lobby, toward the floor he ordered dark.</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="band" aria-labelledby="cast-title">
+        <div class="wrap-wide">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">The table</p>
+              <h2 class="section-title" id="cast-title">Who is in the room</h2>
+            </div>
+            <a class="text-link" href="./characters.html">The cast</a>
+          </div>
+          <div class="cast">
+            <a class="cast-card" href="./characters.html#pierce">
+              <p class="kicker">Chairman</p>
+              <h3>Pierce Hawkes</h3>
+              <p>Head of the table. He keeps B3 off the books until the books start keeping him.</p>
+            </a>
+            <a class="cast-card" href="./characters.html#hale">
+              <p class="kicker">Director</p>
+              <h3>Hale</h3>
+              <p>The street, the quarter, the number that dies in public if the basement leaks.</p>
+            </a>
+            <a class="cast-card" href="./characters.html#voss">
+              <p class="kicker">The charter</p>
+              <h3>Voss</h3>
+              <p>Still calls them patients. Pierce has already decided they are the product.</p>
+            </a>
+            <a class="cast-card" href="./characters.html#lang">
+              <p class="kicker">The timeline</p>
+              <h3>Lang</h3>
+              <p>Zurich wants a date. Lang is the one who has to walk in with one.</p>
+            </a>
+          </div>
+        </div>
+      </section>
     </main>
 
+    <footer>
+      <div class="wrap-wide site-footer">
+        <span>Hawkes Tower — 58th floor</span>
+        <nav aria-label="Footer">
+          <a href="./about.html">About</a>
+          <a href="./characters.html">Characters</a>
+          <a data-play href="/game.html">Play</a>
+        </nav>
+      </div>
+    </footer>
+
     <audio id="landingAudio" src="./assets/audio/landing-page-song.mp3" loop preload="metadata" playsinline></audio>
-
-    <script>
-      const isLocalDev = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') && location.port === '5173';
-      const shouldUsePlayFolder = !isLocalDev;
-      document.getElementById('playButton').href = shouldUsePlayFolder ? '/play/index.html' : '/game.html';
-
-      const BACKGROUNDS = [
-        './assets/landing/bg-1.jpg',
-        './assets/landing/bg-2.jpg',
-        './assets/landing/bg-3.jpg',
-      ];
-      const HOLD_MS = 9000;
-      const BLACK_IN_MS = 1800;
-      const BLACK_HOLD_MS = 450;
-      const MUSIC_KEY = 'ph-origins-landing-music';
-
-      const shotA = document.getElementById('shotA');
-      const shotB = document.getElementById('shotB');
-      const fadeBlack = document.getElementById('fadeBlack');
-      const audio = document.getElementById('landingAudio');
-      const musicBtn = document.getElementById('musicBtn');
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const isMobile = window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(max-width: 768px)').matches;
-
-      let index = 0;
-      let showingA = true;
-
-      BACKGROUNDS.forEach((src) => { const img = new Image(); img.src = src; });
-
-      const setShot = (el, src) => {
-        el.style.backgroundImage = `url("${src}")`;
-      };
-
-      const show = (el, on) => {
-        el.classList.toggle('is-live', on);
-        if (on && !reduceMotion) {
-          el.style.animation = 'none';
-          void el.offsetWidth;
-          el.style.animation = '';
-        }
-      };
-
-      setShot(shotA, BACKGROUNDS[0]);
-      setShot(shotB, BACKGROUNDS[1]);
-      show(shotA, true);
-
-      const wait = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
-
-      const cycleOnce = async () => {
-        fadeBlack.classList.add('is-in');
-        await wait(BLACK_IN_MS);
-        index = (index + 1) % BACKGROUNDS.length;
-        const incoming = showingA ? shotB : shotA;
-        const outgoing = showingA ? shotA : shotB;
-        setShot(incoming, BACKGROUNDS[index]);
-        show(incoming, true);
-        show(outgoing, false);
-        showingA = !showingA;
-        await wait(BLACK_HOLD_MS);
-        fadeBlack.classList.remove('is-in');
-        await wait(BLACK_IN_MS);
-      };
-
-      const runCycle = async () => {
-        while (true) {
-          await wait(HOLD_MS);
-          await cycleOnce();
-        }
-      };
-
-      runCycle();
-
-      audio.volume = 0.42;
-
-      const setMusicUi = (on) => {
-        musicBtn.classList.toggle('is-on', on);
-        musicBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-        musicBtn.setAttribute('aria-label', on ? 'Mute music' : 'Play music');
-      };
-
-      const musicIsAudible = () => !audio.paused && !audio.muted;
-
-      const startMusic = async () => {
-        audio.muted = false;
-        audio.currentTime = 0;
-        await audio.play();
-        setMusicUi(true);
-        try { localStorage.setItem(MUSIC_KEY, 'on'); } catch (_) {}
-      };
-
-      const stopMusic = () => {
-        audio.pause();
-        audio.muted = true;
-        setMusicUi(false);
-        try { localStorage.setItem(MUSIC_KEY, 'off'); } catch (_) {}
-      };
-
-      musicBtn.addEventListener('click', async () => {
-        try {
-          if (musicIsAudible()) stopMusic();
-          else await startMusic();
-        } catch (_) {
-          setMusicUi(false);
-        }
-      });
-
-      const wantOn = (() => {
-        try { return localStorage.getItem(MUSIC_KEY) === 'on'; } catch (_) { return false; }
-      })();
-
-      if (!isMobile) {
-        audio.muted = true;
-        audio.play().catch(() => {});
-        if (wantOn) {
-          startMusic().catch(() => setMusicUi(false));
-        }
-      }
-    </script>
+    <script src="./site/marketing.js" defer></script>
   </body>
 </html>

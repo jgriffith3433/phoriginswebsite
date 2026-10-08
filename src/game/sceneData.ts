@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 
 import { applyGlassFlags, applyHologramLook, applyMaterialToMesh, isHologramAsset, parseUvScale, warmupMaterials } from './materials';
 import { getAssetLibrary, loadGlbByAssetId, resolveModelPath } from './modelLoader';
+import { findClip } from './playerAvatar';
 import { getSceneTheme } from './scene';
 
 export type SceneVector3 = {
@@ -574,7 +575,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
       material.specularColor = new BABYLON.Color3(0.25, 0.55, 0.22);
       mesh.checkCollisions = false;
     }
-    if (asset.id === 'b3-creature' || asset.id.startsWith('b3-cage')) {
+    if (asset.id.startsWith('b3-cage')) {
       material.diffuseColor = new BABYLON.Color3(0.04, 0.16, 0.05);
       material.emissiveColor = new BABYLON.Color3(0.05, 0.28, 0.06);
       material.disableLighting = true;
@@ -632,6 +633,10 @@ const createModelAssetNode = (
     getAssetLibrary().then((library) => resolveModelPath(library, asset.assetId) ?? ''),
   ]).then(([imported, modelPath]) => {
     if (!imported || root.isDisposed()) return;
+    if (asset.id === 'b3-creature') {
+      const idle = findClip(imported.animationGroups, 'idle');
+      idle?.start(true);
+    }
     root.metadata = {
       ...root.metadata,
       animationGroups: imported.animationGroups.map((group) => group.name),
