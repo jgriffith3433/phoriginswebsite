@@ -2,6 +2,7 @@
   "id": "apex-peak",
   "name": "The Apex Peak",
   "theme": "Apex Peak",
+  "ambient": 1.55,
   "assets": [
     {
       "id": "floor-hall-1",
@@ -870,6 +871,28 @@
       "rotation": {
         "x": 0,
         "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "chair-office",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "Office Chair",
+      "x": 48,
+      "y": 0,
+      "z": 41.66,
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
         "z": 0
       }
     },

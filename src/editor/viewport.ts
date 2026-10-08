@@ -1,7 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
-import { applyTheme } from '../game/scene';
+import { applySceneLighting, applyTheme } from '../game/scene';
 import {
   createSceneAssetNode,
   createSceneTriggerNode,
@@ -184,6 +184,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     clearSceneNodes();
     currentTheme = sceneData.theme;
     applyTheme(scene, sceneData.theme);
+    applySceneLighting(scene, sceneData);
     const created = loadSceneFromJson(scene, sceneData);
     created.forEach((node) => {
       const metadata = node.metadata as { sceneAssetId?: string; sceneTriggerId?: string } | undefined;
@@ -305,6 +306,10 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   resizeObserver.observe(canvas);
   window.addEventListener('resize', () => engine.resize());
 
+  const setAmbient = (ambient: number) => {
+    applySceneLighting(scene, { theme: currentTheme, ambient });
+  };
+
   const dispose = () => {
     resizeObserver.disconnect();
     engine.dispose();
@@ -316,6 +321,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     camera,
     gizmoManager,
     rebuildFromScene,
+    setAmbient,
     addAssetNode,
     addTriggerNode,
     removeAsset,

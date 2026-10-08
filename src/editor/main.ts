@@ -17,6 +17,7 @@ import {
   type ClipTrim,
   type ClipTrimsFile,
 } from '../game/clipTrims';
+import { getSceneTheme } from '../game/scene';
 import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneNodeMetadata, type SceneTrigger } from '../game/sceneData';
 import { MUSIC_TRIGGER_TYPE, isMusicTrigger, musicTriggerAudio } from '../game/triggers';
 import { createUnlockedAudio, installAudioUnlock, unlockAudio } from '../game/audioUnlock';
@@ -607,15 +608,65 @@ const onTrimInput = (source: 'start' | 'end', value: number) => {
   persistTrim();
 };
 
+const renderAmbientRow = (): HTMLElement => {
+  const theme = getSceneTheme(sceneData?.theme ?? '');
+  const value = sceneData?.ambient ?? theme.hemiIntensity;
+  const group = document.createElement('div');
+  group.className = 'inspector-row';
+  const title = document.createElement('div');
+  title.className = 'label';
+  title.innerHTML = `<span>Ambient</span><span>${value.toFixed(2)}</span>`;
+  group.appendChild(title);
+  const range = document.createElement('input');
+  range.type = 'range';
+  range.min = '0';
+  range.max = '2.5';
+  range.step = '0.05';
+  range.value = String(Math.min(2.5, value));
+  const number = document.createElement('input');
+  number.type = 'number';
+  number.min = '0';
+  number.step = '0.05';
+  number.value = value.toFixed(2);
+  const readout = title.querySelector('span:last-child');
+  const apply = (next: number) => {
+    if (!sceneData || !Number.isFinite(next)) return;
+    const fill = Math.max(0, next);
+    sceneData.ambient = fill;
+    viewport.setAmbient(fill);
+    if (readout) readout.textContent = fill.toFixed(2);
+    void scheduleSave();
+  };
+  range.addEventListener('input', () => {
+    const next = Number(range.value);
+    number.value = next.toFixed(2);
+    apply(next);
+  });
+  number.addEventListener('change', () => {
+    const next = Number(number.value) || 0;
+    range.value = String(Math.min(2.5, Math.max(0, next)));
+    apply(next);
+  });
+  group.appendChild(range);
+  group.appendChild(number);
+  const hint = document.createElement('div');
+  hint.className = 'value';
+  hint.textContent = 'Level fill. Raises the hemispheric light. Saved on this level.';
+  group.appendChild(hint);
+  return group;
+};
+
 const renderInspector = () => {
   inspectorEl.innerHTML = '';
+  if (sceneData) inspectorEl.appendChild(renderAmbientRow());
 
   if (!selection || !sceneData) {
-    inspectorEl.innerHTML = `
-      <div class="inspector-row">
-        <div class="label"><span>Selected</span></div>
-        <div class="value">Nothing selected. Click an object in the viewport or Hierarchy, or drag an asset from Project into the scene.</div>
-      </div>`;
+    const empty = document.createElement('div');
+    empty.className = 'inspector-row';
+    empty.innerHTML = `
+      <div class="label"><span>Selected</span></div>
+      <div class="value">Nothing selected. Click an object in the viewport or Hierarchy, or drag an asset from Project into the scene.</div>`;
+    inspectorEl.appendChild(empty);
     return;
   }
 

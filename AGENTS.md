@@ -46,7 +46,7 @@ characters.html             Cast: Pierce Hawkes, Hale, Voss, Lang
 site/marketing.css          Shared marketing styles
 site/marketing.js           Nav, play link, landing music, hero cycle
 src/main.ts                 Boot, HUD, input, render loop
-src/story/                  Act I director and objective copy
+src/story/                  Act I director, phone calls, objective copy
 src/game/                   Runtime systems
 src/editor/                 Dev Tools (devtools.html)
 levels/                     Scene JSON + level-library.json
@@ -82,6 +82,7 @@ Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman
 | `materials.ts` | Office materials, per-mesh UV, hologram/glass |
 | `objectiveMarker.ts` | World marker for Act I objectives |
 | `grade.ts` | Per-theme ACES grade, bloom, vignette, SSAO |
+| `phone.ts` | Handset, flashlight, calls, texts. One hand: gun or phone |
 
 Act I phases, elevator and vat choreography, and story inventory live in `src/story/act1.ts`. Timelines can also `mesh` (show/hide), `objective`, `avatar`, and `carry`. `main.ts` boots the canvas and calls the director.
 | `clipTrims.ts` | Dev Tools clip in/out (`assets/animations/clip-trims.json`) |
@@ -92,17 +93,17 @@ Act I phases, elevator and vat choreography, and story inventory live in `src/st
 
 **Level 1 — The Apex Peak** (`levels/apex-peak.json`)
 
-Office, boardroom, window, terminal, elevator. Combat off. Sequence in `src/story/act1.ts`: seat → board cutscene → wait-board (NPCs leave) → window VO → alarm → terminal → elevator ride → B3. Chairs, the board table, Pierce’s desk, the terminal, and ceiling troffers are GLB props. Story inventory is the sidearm plus B3 clearance, not arena ammo.
+Office, boardroom, window, terminal, elevator. Combat off. Sequence in `src/story/act1.ts`: seat → board cutscene → wait-board (NPCs leave) → window VO → Voss calls → alarm → terminal → elevator ride → B3. The window monologue finishes, then `voss-meeting` in `src/story/phone.json` (Hale is furious, Pierce is short). The terminal alarm starts when that call ends, and Voss texts “Pick up the terminal.” **F** raises the phone, **G** toggles the flashlight. The sidearm and the phone share one hand. `?beat=voss` rings that call from the spawn. Chairs, the board table, Pierce’s desk, the terminal, and ceiling troffers are GLB props. Story inventory is the phone, the sidearm, and B3 clearance, not arena ammo.
 
 Cutscenes: `room-for-grace`, `apex-window`, `apex-terminal`, `elevator-b3`.
 
 Board seats: Pierce `chair-head`; Voss `chair-s-1`; Lang `chair-s-3`; Hale `chair-n-2`. Map in `npcs.ts` `BOARD_NPC_BY_SEAT`.
 
-Music trigger: `/assets/audio/room-tone.mp3`, volume **0.28**, ducks to **0.18** during cutscenes. Hale VO in `room-for-grace` is volume **1**. Do not crank level BGM back to 1.
+Music trigger: `/assets/audio/room-tone.mp3`, volume **0.28**, ducks to **0.18** during cutscenes. Hale VO in `room-for-grace` is volume **1**. Do not crank level BGM back to 1. Level `ambient` is **1.55** (hemispheric fill, applied after the theme). The board table, its hologram, the office desk, the terminal, and the office chairs block the player. `chair-office` sits on the south side of Pierce’s desk, facing the terminal. The alarm waypoint and the walk-up are on that chair (within **1.35**). The terminal cutscene stands him beside the chair, facing the monitor. The monitor flashes red during the alarm and returns to the material it had before.
 
 **Level 2 — B3** (`levels/b3-basement.json`)
 
-Basement / lab. Combat off. Cutscenes: `b3-door-reveal`, `b3-vat-break`. Pierce finds the lab door, sees `b3-creature` (`asset-parasite-starkie`), and the reveal cutscene plays his shock. The creature then walks off (Idle until 8.8s, Walk through 13.2s, then hidden). That chains straight into the vat break — there is no search objective. Feet start on the floor beside the acid vat. Layout follows the Sector 4 blueprint around the existing elevator → Hallway B → vat-door anchors: pipe hall, containment glass, two chemical stores, decon, control, transformation wing, utility. Dark plate / diamond / wired-glass (`mat-b3-*`). Practicals are colored point lights (cyan halls, green vat and cell). Do not flatten those intensities on arrival. Reveal and vat-break VO is Pierce (Jackson). Creature breath and run, plus vat glass and splash, live on those timelines.
+Basement / lab. Combat off. Cutscenes: `b3-door-reveal`, `b3-vat-break`. Pierce finds the lab door, sees `b3-creature` (`asset-parasite-starkie`), and the reveal cutscene plays his shock. The creature then walks off (Idle until 8.8s, Walk through 13.2s, then hidden). That chains straight into the vat break — there is no search objective. Feet start on the floor beside the acid vat. Layout follows the Sector 4 blueprint around the existing elevator → Hallway B → vat-door anchors: pipe hall, containment glass, two chemical stores, decon, control, transformation wing, utility. Dark plate / diamond / wired-glass (`mat-b3-*`). Practicals are colored point lights (cyan halls, green vat and cell). Do not flatten those intensities on arrival. Level `ambient` is **0.95**. Reveal and vat-break VO is Pierce (Jackson). Creature breath and run, plus vat glass and splash, live on those timelines.
 
 **Level 3** — coming soon.
 
@@ -126,7 +127,7 @@ Bake pipeline: Mixamo FBX in `phoriginsassets` → `npm run bake:anims` / `tools
 
 ## Editor (Dev Tools)
 
-`devtools.html` + `src/editor/`. File System Access + Vite `/api` to write `levels/`, import models/textures. Hierarchy search exists. Tools menu needs high z-index (already fixed once). Clip trim UI writes `clip-trims.json`.
+`devtools.html` + `src/editor/`. File System Access + Vite `/api` to write `levels/`, import models/textures. Hierarchy search exists. Tools menu needs high z-index (already fixed once). Clip trim UI writes `clip-trims.json`. The inspector Ambient slider writes `ambient` on the level (hemispheric fill, 0–2.5). The game applies it after the theme. Omit the field to keep the theme intensity.
 
 Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/source`) → `npm run textures` → WebP + `materials.json`. Soft office look: tile UV on floors independently of walls.
 
@@ -143,7 +144,8 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 - Cutscene beds in JSON are ~0.20–0.22. VO lines ~0.85–1.0.
 - Landing BGM: `index.html` ~0.42.
 - UI one-shots: `assets/audio/sfx/start.ogg` (Start, **0.7**), `assets/audio/sfx/level-complete.ogg` (Level Complete / Mission Clear, **0.72**), `assets/audio/sfx/objective.ogg` (new objective, **0.55**).
-- Office terminal alarm: looping `assets/audio/cutscenes/apex-window/alarm.wav` at **0.46**, from 42.3s in the window cutscene until the terminal beat.
+- Office terminal alarm: looping `assets/audio/cutscenes/apex-window/alarm.wav` at **0.46**, starting when the Voss call ends, until the terminal beat.
+- Voss call (`src/story/phone.json`): Voss **0.92**, Pierce **0.92**. Lines in `assets/audio/phone/`.
 - Elevator ride (`cutscenes/elevator-b3.json`): cab hum loop **0.3**, door slide, floor chime (`beep.wav`), descent rumble loop **0.38**. Passing floors reuse the chime at **0.34**; arrival uses the timeline chime only.
 - B3 reveal (`cutscenes/b3-door-reveal.json`): Pierce shock VO **0.92**, creature breath **0.38** at 5.8s, creature run **0.55** from 8.8s (matches the Walk flee). Door slide reuses the elevator door clip.
 - B3 vat break (`cutscenes/b3-vat-break.json`): Pierce lines **0.92** (“It ran…”, “I can still think…”), “No—” **0.95**. Glass **0.78** at 4.05s with a `mesh` event that hides `vat-glass`, splash **0.68** at 4.25s. Avatar swaps to Ch44 at 7.4s via an `avatar` event. Timeline runs to **14.2s** so the last line finishes before Level Complete.
@@ -156,6 +158,7 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 - **Walk SFX inaudible**: was `play()` spam while paused. Loop once at ~0.62.
 - **Stuck idle**: locomotion not resumed after cinematic/weapon; `resumeLocomotion`.
 - **B3 untextured / dark, `GL_MAX_VERTEX_UNIFORM_BUFFERS (12)`**: glTFLoader raises every material's `maxSimultaneousLights` to `scene.lights.length` (hemi + sun + 23 practicals = 25). Each light is a vertex uniform block. `capSimultaneousLights` in `modelLoader.ts` puts the cap back to 4 after every GLB import. Do not remove that.
+- **Phone flashlight**: materials only shade 4 lights, and the scene list is creation order, so a late practical (the office light) never used to get a slot. `phone.ts` rebuilds each mesh's list as fill, sun, then the nearest practicals, with the spot fixed in the last slot. Leave the spot enabled at intensity 0 when the beam is off. Disabling it, or giving it `renderPriority`, swaps a shader slot and the first frame draws with a uniform buffer that is too small (skybox flash, room lights drop out). Do not parent the handset or the spot to the Mixamo bone: its 0.01 scale turns the slab into a wedge, and a parented spot loses the mirrored finger axis and aims backward. Pose both from the bone's world +Y.
 - Editing `play/cutscenes` or `play/levels` does nothing in `npm run dev`.
 
 ## Nearby leftovers (not blockers)

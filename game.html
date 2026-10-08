@@ -370,6 +370,198 @@
         50% { opacity: 0.85; }
       }
 
+      .phone-hint {
+        appearance: none;
+        -webkit-appearance: none;
+        margin: 0;
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: rgba(10, 20, 31, 0.54);
+        border: 1px solid var(--panel-border);
+        color: var(--text);
+        backdrop-filter: blur(8px);
+        font-family: inherit;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14rem;
+        text-transform: uppercase;
+        pointer-events: auto;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .phone-hint kbd {
+        display: inline-block;
+        min-width: 1.4em;
+        padding: 2px 5px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.08);
+        font: inherit;
+        font-size: 11px;
+        letter-spacing: 0;
+        line-height: 1.2;
+      }
+
+      .phone-hint.raised {
+        border-color: rgba(212, 180, 131, 0.7);
+        color: var(--gold);
+      }
+
+      .phone-hint.ringing {
+        animation: alarmPulse 0.7s ease-in-out infinite;
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+
+      .phone-badge {
+        min-width: 1.2em;
+        padding: 1px 5px;
+        border-radius: 999px;
+        background: var(--gold);
+        color: #1a140c;
+        letter-spacing: 0;
+        font-size: 11px;
+      }
+
+      .phone-panel {
+        position: absolute;
+        left: 28px;
+        top: 18%;
+        width: min(340px, calc(100vw - 48px));
+        z-index: 9;
+        pointer-events: auto;
+        color: var(--text);
+      }
+
+      .phone-panel.focused {
+        top: 12%;
+        width: min(420px, 42vw);
+      }
+
+      .phone-bezel {
+        padding: 18px 18px 16px;
+        border-radius: 28px;
+        background: linear-gradient(180deg, rgba(12, 16, 20, 0.94), rgba(6, 8, 12, 0.92));
+        border: 1px solid rgba(212, 180, 131, 0.45);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      }
+
+      .phone-status {
+        font-size: 11px;
+        letter-spacing: 0.18rem;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+
+      .phone-contact {
+        margin-top: 8px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 0.04rem;
+      }
+
+      .phone-detail,
+      .phone-clock,
+      .phone-speaker {
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+      }
+
+      .phone-line {
+        min-height: 3.2em;
+        margin: 14px 0 0;
+        font-size: 18px;
+        line-height: 1.35;
+        color: var(--text);
+      }
+
+      .phone-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+      }
+
+      .phone-actions button {
+        appearance: none;
+        flex: 1;
+        padding: 10px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(212, 180, 131, 0.45);
+        background: rgba(212, 180, 131, 0.12);
+        color: var(--text);
+        font: inherit;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .phone-actions button.answer {
+        background: #1f6b45;
+        border-color: #7af0c9;
+      }
+
+      .phone-actions button.end {
+        background: #6b2430;
+        border-color: #e07a86;
+      }
+
+      .phone-actions button.on {
+        color: var(--gold);
+        border-color: var(--gold);
+      }
+
+      .phone-messages {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .phone-message {
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .phone-message strong {
+        display: block;
+        font-size: 11px;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+
+      .phone-empty {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .phone-toast {
+        position: absolute;
+        left: 50%;
+        top: calc(var(--safe-top, 0px) + 92px);
+        transform: translateX(-50%);
+        z-index: 9;
+        min-width: 220px;
+        max-width: min(420px, calc(100vw - 48px));
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(8, 12, 16, 0.92);
+        border: 1px solid rgba(212, 180, 131, 0.55);
+        color: var(--text);
+        text-align: center;
+        letter-spacing: 0.04rem;
+        pointer-events: none;
+      }
+
       .inventory-hud {
         position: absolute;
         right: 18px;
@@ -931,7 +1123,26 @@
         <span id="objectiveDist" class="objective-dist"></span>
       </div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
+      <aside id="phonePanel" class="phone-panel" hidden>
+        <div class="phone-bezel">
+          <div id="phoneStatus" class="phone-status">Phone</div>
+          <div id="phoneContact" class="phone-contact"></div>
+          <div id="phoneDetail" class="phone-detail"></div>
+          <div id="phoneClock" class="phone-clock"></div>
+          <div id="phoneSpeaker" class="phone-speaker"></div>
+          <p id="phoneLine" class="phone-line"></p>
+          <div class="phone-actions">
+            <button type="button" id="phoneAnswer" class="answer" hidden>Answer</button>
+            <button type="button" id="phoneEnd" class="end" hidden>End</button>
+            <button type="button" id="phoneFlash" hidden>Flashlight</button>
+          </div>
+          <div id="phoneMessages" class="phone-messages"></div>
+        </div>
+      </aside>
+      <div id="phoneToast" class="phone-toast" hidden></div>
+
       <div id="inventoryHud" class="inventory-hud" aria-live="polite">
+        <button type="button" id="phoneHint" class="phone-hint" aria-label="Phone"><kbd>F</kbd> Phone <span id="phoneBadge" class="phone-badge" hidden></span></button>
         <button type="button" id="inventoryHint" class="inventory-hint" aria-label="Open inventory"><kbd>I</kbd> Inventory</button>
         <div id="inventoryPanel" class="inventory-panel">
           <div class="inventory-panel-header">
@@ -990,6 +1201,7 @@
             </div>
           </div>
           <div class="right-action-zone" aria-label="Action buttons">
+            <button class="action-btn" id="phoneBtn" aria-label="Phone">☎</button>
             <button class="action-btn fire" id="fireBtn" aria-label="Fire weapon">✦</button>
             <button class="action-btn" id="jumpBtn" aria-label="Jump">△</button>
           </div>

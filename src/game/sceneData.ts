@@ -71,6 +71,8 @@ export type SceneData = {
   id: string;
   name: string;
   theme: string;
+  /** Hemispheric fill. Omitted levels use the theme intensity. */
+  ambient?: number;
   assets: SceneAssetInstance[];
   triggers: SceneTrigger[];
 };
@@ -98,9 +100,11 @@ const cloneDefaultScene = (): SceneData => JSON.parse(JSON.stringify(DEFAULT_SCE
 
 const parseSceneData = (parsed: unknown): SceneData => {
   const data = (parsed && typeof parsed === 'object' ? parsed : {}) as Partial<SceneData>;
+  const ambient = typeof data.ambient === 'number' && Number.isFinite(data.ambient) ? Math.max(0, data.ambient) : undefined;
   return {
     ...cloneDefaultScene(),
     ...data,
+    ambient,
     assets: Array.isArray(data.assets) ? data.assets : DEFAULT_SCENE_DATA.assets,
     triggers: Array.isArray(data.triggers) ? data.triggers : DEFAULT_SCENE_DATA.triggers,
   };
@@ -381,6 +385,75 @@ const isJumpOnFurniture = (asset: SceneAssetInstance) => {
   return label.includes('desk') || label.includes('table');
 };
 
+const SOLID_FURNITURE = new Set([
+  'asset-office-chair',
+  'asset-board-table',
+  'asset-office-desk',
+  'asset-office-terminal',
+]);
+
+/** Screens are a centimeter thick in the GLB. Thicken them so the capsule cannot step through. */
+const MIN_COLLIDER_THICKNESS = 0.2;
+
+const bindColliderMatrix = (root: BABYLON.TransformNode, box: BABYLON.Mesh) => {
+  let refreshing = false;
+  const refresh = () => {
+    if (refreshing || box.isDisposed()) return;
+    refreshing = true;
+    box.computeWorldMatrix(true);
+    refreshing = false;
+  };
+  refresh();
+  root.onAfterWorldMatrixUpdateObservable.add(refresh);
+};
+
+const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode, meshes: BABYLON.AbstractMesh[]) => {
+  root.computeWorldMatrix(true);
+  const toLocal = root.getWorldMatrix().clone();
+  if (!toLocal.invert()) return;
+  const min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+  const max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+  let found = false;
+  for (const mesh of meshes) {
+    if (mesh.getTotalVertices() <= 0) continue;
+    mesh.computeWorldMatrix(true);
+    for (const world of mesh.getBoundingInfo().boundingBox.vectorsWorld) {
+      const local = BABYLON.Vector3.TransformCoordinates(world, toLocal);
+      min.minimizeInPlace(local);
+      max.maximizeInPlace(local);
+      found = true;
+    }
+  }
+  if (!found) return;
+  const size = max.subtract(min);
+  const center = min.add(max).scale(0.5);
+  if (size.x < MIN_COLLIDER_THICKNESS) size.x = MIN_COLLIDER_THICKNESS;
+  if (size.y < MIN_COLLIDER_THICKNESS) size.y = MIN_COLLIDER_THICKNESS;
+  if (size.z < MIN_COLLIDER_THICKNESS) size.z = MIN_COLLIDER_THICKNESS;
+  // The capsule center sits near y 1.1. A desk only 0.7 tall is under that center, so the
+  // sweep walks through it. Extend floor furniture up to chest height.
+  const blockTop = 1.2;
+  const bottom = center.y - size.y / 2;
+  const top = center.y + size.y / 2;
+  if (bottom < 0.05 && top < blockTop) {
+    size.y = blockTop - Math.max(0, bottom);
+    center.y = Math.max(0, bottom) + size.y / 2;
+  }
+  const box = BABYLON.MeshBuilder.CreateBox(`${root.name}-col`, {
+    width: size.x,
+    height: size.y,
+    depth: size.z,
+  }, scene);
+  box.parent = root;
+  box.position.copyFrom(center);
+  box.isVisible = false;
+  box.isPickable = false;
+  box.checkCollisions = true;
+  // Invisible meshes are not rendered, so nothing else refreshes this matrix.
+  // Collision reads the cached world matrix.
+  bindColliderMatrix(root, box);
+};
+
 /** Thin top-face collider with world scale 1 so ellipsoid landing is not eaten by parent scale. */
 const attachFurnitureTopCollider = (scene: BABYLON.Scene, mesh: BABYLON.Mesh, scale: BABYLON.Vector3) => {
   const thickness = 0.18;
@@ -504,6 +577,13 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
       || asset.id === 'office-glass';
     if (isHologramAsset(asset)) {
       applyHologramLook(plane, material, 0.32);
+      const slab = BABYLON.MeshBuilder.CreateBox(`${asset.id}-col`, { width: 1, height: 1, depth: 1 }, scene);
+      slab.parent = plane;
+      slab.scaling.set(1, 1, MIN_COLLIDER_THICKNESS / Math.max(Math.abs(scale.z), 0.001));
+      slab.isVisible = false;
+      slab.isPickable = false;
+      slab.checkCollisions = true;
+      bindColliderMatrix(plane, slab);
     } else if (isWindowGlass) {
       applyGlassFlags(material, 0.72);
       plane.checkCollisions = true;
@@ -637,6 +717,7 @@ const createModelAssetNode = (
       const idle = findClip(imported.animationGroups, 'idle');
       idle?.start(true);
     }
+    if (SOLID_FURNITURE.has(asset.assetId)) attachBoundsCollider(scene, root, imported.meshes);
     root.metadata = {
       ...root.metadata,
       animationGroups: imported.animationGroups.map((group) => group.name),

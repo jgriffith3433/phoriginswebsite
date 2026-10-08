@@ -18,7 +18,8 @@ import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
-import { applyTheme, getSceneTheme } from './game/scene';
+import { createPhone } from './game/phone';
+import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS } from './game/modelLoader';
 import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
@@ -70,6 +71,21 @@ const objectiveHud = document.getElementById('objectiveHud') as HTMLDivElement |
 const objectiveText = document.getElementById('objectiveText') as HTMLSpanElement | null;
 const objectiveDist = document.getElementById('objectiveDist') as HTMLSpanElement | null;
 const alarmFlash = document.getElementById('alarmFlash') as HTMLDivElement | null;
+const phonePanel = document.getElementById('phonePanel') as HTMLElement | null;
+const phoneStatus = document.getElementById('phoneStatus') as HTMLElement | null;
+const phoneContact = document.getElementById('phoneContact') as HTMLElement | null;
+const phoneDetail = document.getElementById('phoneDetail') as HTMLElement | null;
+const phoneClock = document.getElementById('phoneClock') as HTMLElement | null;
+const phoneSpeaker = document.getElementById('phoneSpeaker') as HTMLElement | null;
+const phoneLine = document.getElementById('phoneLine') as HTMLElement | null;
+const phoneAnswer = document.getElementById('phoneAnswer') as HTMLButtonElement | null;
+const phoneEnd = document.getElementById('phoneEnd') as HTMLButtonElement | null;
+const phoneFlash = document.getElementById('phoneFlash') as HTMLButtonElement | null;
+const phoneMessages = document.getElementById('phoneMessages') as HTMLElement | null;
+const phoneToast = document.getElementById('phoneToast') as HTMLElement | null;
+const phoneHint = document.getElementById('phoneHint') as HTMLButtonElement | null;
+const phoneBadge = document.getElementById('phoneBadge') as HTMLElement | null;
+const phoneBtn = document.getElementById('phoneBtn') as HTMLButtonElement | null;
 
 const canvas = document.createElement('canvas');
 canvas.style.width = '100%';
@@ -120,6 +136,7 @@ const currentThemeName = typeof readDevLevelConfig()?.theme === 'string' ? (read
 const initialSceneData = readSceneData();
 if (initialSceneData?.theme) {
   applyTheme(scene, initialSceneData.theme);
+  applySceneLighting(scene, initialSceneData);
   grade.apply(initialSceneData.theme);
 } else {
   applyTheme(scene, currentThemeName);
@@ -135,6 +152,7 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     sceneNodes = loaded.nodes;
     missionScene = loaded.data;
     applyTheme(scene, loaded.data.theme || currentThemeName);
+    applySceneLighting(scene, loaded.data);
     grade.apply(loaded.data.theme || currentThemeName);
     return;
   }
@@ -151,6 +169,30 @@ const objectiveMarker = createObjectiveMarker(scene);
 let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
 playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
+const phone = createPhone(scene, {
+  soundOn: () => audio.enabled,
+  onFinished: () => {
+    followCamera.setCallFrame(false);
+    act.onPhoneFinished();
+  },
+  onHand: (raised) => {
+    if (!raised || phone.locksBody()) {
+      if (!state.player.weaponDrawn) {
+        playerAvatar.setArmed(false);
+        followCamera.setOverShoulder(false);
+      }
+      updateCrosshairVisibility();
+      return;
+    }
+    state.player.weaponDrawn = false;
+    playerPistol.setVisible(false);
+    weaponBusy = false;
+    playerAvatar.setArmed(true);
+    followCamera.setOverShoulder(true);
+    updateCrosshairVisibility();
+  },
+});
+phone.attachTo(playerAvatar);
 const playerCollider = createPlayerCollider(scene);
 let gameReady = false;
 
@@ -170,6 +212,7 @@ const ensurePlayerAvatar = (assetId: string) => {
   playerHeroId = assetId;
   playerPistol.attachTo(playerAvatar);
   playerPistol.setVisible(state.player.weaponDrawn);
+  phone.attachTo(playerAvatar);
 };
 
 const placePierce = (x: number, z: number, yaw: number) => {
@@ -182,6 +225,7 @@ const placePierce = (x: number, z: number, yaw: number) => {
   playerCollider.position.set(x, PLAYER_STAND_Y, z);
   playerAvatar.group.position.set(x, playerMeshY(PLAYER_STAND_Y), z);
   playerAvatar.group.rotation.y = yaw + Math.PI;
+  followCamera.face(yaw);
 };
 
 let lastObjectiveCue = '';
@@ -275,6 +319,11 @@ const endCutscene = () => {
 const beginNamedCutscene = (id: string) => {
   if (state.inCutscene) return;
   state.inCutscene = true;
+  if (!phone.locksBody()) {
+    if (phone.isRaised()) phone.setRaised(false);
+    phone.setFlashlight(false);
+    followCamera.setCallFrame(false);
+  }
   act.prepareCutscene(id);
   unlockPointer();
   void startCutscene(id, {
@@ -531,8 +580,47 @@ const updateHud = () => {
     weaponSlotState.textContent = drawn ? 'Drawn' : 'Holstered';
     weaponSlot.classList.toggle('drawn', drawn);
     weaponSlot.setAttribute('aria-pressed', drawn ? 'true' : 'false');
-    weaponSlot.disabled = weaponBusy || !state.running || state.inCutscene;
+    weaponSlot.disabled = weaponBusy || !state.running || state.inCutscene || phone.locksBody() || phone.isRaised();
   }
+  syncPhoneHud();
+};
+
+const syncPhoneHud = () => {
+  const view = phone.view();
+  phonePanel?.classList.toggle('focused', view.focused);
+  phonePanel?.toggleAttribute('hidden', !view.panel);
+  if (phoneStatus) phoneStatus.textContent = view.status;
+  if (phoneContact) phoneContact.textContent = view.contact;
+  if (phoneDetail) phoneDetail.textContent = view.detail;
+  if (phoneClock) phoneClock.textContent = view.clock;
+  if (phoneSpeaker) phoneSpeaker.textContent = view.speaker && view.line ? view.speaker : '';
+  if (phoneLine) phoneLine.textContent = view.line;
+  phoneAnswer?.toggleAttribute('hidden', !view.showAnswer);
+  phoneEnd?.toggleAttribute('hidden', !view.showEnd);
+  phoneFlash?.toggleAttribute('hidden', !view.showFlash);
+  if (phoneFlash) {
+    phoneFlash.textContent = view.flashlight ? 'Light on' : 'Flashlight';
+    phoneFlash.classList.toggle('on', view.flashlight);
+  }
+  if (phoneMessages) {
+    phoneMessages.hidden = !view.showMessages;
+    phoneMessages.innerHTML = !view.showMessages
+      ? ''
+      : view.messages.length
+        ? view.messages.map((message) => `<div class="phone-message"><strong>${message.from}</strong>${message.text}</div>`).join('')
+        : '<div class="phone-empty">No messages</div>';
+  }
+  if (phoneToast) {
+    phoneToast.hidden = !view.toast;
+    phoneToast.textContent = view.toast;
+  }
+  phoneHint?.classList.toggle('raised', view.raised);
+  phoneHint?.classList.toggle('ringing', view.ringing);
+  if (phoneBadge) {
+    phoneBadge.hidden = !view.badge;
+    phoneBadge.textContent = view.badge;
+  }
+  followCamera.setCallFrame(phone.wantsCallCamera() && !state.inCutscene);
 };
 
 let inventoryOpen = false;
@@ -623,10 +711,57 @@ const finishWeaponToggle = (drawn: boolean) => {
   playerAvatar.resumeLocomotion();
   updateHud();
   updateCrosshairVisibility();
+  if (!drawn && armPhoneAfterHolster) {
+    armPhoneAfterHolster = false;
+    phone.setRaised(true);
+    updateHud();
+  }
+};
+
+let armPhoneAfterHolster = false;
+
+const clearHands = () => {
+  armPhoneAfterHolster = false;
+  weaponBusy = false;
+  state.player.weaponDrawn = false;
+  playerPistol.setVisible(false);
+  playerAvatar.setArmed(false);
+  followCamera.setOverShoulder(false);
+  if (phone.isRaised()) phone.setRaised(false);
+  else phone.setFlashlight(false);
+  updateCrosshairVisibility();
+};
+
+const raisePhone = () => {
+  if (!state.running || state.inCutscene || weaponBusy) return;
+  if (phone.locksBody()) {
+    if (phone.view().showAnswer) phone.answer();
+    return;
+  }
+  if (phone.isRaised()) {
+    phone.setRaised(false);
+    playerAvatar.resumeLocomotion();
+    updateHud();
+    return;
+  }
+  if (state.player.weaponDrawn) {
+    armPhoneAfterHolster = true;
+    toggleWeapon();
+    return;
+  }
+  phone.setRaised(true);
+  updateHud();
+};
+
+const toggleFlashlight = () => {
+  if (!phone.isRaised() || phone.locksBody()) return;
+  phone.setFlashlight(!phone.flashlightOn());
+  updateHud();
 };
 
 const toggleWeapon = () => {
-  if (!state.running || state.inCutscene || weaponBusy) return;
+  if (!state.running || state.inCutscene || weaponBusy || phone.locksBody()) return;
+  if (phone.isRaised()) phone.setRaised(false);
   const drawing = !state.player.weaponDrawn;
   weaponBusy = true;
   followCamera.setOverShoulder(drawing);
@@ -648,6 +783,33 @@ weaponSlot?.addEventListener('click', (event) => {
   event.stopPropagation();
   toggleWeapon();
 });
+
+const onPhoneControl = (event: Event) => {
+  event.stopPropagation();
+  if (phone.view().showAnswer) phone.answer();
+  else raisePhone();
+  updateHud();
+};
+phoneHint?.addEventListener('click', onPhoneControl);
+phoneBtn?.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  onPhoneControl(event);
+});
+phoneAnswer?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  phone.answer();
+  updateHud();
+});
+phoneEnd?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  phone.end();
+  updateHud();
+});
+phoneFlash?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleFlashlight();
+});
+phonePanel?.addEventListener('pointerdown', (event) => event.stopPropagation());
 
 const showMessage = (title: string, text: string) => {
   messageTitle.textContent = title;
@@ -690,6 +852,7 @@ const applyLevelCombat = (config: LevelDefinition) => {
 const applyLevelConfig = (config: LevelDefinition) => {
   applyLevelCombat(config);
   applyTheme(scene, config.theme);
+  if (missionScene) applySceneLighting(scene, missionScene);
   grade.apply(config.theme);
 };
 
@@ -707,6 +870,8 @@ const resetPlayer = (keepLevel = false) => {
   playerAvatar.setArmed(false);
   playerPistol.setVisible(false);
   playerAvatar.resumeLocomotion();
+  phone.silence();
+  followCamera.setCallFrame(false);
   muzzleFlash.hide();
   followCamera.setOverShoulder(false);
   state.progression.currentLevel = selectedLevel;
@@ -745,6 +910,19 @@ act = createAct1({
   seatHead: seatPlayerAtHeadChair,
   leaveHead: leavePlayerAtHeadChair,
   beginCutscene: beginNamedCutscene,
+  ringCall: (id) => {
+    clearHands();
+    phone.ring(id);
+    updateHud();
+  },
+  pushPhoneText: (id) => {
+    phone.pushText(id);
+    updateHud();
+  },
+  silencePhone: () => {
+    phone.silence();
+    followCamera.setCallFrame(false);
+  },
   playFile: (url, volume) => audio.play(url, volume),
   audioOn: () => audio.enabled,
   ensureAudio: () => audio.ensure(),
@@ -780,10 +958,15 @@ void (async () => {
   const firstLevel = getLevels()[0];
   if (firstLevel) applyLevelConfig(firstLevel);
   await loadMissionScene(firstLevel?.path ?? DEFAULT_SCENE_FILE_PATH);
+  const beat = new URLSearchParams(location.search).get('beat');
   if (new URLSearchParams(location.search).get('cutscene') === 'elevator-b3') {
     act.armPhase('elevator');
     beginGame();
     act.handleTrigger({ id: 'trigger-elevator-b3', type: 'enter_zone' });
+  } else if (beat === 'voss') {
+    act.armPhase('call');
+    beginGame();
+    act.startCall();
   }
 })().catch(() => applyLoadedScene(null));
 
@@ -873,6 +1056,7 @@ const gatherCameraIgnoreMeshes = () => {
     playerCollider,
     muzzleFlash.mesh,
     ...playerAvatar.group.getChildMeshes(true),
+    ...phone.meshes(),
   ];
   for (const particle of particles) ignored.push(particle.mesh);
   for (const pickup of pickups) ignored.push(pickup.mesh);
@@ -896,9 +1080,14 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
 };
 
 const updatePlayer = (delta: number) => {
-  if (state.inCutscene) {
+  if (state.inCutscene || phone.locksBody()) {
     state.player.jumpWindup = 0;
+    state.input.jump = false;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
+    if (phone.locksBody()) {
+      playerAvatar.setLocomotion(false, true);
+      audio.setWalk(false);
+    }
     return { moving: false, moveHeading: null };
   }
   const yaw = followCamera.getYaw();
@@ -964,7 +1153,7 @@ const updatePlayer = (delta: number) => {
 };
 
 const fireWeapon = () => {
-  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || !state.player.weaponDrawn || state.shootCooldown > 0) return;
+  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.isRaised() || phone.locksBody() || !state.player.weaponDrawn || state.shootCooldown > 0) return;
   if (!consumeItem(state.inventory, 'ammo', 1)) {
     audio.hit();
     return;
@@ -1005,6 +1194,16 @@ window.addEventListener('keydown', (event) => {
   if (key === 'i') {
     event.preventDefault();
     setInventoryOpen(!inventoryOpen);
+  }
+  if (key === 'f') {
+    event.preventDefault();
+    if (phone.view().showAnswer) phone.answer();
+    else raisePhone();
+    updateHud();
+  }
+  if (key === 'g') {
+    event.preventDefault();
+    toggleFlashlight();
   }
   if (key === 'l' && devLevelConfig) {
     showMessage('Dev level loaded', `${devLevelConfig.levelName || 'Custom'} • ${devLevelConfig.enemyCount || 0} enemies`);
@@ -1244,6 +1443,7 @@ const renderLoop = () => {
       updateCamera(delta, false, null);
       if (activeCutscene) act.afterCamera(activeCutscene.time);
     } else {
+    phone.update(delta, followCamera.camera, state.player);
     if (state.fireHeld) fireWeapon();
 
     state.wave = 1 + Math.floor(state.kills / 4);
@@ -1365,6 +1565,7 @@ const cycleTheme = () => {
   const nextTheme = themeOrder[(currentIndex + 1) % themeOrder.length];
   activeThemeName = nextTheme;
   applyTheme(scene, nextTheme);
+  if (missionScene) applySceneLighting(scene, missionScene);
   grade.apply(nextTheme);
   devOutput.value = `Theme applied: ${nextTheme}`;
   if (devLevelConfig) {

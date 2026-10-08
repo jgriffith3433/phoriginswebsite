@@ -8,17 +8,21 @@
   },
   "carry": {
     "sidearm": [
+      { "id": "phone", "name": "Phone", "note": "Company line. F raises it. The sidearm has to be holstered." },
       { "id": "sidearm", "name": "Sidearm", "note": "Company issue. Draw it from the weapon slot." }
     ],
     "clearance": [
+      { "id": "phone", "name": "Phone", "note": "Company line. F raises it. The sidearm has to be holstered." },
       { "id": "sidearm", "name": "Sidearm", "note": "Company issue. Draw it from the weapon slot." },
       { "id": "clearance", "name": "B3 clearance", "note": "The terminal authorized the descent." }
     ],
     "b3": [
+      { "id": "phone", "name": "Phone", "note": "Still in the pocket." },
       { "id": "sidearm", "name": "Sidearm", "note": "Still holstered." },
       { "id": "clearance", "name": "B3 clearance", "note": "The cab stopped on its own." }
     ],
     "changed": [
+      { "id": "phone", "name": "Phone", "note": "It still rings." },
       { "id": "sidearm", "name": "Sidearm", "note": "The hand still closes around it." },
       { "id": "voice", "name": "Still thinking", "note": "The vat took the body. The voice stayed." }
     ]

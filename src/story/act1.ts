@@ -22,7 +22,7 @@ import actCopy from './act1.json';
 export type StoryCarry = { id: string; name: string; note: string };
 
 export type SequencePhase =
-  | 'seat' | 'idle' | 'wait-board' | 'window' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
+  | 'seat' | 'idle' | 'wait-board' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
   | 'arrive' | 'to-lab' | 'reveal' | 'transform';
 
 type Objective = { title: string; text: string };
@@ -74,6 +74,9 @@ export type ActHost = {
   unlockNext: () => void;
   refreshHud: () => void;
   setCarry: (items: StoryCarry[]) => void;
+  ringCall: (id: string) => void;
+  pushPhoneText: (id: string) => void;
+  silencePhone: () => void;
 };
 
 const ELEVATOR_DOOR_L_CLOSED = 43.42;
@@ -82,7 +85,7 @@ const ELEVATOR_DOOR_L_OPEN = 42.42;
 const ELEVATOR_DOOR_R_OPEN = 45.58;
 const ELEVATOR_POSE = { x: 44.25, z: 21.2, yaw: Math.PI / 2 };
 const OFFICE_WINDOW_YAW = 0;
-const OFFICE_TERMINAL_POSE = { x: 48.15, z: 43.12, yaw: Math.PI };
+const OFFICE_TERMINAL_POSE = { x: 48.15, z: 41.2, yaw: 0 };
 const ELEVATOR_DOOR_CLOSE_AT = 3.3;
 const ELEVATOR_RIDE_AT = 7.2;
 const ELEVATOR_ARRIVE_AT = 64.5;
@@ -103,7 +106,7 @@ const CREATURE_FLEE_YAW = Math.atan2(CREATURE_FLEE.x - CREATURE_HOME.x, CREATURE
 const CREATURE_FLEE_AT = 8.8;
 const CREATURE_FLEE_END = 13.2;
 
-const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'window', 'terminal', 'ride', 'reveal', 'transform'];
+const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform'];
 const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'alarm', 'elevator', 'arrive', 'to-lab'];
 
 type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
@@ -114,6 +117,7 @@ export const createAct1 = (host: ActHost) => {
   let phase: SequencePhase = 'idle';
   let boardDeparting = false;
   let windowQueued = false;
+  let callStarted = false;
   let elevatorQueued = false;
   let windowLocked = false;
   let terminalLocked = false;
@@ -193,17 +197,79 @@ export const createAct1 = (host: ActHost) => {
     }
   };
 
-  const restyleTerminal = (alarming: boolean) => {
+  type TerminalColors = {
+    material: BABYLON.PBRMaterial | BABYLON.StandardMaterial;
+    albedo: BABYLON.Color3 | null;
+    diffuse: BABYLON.Color3 | null;
+    emissive: BABYLON.Color3;
+  };
+  let terminalColors: TerminalColors[] | null = null;
+
+  const rememberTerminal = () => {
+    if (terminalColors) return;
+    const saved: TerminalColors[] = [];
     for (const mesh of meshesFor('office-terminal')) {
       const material = mesh.material;
       if (material instanceof BABYLON.PBRMaterial) {
-        material.albedoColor = alarming ? new BABYLON.Color3(0.55, 0.08, 0.1) : new BABYLON.Color3(0.08, 0.12, 0.16);
-        material.emissiveColor = alarming ? new BABYLON.Color3(0.85, 0.12, 0.14) : new BABYLON.Color3(0.05, 0.22, 0.28);
+        saved.push({
+          material,
+          albedo: material.albedoColor.clone(),
+          diffuse: null,
+          emissive: material.emissiveColor.clone(),
+        });
       } else if (material instanceof BABYLON.StandardMaterial) {
-        material.diffuseColor = alarming ? new BABYLON.Color3(0.55, 0.08, 0.1) : new BABYLON.Color3(0.08, 0.12, 0.16);
-        material.emissiveColor = alarming ? new BABYLON.Color3(0.85, 0.12, 0.14) : new BABYLON.Color3(0.12, 0.35, 0.42);
+        saved.push({
+          material,
+          albedo: null,
+          diffuse: material.diffuseColor.clone(),
+          emissive: material.emissiveColor.clone(),
+        });
       }
     }
+    if (saved.length > 0) terminalColors = saved;
+  };
+
+  const restoreTerminal = () => {
+    if (!terminalColors) return;
+    for (const saved of terminalColors) {
+      if (saved.material instanceof BABYLON.PBRMaterial && saved.albedo) {
+        saved.material.albedoColor.copyFrom(saved.albedo);
+        saved.material.emissiveColor.copyFrom(saved.emissive);
+      } else if (saved.material instanceof BABYLON.StandardMaterial && saved.diffuse) {
+        saved.material.diffuseColor.copyFrom(saved.diffuse);
+        saved.material.emissiveColor.copyFrom(saved.emissive);
+      }
+    }
+  };
+
+  const restyleTerminal = (alarming: boolean) => {
+    if (!alarming) {
+      restoreTerminal();
+      return;
+    }
+    rememberTerminal();
+    const diffuse = new BABYLON.Color3(0.55, 0.08, 0.1);
+    const emissive = new BABYLON.Color3(0.85, 0.12, 0.14);
+    for (const mesh of meshesFor('office-terminal')) {
+      const material = mesh.material;
+      if (material instanceof BABYLON.PBRMaterial) {
+        material.albedoColor = diffuse.clone();
+        material.emissiveColor = emissive.clone();
+      } else if (material instanceof BABYLON.StandardMaterial) {
+        material.diffuseColor = diffuse.clone();
+        material.emissiveColor = emissive.clone();
+      }
+    }
+  };
+
+  /** Walk-up point on the chair side of Pierce's desk. The terminal mesh sits on the far edge. */
+  const alarmSpot = (data: SceneData) => {
+    const chair = data.assets.find((asset) => asset.id === 'chair-office');
+    const x = chair?.x ?? chair?.position?.x;
+    const z = chair?.z ?? chair?.position?.z;
+    if (typeof x === 'number' && typeof z === 'number') return { x, z };
+    const terminal = resolveOfficeTerminal(data);
+    return { x: terminal.x, z: terminal.z - 1.15 };
   };
 
   const applyElevatorDoors = (openAmount: number) => {
@@ -484,7 +550,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const beginWindow = () => {
-    if (windowQueued || phase === 'window' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'ride') return;
+    if (windowQueued || phase === 'window' || phase === 'call' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'ride') return;
     windowQueued = true;
     phase = 'window';
     host.hideMarker();
@@ -492,13 +558,28 @@ export const createAct1 = (host: ActHost) => {
     host.beginCutscene('apex-window');
   };
 
+  const beginVossCall = () => {
+    if (callStarted || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'ride' || phase === 'done') return;
+    callStarted = true;
+    phase = 'call';
+    windowLocked = false;
+    host.clearInput();
+    placeWindow();
+    host.holdLocomotion();
+    host.playClip('idle', true);
+    host.hideMarker();
+    host.showObjective(false);
+    host.ringCall('voss-meeting');
+  };
+
   const beginAlarm = () => {
     phase = 'alarm';
     startAlarm();
+    host.pushPhoneText('voss-terminal');
     const data = mission();
-    const terminal = data ? resolveOfficeTerminal(data) : { x: 48.15, z: 43.05 };
+    const spot = data ? alarmSpot(data) : { x: 48, z: 41.66 };
     const line = objective('alarm');
-    host.setObjective(line.title, line.text, { x: terminal.x, y: 1.85, z: terminal.z });
+    host.setObjective(line.title, line.text, { x: spot.x, y: 1.45, z: spot.z });
     syncObjective();
   };
 
@@ -572,6 +653,8 @@ export const createAct1 = (host: ActHost) => {
   const reset = () => {
     boardDeparting = false;
     windowQueued = false;
+    callStarted = false;
+    host.silencePhone();
     elevatorQueued = false;
     windowLocked = false;
     terminalLocked = false;
@@ -614,6 +697,7 @@ export const createAct1 = (host: ActHost) => {
       else syncObjective();
     },
     handleTrigger: (trigger: SceneTrigger) => {
+      if (phase === 'call') return true;
       if (trigger.id === 'trigger-elevator-b3') {
         beginElevatorCutscene();
         return true;
@@ -709,12 +793,18 @@ export const createAct1 = (host: ActHost) => {
       host.resumeLocomotion();
       syncObjective();
       if (id === 'room-for-grace') beginWalkout();
-      if (id === 'apex-window') beginAlarm();
+      if (id === 'apex-window') beginVossCall();
       if (id === 'apex-terminal') beginElevatorObjective();
+    },
+    startCall: () => beginVossCall(),
+    onPhoneFinished: () => {
+      if (phase !== 'call') return;
+      host.resumeLocomotion();
+      beginAlarm();
     },
     onCutsceneFailed: (id: string) => {
       if (id === 'room-for-grace') beginWalkout();
-      if (id === 'apex-window') beginAlarm();
+      if (id === 'apex-window') beginVossCall();
       if (id === 'apex-terminal') beginElevatorObjective();
       if (id === 'elevator-b3') finishLevel('apex');
       if (id === 'b3-door-reveal') beginVat();
@@ -759,7 +849,6 @@ export const createAct1 = (host: ActHost) => {
           setCarry('changed');
         }
       }
-      if (id === 'apex-window' && time >= 42.3) startAlarm();
     },
     afterCamera: (time: number) => {
       if (!elevatorLocked) return;
@@ -789,13 +878,14 @@ export const createAct1 = (host: ActHost) => {
       if (phase === 'alarm') {
         const data = mission();
         if (!data) return;
-        const terminal = resolveOfficeTerminal(data);
+        const spot = alarmSpot(data);
         const player = host.playerXZ();
-        if (Math.hypot(player.x - terminal.x, player.z - terminal.z) < 1.35) beginTerminal();
+        if (Math.hypot(player.x - spot.x, player.z - spot.z) < 1.35) beginTerminal();
       }
     },
     alarmTick: (delta: number) => {
       if (!alarm.active) return;
+      rememberTerminal();
       alarm.pulse += delta;
       const flash = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(alarm.pulse * 9));
       const color = new BABYLON.Color3(flash, 0.08, 0.1);

@@ -109,6 +109,15 @@ export const applyTheme = (scene: BABYLON.Scene, themeName: string) => {
   return theme;
 };
 
+/** Level fill. Omitted `ambient` keeps the theme's hemispheric intensity. */
+export const applySceneLighting = (scene: BABYLON.Scene, data: { theme?: string; ambient?: number }) => {
+  const themeName = data.theme ?? (scene.metadata as { themeName?: string } | undefined)?.themeName ?? '';
+  const theme = getSceneTheme(themeName);
+  const fill = typeof data.ambient === 'number' && Number.isFinite(data.ambient) ? Math.max(0, data.ambient) : theme.hemiIntensity;
+  const hemi = scene.getLightByName('hemi');
+  if (hemi instanceof BABYLON.HemisphericLight) hemi.intensity = fill;
+};
+
 // Note: the arena's walls/pillars/ground used to be generated procedurally
 // here. They're now authored as regular scene assets (kind 'wall'/'pillar'/
 // 'ground' in game/sceneData.ts) so they can be selected, moved, and edited

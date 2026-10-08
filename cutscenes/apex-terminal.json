@@ -2,13 +2,13 @@
   "id": "apex-terminal",
   "name": "The Monitor",
   "duration": 5.4,
-  "notes": "Pierce at the office terminal after the window alarm. He sees the B3 creature on the screen — that is why the alarm was going. Then send him to the elevator. Standing idle facing the monitor.",
+  "notes": "Pierce beside the office chair, on the south side of the desk, facing the monitor. He sees the B3 creature on the screen — that is why the alarm was going. Then send him to the elevator.",
   "events": [
     {
       "at": 0,
       "type": "camera",
-      "position": { "x": 48.45, "y": 1.68, "z": 44.35 },
-      "lookAt": { "x": 48.15, "y": 1.22, "z": 42.72 }
+      "position": { "x": 46.85, "y": 1.55, "z": 40.5 },
+      "lookAt": { "x": 48.15, "y": 1.3, "z": 42.4 }
     },
     {
       "at": 0,

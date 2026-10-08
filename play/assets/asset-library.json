@@ -339,7 +339,7 @@
     },
     {
       "id": "mat-hall-wall",
-      "name": "Hall wall — acoustic felt",
+      "name": "Hall wall \u2014 acoustic felt",
       "path": "/assets/textures/office-wall.webp",
       "type": "material",
       "tags": [
@@ -351,7 +351,7 @@
     },
     {
       "id": "mat-office-wall",
-      "name": "Office wall — plaster",
+      "name": "Office wall \u2014 plaster",
       "path": "/assets/textures/office-plaster.webp",
       "type": "material",
       "tags": [
@@ -363,7 +363,7 @@
     },
     {
       "id": "mat-board-wall",
-      "name": "Boardroom wall — plaster",
+      "name": "Boardroom wall \u2014 plaster",
       "path": "/assets/textures/office-plaster.webp",
       "type": "material",
       "tags": [
@@ -375,7 +375,7 @@
     },
     {
       "id": "mat-hall-floor",
-      "name": "Hall floor — grey satin",
+      "name": "Hall floor \u2014 grey satin",
       "path": "/assets/textures/office-floor.webp",
       "type": "material",
       "tags": [
@@ -389,7 +389,7 @@
     },
     {
       "id": "mat-board-floor",
-      "name": "Office floor — grey satin",
+      "name": "Office floor \u2014 grey satin",
       "path": "/assets/textures/office-floor.webp",
       "type": "material",
       "tags": [
@@ -402,7 +402,7 @@
     },
     {
       "id": "mat-lift-floor",
-      "name": "Elevator floor — diamond plate",
+      "name": "Elevator floor \u2014 diamond plate",
       "path": "/assets/textures/hall-floor.webp",
       "type": "material",
       "tags": [
@@ -507,6 +507,95 @@
           "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
         }
       ]
+    },
+    {
+      "id": "asset-office-chair",
+      "name": "office-chair.glb",
+      "path": "/assets/models/office-chair.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "furniture",
+        "chair"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-board-table",
+      "name": "board-table.glb",
+      "path": "/assets/models/board-table.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "furniture",
+        "table"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-office-desk",
+      "name": "office-desk.glb",
+      "path": "/assets/models/office-desk.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "furniture",
+        "desk"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-office-terminal",
+      "name": "office-terminal.glb",
+      "path": "/assets/models/office-terminal.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "terminal"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-ceiling-troffer",
+      "name": "ceiling-troffer.glb",
+      "path": "/assets/models/ceiling-troffer.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "light"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-whiskey-glass",
+      "name": "whiskey-glass.glb",
+      "path": "/assets/models/whiskey-glass.glb",
+      "type": "model",
+      "tags": [
+        "prop"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-trophy",
+      "name": "trophy.glb",
+      "path": "/assets/models/trophy.glb",
+      "type": "model",
+      "tags": [
+        "prop"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-lab-console",
+      "name": "lab-console.glb",
+      "path": "/assets/models/lab-console.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "basement"
+      ],
+      "source": "project"
     }
   ]
 }

@@ -62,6 +62,12 @@
     },
     {
       "at": 4.05,
+      "type": "mesh",
+      "target": "vat-glass",
+      "on": false
+    },
+    {
+      "at": 4.05,
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-vat-break/vat-glass.wav",
       "bus": "sfx",
@@ -110,6 +116,18 @@
       "type": "camera",
       "position": { "x": 9.6, "y": 1.48, "z": 36.1 },
       "lookAt": { "x": 8.6, "y": 1.35, "z": 37.2 }
+    },
+    {
+      "at": 7.4,
+      "type": "avatar",
+      "assetId": "asset-ch44-hero"
+    },
+    {
+      "at": 7.4,
+      "type": "carry",
+      "target": "changed",
+      "title": "Still thinking",
+      "text": "The vat took the body. The voice stayed."
     },
     {
       "at": 7.4,

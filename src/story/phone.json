@@ -1,0 +1,43 @@
+{
+  "contacts": {
+    "voss": { "name": "Voss", "detail": "Board" },
+    "pierce": { "name": "Pierce", "detail": "You" }
+  },
+  "calls": {
+    "voss-meeting": {
+      "contact": "voss",
+      "lines": [
+        {
+          "speaker": "voss",
+          "text": "Hale is still in that room. She is furious.",
+          "audio": "/assets/audio/phone/voss-furious.wav",
+          "duration": 3.3
+        },
+        {
+          "speaker": "pierce",
+          "text": "The meeting's over.",
+          "audio": "/assets/audio/phone/pierce-over.wav",
+          "duration": 1.3
+        },
+        {
+          "speaker": "voss",
+          "text": "Not to her. You don't walk out on a board.",
+          "audio": "/assets/audio/phone/voss-board.wav",
+          "duration": 2.8
+        },
+        {
+          "speaker": "pierce",
+          "text": "I did.",
+          "audio": "/assets/audio/phone/pierce-did.wav",
+          "duration": 0.9
+        }
+      ]
+    }
+  },
+  "texts": {
+    "voss-terminal": {
+      "contact": "voss",
+      "text": "Pick up the terminal."
+    }
+  }
+}

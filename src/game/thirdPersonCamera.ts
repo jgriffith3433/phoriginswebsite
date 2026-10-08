@@ -107,7 +107,11 @@ export const createThirdPersonCamera = (
   const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward(), 1);
   const ceilingClearance = Math.max(cfg.minZ + 0.08, 0.2);
 
+  let callTarget = 0;
+  let callMix = 0;
+
   const addLook = (dx: number, dy: number) => {
+    if (callTarget > 0) return;
     if (dx === 0 && dy === 0) return;
     yaw += dx * cfg.mouseSensitivity;
     pitch = clampValue(pitch + dy * cfg.mouseSensitivity * 0.78, cfg.minPitch, cfg.maxPitch);
@@ -135,6 +139,8 @@ export const createThirdPersonCamera = (
     recenterIdle = 0;
     shoulderTarget = 0;
     shoulderMix = 0;
+    callTarget = 0;
+    callMix = 0;
     pivot.set(0, cfg.pivotHeight, 0);
     lookAt.copyFrom(pivot);
     smoothedPos.set(0, cfg.pivotHeight + cfg.height + 2.2, -cfg.distance);
@@ -285,6 +291,27 @@ export const createThirdPersonCamera = (
     lookAt.y = expDamp(lookAt.y, pivot.y, cfg.lookAtStiffness, clampedDt);
     lookAt.z = expDamp(lookAt.z, pivot.z + Math.cos(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
 
+    callMix = expDamp(callMix, callTarget, 5.2, clampedDt);
+    if (callMix > 0.001) {
+      const faceX = Math.sin(yaw);
+      const faceZ = Math.cos(yaw);
+      const leftX = -Math.cos(yaw);
+      const leftZ = Math.sin(yaw);
+      const baseY = playerMeshY(player.y);
+      const camX = player.x + leftX * 0.95 - faceX * 2.45;
+      const camY = baseY + 1.48;
+      const camZ = player.z + leftZ * 0.95 - faceZ * 2.45;
+      const lookX = player.x + leftX * 0.2;
+      const lookY = baseY + 1.28;
+      const lookZ = player.z + leftZ * 0.2;
+      smoothedPos.x = smoothedPos.x * (1 - callMix) + camX * callMix;
+      smoothedPos.y = smoothedPos.y * (1 - callMix) + camY * callMix;
+      smoothedPos.z = smoothedPos.z * (1 - callMix) + camZ * callMix;
+      lookAt.x = lookAt.x * (1 - callMix) + lookX * callMix;
+      lookAt.y = lookAt.y * (1 - callMix) + lookY * callMix;
+      lookAt.z = lookAt.z * (1 - callMix) + lookZ * callMix;
+    }
+
     camera.position.copyFrom(smoothedPos);
     camera.setTarget(lookAt);
     camera.upVector.set(0, 1, 0);
@@ -315,6 +342,12 @@ export const createThirdPersonCamera = (
     clearCinematic,
     setOverShoulder: (enabled: boolean) => {
       shoulderTarget = enabled ? 1 : 0;
+    },
+    setCallFrame: (enabled: boolean) => {
+      callTarget = enabled ? 1 : 0;
+    },
+    face: (nextYaw: number) => {
+      yaw = nextYaw;
     },
     getYaw: () => yaw,
     getPitch: () => pitch,
