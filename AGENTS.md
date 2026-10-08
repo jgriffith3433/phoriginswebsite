@@ -149,6 +149,7 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 - **WebGL texImage2D / generateMipmap**: disposing a CubeTexture while faces still load. `skybox.ts` skips rebuild; create with `noMipmap`.
 - **Walk SFX inaudible**: was `play()` spam while paused. Loop once at ~0.62.
 - **Stuck idle**: locomotion not resumed after cinematic/weapon; `resumeLocomotion`.
+- **B3 untextured / dark, `GL_MAX_VERTEX_UNIFORM_BUFFERS (12)`**: glTFLoader raises every material's `maxSimultaneousLights` to `scene.lights.length` (hemi + sun + 23 practicals = 25). Each light is a vertex uniform block. `capSimultaneousLights` in `modelLoader.ts` puts the cap back to 4 after every GLB import. Do not remove that.
 - Editing `play/cutscenes` or `play/levels` does nothing in `npm run dev`.
 
 ## Nearby leftovers (not blockers)

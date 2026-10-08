@@ -1,5 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { capSimultaneousLights } from './modelLoader';
+
 export const importAssetFile = (
   scene: BABYLON.Scene,
   file: File | null,
@@ -11,6 +13,7 @@ export const importAssetFile = (
   const rootNode = new BABYLON.TransformNode('customPlayer', scene);
 
   BABYLON.SceneLoader.Append('', objectUrl, scene, () => {
+    capSimultaneousLights(scene);
     const imported = scene.meshes.filter((mesh) => mesh.name !== 'ground' && !mesh.name.startsWith('wall-') && !mesh.name.startsWith('enemy'));
     if (imported.length > 0) {
       for (const mesh of imported) {

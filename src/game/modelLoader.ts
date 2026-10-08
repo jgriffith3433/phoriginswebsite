@@ -93,6 +93,25 @@ const clipLeaf = (name: string) => {
   return parts[parts.length - 1] ?? name;
 };
 
+/**
+ * glTFLoader sets every material's maxSimultaneousLights to scene.lights.length
+ * so "all lights" fit in one shader. B3 is the hemispheric, the sun, and 23
+ * practicals (25). Each light is its own vertex uniform block, and this GPU's
+ * GL_MAX_VERTEX_UNIFORM_BUFFERS is 12, so wall and character shaders fail to
+ * compile (untextured, nearly black). Babylon's own default is 4; put it back.
+ */
+const MAX_SIMULTANEOUS_LIGHTS = 4;
+
+export const capSimultaneousLights = (scene: BABYLON.Scene) => {
+  for (const material of scene.materials) {
+    const mat = material as BABYLON.Material & { maxSimultaneousLights?: number };
+    if (typeof mat.maxSimultaneousLights !== 'number') continue;
+    if (mat.maxSimultaneousLights > MAX_SIMULTANEOUS_LIGHTS) {
+      mat.maxSimultaneousLights = MAX_SIMULTANEOUS_LIGHTS;
+    }
+  }
+};
+
 const enqueueImport = <T>(work: () => Promise<T>): Promise<T> => {
   const run = importChain.then(work, work);
   importChain = run.then(() => undefined, () => undefined);
@@ -179,6 +198,7 @@ export const importGlbUnderParent = async (
   const { rootUrl, fileName } = splitModelUrl(modelPath);
   return enqueueImport(async () => {
     const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(rootUrl, fileName, scene);
+    capSimultaneousLights(scene);
     if (parent.isDisposed()) {
       container.dispose();
       return { meshes: [], animationGroups: [], skeletons: [] };
