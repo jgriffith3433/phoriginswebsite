@@ -98,6 +98,27 @@ export const fetchMaterialsCatalog = async (): Promise<{ id: string; name?: stri
   }
 };
 
+export type LinkBlenderResult = {
+  ok: boolean;
+  linked?: boolean;
+  already?: boolean;
+  started?: boolean;
+  installed?: boolean;
+  message?: string;
+  error?: string;
+};
+
+export const linkBlender = async (): Promise<LinkBlenderResult> => {
+  try {
+    const response = await fetch('/api/link-blender', { method: 'POST' });
+    const body = await response.json().catch(() => null);
+    if (body && typeof body === 'object') return body as LinkBlenderResult;
+    return { ok: false, error: `Link failed (${response.status}). Is npm run dev running?` };
+  } catch {
+    return { ok: false, error: 'Link failed. Is npm run dev running?' };
+  }
+};
+
 export const importFbxFile = async (
   file: File,
   options: { mode: 'character' | 'animation'; name: string; target?: string },

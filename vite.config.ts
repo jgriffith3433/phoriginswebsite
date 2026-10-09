@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { Connect, Plugin, ViteDevServer } from 'vite';
 import { defineConfig } from 'vite';
 import { convertCharacterGlb, inferClipName } from './tools/blenderConvert.mjs';
+import { linkBlender } from './tools/linkBlender.mjs';
 import { importEditorTexture } from './tools/process-textures.mjs';
 
 // Directories the editor API is allowed to read/write. Keeps file access
@@ -166,6 +167,17 @@ const editorApiPlugin = (): Plugin => ({
         return [];
       }
     };
+
+    server.middlewares.use('/api/link-blender', (req, res) => {
+      if (req.method !== 'POST') {
+        res.statusCode = 405;
+        res.end('Method not allowed');
+        return;
+      }
+      linkBlender()
+        .then((result) => sendJson(res, result.ok ? 200 : 400, result))
+        .catch((error) => sendJson(res, 400, { ok: false, error: String(error) }));
+    });
 
     // Path-based convert (Import Model dialog): base FBX on disk plus optional
     // Mixamo animation-only FBX clips, baked into one GLB.

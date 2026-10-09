@@ -1588,6 +1588,15 @@ export const createAct1 = (host: ActHost) => {
     stepDread(node, dist, delta);
   };
 
+  const aimChest = new BABYLON.Vector3();
+  const aimPoint = () => {
+    if (phase !== 'hunt' || retreatLeft > 0 || creatureHp <= 0) return null;
+    const node = creatureRoot();
+    if (!node?.isEnabled()) return null;
+    aimChest.set(node.position.x, node.position.y + 1.05, node.position.z);
+    return aimChest;
+  };
+
   const shotAt = (origin: BABYLON.Vector3, direction: BABYLON.Vector3) => {
     if (phase !== 'hunt' || retreatLeft > 0 || creatureHp <= 0) return false;
     const node = creatureRoot();
@@ -2249,6 +2258,7 @@ export const createAct1 = (host: ActHost) => {
       window.setTimeout(() => host.tone(620, 0.11, 'square', 0.07), 130);
     },
     shotAt,
+    aimPoint,
     doneHold: () => phase === 'done',
     cutsceneLight: (on: boolean, intensity?: number, target?: string) => {
       captureLights();

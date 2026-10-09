@@ -34,6 +34,8 @@ import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
 import { createScreenFade } from './game/fade';
+import { createPerfMonitor } from './game/perfMonitor';
+import { createAutoAim } from './game/autoAim';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 const root = document.getElementById('game-root') as HTMLDivElement;
@@ -61,6 +63,10 @@ const devToggle = document.getElementById('devToggle') as HTMLButtonElement;
 const devPanel = document.getElementById('devPanel') as HTMLDivElement;
 const devOutput = document.getElementById('devOutput') as HTMLTextAreaElement;
 const devFps = document.getElementById('devFps') as HTMLSpanElement;
+const perfMonitor = createPerfMonitor(
+  document.getElementById('perfFps') as HTMLElement,
+  document.getElementById('perfMem') as HTMLElement,
+);
 const devHealth = document.getElementById('devHealth') as HTMLSpanElement;
 const devLevel = document.getElementById('devLevel') as HTMLSpanElement;
 const levelSelect = document.getElementById('levelSelect') as HTMLDivElement;
@@ -76,8 +82,8 @@ const inventoryItems = document.getElementById('inventoryItems') as HTMLDivEleme
 const inventoryClose = document.getElementById('inventoryClose') as HTMLButtonElement;
 const weaponSlot = document.getElementById('weaponSlot') as HTMLButtonElement | null;
 const weaponSlotState = document.getElementById('weaponSlotState') as HTMLSpanElement | null;
-const reloadHint = document.getElementById('reloadHint') as HTMLDivElement | null;
-const interactHint = document.getElementById('interactHint') as HTMLDivElement | null;
+const reloadHint = document.getElementById('reloadHint') as HTMLButtonElement | null;
+const interactHint = document.getElementById('interactHint') as HTMLButtonElement | null;
 const objectiveHud = document.getElementById('objectiveHud') as HTMLDivElement | null;
 const objectiveText = document.getElementById('objectiveText') as HTMLSpanElement | null;
 const objectiveDist = document.getElementById('objectiveDist') as HTMLSpanElement | null;
@@ -578,6 +584,22 @@ const levelLoadingLine = (level = getLevelDefinition(state.level)) =>
   level.libraryId === 'apex-peak' ? 'Loading the office…' : `Loading ${level.name}…`;
 
 const enemies: Enemy[] = [];
+const aimPoints: BABYLON.Vector3[] = [];
+const shotDirection = new BABYLON.Vector3();
+let aimSuppress = 0;
+let aimEscape = 0;
+const LOS_SKIP = /floor|ground|ceil|creature|phone|pistol|skybox|impact|mark|trigger|drip|eye|player|decal|pickup|label/i;
+const autoAim = createAutoAim(scene, (mesh) => {
+  if (mesh === playerCollider || mesh === muzzleFlash.mesh) return true;
+  if (mesh.isDescendantOf(playerAvatar.group)) return true;
+  const meta = mesh.metadata as { pickup?: unknown; sceneAssetId?: string } | undefined;
+  if (meta?.pickup || meta?.sceneAssetId === 'b3-creature') return true;
+  if (LOS_SKIP.test(mesh.name)) return true;
+  for (const enemy of enemies) {
+    if (mesh === enemy.mesh || mesh.isDescendantOf(enemy.root)) return true;
+  }
+  return false;
+});
 const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
 const pickups: Array<{
   mesh: BABYLON.AbstractMesh;
@@ -790,6 +812,12 @@ const canLockGameplayPointer = () =>
 
 const lockGameplayPointer = () => {
   if (!canLockGameplayPointer()) return;
+  void canvas.requestPointerLock();
+};
+
+const lockPlayPointer = () => {
+  if (document.body.dataset.device === 'mobile') return;
+  state.mouseLookActive = true;
   void canvas.requestPointerLock();
 };
 
@@ -1603,7 +1631,7 @@ const syncInteractHint = () => {
   }
   const label = SUPPLY_LABEL[pickup.item];
   interactHint.hidden = false;
-  interactHint.textContent = roomFor(state.inventory, pickup.item) > 0 ? `${label} — E` : `${label} full`;
+  interactHint.innerHTML = roomFor(state.inventory, pickup.item) > 0 ? `${label}<kbd> — E</kbd>` : `${label} full`;
 };
 
 const showReloadNote = (text: string, seconds = 1.6) => {
@@ -1621,9 +1649,9 @@ const syncReloadHint = () => {
     && state.player.clip <= 0
     && !state.inCutscene
     && messageBox.classList.contains('hidden');
-  const text = note || (emptyClip ? 'Reload — press R' : '');
+  const text = note || (emptyClip ? 'Reload<kbd> — R</kbd>' : '');
   reloadHint.hidden = !text;
-  reloadHint.textContent = text;
+  reloadHint.innerHTML = text;
 };
 
 const reloadWeapon = () => {
@@ -1657,10 +1685,61 @@ const fireWeapon = () => {
   if (playerPistol.isVisible()) muzzleFlash.showAt(playerPistol.muzzle);
   else muzzleFlash.show(camera, gatherCameraIgnoreMeshes());
   playerAvatar.playClip('shoot', false, 3, () => playerAvatar.resumeLocomotion());
-  const aim = camera.getDirection(BABYLON.Vector3.Forward());
-  act.shotAt(camera.globalPosition, aim);
-  stampBulletMark(scene, camera.globalPosition, aim, gatherCameraIgnoreMeshes());
+  const assisted = autoAim.direction();
+  if (assisted) shotDirection.copyFrom(assisted);
+  else camera.getDirectionToRef(BABYLON.Vector3.Forward(), shotDirection);
+  act.shotAt(camera.globalPosition, shotDirection);
+  stampBulletMark(scene, camera.globalPosition, shotDirection, gatherCameraIgnoreMeshes());
   updateHud();
+};
+
+const writeAim = (index: number, x: number, y: number, z: number) => {
+  let point = aimPoints[index];
+  if (!point) {
+    point = new BABYLON.Vector3();
+    aimPoints[index] = point;
+  }
+  point.set(x, y, z);
+};
+
+const refreshAim = (delta: number) => {
+  if (!state.running || state.inCutscene || inventoryOpen || !state.player.weaponDrawn || phone.isRaised()) {
+    autoAim.clear();
+    followCamera.clearAim();
+    aimSuppress = 0;
+    aimEscape = 0;
+    return;
+  }
+  const flick = followCamera.takeMouseFlick();
+  const shoving = followCamera.lookForce() > 0.82;
+  if (autoAim.point() && flick) aimSuppress = 0.35;
+  else if (autoAim.point() && shoving) {
+    aimEscape += delta;
+    if (aimEscape > 0.16) aimSuppress = 0.3;
+  } else aimEscape = 0;
+  if (aimSuppress > 0) {
+    aimSuppress = Math.max(0, aimSuppress - delta);
+    if (shoving) aimSuppress = 0.3;
+    autoAim.clear();
+    followCamera.clearAim();
+    return;
+  }
+  let count = 0;
+  const chest = act.aimPoint();
+  if (chest) {
+    writeAim(count, chest.x, chest.y, chest.z);
+    count += 1;
+  }
+  for (const enemy of enemies) {
+    if (enemy.hp <= 0 || !enemy.mesh.isEnabled()) continue;
+    const at = enemy.mesh.position;
+    writeAim(count, at.x, at.y + 0.9, at.z);
+    count += 1;
+  }
+  autoAim.update(camera, aimPoints, count);
+  const spot = autoAim.point();
+  if (spot) followCamera.aimAt(spot.x, spot.y, spot.z);
+  else followCamera.clearAim();
 };
 
 const levelAllowsCombat = () => {
@@ -1727,6 +1806,20 @@ window.addEventListener('keydown', (event) => {
   if (key === 'l' && devLevelConfig) {
     showMessage('Dev level loaded', `${devLevelConfig.levelName || 'Custom'} • ${devLevelConfig.enemyCount || 0} enemies`);
   }
+});
+
+reloadHint?.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  unlockAudio();
+  if (state.running && messageBox.classList.contains('hidden')) reloadWeapon();
+});
+interactHint?.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  unlockAudio();
+  const pickup = nearestSupply();
+  if (pickup && state.running && !state.inCutscene && !inventoryOpen && messageBox.classList.contains('hidden')) takeSupply(pickup);
 });
 
 window.addEventListener('keyup', (event) => {
@@ -1923,6 +2016,7 @@ fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
 startBtn.addEventListener('click', () => {
   unlockAudio();
+  lockPlayPointer();
   const mode = menuMode();
   if (mode === 'level-complete') {
     const next = nextPlayableLevel();
@@ -1937,6 +2031,7 @@ startBtn.addEventListener('click', () => {
 });
 newGameBtn.addEventListener('click', () => {
   unlockAudio();
+  lockPlayPointer();
   void startAtLevel(1);
 });
 canvas.addEventListener('pointerdown', () => unlockAudio());
@@ -2002,6 +2097,7 @@ const renderLoop = () => {
 
     const locomotion = updatePlayer(delta);
     updateCamera(delta, locomotion.moving, locomotion.moveHeading);
+    refreshAim(delta);
     triggerRunner.update(state.player);
     act.stepWorld(delta);
     const fear = act.fearLevel();
@@ -2080,6 +2176,7 @@ const renderLoop = () => {
     state.inCutscene ? 0.18 : 1,
   );
 
+  perfMonitor.update(delta, engine.getFps());
   scene.render();
 };
 

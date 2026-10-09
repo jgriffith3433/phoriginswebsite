@@ -212,13 +212,15 @@
         height: 2px;
       }
 
-      .reload-hint,
-      .interact-hint {
+      button.reload-hint,
+      button.interact-hint {
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 6;
-        pointer-events: none;
+        z-index: 7;
+        pointer-events: auto;
+        touch-action: manipulation;
+        cursor: pointer;
         color: #f3efe6;
         font-size: 12px;
         letter-spacing: 0.16em;
@@ -232,6 +234,29 @@
         white-space: nowrap;
       }
 
+      button.reload-hint:hover,
+      button.interact-hint:hover,
+      button.reload-hint:active,
+      button.interact-hint:active {
+        transform: translateX(-50%);
+      }
+
+      .reload-hint kbd,
+      .interact-hint kbd {
+        font: inherit;
+        letter-spacing: inherit;
+        color: inherit;
+      }
+
+      body[data-device='mobile'] button.reload-hint,
+      body[data-device='mobile'] button.interact-hint,
+      body[data-device='tablet'] button.reload-hint,
+      body[data-device='tablet'] button.interact-hint {
+        min-height: 44px;
+        padding: 12px 20px;
+        font-size: 13px;
+      }
+
       .reload-hint {
         top: calc(50% + 42px);
       }
@@ -240,6 +265,35 @@
         top: calc(50% + 86px);
         color: #f0d48a;
       }
+
+      .perf-monitor {
+        position: absolute;
+        left: 50%;
+        bottom: calc(var(--safe-bottom) + 14px);
+        transform: translateX(-50%);
+        z-index: 11;
+        pointer-events: none;
+        display: flex;
+        gap: 12px;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(8, 12, 16, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: calc(11px * var(--ui-scale, 1));
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: var(--text);
+      }
+
+      .perf-monitor .perf-k {
+        color: var(--muted);
+        margin-right: 4px;
+      }
+
+      #perfFps[data-band='high'] { color: var(--good); }
+      #perfFps[data-band='mid'] { color: var(--warning); }
+      #perfFps[data-band='low'] { color: #ff5d6c; }
 
       .hud {
         position: absolute;
@@ -1279,9 +1333,14 @@
         </div>
       </div>
 
+      <div id="perfMonitor" class="perf-monitor" aria-hidden="true">
+        <span><span class="perf-k">FPS</span><span id="perfFps">—</span></span>
+        <span><span class="perf-k">MEM</span><span id="perfMem">—</span></span>
+      </div>
+
       <div id="crosshair" aria-hidden="true"></div>
-      <div id="reloadHint" class="reload-hint" hidden>Reload — press R</div>
-      <div id="interactHint" class="interact-hint" hidden>Ammo box — E</div>
+      <button type="button" id="reloadHint" class="reload-hint" hidden>Reload<kbd> — R</kbd></button>
+      <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
       <div id="objectiveHud" class="objective-hud" aria-live="polite">
         <span class="objective-kicker">Objective</span>
         <span id="objectiveText" class="objective-text"></span>

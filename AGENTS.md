@@ -71,6 +71,7 @@ Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman
 | `playerAvatar.ts` | Mixamo avatar, clip matching, overlays, `whenReady` |
 | `player.ts` | Capsule, jump (`JUMP_WINDUP` 0.1s, jump ~1.3×) |
 | `pistol.ts` | `tt_pistol.glb` on Mixamo RightHand; hidden until draw |
+| `autoAim.ts` | With the sidearm out, the camera snaps onto a target in front of it when no solid collider stands between. Bounding boxes only. A hard look breaks the snap. |
 | `muzzleFlash.ts` | Additive flash at barrel; keep it fairly transparent |
 | `npcs.ts` | Board seats → Ch* NPCs, sit/talk, departure |
 | `cutscenes.ts` | Timeline player (camera/hud/line/audio/anim). `reequip` defaults true: a sidearm or flashlight that was out when the scene started is out again when it ends. Set `reequip` false to leave the hands empty (`b3-vat-break`). |
@@ -117,6 +118,8 @@ Some Mixamo **filenames lied**: treat runtime tails as source of truth. Draw/hol
 
 Bake pipeline: Mixamo FBX in `phoriginsassets` → `npm run bake:anims` / `tools/blenderConvert.mjs` / `tools/build_character_glb.py` → GLB here. Editor can import FBX via `/api` during `npm run dev` (needs Blender on PATH).
 
+Blender MCP (`.cursor/mcp.json`) is for new static props. Dev Tools → **Link Blender** installs the addon if it is missing, starts Blender if it is closed, and waits until `localhost:9876` is listening. It does not close a Blender that is already open. The addon server has to be up in the GUI before Cursor can drive it. Save the `.blend` in `C:\Projects\phoriginsassets`, export GLB to `assets/models/`, and register an id in `assets/asset-library.json`. Place the prop in level JSON or Dev Tools so it loads through `modelLoader.ts`. Pierce, the pistol, and the parasite stay on the headless bake scripts. Do not rebake them through the addon, and do not run a headless bake while that file is open in the GUI. A `.blend` under `assets/` is copied into `play/`. Babylon’s Node Material, geometry, and particle MCP servers are not wired up; this game loads glTF PBR, not those node graphs.
+
 ## Pistol
 
 - Mesh: `assets/models/tt_pistol.glb` (+ `assets/textures/tt_pistol/`).
@@ -133,9 +136,9 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 
 ## UI / controls
 
-- **Start** gated until load. A progress cookie (`ph-origins-save`, `{ unlocked, level, sound }`) makes the title ask **Continue** (saved level) or **New Game** (level 1). Progress counts once `unlocked` or `level` is above 1. **Load Level** stays grey until that cookie exists. Mission select only offers levels at or under `unlocked`. **Reset** clears that cookie. **Level Complete** offers **Continue** into the next playable level and **Exit** back to `/`. After B3 the next slot is still coming soon, so that card is Exit only. **WASD**, mouse look (Y inverted), **Space** jump, **I** inventory, **Q** or the weapon slot draws/holsters, **G** raises the phone and turns the flashlight on without the phone screen. **F** opens that screen, and with the beam already on it only shows or hides the screen. **Q** Sidearm, **G** Light, **H** Medkit, **F** Phone, and **I** Inventory are buttons on the right edge. On mobile the key caps are hidden. **R** reloads from an ammo box, **E** picks up a nearby supply if that stack has room, **H** uses a medkit (40 health), **P** also starts (gated). The wheel does not zoom. Drawing the pistol or turning on the phone flashlight pulls the camera in (`equippedDistance` 1.55, shoulder offset **0.55**). Holstering both returns the follow distance.
-- Score / Best / Level HUD hidden; health bar kept.
-- Inventory open exits pointer lock; closing restores it.
+- **Start** gated until load. A progress cookie (`ph-origins-save`, `{ unlocked, level, sound }`) makes the title ask **Continue** (saved level) or **New Game** (level 1). Progress counts once `unlocked` or `level` is above 1. **Load Level** stays grey until that cookie exists. Mission select only offers levels at or under `unlocked`. **Reset** clears that cookie. **Level Complete** offers **Continue** into the next playable level and **Exit** back to `/`. After B3 the next slot is still coming soon, so that card is Exit only. **WASD**, mouse look (Y inverted), **Space** jump, **I** inventory, **Q** or the weapon slot draws/holsters, **G** raises the phone and turns the flashlight on without the phone screen. **F** opens that screen, and with the beam already on it only shows or hides the screen. **Q** Sidearm, **G** Light, **H** Medkit, **F** Phone, and **I** Inventory are buttons on the right edge. On mobile the key caps are hidden. **R** reloads from an ammo box, **E** picks up a nearby supply if that stack has room. Those prompts are buttons, and on mobile the key letters stay hidden. **H** uses a medkit (40 health), **P** also starts (gated). With the sidearm drawn, the camera snaps onto a target in front of it only when the line to it is clear. A hard shove on the look stick, or a mouse flick, breaks that snap. The wheel does not zoom. Drawing the pistol or turning on the phone flashlight pulls the camera in (`equippedDistance` 1.55, shoulder offset **0.55**). Holstering both returns the follow distance.
+- Score / Best / Level HUD hidden; health bar kept. A bottom-center readout shows FPS and JS heap (`performance.memory`, Chromium). It refreshes four times a second. Other browsers show memory as n/a.
+- **Start**, **Continue**, and **New Game** lock and hide the mouse. Inventory open exits pointer lock; closing restores it. Mobile keeps touch look.
 
 ## Audio mix (as of last pass)
 

@@ -1,0 +1,24 @@
+---
+description: Static prop creation through Blender MCP and the existing GLB pipeline
+alwaysApply: true
+---
+
+# Game art pipeline
+
+Read `AGENTS.md` before creating or importing art. Babylon stays on the versions in `package.json`.
+
+New static props go through Blender MCP (`.cursor/mcp.json`). The Blender GUI must be open with the addon server started. Dev Tools → Link Blender does that when `npm run dev` is running.
+
+- Save the editable `.blend` in `C:\Projects\phoriginsassets`, beside the FBX sources.
+- Export GLB to `assets/models/<name>.glb`.
+- Add a stable id in `assets/asset-library.json` (`path` like `/assets/models/<name>.glb`).
+- Place the prop in level JSON or Dev Tools. Load it with `modelLoader.ts`.
+- Check the running Vite game and the browser console before calling it done.
+
+Pierce, the pistol, and the parasite stay on the headless bake path: `npm run bake:anims`, `tools/blenderConvert.mjs`, `tools/build_character_glb.py`. Do not rebake those through the Blender MCP addon. Do not run a headless bake while that `.blend` is open in the GUI.
+
+Do not write runtime models under `public/`. `public/` is the favicon and manifest. Root `assets/` is what dev serves and what the build copies into `play/`. A `.blend` or `.fbx` under `assets/` ships in that copy.
+
+Do not add a second `SceneLoader` import, raise `maxSimultaneousLights`, assign `scene.environmentTexture`, or upgrade Babylon. Glow that must read in-game is emissive on the glTF material. The flat probe is `assets/textures/probe/`.
+
+Example: a vending machine is `phoriginsassets/models/vending-machine.blend` → `assets/models/vending-machine.glb` → library id `asset-vending-machine` → one placement in a level. Leave Act I, the player, and `modelLoader.ts` alone unless the task is about those systems.

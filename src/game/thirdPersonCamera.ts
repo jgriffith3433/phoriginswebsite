@@ -94,6 +94,9 @@ export const createThirdPersonCamera = (
   let lookStickX = 0;
   let lookStickY = 0;
   let lookInputTimer = 0;
+  let mouseFlick = false;
+  let holdAim = false;
+  const aimSpot = new BABYLON.Vector3();
   let recenterIdle = 0;
   let shoulderTarget = 0;
   let shoulderMix = 0;
@@ -117,6 +120,7 @@ export const createThirdPersonCamera = (
     if (dx === 0 && dy === 0) return;
     yaw += dx * cfg.mouseSensitivity;
     pitch = clampValue(pitch + dy * cfg.mouseSensitivity * 0.78, cfg.minPitch, cfg.maxPitch);
+    if (Math.hypot(dx, dy) > 16) mouseFlick = true;
     lookInputTimer = 0.12;
     recenterIdle = 0;
   };
@@ -134,6 +138,8 @@ export const createThirdPersonCamera = (
     lookStickX = 0;
     lookStickY = 0;
     lookInputTimer = 0;
+    mouseFlick = false;
+    holdAim = false;
     recenterIdle = 0;
     shoulderTarget = 0;
     shoulderMix = 0;
@@ -222,7 +228,9 @@ export const createThirdPersonCamera = (
     }
     const ignore = new Set(ignoreMeshes);
 
-    if (Math.hypot(lookStickX, lookStickY) > 0.04) {
+    const stickMag = Math.hypot(lookStickX, lookStickY);
+    const stickBreak = stickMag > 0.82;
+    if (stickMag > 0.04 && !(holdAim && !stickBreak)) {
       yaw += lookStickX * cfg.stickSensitivity * clampedDt;
       pitch = clampValue(pitch - lookStickY * cfg.stickSensitivity * 0.85 * clampedDt, cfg.minPitch, cfg.maxPitch);
       lookInputTimer = 0.12;
@@ -231,7 +239,7 @@ export const createThirdPersonCamera = (
 
     lookInputTimer = Math.max(0, lookInputTimer - clampedDt);
 
-    if (cfg.enableMoveRecenter && moving && moveHeading !== null && !isLooking()) {
+    if (cfg.enableMoveRecenter && moving && moveHeading !== null && !isLooking() && !holdAim) {
       recenterIdle += clampedDt;
       if (recenterIdle >= cfg.recenterDelay) {
         yaw = dampAngle(yaw, moveHeading, cfg.recenterStiffness, clampedDt);
@@ -287,9 +295,13 @@ export const createThirdPersonCamera = (
     if (smoothedPos.y > maxCamY) smoothedPos.y = maxCamY;
 
     const lookForward = 0.35;
-    lookAt.x = expDamp(lookAt.x, pivot.x + Math.sin(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
-    lookAt.y = expDamp(lookAt.y, pivot.y, cfg.lookAtStiffness, clampedDt);
-    lookAt.z = expDamp(lookAt.z, pivot.z + Math.cos(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
+    if (holdAim) {
+      lookAt.copyFrom(aimSpot);
+    } else {
+      lookAt.x = expDamp(lookAt.x, pivot.x + Math.sin(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
+      lookAt.y = expDamp(lookAt.y, pivot.y, cfg.lookAtStiffness, clampedDt);
+      lookAt.z = expDamp(lookAt.z, pivot.z + Math.cos(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
+    }
 
     callMix = expDamp(callMix, callTarget, 5.2, clampedDt);
     if (callMix > 0.001) {
@@ -353,6 +365,47 @@ export const createThirdPersonCamera = (
     },
     getYaw: () => yaw,
     getPitch: () => pitch,
+    lookForce: () => Math.hypot(lookStickX, lookStickY),
+    takeMouseFlick: () => {
+      const flicked = mouseFlick;
+      mouseFlick = false;
+      return flicked;
+    },
+    /** Point the view at a world point. The crosshair lands there this frame. */
+    aimAt: (x: number, y: number, z: number) => {
+      holdAim = true;
+      aimSpot.set(x, y, z);
+      const dx = x - pivot.x;
+      const dz = z - pivot.z;
+      if (dx * dx + dz * dz > 1e-4) yaw = Math.atan2(dx, dz);
+      const ex = x - camera.position.x;
+      const ey = y - camera.position.y;
+      const ez = z - camera.position.z;
+      const horiz = Math.hypot(ex, ez);
+      if (horiz > 0.05) {
+        const slope = ey / horiz;
+        const dist = Math.max(cfg.minDistance, currentDistance);
+        const radius = Math.hypot(1, slope);
+        const rhs = -(slope * 0.35 + cfg.height) / dist;
+        const alpha = Math.atan2(slope, 1);
+        const sine = Math.max(-1, Math.min(1, rhs / radius));
+        pitch = clampValue(Math.asin(sine) - alpha, cfg.minPitch, cfg.maxPitch);
+      }
+      lookAt.copyFrom(aimSpot);
+      camera.setTarget(lookAt);
+      recenterIdle = 0;
+    },
+    clearAim: () => {
+      if (!holdAim) return;
+      holdAim = false;
+      const lookForward = 0.35;
+      lookAt.set(
+        pivot.x + Math.sin(yaw) * lookForward,
+        pivot.y,
+        pivot.z + Math.cos(yaw) * lookForward,
+      );
+      camera.setTarget(lookAt);
+    },
   };
 };
 

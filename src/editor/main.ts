@@ -1,5 +1,5 @@
 import { createEditorViewport, type SelectionTarget } from './viewport';
-import { fetchProjectTree, saveJsonFile, importModel, importFbxFile, importTextureFile, type FsTreeNode } from './fsApi';
+import { fetchProjectTree, saveJsonFile, importModel, importFbxFile, importTextureFile, linkBlender, type FsTreeNode } from './fsApi';
 import { renderProjectTree, inferAssetKind, type DraggableAssetPayload } from './projectPanel';
 import { getAssetLibrary, invalidateAssetLibrary, resolveLibraryEntry, resolveModelPath } from '../game/modelLoader';
 import { LEVEL_LIBRARY_PATH } from '../game/levels';
@@ -1655,6 +1655,27 @@ toolsMenuDropdown.addEventListener('click', (event) => event.stopPropagation());
 $('animTrimBtn').addEventListener('click', () => {
   setToolsMenuOpen(false);
   void openAnimTrimPanel();
+});
+
+const linkBlenderBtn = $('linkBlenderBtn') as HTMLButtonElement;
+linkBlenderBtn.addEventListener('click', async () => {
+  setToolsMenuOpen(false);
+  linkBlenderBtn.disabled = true;
+  const previousLabel = linkBlenderBtn.textContent;
+  linkBlenderBtn.textContent = 'Linking…';
+  log('Linking Blender…');
+  try {
+    const result = await linkBlender();
+    const message = result.ok ? (result.message || 'Blender linked.') : (result.error || 'Could not link Blender.');
+    log(message);
+    saveStatusEl.textContent = result.ok ? 'Blender linked' : 'Blender link failed';
+  } catch (error) {
+    log(`Could not link Blender. ${error}`);
+    saveStatusEl.textContent = 'Blender link failed';
+  } finally {
+    linkBlenderBtn.disabled = false;
+    linkBlenderBtn.textContent = previousLabel;
+  }
 });
 $('animTrimCloseBtn').addEventListener('click', () => {
   stopTrimPreview();
