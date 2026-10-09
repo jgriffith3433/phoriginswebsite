@@ -30,8 +30,9 @@ const byTail = (clips: BABYLON.AnimationGroup[], tail: string) =>
   clips.find((clip) => clipTail(clip.name).toLowerCase() === tail.toLowerCase()) ?? null;
 
 /**
- * Exact clip-tail match. Tails: Idle Walk Jump SitIdle SitTalk PistolIdle
- * PistolWalk PistolJump Draw Holster PistolAim Shoot.
+ * Exact clip-tail match. Tails: Idle Walk WalkBack Jump FallingDown SitIdle
+ * SitTalk PistolIdle PistolWalk PistolJump Draw Holster PistolAim Shoot
+ * RebornIdle. Attack is on the creature.
  * draw→Draw, holster→Holster, shoot→Shoot else PistolAim.
  */
 export const findClip = (clips: BABYLON.AnimationGroup[], keyword: string): BABYLON.AnimationGroup | null => {
@@ -550,6 +551,13 @@ export const createCharacterAvatar = (
       overlayEndTimer = window.setTimeout(finish, clipDurationMs(clip, speed, from, to) + 40);
     }
     clip.start(loop, speed, from, to, false);
+    if (!loop && !onEnded && !isOverlay) {
+      const held = overlaySeq;
+      clip.onAnimationGroupEndObservable.addOnce(() => {
+        if (held !== overlaySeq) return;
+        clip.start(true, 1, Math.max(from, to - 1), to, false);
+      });
+    }
     if (seq !== overlaySeq) return true;
     resetTrackWeights(clip, 1);
     current = token;

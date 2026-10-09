@@ -4,7 +4,9 @@ export type CutsceneVec3 = { x: number; y: number; z: number };
 
 export type TimelineEvent = {
   at: number;
-  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'light' | 'end' | 'mesh' | 'objective' | 'avatar' | 'carry';
+  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'light' | 'end' | 'mesh' | 'objective' | 'avatar' | 'carry' | 'fade';
+  /** Fade black amount. 0 is clear, 1 is black. */
+  to?: number;
   position?: CutsceneVec3;
   lookAt?: CutsceneVec3;
   title?: string;
@@ -30,6 +32,11 @@ export type CutsceneTimeline = {
   name?: string;
   duration?: number;
   notes?: string;
+  /**
+   * When the scene ends, put the sidearm or flashlight back if they were out
+   * when it started. Omit the field to keep that. Set false to leave the hands empty.
+   */
+  reequip?: boolean;
   events: TimelineEvent[];
 };
 
@@ -42,6 +49,7 @@ export type CutsceneHooks = {
   onObjective?: (title?: string, text?: string) => void;
   onAvatar?: (assetId: string) => void;
   onCarry?: (id: string, name: string, note?: string) => void;
+  onFade?: (to: number, seconds: number) => void;
   audioEnabled: () => boolean;
 };
 
@@ -74,6 +82,7 @@ const parseTimeline = (raw: unknown, fallbackId: string): CutsceneTimeline | nul
     name: data.name,
     notes: data.notes,
     duration: Number(data.duration ?? lastAt),
+    reequip: data.reequip !== false,
     events,
   };
 };
@@ -184,6 +193,10 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
   }
   if (event.type === 'carry') {
     cutscene.hooks.onCarry?.(event.target ?? event.assetId ?? 'item', event.title ?? 'Item', event.text);
+    return;
+  }
+  if (event.type === 'fade') {
+    cutscene.hooks.onFade?.(event.to ?? 1, event.duration ?? 0.8);
     return;
   }
   if (event.type === 'line') {

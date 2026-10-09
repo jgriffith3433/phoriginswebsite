@@ -1,8 +1,8 @@
 {
   "id": "apex-window",
   "name": "The Glass",
-  "duration": 43,
-  "notes": "Pierce at the office north window after the board has left. Standing idle; do not sit. The monologue ends on the basement line. The Voss call is the next beat, then the terminal alarm.",
+  "duration": 45,
+  "notes": "Pierce at the office north window after the board has left. Standing idle; do not sit. The monologue ends on the basement line. Fade up from black, then fade out on the last line. The Voss call is the next beat, then the terminal alarm.",
   "events": [
     {
       "at": 0,
@@ -30,6 +30,12 @@
       "bus": "music",
       "loop": true,
       "volume": 0.2
+    },
+    {
+      "at": 0.2,
+      "type": "fade",
+      "to": 0,
+      "duration": 1.6
     },
     {
       "at": 1.2,
@@ -110,7 +116,13 @@
       "volume": 0.9
     },
     {
-      "at": 43,
+      "at": 40.8,
+      "type": "fade",
+      "to": 1,
+      "duration": 2.4
+    },
+    {
+      "at": 45,
       "type": "end"
     }
   ]

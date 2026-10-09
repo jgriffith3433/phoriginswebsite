@@ -2,7 +2,7 @@
   "id": "b3-basement",
   "name": "B3",
   "theme": "B3 Basement",
-  "ambient": 0.95,
+  "ambient": 0.05,
   "assets": [
     {
       "id": "floor-lift",
@@ -4926,6 +4926,852 @@
       ]
     },
     {
+      "id": "b3-crate-hall-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Crate",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 42.15,
+        "y": 0.36,
+        "z": 26.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.18,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.72,
+        "y": 0.72,
+        "z": 0.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-hall-a2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Crate Stack",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 42.18,
+        "y": 1.05,
+        "z": 26.22
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.48,
+        "y": 0.48,
+        "z": 0.46
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-hall-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Crate B",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 42.25,
+        "y": 0.34,
+        "z": 33.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.25,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.82,
+        "y": 0.68,
+        "z": 0.64
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-drum-hall",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Hall Drum",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 45.55,
+        "y": 0.52,
+        "z": 24.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.3,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.58,
+        "y": 1.05,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-puddle-hall",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Pipe Puddle",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 42.2,
+        "y": 0.012,
+        "z": 30.3
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.35,
+        "y": 0.02,
+        "z": 0.9
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-puddle-hall-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Drum Puddle",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 45.5,
+        "y": 0.012,
+        "z": 24.85
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.95,
+        "y": 0.02,
+        "z": 0.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hazard-hall",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Caution",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 44.1,
+        "y": 0.012,
+        "z": 28.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.8,
+        "y": 0.018,
+        "z": 0.28
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-sign-drip",
+      "assetId": "structure-wall",
+      "kind": "texture",
+      "name": "LIVE DRIPS",
+      "position": {
+        "x": 46.28,
+        "y": 2.15,
+        "z": 24.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.45,
+        "y": 0.36,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-drum-chem-a",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Chem Drum A",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 19.6,
+        "y": 0.52,
+        "z": 28.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.2,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.58,
+        "y": 1.05,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-drum-chem-b",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Chem Drum B",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 20.35,
+        "y": 0.52,
+        "z": 29.55
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.1,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.58,
+        "y": 1.05,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-puddle-chem",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem Puddle",
+      "materialId": "mat-b3-puddle",
+      "position": {
+        "x": 20,
+        "y": 0.012,
+        "z": 29.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.1,
+        "y": 0.02,
+        "z": 0.85
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-cell",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Crate",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 21.2,
+        "y": 0.4,
+        "z": 42.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.15,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.9,
+        "y": 0.8,
+        "z": 0.72
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-drum-decon",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Decon Drum",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 3.2,
+        "y": 0.52,
+        "z": 24.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.6,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.58,
+        "y": 1.05,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-utility",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Utility Crate",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 18.5,
+        "y": 0.38,
+        "z": 57.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.35,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.86,
+        "y": 0.76,
+        "z": 0.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-vat",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Vat Crate",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 14.8,
+        "y": 0.42,
+        "z": 43.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.2,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.95,
+        "y": 0.84,
+        "z": 0.72
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-console-chem-a",
+      "assetId": "asset-lab-console",
+      "kind": "model",
+      "name": "Chem A Console",
+      "position": {
+        "x": 21.4,
+        "y": 0,
+        "z": 28.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-console-chem-b",
+      "assetId": "asset-lab-console",
+      "kind": "model",
+      "name": "Chem B Console",
+      "position": {
+        "x": 32.6,
+        "y": 0,
+        "z": 28.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-console-decon",
+      "assetId": "asset-lab-console",
+      "kind": "model",
+      "name": "Decon Console",
+      "position": {
+        "x": 4.6,
+        "y": 0,
+        "z": 23.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-console-cell",
+      "assetId": "asset-lab-console",
+      "kind": "model",
+      "name": "Containment Console",
+      "position": {
+        "x": 22.4,
+        "y": 0,
+        "z": 45.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-console-transform",
+      "assetId": "asset-lab-console",
+      "kind": "model",
+      "name": "Transform Console",
+      "position": {
+        "x": 58.2,
+        "y": 0,
+        "z": 31.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-transform",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Crate",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 51.6,
+        "y": 0.4,
+        "z": 36.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.9,
+        "y": 0.8,
+        "z": 0.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-transform-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Crate B",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 51.67756271362305,
+        "y": 1.0486061573028564,
+        "z": 36.351497650146484
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.1500000100748582,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.5499999843711945,
+        "y": 0.5,
+        "z": 0.500000002270145
+      },
+      "components": [
+        "Transform"
+      ],
+      "x": 51.67756271362305,
+      "y": 1.0486061573028564,
+      "z": 36.351497650146484
+    },
+    {
+      "id": "b3-drum-service",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Service Drum",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 42.5,
+        "y": 0.52,
+        "z": 49.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.2,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.58,
+        "y": 1.05,
+        "z": 0.58
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-crate-contain",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Crate",
+      "materialId": "mat-b3-rust",
+      "position": {
+        "x": 34.2,
+        "y": 0.42,
+        "z": 48.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": -0.3,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.88,
+        "y": 0.78,
+        "z": 0.7
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-pickup-ammo-hall",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall Ammo",
+      "position": {
+        "x": 43.45,
+        "y": 0,
+        "z": 27.7
+      },
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "ammo",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-pickup-ammo-chem-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem A Ammo",
+      "position": {
+        "x": 23.2,
+        "y": 0,
+        "z": 29.15
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "ammo",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-pickup-ammo-chem-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Chem B Ammo",
+      "position": {
+        "x": 34.4,
+        "y": 0,
+        "z": 29.15
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "ammo",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-pickup-ammo-cell",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Containment Ammo",
+      "position": {
+        "x": 24.2,
+        "y": 0,
+        "z": 45.9
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "ammo",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-pickup-ammo-transform",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Ammo",
+      "position": {
+        "x": 56.4,
+        "y": 0,
+        "z": 32.5
+      },
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "ammo",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-pickup-med-decon",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Decon Medkit",
+      "position": {
+        "x": 6.4,
+        "y": 0,
+        "z": 24.05
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "medkit",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-pickup-med-control",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Control Medkit",
+      "position": {
+        "x": 6.2,
+        "y": 0,
+        "z": 47.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "medkit",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-pickup-med-service",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Service Medkit",
+      "position": {
+        "x": 44.3,
+        "y": 0,
+        "z": 48.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "medkit",
+        "amount": 1
+      }
+    },
+    {
+      "id": "b3-decal-hazard-hallb",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Corridor Caution",
+      "materialId": "mat-b3-hazard",
+      "position": {
+        "x": 24.5,
+        "y": 0.012,
+        "z": 35.85
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.2,
+        "y": 0.018,
+        "z": 0.32
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
       "id": "light-h1-a",
       "assetId": "asset-lantern-light",
       "kind": "light",
@@ -4953,8 +5799,8 @@
         0.82,
         1
       ],
-      "intensity": 1.15,
-      "range": 11
+      "intensity": 0.39,
+      "range": 16.5
     },
     {
       "id": "b3-decal-light-h1-a",
@@ -5009,8 +5855,8 @@
         0.82,
         1
       ],
-      "intensity": 1.05,
-      "range": 11
+      "intensity": 0.36,
+      "range": 16.5
     },
     {
       "id": "b3-decal-light-h1-b",
@@ -5065,8 +5911,8 @@
         0.82,
         1
       ],
-      "intensity": 0.95,
-      "range": 12
+      "intensity": 0.32,
+      "range": 18
     },
     {
       "id": "b3-decal-light-h2-a",
@@ -5121,8 +5967,8 @@
         0.82,
         1
       ],
-      "intensity": 0.9,
-      "range": 12
+      "intensity": 0.31,
+      "range": 18
     },
     {
       "id": "b3-decal-light-h2-b",
@@ -5177,8 +6023,8 @@
         0.82,
         1
       ],
-      "intensity": 0.85,
-      "range": 10
+      "intensity": 0.29,
+      "range": 15
     },
     {
       "id": "b3-decal-light-junction",
@@ -5233,8 +6079,8 @@
         1,
         0.42
       ],
-      "intensity": 2.2,
-      "range": 10
+      "intensity": 1.06,
+      "range": 15
     },
     {
       "id": "b3-decal-light-vat",
@@ -5289,8 +6135,8 @@
         0.82,
         1
       ],
-      "intensity": 0.55,
-      "range": 8
+      "intensity": 0.19,
+      "range": 12
     },
     {
       "id": "b3-decal-light-lab-n",
@@ -5345,8 +6191,8 @@
         0.82,
         1
       ],
-      "intensity": 0.45,
-      "range": 8
+      "intensity": 0.15,
+      "range": 12
     },
     {
       "id": "b3-decal-light-lab-s",
@@ -5401,8 +6247,8 @@
         1,
         0.42
       ],
-      "intensity": 2.8,
-      "range": 6
+      "intensity": 1.34,
+      "range": 9
     },
     {
       "id": "b3-decal-light-cell",
@@ -5457,8 +6303,8 @@
         1,
         0.42
       ],
-      "intensity": 1.15,
-      "range": 8
+      "intensity": 0.55,
+      "range": 12
     },
     {
       "id": "b3-decal-light-cell-glass",
@@ -5513,8 +6359,8 @@
         0.82,
         1
       ],
-      "intensity": 0.4,
-      "range": 8
+      "intensity": 0.19,
+      "range": 12
     },
     {
       "id": "b3-decal-light-cell-deep",
@@ -5569,8 +6415,8 @@
         0.82,
         1
       ],
-      "intensity": 0.7,
-      "range": 8
+      "intensity": 0.24,
+      "range": 12
     },
     {
       "id": "b3-decal-light-decon",
@@ -5625,8 +6471,8 @@
         0.62,
         0.28
       ],
-      "intensity": 0.55,
-      "range": 7
+      "intensity": 0.19,
+      "range": 10.5
     },
     {
       "id": "b3-decal-light-chem-a",
@@ -5681,8 +6527,8 @@
         0.62,
         0.28
       ],
-      "intensity": 0.5,
-      "range": 7
+      "intensity": 0.17,
+      "range": 10.5
     },
     {
       "id": "b3-decal-light-chem-b",
@@ -5737,8 +6583,8 @@
         0.82,
         1
       ],
-      "intensity": 0.85,
-      "range": 9
+      "intensity": 0.29,
+      "range": 13.5
     },
     {
       "id": "b3-decal-light-control",
@@ -5793,8 +6639,8 @@
         0.82,
         1
       ],
-      "intensity": 0.6,
-      "range": 9
+      "intensity": 0.2,
+      "range": 13.5
     },
     {
       "id": "b3-decal-light-service",
@@ -5849,8 +6695,8 @@
         0.82,
         1
       ],
-      "intensity": 0.7,
-      "range": 10
+      "intensity": 0.24,
+      "range": 15
     },
     {
       "id": "b3-decal-light-corridor-a",
@@ -5905,8 +6751,8 @@
         0.82,
         1
       ],
-      "intensity": 0.65,
-      "range": 10
+      "intensity": 0.22,
+      "range": 15
     },
     {
       "id": "b3-decal-light-corridor-b",
@@ -5961,8 +6807,8 @@
         0.82,
         1
       ],
-      "intensity": 0.6,
-      "range": 10
+      "intensity": 0.2,
+      "range": 15
     },
     {
       "id": "b3-decal-light-corridor-c",
@@ -6017,8 +6863,8 @@
         0.45,
         1
       ],
-      "intensity": 0.85,
-      "range": 10
+      "intensity": 0.29,
+      "range": 15
     },
     {
       "id": "b3-decal-light-transform",
@@ -6073,8 +6919,8 @@
         0.82,
         1
       ],
-      "intensity": 0.55,
-      "range": 9
+      "intensity": 0.19,
+      "range": 13.5
     },
     {
       "id": "b3-decal-light-transform-b",
@@ -6129,8 +6975,8 @@
         0.62,
         0.28
       ],
-      "intensity": 0.7,
-      "range": 8
+      "intensity": 0.24,
+      "range": 12
     },
     {
       "id": "b3-decal-light-utility",
@@ -6185,8 +7031,8 @@
         0.9,
         0.95
       ],
-      "intensity": 0.4,
-      "range": 6
+      "intensity": 0.19,
+      "range": 9
     },
     {
       "id": "b3-decal-light-lift",

@@ -21,6 +21,7 @@ export type PhoneView = {
   panel: boolean;
   focused: boolean;
   raised: boolean;
+  screen: boolean;
   flashlight: boolean;
   ringing: boolean;
   badge: string;
@@ -43,8 +44,14 @@ export type Phone = {
   attachTo: (avatar: PlayerAvatar | null) => void;
   isRaised: () => boolean;
   setRaised: (raised: boolean) => void;
+  isScreenOpen: () => boolean;
+  setScreen: (open: boolean) => void;
   flashlightOn: () => boolean;
+  /** 0–1. When the beam is on and this is high, intensity dips for a few frames. The spot stays enabled. */
+  setFear: (amount: number) => void;
   setFlashlight: (on: boolean) => void;
+  /** While set, the beam points at this world point instead of along the camera. */
+  aimBeam: (at: { x: number; y: number; z: number } | null) => void;
   locksBody: () => boolean;
   wantsCallCamera: () => boolean;
   ring: (id: string) => void;
@@ -121,13 +128,13 @@ export const createPhone = (
     'phoneFlash',
     new BABYLON.Vector3(0, 0.09, 0),
     new BABYLON.Vector3(0, 1, 0),
-    0.85,
-    4,
+    0.5,
+    8,
     scene,
   );
   spot.diffuse = new BABYLON.Color3(1, 0.96, 0.88);
-  spot.specular = new BABYLON.Color3(0.45, 0.4, 0.3);
-  spot.range = 18;
+  spot.specular = new BABYLON.Color3(0.28, 0.24, 0.18);
+  spot.range = 14;
   spot.intensity = 0;
   spot.falloffType = BABYLON.Light.FALLOFF_STANDARD;
   // Stay enabled at intensity 0 while the beam is off. Disabling it changes which
@@ -135,11 +142,28 @@ export const createPhone = (
   // with a uniform buffer that is too small (the skybox-only flash).
   spot.setEnabled(true);
   let beamLive = false;
+  let beamFear = 0;
+  let beamStutter = 0;
 
   const syncBeamSlot = (beam: boolean) => {
     if (beam === beamLive) return;
     beamLive = beam;
-    spot.intensity = beam ? 55 : 0;
+    spot.intensity = beam ? 30 : 0;
+  };
+
+  const applyBeam = (delta: number) => {
+    if (!beamLive) {
+      spot.intensity = 0;
+      return;
+    }
+    if (beamFear > 0.58) {
+      beamStutter -= delta;
+      if (beamStutter <= 0 && Math.random() < 0.45) beamStutter = 0.05 + Math.random() * 0.07;
+      spot.intensity = beamStutter > 0 ? 9 : 30;
+      return;
+    }
+    beamStutter = 0;
+    spot.intensity = 30;
   };
 
   const meshes = [body, screen, led];
@@ -227,11 +251,33 @@ export const createPhone = (
     // World direction, not the attach quaternion. Decompose drops the bone's mirrored
     // Y and aims a parented spot back into the camera.
     spot.position.copyFrom(bonePos).addInPlace(finger.scale(FINGER_REACH + 0.05));
-    spot.direction.copyFrom(finger);
+    const look = scene.activeCamera?.getDirection(BABYLON.Vector3.Forward());
+    if (flashlight && mode === 'idle' && beamAim) {
+      beamAim.subtractToRef(spot.position, aimScratch);
+      if (aimScratch.lengthSquared() > 1e-4) {
+        aimScratch.normalize();
+        spot.direction.copyFrom(aimScratch);
+        attach.position.y += 0.08;
+        spot.position.y += 0.08;
+        BABYLON.Vector3.CrossToRef(aimScratch, axisZ, sideAxis);
+        if (sideAxis.lengthSquared() < 1e-5) BABYLON.Vector3.CrossToRef(aimScratch, axisX, sideAxis);
+        sideAxis.normalize();
+        BABYLON.Vector3.CrossToRef(sideAxis, aimScratch, twistAxis);
+        twistAxis.normalize();
+        BABYLON.Quaternion.RotationQuaternionFromAxisToRef(sideAxis, aimScratch, twistAxis, attach.rotationQuaternion);
+      }
+    } else if (look && flashlight && mode === 'idle') spot.direction.copyFrom(look);
+    else spot.direction.copyFrom(finger);
+    applyBeam(scene.getEngine().getDeltaTime() / 1000);
   };
   scene.onBeforeRenderObservable.add(poseHand);
   let raised = false;
+  let uiOpen = false;
   let flashlight = false;
+  let beamAim: BABYLON.Vector3 | null = null;
+  const aimScratch = new BABYLON.Vector3();
+  const sideAxis = new BABYLON.Vector3();
+  const twistAxis = new BABYLON.Vector3();
   let mode: 'idle' | 'incoming' | 'active' | 'ended' = 'idle';
   let script: CallScript | null = null;
   let scriptId = '';
@@ -280,6 +326,7 @@ export const createPhone = (
     ledMat.emissiveColor = flashlight && show
       ? new BABYLON.Color3(1, 0.92, 0.65)
       : new BABYLON.Color3(0, 0, 0);
+    syncBeamSlot(flashlight && show);
   };
 
   const chirp = (frequency: number, duration: number, type: OscillatorType, volume: number) => {
@@ -365,16 +412,43 @@ export const createPhone = (
     options.onFinished();
   };
 
+  const openScreen = () => {
+    uiOpen = true;
+    for (const message of inbox) message.unread = false;
+  };
+
+  const setScreen = (open: boolean) => {
+    if (mode !== 'idle') return;
+    if (open) {
+      openScreen();
+      if (!raised) {
+        raised = true;
+        syncMesh();
+        options.onHand(true);
+        return;
+      }
+      syncMesh();
+      return;
+    }
+    uiOpen = false;
+    syncMesh();
+  };
+
   const setRaised = (next: boolean) => {
     if (mode !== 'idle') return;
-    if (raised === next) return;
-    raised = next;
-    if (!raised) flashlight = false;
-    syncMesh();
-    if (raised) {
-      for (const message of inbox) message.unread = false;
+    if (!next) {
+      const wasOut = raised;
+      raised = false;
+      uiOpen = false;
+      flashlight = false;
+      syncMesh();
+      if (wasOut) options.onHand(false);
+      return;
     }
-    options.onHand(raised);
+    if (raised) return;
+    raised = true;
+    syncMesh();
+    options.onHand(true);
   };
 
   return {
@@ -395,12 +469,25 @@ export const createPhone = (
     },
     isRaised: () => raised,
     setRaised,
+    isScreenOpen: () => uiOpen && mode === 'idle',
+    setScreen,
     flashlightOn: () => flashlight,
+    setFear: (amount: number) => {
+      beamFear = Math.max(0, Math.min(1, amount));
+    },
     setFlashlight: (on: boolean) => {
       if (!raised || mode !== 'idle') return;
       flashlight = on;
       if (on) chirp(210, 0.04, 'square', 0.03);
       syncMesh();
+    },
+    aimBeam: (at: { x: number; y: number; z: number } | null) => {
+      if (!at) {
+        beamAim = null;
+        return;
+      }
+      if (!beamAim) beamAim = new BABYLON.Vector3();
+      beamAim.set(at.x, at.y, at.z);
     },
     locksBody: () => mode === 'incoming' || mode === 'active' || mode === 'ended',
     wantsCallCamera: () => mode === 'active' || mode === 'ended',
@@ -415,6 +502,7 @@ export const createPhone = (
       elapsed = 0;
       mode = 'incoming';
       raised = false;
+      uiOpen = false;
       flashlight = false;
       nextRing = 0.15;
       syncMesh();
@@ -446,7 +534,7 @@ export const createPhone = (
       if (!text) return;
       if (inbox.some((message) => message.id === id)) return;
       const from = contactOf(text.contact).name;
-      inbox.unshift({ id, from, text: text.text, unread: !(raised && mode === 'idle') });
+      inbox.unshift({ id, from, text: text.text, unread: !(uiOpen && mode === 'idle') });
       toast = `${from}  ·  ${text.text}`;
       toastLeft = 4.2;
       chirp(740, 0.09, 'sine', 0.05);
@@ -457,6 +545,7 @@ export const createPhone = (
       script = null;
       scriptId = '';
       raised = false;
+      uiOpen = false;
       flashlight = false;
       lineText = '';
       toast = '';
@@ -500,11 +589,12 @@ export const createPhone = (
       const who = script ? contactOf(script.contact) : null;
       const talking = speakerId ? contactOf(speakerId) : null;
       const unread = inbox.filter((message) => message.unread).length;
-      const panel = mode !== 'idle' || raised;
+      const panel = mode !== 'idle' || uiOpen;
       return {
         panel,
         focused: mode === 'active' || mode === 'ended',
         raised,
+        screen: uiOpen && mode === 'idle',
         flashlight,
         ringing: mode === 'incoming',
         badge: unread > 0 ? String(unread) : '',
@@ -516,14 +606,14 @@ export const createPhone = (
               ? 'Call ended'
               : 'Phone',
         contact: who?.name ?? '',
-        detail: who?.detail ?? (raised && mode === 'idle' ? 'G turns the light' : ''),
+        detail: who?.detail ?? (uiOpen && mode === 'idle' ? (flashlight ? 'F hides the screen' : 'G turns the light') : ''),
         speaker: talking?.name ?? '',
         line: lineText,
         clock: mode === 'active' || mode === 'ended' ? clockOf(elapsed) : '',
         showAnswer: mode === 'incoming',
         showEnd: mode === 'active',
-        showFlash: raised && mode === 'idle',
-        showMessages: raised && mode === 'idle',
+        showFlash: uiOpen && mode === 'idle',
+        showMessages: uiOpen && mode === 'idle',
         messages: inbox.map((message) => ({ ...message })),
         toast,
       };

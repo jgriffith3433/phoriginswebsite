@@ -13,7 +13,6 @@ export type ThirdPersonCameraConfig = {
   maxPitch: number;
   mouseSensitivity: number;
   stickSensitivity: number;
-  zoomSensitivity: number;
   collisionRadius: number;
   followStiffness: number;
   lookAtStiffness: number;
@@ -29,11 +28,13 @@ export type ThirdPersonCameraConfig = {
   shoulderOffset: number;
   shoulderStiffness: number;
   drawnDistanceDelta: number;
+  /** Former mouse-wheel close stop. Used while the pistol or phone light is out. */
+  equippedDistance: number;
 };
 
 export const DEFAULT_CAMERA_CONFIG: ThirdPersonCameraConfig = {
   distance: 5.6,
-  minDistance: 1.35,
+  minDistance: 1.05,
   maxDistance: 11,
   height: 0.18,
   pivotHeight: 1.52,
@@ -41,7 +42,6 @@ export const DEFAULT_CAMERA_CONFIG: ThirdPersonCameraConfig = {
   maxPitch: 1.02,
   mouseSensitivity: 0.00205,
   stickSensitivity: 2.55,
-  zoomSensitivity: 0.55,
   collisionRadius: 0.34,
   followStiffness: 18,
   lookAtStiffness: 24,
@@ -53,9 +53,10 @@ export const DEFAULT_CAMERA_CONFIG: ThirdPersonCameraConfig = {
   fov: 0.9,
   minZ: 0.12,
   maxZ: 400,
-  shoulderOffset: 1.28,
+  shoulderOffset: 0.55,
   shoulderStiffness: 8.2,
-  drawnDistanceDelta: -0.9,
+  drawnDistanceDelta: -0.4,
+  equippedDistance: 1.55,
 };
 
 const expDamp = (current: number, target: number, stiffness: number, dt: number) =>
@@ -96,6 +97,7 @@ export const createThirdPersonCamera = (
   let recenterIdle = 0;
   let shoulderTarget = 0;
   let shoulderMix = 0;
+  let toolClose = false;
 
   const pivot = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
   const lookAt = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
@@ -124,10 +126,6 @@ export const createThirdPersonCamera = (
     lookStickY = clampValue(y, -1, 1);
   };
 
-  const setZoom = (wheelDelta: number) => {
-    desiredDistance = clampValue(desiredDistance + wheelDelta * cfg.zoomSensitivity, cfg.minDistance + 0.8, cfg.maxDistance);
-  };
-
   const reset = (nextYaw = 0, nextPitch = 0.1) => {
     yaw = nextYaw;
     pitch = clampValue(nextPitch, cfg.minPitch, cfg.maxPitch);
@@ -139,6 +137,7 @@ export const createThirdPersonCamera = (
     recenterIdle = 0;
     shoulderTarget = 0;
     shoulderMix = 0;
+    toolClose = false;
     callTarget = 0;
     callMix = 0;
     pivot.set(0, cfg.pivotHeight, 0);
@@ -242,6 +241,7 @@ export const createThirdPersonCamera = (
     }
 
     shoulderMix = expDamp(shoulderMix, shoulderTarget, cfg.shoulderStiffness, clampedDt);
+    desiredDistance = toolClose ? cfg.equippedDistance : cfg.distance;
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
     const shoulder = cfg.shoulderOffset * shoulderMix;
@@ -334,7 +334,6 @@ export const createThirdPersonCamera = (
     config: cfg,
     addLook,
     setLookStick,
-    setZoom,
     reset,
     update,
     isLooking,
@@ -342,6 +341,9 @@ export const createThirdPersonCamera = (
     clearCinematic,
     setOverShoulder: (enabled: boolean) => {
       shoulderTarget = enabled ? 1 : 0;
+    },
+    setToolClose: (enabled: boolean) => {
+      toolClose = enabled;
     },
     setCallFrame: (enabled: boolean) => {
       callTarget = enabled ? 1 : 0;

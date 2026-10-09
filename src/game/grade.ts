@@ -2,6 +2,8 @@ import * as BABYLON from '@babylonjs/core';
 
 export type SceneGrade = {
   apply: (themeName: string) => void;
+  /** 0–1. Basement only: tighter red vignette and a darker exposure while the creature is close. */
+  setFear: (amount: number) => void;
   dispose: () => void;
 };
 
@@ -45,22 +47,39 @@ export const createSceneGrade = (
     ssao = null;
   }
 
+  let theme = '';
+  let baseExposure = 1;
+  let baseVignette = 2.2;
+
   const apply = (themeName: string) => {
+    theme = themeName;
     const basement = themeName === 'B3 Basement';
     const apex = themeName === 'Apex Peak';
-    image.exposure = basement ? 1.08 : apex ? 1.12 : 1.05;
-    image.contrast = basement ? 1.18 : 1.12;
-    pipeline.bloomWeight = basement ? 0.22 : 0.1;
-    pipeline.bloomThreshold = basement ? 0.62 : 0.84;
-    image.vignetteWeight = basement ? 3.4 : 2.2;
+    image.exposure = basement ? 0.78 : apex ? 1.12 : 1.05;
+    image.contrast = basement ? 1.06 : 1.12;
+    pipeline.bloomWeight = basement ? 0.28 : 0.1;
+    pipeline.bloomThreshold = basement ? 0.48 : 0.84;
+    image.vignetteWeight = basement ? 4.1 : 2.2;
+    image.vignetteColor.set(0, 0, 0, 0);
+    baseExposure = image.exposure;
+    baseVignette = image.vignetteWeight;
     if (ssao) {
       ssao.totalStrength = basement ? 0.95 : 0.7;
       ssao.radius = basement ? 1.6 : 1.25;
     }
   };
 
+  const setFear = (amount: number) => {
+    if (theme !== 'B3 Basement') return;
+    const t = Math.max(0, Math.min(1, amount));
+    image.exposure = baseExposure * (1 - t * 0.34);
+    image.vignetteWeight = baseVignette + t * 3.6;
+    image.vignetteColor.set(0.62 * t, 0.02 * t, 0.03 * t, 0);
+  };
+
   return {
     apply,
+    setFear,
     dispose: () => {
       pipeline.dispose();
       ssao?.dispose();

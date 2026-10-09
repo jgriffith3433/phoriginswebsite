@@ -109,6 +109,10 @@
         {
           "name": "SitTalk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        },
+        {
+          "name": "RebornIdle",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Reborn Idle Variation.fbx"
         }
       ]
     },
@@ -169,6 +173,14 @@
         {
           "name": "PistolAim",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Pistol Take Out.fbx"
+        },
+        {
+          "name": "WalkBack",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Walk Backwards.fbx"
+        },
+        {
+          "name": "FallingDown",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Falling Down.fbx"
         }
       ]
     },
@@ -339,7 +351,7 @@
     },
     {
       "id": "mat-hall-wall",
-      "name": "Hall wall \u2014 acoustic felt",
+      "name": "Hall wall — acoustic felt",
       "path": "/assets/textures/office-wall.webp",
       "type": "material",
       "tags": [
@@ -351,7 +363,7 @@
     },
     {
       "id": "mat-office-wall",
-      "name": "Office wall \u2014 plaster",
+      "name": "Office wall — plaster",
       "path": "/assets/textures/office-plaster.webp",
       "type": "material",
       "tags": [
@@ -363,7 +375,7 @@
     },
     {
       "id": "mat-board-wall",
-      "name": "Boardroom wall \u2014 plaster",
+      "name": "Boardroom wall — plaster",
       "path": "/assets/textures/office-plaster.webp",
       "type": "material",
       "tags": [
@@ -375,7 +387,7 @@
     },
     {
       "id": "mat-hall-floor",
-      "name": "Hall floor \u2014 grey satin",
+      "name": "Hall floor — grey satin",
       "path": "/assets/textures/office-floor.webp",
       "type": "material",
       "tags": [
@@ -389,7 +401,7 @@
     },
     {
       "id": "mat-board-floor",
-      "name": "Office floor \u2014 grey satin",
+      "name": "Office floor — grey satin",
       "path": "/assets/textures/office-floor.webp",
       "type": "material",
       "tags": [
@@ -402,7 +414,7 @@
     },
     {
       "id": "mat-lift-floor",
-      "name": "Elevator floor \u2014 diamond plate",
+      "name": "Elevator floor — diamond plate",
       "path": "/assets/textures/hall-floor.webp",
       "type": "material",
       "tags": [
@@ -505,6 +517,10 @@
         {
           "name": "Walk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Walking.fbx"
+        },
+        {
+          "name": "Attack",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Attack.fbx"
         }
       ]
     },

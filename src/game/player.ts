@@ -12,6 +12,9 @@ export const playerMeshY = (playerY: number) => playerY - PLAYER_MESH_Y_OFFSET;
 /** Delay after jump press before vertical velocity is applied. */
 export const JUMP_WINDUP = 0.1;
 
+/** Rounds the sidearm holds. An ammo box refills this. */
+export const CLIP_SIZE = 8;
+
 export const createPlayerState = (): PlayerState => ({
   x: 0,
   y: PLAYER_STAND_Y,
@@ -20,6 +23,7 @@ export const createPlayerState = (): PlayerState => ({
   grounded: true,
   jumpWindup: 0,
   weaponDrawn: false,
+  clip: 0,
 });
 
 /** Queue a hop. Animation should start on true; physics waits JUMP_WINDUP. */

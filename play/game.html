@@ -212,6 +212,35 @@
         height: 2px;
       }
 
+      .reload-hint,
+      .interact-hint {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 6;
+        pointer-events: none;
+        color: #f3efe6;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        font-weight: 700;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
+        background: rgba(8, 10, 14, 0.62);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        padding: 8px 14px;
+        white-space: nowrap;
+      }
+
+      .reload-hint {
+        top: calc(50% + 42px);
+      }
+
+      .interact-hint {
+        top: calc(50% + 86px);
+        color: #f0d48a;
+      }
+
       .hud {
         position: absolute;
         top: calc(var(--safe-top) + 16px);
@@ -389,8 +418,12 @@
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 8px;
+        min-width: 132px;
+        box-sizing: border-box;
+        touch-action: manipulation;
+        user-select: none;
       }
 
       .phone-hint kbd {
@@ -406,9 +439,15 @@
         line-height: 1.2;
       }
 
-      .phone-hint.raised {
+      .phone-hint.raised,
+      .phone-hint.lit {
         border-color: rgba(212, 180, 131, 0.7);
         color: var(--gold);
+      }
+
+      .phone-hint.drawn {
+        border-color: rgba(122, 240, 201, 0.55);
+        box-shadow: 0 0 0 1px rgba(122, 240, 201, 0.18);
       }
 
       .phone-hint.ringing {
@@ -595,14 +634,9 @@
 
       .inventory-hint {
         font-size: 10px;
-        min-width: 108px;
-        text-align: center;
+        text-align: left;
         pointer-events: auto;
         cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
       }
 
       .inventory-hint kbd {
@@ -851,6 +885,15 @@
         color: #23120d;
       }
 
+      #screenFade {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 8;
+      }
+
       .message {
         position: absolute;
         inset: 0;
@@ -858,19 +901,120 @@
         align-items: center;
         justify-content: center;
         background: rgba(3, 8, 14, 0.4);
-        z-index: 3;
+        z-index: 10;
       }
 
       .message.hidden {
         display: none;
       }
 
+      body:has(.message:not(.hidden)) .inventory-hud {
+        visibility: hidden;
+      }
+
+      .level-credits {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+        z-index: 0;
+        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+        mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+      }
+
+      .level-credits[hidden] {
+        display: none;
+      }
+
+      .credit-roll {
+        position: absolute;
+        top: 100%;
+        width: min(220px, max(108px, calc((100vw - min(100vw, 460px)) / 2 - 2rem)));
+        animation: creditCrawl 82s linear forwards;
+      }
+
+      .credit-roll-left {
+        left: max(12px, env(safe-area-inset-left, 0px));
+        margin-left: calc(2.2vw * var(--ui-scale, 1));
+        text-align: left;
+      }
+
+      .credit-roll-right {
+        right: max(12px, env(safe-area-inset-right, 0px));
+        margin-right: calc(2.2vw * var(--ui-scale, 1));
+        text-align: right;
+        animation-delay: 7s;
+      }
+
+      .credit-block {
+        margin: 0 0 calc(2.6em * var(--ui-scale, 1));
+      }
+
+      .credit-role {
+        margin: 0 0 0.4em;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: clamp(9px, calc(0.55rem * var(--ui-scale, 1) + 0.45vw), calc(13px * var(--ui-scale, 1)));
+        font-weight: 700;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: rgba(212, 180, 131, 0.82);
+      }
+
+      .credit-roll-left .credit-role {
+        padding-left: 0.28em;
+      }
+
+      .credit-name {
+        margin: 0.06em 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(14px, calc(0.7rem * var(--ui-scale, 1) + 1.15vw), calc(28px * var(--ui-scale, 1)));
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #f4f1ea;
+        line-height: 1.15;
+        text-shadow: 0 8px 28px rgba(0, 0, 0, 0.65);
+        overflow-wrap: break-word;
+      }
+
+      @keyframes creditCrawl {
+        from { transform: translateY(0); }
+        to { transform: translateY(calc(-100% - 100vh)); }
+      }
+
+      @media (max-width: 720px) {
+        .credit-roll {
+          width: 36vw;
+          max-width: none;
+        }
+
+        .credit-roll-left {
+          margin-left: 3vw;
+        }
+
+        .credit-roll-right {
+          margin-right: 3vw;
+        }
+
+        .credit-role {
+          font-size: clamp(8px, 2.4vw, 11px);
+          letter-spacing: 0.16em;
+        }
+
+        .credit-name {
+          font-size: clamp(13px, 3.5vw, 18px);
+          letter-spacing: 0.03em;
+        }
+      }
+
       .panel {
+        position: relative;
+        z-index: 1;
         max-width: 440px;
         padding: 28px 24px;
         border-radius: 24px;
         border: 1px solid var(--panel-border);
-        background: rgba(5, 10, 16, 0.8);
+        background: rgba(5, 10, 16, 1);
         text-align: center;
         box-shadow: 0 30px 80px rgba(0,0,0,0.45);
       }
@@ -992,6 +1136,10 @@
         transform: none;
       }
 
+      #loadModelBtn:disabled {
+        cursor: not-allowed;
+      }
+
       .secondary {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.12);
@@ -1042,6 +1190,15 @@
         font-size: 22px;
       }
 
+      body[data-device='mobile'] kbd {
+        display: none;
+      }
+
+      body[data-device='mobile'] .inventory-hud,
+      body[data-device='tablet'] .inventory-hud {
+        bottom: calc(var(--safe-bottom) + 236px);
+      }
+
       @media (orientation: landscape) and (max-height: 520px) {
         .hud {
           top: calc(var(--safe-top) + 8px);
@@ -1073,6 +1230,12 @@
           height: 68px;
           font-size: 18px;
         }
+
+        body[data-device='mobile'] .inventory-hud,
+        body[data-device='tablet'] .inventory-hud {
+          bottom: calc(var(--safe-bottom) + 148px);
+          gap: 4px;
+        }
       }
 
       @media (max-width: 600px) {
@@ -1100,7 +1263,7 @@
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" crossorigin src="./assets/index-CMq9vsud.js"></script>
+    <script type="module" crossorigin src="./assets/index-B1Hot4yu.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -1117,6 +1280,8 @@
       </div>
 
       <div id="crosshair" aria-hidden="true"></div>
+      <div id="reloadHint" class="reload-hint" hidden>Reload — press R</div>
+      <div id="interactHint" class="interact-hint" hidden>Ammo box — E</div>
       <div id="objectiveHud" class="objective-hud" aria-live="polite">
         <span class="objective-kicker">Objective</span>
         <span id="objectiveText" class="objective-text"></span>
@@ -1142,14 +1307,17 @@
       <div id="phoneToast" class="phone-toast" hidden></div>
 
       <div id="inventoryHud" class="inventory-hud" aria-live="polite">
+        <button type="button" id="sidearmHint" class="phone-hint" aria-label="Sidearm"><kbd>Q</kbd> Sidearm</button>
+        <button type="button" id="lightHint" class="phone-hint" aria-label="Flashlight"><kbd>G</kbd> Light</button>
+        <button type="button" id="medkitHint" class="phone-hint" aria-label="Medkit"><kbd>H</kbd> Medkit</button>
         <button type="button" id="phoneHint" class="phone-hint" aria-label="Phone"><kbd>F</kbd> Phone <span id="phoneBadge" class="phone-badge" hidden></span></button>
-        <button type="button" id="inventoryHint" class="inventory-hint" aria-label="Open inventory"><kbd>I</kbd> Inventory</button>
+        <button type="button" id="inventoryHint" class="inventory-hint phone-hint" aria-label="Open inventory"><kbd>I</kbd> Inventory</button>
         <div id="inventoryPanel" class="inventory-panel">
           <div class="inventory-panel-header">
             <span class="inventory-panel-title">Inventory</span>
             <button type="button" id="inventoryClose" class="inventory-close" aria-label="Close inventory">›</button>
           </div>
-          <button type="button" id="weaponSlot" class="weapon-slot" aria-pressed="false">
+          <button type="button" id="weaponSlot" class="weapon-slot" aria-pressed="false" aria-label="Sidearm">
             <span class="inventory-label">Weapon</span>
             <strong id="weaponSlotName">Sidearm</strong>
             <span id="weaponSlotState" class="weapon-state">Holstered</span>
@@ -1208,7 +1376,9 @@
         </div>
       </div>
 
+      <div id="screenFade" aria-hidden="true"></div>
       <div class="message" id="messageBox">
+        <div class="level-credits" id="levelCredits" hidden></div>
         <div class="panel">
           <div class="eyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
@@ -1224,6 +1394,7 @@
 
           <div class="button-row">
             <button class="primary" id="startBtn" disabled aria-busy="true">Loading…</button>
+            <button class="secondary" id="newGameBtn" type="button" style="display:none">New Game</button>
             <button class="secondary" id="resetBtn">Reset</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
           </div>

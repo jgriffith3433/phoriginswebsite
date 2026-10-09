@@ -965,6 +965,32 @@
       }
     },
     {
+      "id": "office-pickup-ammo",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Office Ammo",
+      "x": 44.05,
+      "y": 0,
+      "z": 46.15,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "pickup": {
+        "item": "ammo",
+        "amount": 1
+      }
+    },
+    {
       "id": "lift-wall-w",
       "assetId": "structure-wall",
       "kind": "wall",

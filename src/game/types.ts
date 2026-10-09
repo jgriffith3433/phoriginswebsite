@@ -10,6 +10,8 @@ export type PlayerState = {
   jumpWindup: number;
   /** Pistol out of holster. Default holstered. */
   weaponDrawn: boolean;
+  /** Rounds currently in the sidearm. */
+  clip: number;
 };
 
 export type InventoryState = {

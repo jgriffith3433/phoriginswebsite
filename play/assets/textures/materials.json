@@ -303,20 +303,20 @@
       "albedo": "/assets/textures/hall-wall.webp",
       "tileMeters": 1.7,
       "diffuse": [
-        0.48,
-        0.5,
-        0.53
+        0.26,
+        0.28,
+        0.3
       ],
       "specular": [
-        0.22,
-        0.22,
-        0.24
+        0.16,
+        0.16,
+        0.18
       ],
-      "specularPower": 28,
+      "specularPower": 22,
       "emissive": [
-        0.015,
-        0.016,
-        0.018
+        0.002,
+        0.002,
+        0.003
       ],
       "tags": [
         "wall",
@@ -329,20 +329,20 @@
       "albedo": "/assets/textures/hall-floor-flat.webp",
       "tileMeters": 1.35,
       "diffuse": [
-        0.8,
-        0.82,
-        0.8
+        0.38,
+        0.4,
+        0.39
       ],
       "specular": [
-        0.55,
-        0.58,
-        0.56
+        0.62,
+        0.66,
+        0.64
       ],
-      "specularPower": 72,
+      "specularPower": 84,
       "emissive": [
-        0.012,
-        0.014,
-        0.012
+        0.001,
+        0.002,
+        0.001
       ],
       "tags": [
         "floor",
@@ -369,9 +369,9 @@
       ],
       "specularPower": 42,
       "emissive": [
-        0.02,
-        0.024,
-        0.028
+        0.004,
+        0.006,
+        0.008
       ],
       "tags": [
         "pipe",
@@ -398,9 +398,9 @@
       ],
       "specularPower": 16,
       "emissive": [
-        0.03,
-        0.012,
-        0.006
+        0.006,
+        0.002,
+        0.001
       ],
       "tags": [
         "wall",
@@ -427,9 +427,9 @@
       ],
       "specularPower": 56,
       "emissive": [
-        0.1,
-        0.28,
-        0.16
+        0.03,
+        0.09,
+        0.05
       ],
       "tags": [
         "glass",
@@ -456,9 +456,9 @@
       ],
       "specularPower": 10,
       "emissive": [
-        0.01,
-        0.01,
-        0.012
+        0.001,
+        0.001,
+        0.002
       ],
       "tags": [
         "ceiling",
@@ -485,9 +485,9 @@
       ],
       "specularPower": 18,
       "emissive": [
-        0.32,
-        0.18,
-        0.02
+        0.05,
+        0.028,
+        0.004
       ],
       "tags": [
         "floor",
@@ -545,9 +545,9 @@
       ],
       "specularPower": 32,
       "emissive": [
-        0.25,
-        0.7,
-        0.9
+        0.08,
+        0.28,
+        0.38
       ],
       "tags": [
         "light",

@@ -71,13 +71,13 @@ const themes: Record<SceneThemeName, SceneTheme> = {
     name: 'B3 Basement',
     skyTop: new BABYLON.Color3(0.015, 0.02, 0.018),
     skyBottom: new BABYLON.Color3(0.03, 0.035, 0.03),
-    fog: new BABYLON.Color3(0.04, 0.05, 0.045),
-    ground: new BABYLON.Color3(0.08, 0.08, 0.075),
-    wall: new BABYLON.Color3(0.14, 0.15, 0.14),
-    ambient: new BABYLON.Color3(0.12, 0.13, 0.12),
-    hemiIntensity: 0.36,
-    sunIntensity: 0.1,
-    fogDistance: 54,
+    fog: new BABYLON.Color3(0.012, 0.014, 0.013),
+    ground: new BABYLON.Color3(0.05, 0.05, 0.048),
+    wall: new BABYLON.Color3(0.08, 0.085, 0.08),
+    ambient: new BABYLON.Color3(0.02, 0.022, 0.02),
+    hemiIntensity: 0.08,
+    sunIntensity: 0.015,
+    fogDistance: 32,
   },
 };
 
@@ -90,7 +90,7 @@ export const applyTheme = (scene: BABYLON.Scene, themeName: string) => {
   scene.clearColor = new BABYLON.Color4(theme.skyBottom.r, theme.skyBottom.g, theme.skyBottom.b, 1);
   scene.fogColor = theme.fog;
   scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
-  scene.fogStart = 10;
+  scene.fogStart = theme.name === 'B3 Basement' ? 5 : 10;
   scene.fogEnd = theme.fogDistance;
   scene.ambientColor = theme.ambient;
   scene.metadata = { ...(scene.metadata ?? {}), themeName: theme.name };
@@ -116,6 +116,10 @@ export const applySceneLighting = (scene: BABYLON.Scene, data: { theme?: string;
   const fill = typeof data.ambient === 'number' && Number.isFinite(data.ambient) ? Math.max(0, data.ambient) : theme.hemiIntensity;
   const hemi = scene.getLightByName('hemi');
   if (hemi instanceof BABYLON.HemisphericLight) hemi.intensity = fill;
+  if (theme.name === 'B3 Basement') {
+    const sun = scene.getLightByName('sun');
+    if (sun instanceof BABYLON.DirectionalLight) sun.intensity = theme.sunIntensity;
+  }
 };
 
 // Note: the arena's walls/pillars/ground used to be generated procedurally

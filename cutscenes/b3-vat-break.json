@@ -1,170 +1,136 @@
 {
   "id": "b3-vat-break",
   "name": "Acid",
-  "duration": 14.2,
-  "notes": "Plays the moment the creature finishes running. The vat glass breaks. Acid hits Pierce. Avatar swaps to Ch44 at ~7.4s in main.ts. Then Level Complete. No search beat before this.",
+  "duration": 39.6,
+  "reequip": false,
+  "notes": "Pierce walks to the vat. The creature attacks the glass in place. Pierce backs away on WalkBack while the glass cracks, then it shatters at 14.4s, FallingDown plays, and the acid hits him. Ch44 at 18.6s plays RebornIdle. Level Complete follows the line.",
   "events": [
     {
-      "at": 0,
-      "type": "camera",
-      "position": { "x": 11.8, "y": 1.62, "z": 35.2 },
-      "lookAt": { "x": 7.4, "y": 1.2, "z": 38.0 }
+      "at": 4.2,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/creature/shriek.wav",
+      "bus": "sfx",
+      "volume": 0.42
     },
     {
-      "at": 0,
-      "type": "anim",
-      "actor": "pierce",
-      "clip": "idle",
-      "loop": true
-    },
-    {
-      "at": 0.3,
+      "at": 6.6,
       "type": "line",
-      "actor": "pierce",
       "speaker": "Pierce",
       "text": "It ran. The vat went with it.",
       "audio": "/assets/audio/cutscenes/b3-vat-break/01-pierce-it-ran.wav",
-      "anim": "idle",
       "duration": 3.2,
       "volume": 0.92
     },
     {
-      "at": 2.2,
-      "type": "light",
-      "on": false
-    },
-    {
-      "at": 2.45,
-      "type": "light",
-      "on": true
-    },
-    {
-      "at": 2.8,
-      "type": "light",
-      "on": false
-    },
-    {
-      "at": 3.1,
-      "type": "light",
-      "on": true
-    },
-    {
-      "at": 3.8,
-      "type": "camera",
-      "position": { "x": 10.4, "y": 1.85, "z": 39.8 },
-      "lookAt": { "x": 7.2, "y": 1.35, "z": 38.0 }
-    },
-    {
-      "at": 4.0,
+      "at": 7.4,
       "type": "hud",
       "title": "Containment",
-      "text": "Vat integrity failing"
+      "text": "The glass is cracking"
     },
     {
-      "at": 4.05,
+      "at": 11.2,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/creature/shriek.wav",
+      "bus": "sfx",
+      "volume": 0.58
+    },
+    {
+      "at": 14.4,
+      "type": "camera",
+      "position": { "x": 16.2, "y": 1.35, "z": 39.85 },
+      "lookAt": { "x": 13.6, "y": 0.72, "z": 38.2 }
+    },
+    {
+      "at": 14.4,
       "type": "mesh",
       "target": "vat-glass",
       "on": false
     },
     {
-      "at": 4.05,
+      "at": 14.4,
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-vat-break/vat-glass.wav",
+      "bus": "sfx",
+      "volume": 0.86
+    },
+    {
+      "at": 14.55,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/b3-vat-break/vat-splash.wav",
       "bus": "sfx",
       "volume": 0.78
     },
     {
-      "at": 4.25,
-      "type": "audio",
-      "clip": "/assets/audio/cutscenes/b3-vat-break/vat-splash.wav",
-      "bus": "sfx",
-      "volume": 0.68
-    },
-    {
-      "at": 4.2,
-      "type": "light",
-      "on": false
-    },
-    {
-      "at": 4.45,
-      "type": "light",
-      "on": true
-    },
-    {
-      "at": 4.7,
-      "type": "light",
-      "on": false
-    },
-    {
-      "at": 5.05,
-      "type": "light",
-      "on": true
-    },
-    {
-      "at": 5.4,
+      "at": 14.7,
       "type": "line",
-      "actor": "pierce",
       "speaker": "Pierce",
-      "text": "No—",
-      "audio": "/assets/audio/cutscenes/b3-vat-break/02-pierce-no.wav",
-      "anim": "idle",
-      "duration": 1.1,
-      "volume": 0.95
+      "text": "AAAAH— it's burning! Get it off me!",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.wav",
+      "duration": 2.9,
+      "volume": 1
     },
     {
-      "at": 6.4,
+      "at": 16.4,
       "type": "camera",
-      "position": { "x": 9.6, "y": 1.48, "z": 36.1 },
-      "lookAt": { "x": 8.6, "y": 1.35, "z": 37.2 }
+      "position": { "x": 15.35, "y": 0.95, "z": 40.15 },
+      "lookAt": { "x": 13.5, "y": 0.28, "z": 38.15 }
     },
     {
-      "at": 7.4,
+      "at": 18.6,
       "type": "avatar",
       "assetId": "asset-ch44-hero"
     },
     {
-      "at": 7.4,
+      "at": 18.6,
       "type": "carry",
       "target": "changed",
       "title": "Still thinking",
       "text": "The vat took the body. The voice stayed."
     },
     {
-      "at": 7.4,
+      "at": 18.6,
       "type": "hud",
       "title": "Metamorphosis",
       "text": "The acid writes him into something else"
     },
     {
-      "at": 7.4,
-      "type": "light",
-      "on": false
+      "at": 18.8,
+      "type": "camera",
+      "position": { "x": 11.2, "y": 1.42, "z": 40.55 },
+      "lookAt": { "x": 13.7, "y": 1.28, "z": 38.3 }
     },
     {
-      "at": 7.85,
-      "type": "light",
-      "on": true,
-      "intensity": 0.22
+      "at": 19.1,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "rebornidle",
+      "loop": true
     },
     {
-      "at": 9.2,
+      "at": 19.4,
       "type": "line",
       "actor": "pierce",
       "speaker": "Pierce",
-      "text": "…I can still think. That is not the same as still being me.",
-      "audio": "/assets/audio/cutscenes/b3-vat-break/03-pierce-still-think.wav",
-      "anim": "idle",
-      "duration": 4.0,
+      "text": "What happened to me? I can still hear myself. I can still think. But these are not my hands. That thing ran into the glass, and I am looking down, and it is me. I am still in here. And I am that now.",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/05-pierce-what-happened.wav",
+      "anim": "rebornidle",
+      "duration": 19.0,
       "volume": 0.92
     },
     {
-      "at": 13.3,
+      "at": 28.4,
+      "type": "camera",
+      "position": { "x": 15.5, "y": 1.5, "z": 39.75 },
+      "lookAt": { "x": 13.6, "y": 1.22, "z": 38.25 }
+    },
+    {
+      "at": 38.6,
       "type": "hud",
       "title": "Level Complete",
       "text": "B3 incident"
     },
     {
-      "at": 14.2,
+      "at": 39.6,
       "type": "end"
     }
   ]

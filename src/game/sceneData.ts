@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import type { InventoryItemType } from './types';
 import { applyGlassFlags, applyHologramLook, applyMaterialToMesh, isHologramAsset, parseUvScale, warmupMaterials } from './materials';
 import { getAssetLibrary, loadGlbByAssetId, resolveModelPath } from './modelLoader';
 import { findClip } from './playerAvatar';
@@ -50,6 +51,11 @@ export type SceneAssetInstance = {
   color?: [number, number, number];
   // Id of the parent scene asset. Transform fields are local to the parent.
   parentId?: string;
+  /** World pickup. The mesh stays until the player takes it and the stack has room. */
+  pickup?: {
+    item: InventoryItemType;
+    amount?: number;
+  };
 };
 
 export type SceneTrigger = {
@@ -183,6 +189,10 @@ export type SceneNodeMetadata = {
   materialId?: string;
   assetKind?: SceneAssetKind;
   uvScale?: [number, number];
+  pickup?: {
+    item: InventoryItemType;
+    amount: number;
+  };
 };
 
 const LIFT_GLYPH_FOR_ID: Record<string, string> = {
@@ -229,6 +239,7 @@ const B3_SIGN_COLOR: Record<string, string> = {
   'b3-sign-utility': '#ffbf86',
   'b3-sign-sealed': '#ff5a4a',
   'b3-sign-sector': '#d5dde6',
+  'b3-sign-drip': '#7ec8ff',
 };
 
 const createStencilSign = (
@@ -256,30 +267,63 @@ const createStencilSign = (
   texture.hasAlpha = false;
   const ctx = texture.getContext() as CanvasRenderingContext2D;
   const { width, height } = texture.getSize();
-  ctx.fillStyle = '#07090c';
+  ctx.fillStyle = '#10141a';
   ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+  ctx.lineWidth = 2;
+  for (let y = 6; y < height; y += 7) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
   const fill = B3_SIGN_COLOR[asset.id] ?? '#9ae8ff';
   ctx.fillStyle = fill;
-  ctx.fillRect(0, height - 18, width, 18);
-  ctx.fillRect(0, 0, 14, height);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const size = label.length > 16 ? 92 : label.length > 10 ? 118 : 148;
-  ctx.font = `700 ${size}px Consolas, "Courier New", monospace`;
+  ctx.fillRect(0, 0, 16, height);
+  ctx.fillRect(0, height - 8, width, 8);
+  ctx.fillStyle = '#3c4652';
+  for (const [x, y] of [[36, 32], [36, height - 32], [width - 36, 32], [width - 36, height - 32]] as const) {
+    ctx.beginPath();
+    ctx.arc(x, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a2028';
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#3c4652';
+  }
   ctx.save();
   ctx.translate(width, 0);
   ctx.scale(-1, 1);
-  ctx.fillText(label, width / 2, height / 2 - 6);
+  ctx.fillStyle = fill;
+  for (let i = 0; i < 3; i += 1) {
+    const x = 56 + i * 26;
+    ctx.beginPath();
+    ctx.moveTo(x, 46);
+    ctx.lineTo(x + 14, height / 2);
+    ctx.lineTo(x, height - 36);
+    ctx.lineTo(x - 8, height / 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.font = '600 26px Consolas, "Courier New", monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('SECTOR 4', 150, 42);
+  ctx.fillStyle = '#e7eef6';
+  ctx.textAlign = 'center';
+  const size = label.length > 18 ? 58 : label.length > 12 ? 78 : 104;
+  ctx.font = `700 ${size}px Consolas, "Courier New", monospace`;
+  ctx.fillText(label, width / 2 + 36, height / 2 + 16);
   ctx.restore();
   texture.update();
   const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
   material.diffuseTexture = texture;
   material.emissiveTexture = texture;
-  material.specularColor = BABYLON.Color3.Black();
-  material.disableLighting = true;
+  material.specularColor = new BABYLON.Color3(0.08, 0.08, 0.08);
   material.backFaceCulling = false;
-  material.diffuseColor = BABYLON.Color3.White();
-  material.emissiveColor = BABYLON.Color3.White();
+  material.diffuseColor = new BABYLON.Color3(0.22, 0.24, 0.26);
+  material.emissiveColor = new BABYLON.Color3(0.72, 0.74, 0.76);
   plane.material = material;
   plane.checkCollisions = false;
   plane.metadata = { ...metadata, liftTexture: texture, liftLabel: label };
@@ -390,6 +434,7 @@ const SOLID_FURNITURE = new Set([
   'asset-board-table',
   'asset-office-desk',
   'asset-office-terminal',
+  'asset-lab-console',
 ]);
 
 /** Screens are a centimeter thick in the GLB. Thicken them so the capsule cannot step through. */
@@ -479,6 +524,95 @@ const attachFurnitureTopCollider = (scene: BABYLON.Scene, mesh: BABYLON.Mesh, sc
   top.checkCollisions = true;
 };
 
+const paintSupplyLabel = (scene: BABYLON.Scene, id: string, draw: (ctx: CanvasRenderingContext2D) => void) => {
+  const tex = new BABYLON.DynamicTexture(`${id}-label-tex`, { width: 256, height: 128 }, scene, false);
+  const ctx = tex.getContext() as CanvasRenderingContext2D;
+  ctx.clearRect(0, 0, 256, 128);
+  draw(ctx);
+  tex.hasAlpha = true;
+  tex.update();
+  return tex;
+};
+
+const createSupplyMesh = (
+  scene: BABYLON.Scene,
+  asset: SceneAssetInstance,
+  position: BABYLON.Vector3,
+  rotation: BABYLON.Vector3,
+  metadata: SceneNodeMetadata,
+): BABYLON.Mesh => {
+  const item = asset.pickup?.item ?? 'ammo';
+  const ammo = item === 'ammo';
+  const height = ammo ? 0.22 : 0.26;
+  const root = BABYLON.MeshBuilder.CreateBox(asset.name ?? asset.id, {
+    width: ammo ? 0.42 : 0.26,
+    height,
+    depth: ammo ? 0.3 : 0.26,
+  }, scene);
+  root.position = position.clone();
+  root.position.y += height * 0.5;
+  root.rotation = rotation;
+  root.scaling.set(1, 1, 1);
+  const body = new BABYLON.StandardMaterial(`${asset.id}-body`, scene);
+  body.diffuseColor = ammo ? new BABYLON.Color3(0.24, 0.28, 0.16) : new BABYLON.Color3(0.82, 0.84, 0.8);
+  body.specularColor = new BABYLON.Color3(0.08, 0.08, 0.06);
+  root.material = body;
+  root.checkCollisions = false;
+  root.metadata = {
+    ...metadata,
+    pickup: { item, amount: asset.pickup?.amount ?? 1 },
+  } satisfies SceneNodeMetadata;
+
+  if (ammo) {
+    const stripe = BABYLON.MeshBuilder.CreateBox(`${asset.id}-stripe`, { width: 0.44, height: 0.045, depth: 0.31 }, scene);
+    stripe.parent = root;
+    stripe.position.y = 0.04;
+    const stripeMat = new BABYLON.StandardMaterial(`${asset.id}-stripe-mat`, scene);
+    stripeMat.diffuseColor = new BABYLON.Color3(0.72, 0.58, 0.12);
+    stripeMat.emissiveColor = new BABYLON.Color3(0.12, 0.08, 0.02);
+    stripeMat.specularColor = BABYLON.Color3.Black();
+    stripe.material = stripeMat;
+    stripe.isPickable = false;
+    stripe.checkCollisions = false;
+  }
+
+  const label = BABYLON.MeshBuilder.CreatePlane(`${asset.id}-label`, { width: ammo ? 0.28 : 0.16, height: ammo ? 0.1 : 0.16 }, scene);
+  label.parent = root;
+  label.position.z = (ammo ? 0.15 : 0.13) + 0.004;
+  // Plane front faces -Z. Spin it so the readable side points out of the box.
+  label.rotation.y = Math.PI;
+  const tex = paintSupplyLabel(scene, asset.id, (ctx) => {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (ammo) {
+      ctx.fillStyle = '#e2b84a';
+      ctx.font = 'bold 54px sans-serif';
+      ctx.fillText('AMMO', 128, 68);
+      return;
+    }
+    ctx.strokeStyle = '#d24a42';
+    ctx.lineWidth = 22;
+    ctx.beginPath();
+    ctx.moveTo(128, 28);
+    ctx.lineTo(128, 100);
+    ctx.moveTo(78, 64);
+    ctx.lineTo(178, 64);
+    ctx.stroke();
+  });
+  const labelMat = new BABYLON.StandardMaterial(`${asset.id}-label-mat`, scene);
+  labelMat.diffuseTexture = tex;
+  labelMat.emissiveTexture = tex;
+  labelMat.opacityTexture = tex;
+  labelMat.emissiveColor = ammo ? new BABYLON.Color3(0.45, 0.32, 0.08) : new BABYLON.Color3(0.55, 0.12, 0.1);
+  labelMat.specularColor = BABYLON.Color3.Black();
+  labelMat.useAlphaFromDiffuseTexture = true;
+  labelMat.backFaceCulling = false;
+  label.material = labelMat;
+  label.isPickable = false;
+  label.checkCollisions = false;
+  return root;
+};
+
 // Builds (or rebuilds) the Babylon node for a single scene asset entry.
 // Shared by the bulk scene loader and the level editor's drag-drop/placement
 // flow so both stay in sync with exactly the same visual representation.
@@ -509,6 +643,10 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     applyMaterialToMesh(scene, mesh, asset);
     return mesh;
   };
+
+  if (asset.pickup) {
+    return createSupplyMesh(scene, asset, position, rotation, metadata);
+  }
 
   if (asset.id === 'lift-ind-panel') {
     const mesh = BABYLON.MeshBuilder.CreateBox(asset.name ?? asset.id, { width: 1, height: 1, depth: 1 }, scene);
@@ -542,9 +680,10 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     );
     light.intensity = asset.intensity ?? 0.46;
     light.range = asset.range ?? 14;
+    if (themeName === 'B3 Basement') light.falloffType = BABYLON.Light.FALLOFF_STANDARD;
     if (asset.color) {
       light.diffuse = new BABYLON.Color3(asset.color[0], asset.color[1], asset.color[2]);
-      light.specular = light.diffuse.scale(0.35);
+      light.specular = light.diffuse.scale(themeName === 'B3 Basement' ? 0.08 : 0.35);
     }
     light.metadata = metadata;
     return light;

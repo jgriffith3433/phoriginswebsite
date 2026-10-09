@@ -10,15 +10,17 @@ import {
   type Npc,
 } from './game/npcs';
 import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
-import { addItem, createInventoryState, consumeItem, inventorySummary } from './game/inventory';
-import { getLevelDefinition, getLevels, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
-import { clampPlayerToArena, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
+import { clearImpactMarks, stampBulletMark } from './game/impacts';
+import { ITEM_CAP, addItem, createInventoryState, consumeItem, inventorySummary, itemCount, roomFor } from './game/inventory';
+import { getLevelDefinition, getLevels, getPlayableLevelCount, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
+import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
 import { createPhone } from './game/phone';
+import { mountPipeDrips } from './game/drips';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS } from './game/modelLoader';
@@ -26,13 +28,16 @@ import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, read
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createAct1, type Act1, type StoryCarry } from './story/act1';
+import { renderLevelCredits } from './story/credits';
 import { createUnlockedAudio, getSharedAudioContext, installAudioUnlock, unlockAudio } from './game/audioUnlock';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
+import { createScreenFade } from './game/fade';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 const root = document.getElementById('game-root') as HTMLDivElement;
+const screenFade = createScreenFade(document.getElementById('screenFade') as HTMLElement);
 const healthBar = document.getElementById('healthBar') as HTMLDivElement;
 const healthFill = document.getElementById('healthFill') as HTMLSpanElement;
 const messageBox = document.getElementById('messageBox') as HTMLDivElement;
@@ -42,6 +47,7 @@ const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 startBtn.disabled = true;
 startBtn.textContent = 'Loading…';
 startBtn.setAttribute('aria-busy', 'true');
+const newGameBtn = document.getElementById('newGameBtn') as HTMLButtonElement;
 const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
 const jumpBtn = document.getElementById('jumpBtn') as HTMLButtonElement;
 const fireBtn = document.getElementById('fireBtn') as HTMLButtonElement;
@@ -63,10 +69,15 @@ const closeLevelSelectBtn = document.getElementById('closeLevelSelect') as HTMLB
 const crosshair = document.getElementById('crosshair') as HTMLDivElement;
 const inventoryHud = document.getElementById('inventoryHud') as HTMLDivElement;
 const inventoryHint = document.getElementById('inventoryHint') as HTMLButtonElement | null;
+const sidearmHint = document.getElementById('sidearmHint') as HTMLButtonElement | null;
+const lightHint = document.getElementById('lightHint') as HTMLButtonElement | null;
+const medkitHint = document.getElementById('medkitHint') as HTMLButtonElement | null;
 const inventoryItems = document.getElementById('inventoryItems') as HTMLDivElement;
 const inventoryClose = document.getElementById('inventoryClose') as HTMLButtonElement;
 const weaponSlot = document.getElementById('weaponSlot') as HTMLButtonElement | null;
 const weaponSlotState = document.getElementById('weaponSlotState') as HTMLSpanElement | null;
+const reloadHint = document.getElementById('reloadHint') as HTMLDivElement | null;
+const interactHint = document.getElementById('interactHint') as HTMLDivElement | null;
 const objectiveHud = document.getElementById('objectiveHud') as HTMLDivElement | null;
 const objectiveText = document.getElementById('objectiveText') as HTMLSpanElement | null;
 const objectiveDist = document.getElementById('objectiveDist') as HTMLSpanElement | null;
@@ -180,6 +191,7 @@ const phone = createPhone(scene, {
       if (!state.player.weaponDrawn) {
         playerAvatar.setArmed(false);
         followCamera.setOverShoulder(false);
+        followCamera.setToolClose(false);
       }
       updateCrosshairVisibility();
       return;
@@ -188,7 +200,8 @@ const phone = createPhone(scene, {
     playerPistol.setVisible(false);
     weaponBusy = false;
     playerAvatar.setArmed(true);
-    followCamera.setOverShoulder(true);
+    followCamera.setOverShoulder(phone.flashlightOn());
+    followCamera.setToolClose(phone.flashlightOn());
     updateCrosshairVisibility();
   },
 });
@@ -309,21 +322,69 @@ const leavePlayerAtHeadChair = () => {
   playerAvatar.group.rotation.y = pose.facingYaw + Math.PI;
 };
 
+type CutsceneGear = { gun: boolean; phone: boolean; light: boolean; screen: boolean };
+
+let cutsceneGear: CutsceneGear | null = null;
+
+const stashGearForCutscene = () => {
+  cutsceneGear = {
+    gun: state.player.weaponDrawn || (weaponBusy && playerPistol.isVisible()),
+    phone: phone.isRaised() && !phone.locksBody(),
+    light: phone.flashlightOn(),
+    screen: phone.isScreenOpen(),
+  };
+  if (phone.locksBody()) return;
+  armPhoneAfterHolster = false;
+  armFlashAfterRaise = false;
+  weaponBusy = false;
+  state.player.weaponDrawn = false;
+  playerPistol.setVisible(false);
+  playerAvatar.setArmed(false);
+  followCamera.setOverShoulder(false);
+  followCamera.setToolClose(false);
+  followCamera.setCallFrame(false);
+  if (phone.isRaised()) phone.setRaised(false);
+  else phone.setFlashlight(false);
+  updateCrosshairVisibility();
+};
+
+const restoreGearAfterCutscene = (gear: CutsceneGear) => {
+  if (phone.locksBody()) return;
+  if (gear.gun) {
+    state.player.weaponDrawn = true;
+    playerPistol.setVisible(true);
+    playerAvatar.setArmed(true);
+    if (phone.isRaised()) phone.setRaised(false);
+  } else if (gear.phone || gear.light || gear.screen) {
+    state.player.weaponDrawn = false;
+    playerPistol.setVisible(false);
+    phone.setRaised(true);
+    if (gear.light) phone.setFlashlight(true);
+    if (gear.screen) phone.setScreen(true);
+    playerAvatar.setArmed(true);
+  }
+  syncEquippedCamera();
+  updateHud();
+  updateCrosshairVisibility();
+};
+
 const endCutscene = () => {
-  const finishedId = activeCutscene?.id;
+  const finished = activeCutscene;
+  const gear = cutsceneGear;
+  cutsceneGear = null;
+  const reequip = finished ? finished.timeline.reequip !== false : true;
   act.releaseSeat();
   resetCutsceneState();
-  if (finishedId) act.onCutsceneEnded(finishedId);
+  phone.aimBeam(null);
+  if (!phone.locksBody() && phone.isRaised()) phone.setRaised(false);
+  if (reequip && gear) restoreGearAfterCutscene(gear);
+  if (finished) act.onCutsceneEnded(finished.id);
 };
 
 const beginNamedCutscene = (id: string) => {
   if (state.inCutscene) return;
   state.inCutscene = true;
-  if (!phone.locksBody()) {
-    if (phone.isRaised()) phone.setRaised(false);
-    phone.setFlashlight(false);
-    followCamera.setCallFrame(false);
-  }
+  stashGearForCutscene();
   act.prepareCutscene(id);
   unlockPointer();
   void startCutscene(id, {
@@ -335,6 +396,7 @@ const beginNamedCutscene = (id: string) => {
     onObjective: (title, text) => act.onObjective(title, text),
     onAvatar: (assetId) => act.onAvatar(assetId),
     onCarry: (itemId, name, note) => act.onCarry(itemId, name, note),
+    onFade: (to, seconds) => screenFade.to(to, seconds),
     audioEnabled: () => audio.enabled,
   }).then((next) => {
     if (!next) {
@@ -367,6 +429,9 @@ const loadMissionScene = async (path: string) => {
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
     if (loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
     act.dressLevel();
+    mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
+    clearImpactMarks();
+    bindScenePickups();
     ensurePlayerAvatar(PLAYER_ASSET_ID);
     await Promise.all([
       waitAvatarReady(playerAvatar),
@@ -379,9 +444,11 @@ const loadMissionScene = async (path: string) => {
   }
 };
 
-const saveKey = 'ph-origins-save';
-type SaveData = { unlocked: number; sound: boolean };
-const defaultSave: SaveData = { unlocked: 1, sound: true };
+const SAVE_COOKIE = 'ph-origins-save';
+const SAVE_STORAGE_KEY = 'ph-origins-save';
+const SAVE_MAX_AGE = 60 * 60 * 24 * 400;
+type SaveData = { unlocked: number; level: number; sound: boolean };
+const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
 const MAX_HEALTH = 100;
 
 const GAME_COPY = {
@@ -389,24 +456,78 @@ const GAME_COPY = {
   defeat: 'Press Start to retry.',
 } as const;
 
-const loadSave = (): SaveData => {
+const readCookie = (name: string) => {
+  const prefix = `${name}=`;
+  const hit = document.cookie.split('; ').find((part) => part.startsWith(prefix));
+  if (!hit) return null;
   try {
-    const raw = localStorage.getItem(saveKey);
-    if (!raw) return defaultSave;
-    return { ...defaultSave, ...JSON.parse(raw) };
+    return decodeURIComponent(hit.slice(prefix.length));
   } catch {
-    return defaultSave;
+    return null;
   }
 };
 
-const saveGame = (next: Partial<SaveData>) => {
-  const current = loadSave();
-  const merged = { ...current, ...next };
-  localStorage.setItem(saveKey, JSON.stringify(merged));
-  return merged;
+const writeSaveCookie = (data: SaveData) => {
+  document.cookie = `${SAVE_COOKIE}=${encodeURIComponent(JSON.stringify(data))}; Path=/; Max-Age=${SAVE_MAX_AGE}; SameSite=Lax`;
 };
 
-const save = loadSave();
+const clearSave = () => {
+  document.cookie = `${SAVE_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+  try {
+    localStorage.removeItem(SAVE_STORAGE_KEY);
+  } catch {
+    /* private mode */
+  }
+};
+
+const parseSave = (raw: string): SaveData => {
+  const parsed = JSON.parse(raw) as Partial<SaveData>;
+  const unlocked = Math.max(1, Number(parsed.unlocked) || 1);
+  return {
+    unlocked,
+    level: Math.max(1, Number(parsed.level) || unlocked),
+    sound: parsed.sound !== false,
+  };
+};
+
+const loadSave = (): SaveData => {
+  try {
+    const fromCookie = readCookie(SAVE_COOKIE);
+    if (fromCookie) return parseSave(fromCookie);
+  } catch {
+    /* try the previous local save */
+  }
+  try {
+    const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+    if (!raw) return { ...defaultSave };
+    const parsed = parseSave(raw);
+    writeSaveCookie(parsed);
+    localStorage.removeItem(SAVE_STORAGE_KEY);
+    return parsed;
+  } catch {
+    return { ...defaultSave };
+  }
+};
+
+let save = loadSave();
+
+const saveGame = (next: Partial<SaveData>) => {
+  save = {
+    unlocked: Math.max(1, Number(next.unlocked ?? save.unlocked) || 1),
+    level: Math.max(1, Number(next.level ?? save.level) || 1),
+    sound: next.sound ?? save.sound,
+  };
+  writeSaveCookie(save);
+  return save;
+};
+
+const hasProgress = () => save.unlocked > 1 || save.level > 1;
+
+const savedLevelId = () => {
+  const requested = Math.max(1, save.level || 1, save.unlocked || 1);
+  const def = getLevelDefinition(requested);
+  return def.comingSoon ? getPlayableLevelCount() : def.id;
+};
 
 const devLevelConfig = readDevLevelConfig();
 
@@ -458,7 +579,15 @@ const levelLoadingLine = (level = getLevelDefinition(state.level)) =>
 
 const enemies: Enemy[] = [];
 const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
-const pickups: Array<{ mesh: BABYLON.Mesh; item: InventoryItemType; amount: number; active: boolean }> = [];
+const pickups: Array<{
+  mesh: BABYLON.AbstractMesh;
+  item: InventoryItemType;
+  amount: number;
+  active: boolean;
+  runtime: boolean;
+  baseY: number;
+  phase: number;
+}> = [];
 
 const SFX = {
   shot: '/assets/audio/sfx/pistol-shot.ogg',
@@ -467,12 +596,20 @@ const SFX = {
   draw: '/assets/audio/sfx/pistol-draw.ogg',
   holster: '/assets/audio/sfx/pistol-holster.ogg',
   start: '/assets/audio/sfx/start.ogg',
-  levelComplete: '/assets/audio/sfx/level-complete.ogg',
   objective: '/assets/audio/sfx/objective.ogg',
 } as const;
+const endingTrack = (level: number) => `/assets/audio/ending-${Math.max(1, level)}.mp3`;
 const oneShotTemplates = new Map<string, HTMLAudioElement>();
 let walkLoop: HTMLAudioElement | null = null;
 let walkStartPending = false;
+let endingSong: HTMLAudioElement | null = null;
+
+const stopEndingSong = () => {
+  if (!endingSong) return;
+  endingSong.pause();
+  endingSong.src = '';
+  endingSong = null;
+};
 
 const audio = {
   enabled: save.sound,
@@ -542,7 +679,16 @@ const audio = {
   holster() { this.play(SFX.holster, 0.55); },
   pickup() { this.tone(780, 0.12, 'sine', 0.06); },
   start() { this.play(SFX.start, 0.7); },
-  win() { this.play(SFX.levelComplete, 0.72); },
+  win() {
+    stopEndingSong();
+    musicTriggerPlayer.stop();
+    if (!this.enabled) return;
+    this.ensure();
+    endingSong = createUnlockedAudio(endingTrack(state.level));
+    endingSong.loop = false;
+    endingSong.volume = 0.7;
+    void endingSong.play().catch(() => {});
+  },
 };
 
 const updateHud = () => {
@@ -560,35 +706,44 @@ const updateHud = () => {
     const items = storyCarry.length
       ? storyCarry
       : [{ id: 'empty', name: 'Nothing carried', note: 'The sidearm stays in the weapon slot.' }];
-    inventoryItems.innerHTML = items
-      .map((item) => `<span class="inventory-item"><strong>${item.name}</strong><span class="inventory-note">${item.note}</span></span>`)
-      .join('');
+    inventoryItems.innerHTML = [
+      ...items.map((item) => `<span class="inventory-item"><strong>${item.name}</strong><span class="inventory-note">${item.note}</span></span>`),
+      supplyRow('Ammo boxes', 'ammo', 'One box refills the clip.'),
+      supplyRow('Medkits', 'medkit', 'Restores 40.'),
+    ].join('');
   } else {
     const invEntries = [
-      ['Ammo', state.inventory.items.ammo ?? 0],
-      ['Medkit', state.inventory.items.medkit ?? 0],
-      ['Scrap', state.inventory.items.scrap ?? 0],
-      ['Core', state.inventory.items.power_core ?? 0],
+      ['Ammo boxes', 'ammo'],
+      ['Medkits', 'medkit'],
+      ['Scrap', 'scrap'],
+      ['Cores', 'power_core'],
     ] as const;
     inventoryItems.innerHTML = invEntries
-      .map(([label, count]) => `<span class="inventory-item"><span class="inventory-label">${label}</span><strong>${count}</strong></span>`)
+      .map(([label, item]) => `<span class="inventory-item"><span class="inventory-label">${label}</span><strong>${itemCount(state.inventory, item)} / ${ITEM_CAP[item]}</strong></span>`)
       .join('');
   }
 
   if (weaponSlot && weaponSlotState) {
     const drawn = state.player.weaponDrawn;
-    weaponSlotState.textContent = drawn ? 'Drawn' : 'Holstered';
+    const boxes = state.inventory.items.ammo ?? 0;
+    const boxLabel = boxes === 1 ? 'box' : 'boxes';
+    weaponSlotState.textContent = `${drawn ? 'Drawn' : 'Holstered'} · ${state.player.clip}/${CLIP_SIZE} · ${boxes}/${ITEM_CAP.ammo} ${boxLabel}`;
     weaponSlot.classList.toggle('drawn', drawn);
     weaponSlot.setAttribute('aria-pressed', drawn ? 'true' : 'false');
     weaponSlot.disabled = weaponBusy || !state.running || state.inCutscene || phone.locksBody() || phone.isRaised();
   }
+  sidearmHint?.classList.toggle('drawn', state.player.weaponDrawn);
+  sidearmHint?.setAttribute('aria-pressed', state.player.weaponDrawn ? 'true' : 'false');
   syncPhoneHud();
+  syncInteractHint();
+  syncReloadHint();
 };
 
 const syncPhoneHud = () => {
   const view = phone.view();
   phonePanel?.classList.toggle('focused', view.focused);
-  phonePanel?.toggleAttribute('hidden', !view.panel);
+  const shotHidesPanel = state.inCutscene && !phone.locksBody();
+  phonePanel?.toggleAttribute('hidden', shotHidesPanel || !view.panel);
   if (phoneStatus) phoneStatus.textContent = view.status;
   if (phoneContact) phoneContact.textContent = view.contact;
   if (phoneDetail) phoneDetail.textContent = view.detail;
@@ -614,8 +769,9 @@ const syncPhoneHud = () => {
     phoneToast.hidden = !view.toast;
     phoneToast.textContent = view.toast;
   }
-  phoneHint?.classList.toggle('raised', view.raised);
+  phoneHint?.classList.toggle('raised', view.screen);
   phoneHint?.classList.toggle('ringing', view.ringing);
+  lightHint?.classList.toggle('lit', view.flashlight);
   if (phoneBadge) {
     phoneBadge.hidden = !view.badge;
     phoneBadge.textContent = view.badge;
@@ -625,6 +781,9 @@ const syncPhoneHud = () => {
 
 let inventoryOpen = false;
 let weaponBusy = false;
+let reloadReadyAt = 0;
+let reloadNote = '';
+let reloadNoteUntil = 0;
 
 const canLockGameplayPointer = () =>
   state.running && !state.inCutscene && messageBox.classList.contains('hidden') && !inventoryOpen;
@@ -665,26 +824,65 @@ inventoryHint?.addEventListener('click', (event) => {
 inventoryHud.addEventListener('pointerdown', stopInventoryPointer);
 inventoryHud.addEventListener('pointerup', stopInventoryPointer);
 
+const nextPlayableLevel = () => {
+  const next = getLevels()[state.level];
+  if (!next || next.comingSoon) return null;
+  return next;
+};
+
+let levelPicked = false;
+
+const menuMode = () => {
+  if (!gameReady) return 'loading' as const;
+  if (messageTitle.textContent === 'Level Complete') return 'level-complete' as const;
+  if (!state.running && messageTitle.textContent === 'PH Origins' && hasProgress() && !levelPicked) return 'resume' as const;
+  return 'play' as const;
+};
+
 const syncStartButtonLabel = () => {
-  if (!gameReady) {
-    startBtn.disabled = true;
+  const loading = !gameReady;
+  startBtn.disabled = loading;
+  resetBtn.disabled = loading;
+  loadModelBtn.disabled = loading;
+  newGameBtn.disabled = loading;
+  if (loading) {
     startBtn.textContent = 'Loading…';
     startBtn.setAttribute('aria-busy', 'true');
-    resetBtn.disabled = true;
-    loadModelBtn.disabled = true;
-    if (messageTitle.textContent === 'PH Origins') {
-      messageText.textContent = levelLoadingLine();
-    }
+    startBtn.style.display = '';
+    newGameBtn.style.display = 'none';
+    if (messageTitle.textContent === 'PH Origins') messageText.textContent = levelLoadingLine();
     return;
   }
-  startBtn.disabled = false;
   startBtn.removeAttribute('aria-busy');
-  resetBtn.disabled = false;
-  loadModelBtn.disabled = false;
-  startBtn.textContent = state.running ? 'Continue' : 'Start';
-  if (!state.running && messageTitle.textContent === 'PH Origins') {
+
+  const mode = menuMode();
+  if (mode === 'level-complete') {
+    const next = nextPlayableLevel();
+    startBtn.disabled = !next;
+    startBtn.style.display = next ? '' : 'none';
+    startBtn.textContent = 'Continue';
+    newGameBtn.style.display = 'none';
+    resetBtn.style.display = 'none';
+    loadModelBtn.textContent = 'Exit';
+    loadModelBtn.style.display = '';
+    return;
+  }
+
+  const resume = mode === 'resume';
+  startBtn.disabled = false;
+  startBtn.style.display = '';
+  startBtn.textContent = resume || state.running ? 'Continue' : 'Start';
+  if (resume && messageTitle.textContent === 'PH Origins') {
+    messageText.textContent = levelStartLine(getLevelDefinition(savedLevelId()));
+  } else if (!state.running && messageTitle.textContent === 'PH Origins') {
     messageText.textContent = levelStartLine();
   }
+  newGameBtn.style.display = resume ? '' : 'none';
+  resetBtn.style.display = '';
+  const hideLoad = messageTitle.textContent === 'Defeat' || messageTitle.textContent === 'Mission Clear';
+  loadModelBtn.textContent = 'Load Level';
+  loadModelBtn.style.display = hideLoad ? 'none' : '';
+  loadModelBtn.disabled = !hasProgress();
 };
 
 const unlockPointer = () => {
@@ -704,6 +902,10 @@ const updateCrosshairVisibility = () => {
 };
 
 const finishWeaponToggle = (drawn: boolean) => {
+  if (state.inCutscene) {
+    weaponBusy = false;
+    return;
+  }
   state.player.weaponDrawn = drawn;
   playerAvatar.setArmed(drawn);
   playerPistol.setVisible(drawn);
@@ -713,20 +915,35 @@ const finishWeaponToggle = (drawn: boolean) => {
   updateCrosshairVisibility();
   if (!drawn && armPhoneAfterHolster) {
     armPhoneAfterHolster = false;
-    phone.setRaised(true);
+    const withLight = armFlashAfterRaise;
+    armFlashAfterRaise = false;
+    if (withLight) {
+      phone.setRaised(true);
+      phone.setFlashlight(true);
+    } else phone.setScreen(true);
+    syncEquippedCamera();
     updateHud();
   }
 };
 
 let armPhoneAfterHolster = false;
+let armFlashAfterRaise = false;
+
+const syncEquippedCamera = () => {
+  const close = phone.flashlightOn() || state.player.weaponDrawn;
+  followCamera.setOverShoulder(close);
+  followCamera.setToolClose(close);
+};
 
 const clearHands = () => {
   armPhoneAfterHolster = false;
+  armFlashAfterRaise = false;
   weaponBusy = false;
   state.player.weaponDrawn = false;
   playerPistol.setVisible(false);
   playerAvatar.setArmed(false);
   followCamera.setOverShoulder(false);
+  followCamera.setToolClose(false);
   if (phone.isRaised()) phone.setRaised(false);
   else phone.setFlashlight(false);
   updateCrosshairVisibility();
@@ -738,7 +955,12 @@ const raisePhone = () => {
     if (phone.view().showAnswer) phone.answer();
     return;
   }
-  if (phone.isRaised()) {
+  if (phone.flashlightOn()) {
+    phone.setScreen(!phone.isScreenOpen());
+    updateHud();
+    return;
+  }
+  if (phone.isRaised() || phone.isScreenOpen()) {
     phone.setRaised(false);
     playerAvatar.resumeLocomotion();
     updateHud();
@@ -746,16 +968,38 @@ const raisePhone = () => {
   }
   if (state.player.weaponDrawn) {
     armPhoneAfterHolster = true;
+    armFlashAfterRaise = false;
     toggleWeapon();
     return;
   }
-  phone.setRaised(true);
+  phone.setScreen(true);
   updateHud();
 };
 
 const toggleFlashlight = () => {
-  if (!phone.isRaised() || phone.locksBody()) return;
+  if (!state.running || state.inCutscene || weaponBusy || phone.locksBody()) return;
+  if (!phone.isRaised()) {
+    if (state.player.weaponDrawn) {
+      armPhoneAfterHolster = true;
+      armFlashAfterRaise = true;
+      toggleWeapon();
+      return;
+    }
+    phone.setRaised(true);
+    phone.setFlashlight(true);
+    syncEquippedCamera();
+    updateHud();
+    return;
+  }
+  if (phone.flashlightOn() && !phone.isScreenOpen()) {
+    phone.setRaised(false);
+    playerAvatar.resumeLocomotion();
+    syncEquippedCamera();
+    updateHud();
+    return;
+  }
   phone.setFlashlight(!phone.flashlightOn());
+  syncEquippedCamera();
   updateHud();
 };
 
@@ -765,6 +1009,7 @@ const toggleWeapon = () => {
   const drawing = !state.player.weaponDrawn;
   weaponBusy = true;
   followCamera.setOverShoulder(drawing);
+  followCamera.setToolClose(drawing);
   if (drawing) playerPistol.setVisible(true);
   if (!drawing) {
     state.player.weaponDrawn = false;
@@ -782,6 +1027,18 @@ const toggleWeapon = () => {
 weaponSlot?.addEventListener('click', (event) => {
   event.stopPropagation();
   toggleWeapon();
+});
+sidearmHint?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (state.running && messageBox.classList.contains('hidden')) toggleWeapon();
+});
+lightHint?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  toggleFlashlight();
+});
+medkitHint?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  if (messageBox.classList.contains('hidden')) useMedkit();
 });
 
 const onPhoneControl = (event: Event) => {
@@ -811,20 +1068,39 @@ phoneFlash?.addEventListener('click', (event) => {
 });
 phonePanel?.addEventListener('pointerdown', (event) => event.stopPropagation());
 
+const levelCredits = document.getElementById('levelCredits') as HTMLDivElement | null;
+
+const stopLevelCredits = () => {
+  if (!levelCredits) return;
+  levelCredits.hidden = true;
+  levelCredits.innerHTML = '';
+};
+
+const startLevelCredits = (levelId: number) => {
+  if (!levelCredits) return;
+  const markup = renderLevelCredits(levelId);
+  if (!markup) {
+    stopLevelCredits();
+    return;
+  }
+  levelCredits.hidden = false;
+  levelCredits.innerHTML = markup;
+};
+
 const showMessage = (title: string, text: string) => {
   messageTitle.textContent = title;
   messageText.textContent = text;
-  const isEndState = title === 'Defeat' || title === 'Mission Clear';
-  loadModelBtn.textContent = 'Load Level';
-  loadModelBtn.style.display = isEndState ? 'none' : '';
   syncStartButtonLabel();
   unlockPointer();
   levelSelect.classList.add('hidden');
   messageBox.classList.remove('hidden');
+  if (title === 'Level Complete' || title === 'Mission Clear') startLevelCredits(state.level);
+  else stopLevelCredits();
   updateCrosshairVisibility();
 };
 
 const hideMessage = () => {
+  stopLevelCredits();
   messageBox.classList.add('hidden');
   updateCrosshairVisibility();
 };
@@ -834,11 +1110,12 @@ const clearDynamicObjects = () => {
   for (const particle of particles) {
     particle.mesh.dispose();
   }
-  for (const pickup of pickups) {
-    pickup.mesh.dispose();
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    if (!pickups[i].runtime) continue;
+    pickups[i].mesh.dispose();
+    pickups.splice(i, 1);
   }
   particles.length = 0;
-  pickups.length = 0;
 };
 
 const applyLevelCombat = (config: LevelDefinition) => {
@@ -874,6 +1151,7 @@ const resetPlayer = (keepLevel = false) => {
   followCamera.setCallFrame(false);
   muzzleFlash.hide();
   followCamera.setOverShoulder(false);
+  followCamera.setToolClose(false);
   state.progression.currentLevel = selectedLevel;
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
@@ -882,6 +1160,9 @@ const resetPlayer = (keepLevel = false) => {
   applyLevelConfig(getLevelDefinition(selectedLevel));
   followCamera.reset();
 };
+
+let applyHurt = (_amount: number) => {};
+let stockSidearm = () => {};
 
 act = createAct1({
   scene,
@@ -903,7 +1184,7 @@ act = createAct1({
   clearMarker: () => objectiveMarker.setTarget(null),
   clearObjectiveCue: () => { lastObjectiveCue = ''; },
   placePierce,
-  playClip: (clip, loop) => { playerAvatar.playClip(clip, loop); },
+  playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
   holdLocomotion: () => playerAvatar.setLocomotion(false, true),
   swapAvatar: (assetId) => ensurePlayerAvatar(assetId),
@@ -932,15 +1213,36 @@ act = createAct1({
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
   unlockNext: () => {
+    const next = getLevels()[state.level];
+    const resumeId = next && !next.comingSoon ? next.id : state.level;
     state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level + 1));
-    saveGame({ unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
+    saveGame({
+      unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked),
+      level: Math.max(save.level ?? 1, resumeId),
+      sound: audio.enabled,
+    });
   },
   refreshHud: () => updateHud(),
   setCarry: (items) => { storyCarry = items; },
+  hurt: (amount) => applyHurt(amount),
+  stockAmmo: () => stockSidearm(),
+  beamAt: (at) => {
+    if (!at || phone.locksBody()) {
+      phone.aimBeam(null);
+      return;
+    }
+    if (!phone.isRaised()) phone.setRaised(true);
+    if (!phone.flashlightOn()) phone.setFlashlight(true);
+    phone.aimBeam(at);
+  },
+  frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
 });
 
 const beginGame = () => {
   if (!gameReady) return;
+  stopEndingSong();
+  screenFade.to(0, 0.8);
   audio.start();
   state.running = true;
   menuCameraActive = false;
@@ -953,16 +1255,63 @@ const beginGame = () => {
   act.onStart();
 };
 
+let startingLevel = false;
+
+const startAtLevel = async (levelId: number) => {
+  if (startingLevel || !gameReady) return;
+  const level = getLevelDefinition(levelId);
+  if (level.comingSoon) return;
+  startingLevel = true;
+  unlockAudio();
+  try {
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    if (missionScene?.id !== level.libraryId) {
+      applyLevelConfig(level);
+      await loadMissionScene(level.path);
+    }
+    beginGame();
+  } catch {
+    state.running = false;
+    showMessage('PH Origins', levelStartLine());
+  } finally {
+    startingLevel = false;
+  }
+};
+
 void (async () => {
   await loadLevelLibrary();
   const firstLevel = getLevels()[0];
   if (firstLevel) applyLevelConfig(firstLevel);
   await loadMissionScene(firstLevel?.path ?? DEFAULT_SCENE_FILE_PATH);
-  const beat = new URLSearchParams(location.search).get('beat');
-  if (new URLSearchParams(location.search).get('cutscene') === 'elevator-b3') {
+  const params = new URLSearchParams(location.search);
+  const beat = params.get('beat');
+  const cutscene = params.get('cutscene');
+  if (cutscene === 'b3-vat-break') {
+    state.level = 2;
+    state.progression.currentLevel = 2;
+    const level = getLevelDefinition(2);
+    applyLevelConfig(level);
+    await loadMissionScene(level.path);
+    beginGame();
+    placePierce(18.5, 38, -Math.PI / 2);
+    beginNamedCutscene('b3-vat-break');
+  } else if (cutscene === 'b3-door-reveal') {
+    state.level = 2;
+    state.progression.currentLevel = 2;
+    const level = getLevelDefinition(2);
+    applyLevelConfig(level);
+    await loadMissionScene(level.path);
+    beginGame();
+    beginNamedCutscene('b3-door-reveal');
+  } else if (cutscene === 'elevator-b3') {
     act.armPhase('elevator');
     beginGame();
     act.handleTrigger({ id: 'trigger-elevator-b3', type: 'enter_zone' });
+  } else if (cutscene === 'apex-window') {
+    act.armPhase('window');
+    beginGame();
+    beginNamedCutscene('apex-window');
   } else if (beat === 'voss') {
     act.armPhase('call');
     beginGame();
@@ -984,7 +1333,7 @@ const spawnPickup = (position: BABYLON.Vector3, item: InventoryItemType, amount 
   material.diffuseColor = colorMap[item];
   material.emissiveColor = colorMap[item].scale(0.4);
   mesh.material = material;
-  pickups.push({ mesh, item, amount, active: true });
+  pickups.push({ mesh, item, amount, active: true, runtime: true, baseY: mesh.position.y, phase: Math.random() * Math.PI * 2 });
 };
 
 const updateQuestTracker = () => {
@@ -1005,11 +1354,29 @@ const finishGame = (won = false) => {
 
   if (won) {
     audio.win();
+    screenFade.to(1, 1.15);
     showMessage('Mission Clear', GAME_COPY.missionClear);
   } else {
     audio.hit();
     showMessage('Defeat', GAME_COPY.defeat);
   }
+};
+
+applyHurt = (amount: number) => {
+  if (!state.running || state.inCutscene) return;
+  state.health = Math.max(0, state.health - amount);
+  state.lastDamageAt = performance.now();
+  audio.hit();
+  alarmFlash?.classList.add('visible');
+  window.setTimeout(() => alarmFlash?.classList.remove('visible'), 140);
+  updateHud();
+  if (state.health <= 0) finishGame(false);
+};
+
+stockSidearm = () => {
+  state.player.clip = CLIP_SIZE;
+  if ((state.inventory.items.ammo ?? 0) < 1) state.inventory.items.ammo = 1;
+  updateHud();
 };
 
 const awardQuestProgress = (type: 'kills' | 'score' | 'collect', amount: number) => {
@@ -1152,17 +1519,148 @@ const updatePlayer = (delta: number) => {
   return { moving, moveHeading: moving && forwardDot > 0.45 ? moveHeading : null };
 };
 
-const fireWeapon = () => {
-  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.isRaised() || phone.locksBody() || !state.player.weaponDrawn || state.shootCooldown > 0) return;
-  if (!consumeItem(state.inventory, 'ammo', 1)) {
+const SUPPLY_LABEL: Record<InventoryItemType, string> = {
+  ammo: 'Ammo box',
+  medkit: 'Medkit',
+  scrap: 'Scrap',
+  power_core: 'Core',
+};
+
+const supplyRow = (label: string, item: InventoryItemType, note: string) =>
+  `<span class="inventory-item"><span class="inventory-label">${label}</span><strong>${itemCount(state.inventory, item)} / ${ITEM_CAP[item]}</strong><span class="inventory-note">${note}</span></span>`;
+
+const bindScenePickups = () => {
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    if (pickups[i].runtime) continue;
+    pickups.splice(i, 1);
+  }
+  for (const mesh of scene.meshes) {
+    const meta = mesh.metadata as { pickup?: { item: InventoryItemType; amount?: number } } | null;
+    if (!meta?.pickup) continue;
+    pickups.push({
+      mesh,
+      item: meta.pickup.item,
+      amount: meta.pickup.amount ?? 1,
+      active: true,
+      runtime: false,
+      baseY: mesh.position.y,
+      phase: mesh.position.x * 0.37 + mesh.position.z,
+    });
+  }
+};
+
+const nearestSupply = () => {
+  let best: (typeof pickups)[number] | null = null;
+  let bestD = 1.25;
+  for (const pickup of pickups) {
+    if (!pickup.active || pickup.mesh.isDisposed() || !pickup.mesh.isEnabled()) continue;
+    const at = pickup.mesh.getAbsolutePosition();
+    const dist = Math.hypot(at.x - state.player.x, at.z - state.player.z);
+    if (dist < bestD) {
+      bestD = dist;
+      best = pickup;
+    }
+  }
+  return best;
+};
+
+const takeSupply = (pickup: (typeof pickups)[number]) => {
+  const taken = addItem(state.inventory, pickup.item, pickup.amount);
+  if (taken <= 0) {
+    showReloadNote(`${SUPPLY_LABEL[pickup.item]} full`);
     audio.hit();
     return;
   }
+  pickup.active = false;
+  pickup.mesh.setEnabled(false);
+  audio.pickup();
+  updateHud();
+};
+
+const useMedkit = () => {
+  if (!state.running || state.inCutscene) return;
+  if (state.health >= MAX_HEALTH) {
+    showReloadNote('Health full');
+    return;
+  }
+  if (!consumeItem(state.inventory, 'medkit', 1)) {
+    showReloadNote('No medkits');
+    audio.hit();
+    return;
+  }
+  state.health = Math.min(MAX_HEALTH, state.health + 40);
+  showReloadNote('Medkit');
+  audio.tone(520, 0.08, 'sine', 0.05);
+  updateHud();
+};
+
+const syncInteractHint = () => {
+  if (!interactHint) return;
+  const pickup = state.running && !state.inCutscene && !inventoryOpen ? nearestSupply() : null;
+  if (!pickup) {
+    interactHint.hidden = true;
+    return;
+  }
+  const label = SUPPLY_LABEL[pickup.item];
+  interactHint.hidden = false;
+  interactHint.textContent = roomFor(state.inventory, pickup.item) > 0 ? `${label} — E` : `${label} full`;
+};
+
+const showReloadNote = (text: string, seconds = 1.6) => {
+  reloadNote = text;
+  reloadNoteUntil = performance.now() + seconds * 1000;
+  syncReloadHint();
+};
+
+const syncReloadHint = () => {
+  if (!reloadHint) return;
+  const now = performance.now();
+  const note = reloadNote && now < reloadNoteUntil ? reloadNote : '';
+  const emptyClip = state.running
+    && state.player.weaponDrawn
+    && state.player.clip <= 0
+    && !state.inCutscene
+    && messageBox.classList.contains('hidden');
+  const text = note || (emptyClip ? 'Reload — press R' : '');
+  reloadHint.hidden = !text;
+  reloadHint.textContent = text;
+};
+
+const reloadWeapon = () => {
+  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.locksBody() || phone.isRaised()) return;
+  if (performance.now() < reloadReadyAt) return;
+  if (state.player.clip >= CLIP_SIZE) return;
+  if (!consumeItem(state.inventory, 'ammo', 1)) {
+    showReloadNote('Out of ammo');
+    audio.hit();
+    return;
+  }
+  state.player.clip = CLIP_SIZE;
+  reloadReadyAt = performance.now() + 700;
+  audio.tone(210, 0.07, 'square', 0.04);
+  window.setTimeout(() => audio.tone(320, 0.05, 'square', 0.03), 160);
+  updateHud();
+};
+
+const fireWeapon = () => {
+  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.isRaised() || phone.locksBody() || !state.player.weaponDrawn || state.shootCooldown > 0) return;
+  if (performance.now() < reloadReadyAt) return;
+  if (state.player.clip <= 0) {
+    state.shootCooldown = 0.35;
+    audio.hit();
+    syncReloadHint();
+    return;
+  }
+  state.player.clip -= 1;
   state.shootCooldown = state.fireRate;
   audio.shoot();
   if (playerPistol.isVisible()) muzzleFlash.showAt(playerPistol.muzzle);
   else muzzleFlash.show(camera, gatherCameraIgnoreMeshes());
   playerAvatar.playClip('shoot', false, 3, () => playerAvatar.resumeLocomotion());
+  const aim = camera.getDirection(BABYLON.Vector3.Forward());
+  act.shotAt(camera.globalPosition, aim);
+  stampBulletMark(scene, camera.globalPosition, aim, gatherCameraIgnoreMeshes());
+  updateHud();
 };
 
 const levelAllowsCombat = () => {
@@ -1190,7 +1688,11 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
     state.input.jump = true;
   }
-  if (key === 'p') beginGame();
+  if (key === 'p') {
+    const menuOpen = !messageBox.classList.contains('hidden');
+    if (!menuOpen) beginGame();
+    else if (!startBtn.disabled && startBtn.style.display !== 'none') startBtn.click();
+  }
   if (key === 'i') {
     event.preventDefault();
     setInventoryOpen(!inventoryOpen);
@@ -1204,6 +1706,23 @@ window.addEventListener('keydown', (event) => {
   if (key === 'g') {
     event.preventDefault();
     toggleFlashlight();
+  }
+  if (key === 'q') {
+    event.preventDefault();
+    if (state.running && messageBox.classList.contains('hidden')) toggleWeapon();
+  }
+  if (key === 'r') {
+    event.preventDefault();
+    if (state.running && messageBox.classList.contains('hidden')) reloadWeapon();
+  }
+  if (key === 'e') {
+    event.preventDefault();
+    const pickup = nearestSupply();
+    if (pickup && state.running && !state.inCutscene && !inventoryOpen && messageBox.classList.contains('hidden')) takeSupply(pickup);
+  }
+  if (key === 'h') {
+    event.preventDefault();
+    if (messageBox.classList.contains('hidden')) useMedkit();
   }
   if (key === 'l' && devLevelConfig) {
     showMessage('Dev level loaded', `${devLevelConfig.levelName || 'Custom'} • ${devLevelConfig.enemyCount || 0} enemies`);
@@ -1250,11 +1769,6 @@ document.addEventListener('mousemove', (event) => {
   if (!state.running || !(state.pointerLocked || state.mouseLookActive)) return;
   handleLook(event.movementX, event.movementY);
 });
-
-canvas.addEventListener('wheel', (event) => {
-  event.preventDefault();
-  followCamera.setZoom(Math.sign(event.deltaY));
-}, { passive: false });
 
 const touchState = { active: false, lastX: 0, lastY: 0 };
 canvas.addEventListener('touchstart', (event) => {
@@ -1409,32 +1923,54 @@ fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
 startBtn.addEventListener('click', () => {
   unlockAudio();
+  const mode = menuMode();
+  if (mode === 'level-complete') {
+    const next = nextPlayableLevel();
+    if (next) void startAtLevel(next.id);
+    return;
+  }
+  if (mode === 'resume') {
+    void startAtLevel(savedLevelId());
+    return;
+  }
   beginGame();
+});
+newGameBtn.addEventListener('click', () => {
+  unlockAudio();
+  void startAtLevel(1);
 });
 canvas.addEventListener('pointerdown', () => unlockAudio());
 installAudioUnlock();
 resetBtn.addEventListener('click', () => {
+  stopEndingSong();
+  screenFade.to(0, 0);
+  clearSave();
+  save = { ...defaultSave, sound: audio.enabled };
+  levelPicked = false;
+  state.running = false;
+  state.level = 1;
+  state.progression.currentLevel = 1;
+  state.progression.highestUnlocked = 1;
   clearDynamicObjects();
   clearInputState();
   resetPlayer();
   void loadMissionScene(getLevelDefinition(1).path);
   updateHud();
   showMessage('PH Origins', levelStartLine());
-  loadModelBtn.style.display = '';
-  syncStartButtonLabel();
-  state.running = false;
   menuCameraActive = true;
   activateMenuCamera(scene, menuCamera);
 });
 
 const renderLoop = () => {
   const delta = engine.getDeltaTime() / 1000;
+  screenFade.update(delta);
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
   muzzleFlash.update();
 
   if (state.running) {
     if (state.inCutscene && activeCutscene) {
       audio.setWalk(false);
+      grade.setFear(act.fearLevel());
       act.beforeCutsceneStep(activeCutscene.id, activeCutscene.time);
       const playing = stepCutscene(activeCutscene, delta);
       if (!playing) endCutscene();
@@ -1468,10 +2004,16 @@ const renderLoop = () => {
     updateCamera(delta, locomotion.moving, locomotion.moveHeading);
     triggerRunner.update(state.player);
     act.stepWorld(delta);
+    const fear = act.fearLevel();
+    grade.setFear(fear);
+    phone.setFear(fear);
     act.alarmTick(delta);
     if (!state.inCutscene) objectiveMarker.update(delta);
-    if (objectiveHud?.classList.contains('visible') && objectiveDist && objectiveMarker.getTarget()) {
-      objectiveDist.textContent = `${objectiveMarker.distanceTo(state.player.x, state.player.z).toFixed(1)} m`;
+    if (objectiveHud?.classList.contains('visible') && objectiveDist) {
+      const target = objectiveMarker.getTarget();
+      objectiveDist.textContent = target
+        ? `${objectiveMarker.distanceTo(state.player.x, state.player.z).toFixed(1)} m`
+        : '';
     }
 
     for (const enemy of enemies) {
@@ -1497,17 +2039,15 @@ const renderLoop = () => {
       }
     }
 
+    const bob = performance.now() * 0.001;
     for (let i = pickups.length - 1; i >= 0; i--) {
       const pickup = pickups[i];
-      if (!pickup.active) continue;
-      pickup.mesh.rotation.y += delta * 2;
-      if (BABYLON.Vector3.Distance(pickup.mesh.position, new BABYLON.Vector3(state.player.x, state.player.y, state.player.z)) < 1.8) {
-        addItem(state.inventory, pickup.item, pickup.amount);
-        awardQuestProgress('collect', 1);
-        pickup.mesh.dispose();
-        pickups.splice(i, 1);
-        audio.pickup();
+      if (!pickup.active || pickup.mesh.isDisposed()) {
+        if (pickup.mesh.isDisposed()) pickups.splice(i, 1);
+        continue;
       }
+      pickup.mesh.position.y = pickup.baseY + Math.sin(bob * 2.1 + pickup.phase) * 0.03;
+      if (pickup.runtime) pickup.mesh.rotation.y += delta * 1.4;
     }
 
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -1583,7 +2123,7 @@ const renderLevelSelect = () => {
 
   levels.forEach((level) => {
     const comingSoon = level.comingSoon;
-    const unlocked = !comingSoon && (isLocalPlay() || level.id <= state.progression.highestUnlocked);
+    const unlocked = !comingSoon && level.id <= state.progression.highestUnlocked;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `level-item${comingSoon ? ' coming-soon' : unlocked ? '' : ' locked'}`;
@@ -1611,6 +2151,7 @@ const renderLevelSelect = () => {
         return;
       }
       if (!unlocked) return;
+      levelPicked = true;
       state.level = level.id;
       state.progression.currentLevel = level.id;
       applyLevelConfig(level);
@@ -1637,12 +2178,18 @@ const showLevelSelect = () => {
 };
 
 loadModelBtn.addEventListener('click', () => {
+  if (menuMode() === 'level-complete') {
+    window.location.assign('/');
+    return;
+  }
+  if (!hasProgress()) return;
   showLevelSelect();
 });
 closeLevelSelectBtn.addEventListener('click', () => {
   levelSelect.classList.add('hidden');
   messageTitle.textContent = 'PH Origins';
   messageText.textContent = levelStartLine();
+  syncStartButtonLabel();
 });
 modelInput.addEventListener('change', (event) => {
   const file = (event.target as HTMLInputElement).files?.[0];

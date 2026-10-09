@@ -4,15 +4,18 @@
     "wait-board": { "title": "Objective", "text": "Wait for the board to leave" },
     "alarm": { "title": "Objective", "text": "Investigate the terminal" },
     "elevator": { "title": "Objective", "text": "Get to the elevator" },
-    "lab": { "title": "Objective", "text": "Find the lab door" }
+    "lab": { "title": "Objective", "text": "The halls are black past the lamps. G is the light. F opens the phone. Find the lab door." },
+    "lurk": { "title": "It is loose", "text": "It is moving in the dark. Keep the light up." },
+    "hunt": { "title": "Shoot it", "text": "It is coming. Do not let it reach you." },
+    "vat": { "title": "It breaks", "text": "It is running for the vat." }
   },
   "carry": {
     "sidearm": [
-      { "id": "phone", "name": "Phone", "note": "Company line. F raises it. The sidearm has to be holstered." },
+      { "id": "phone", "name": "Phone", "note": "Company line. F opens the screen. The sidearm has to be holstered." },
       { "id": "sidearm", "name": "Sidearm", "note": "Company issue. Draw it from the weapon slot." }
     ],
     "clearance": [
-      { "id": "phone", "name": "Phone", "note": "Company line. F raises it. The sidearm has to be holstered." },
+      { "id": "phone", "name": "Phone", "note": "Company line. F opens the screen. The sidearm has to be holstered." },
       { "id": "sidearm", "name": "Sidearm", "note": "Company issue. Draw it from the weapon slot." },
       { "id": "clearance", "name": "B3 clearance", "note": "The terminal authorized the descent." }
     ],
@@ -30,7 +33,7 @@
   "complete": {
     "apex": {
       "title": "Level Complete",
-      "text": "Apex Peak Act I is done. B3 is unlocked in Mission Select."
+      "text": "Apex Peak is done. Continue into B3."
     },
     "b3": {
       "title": "Level Complete",

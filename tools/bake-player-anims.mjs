@@ -44,20 +44,28 @@ const playerPistolClips = [
   { name: 'PistolAim', path: firePath },
 ];
 
+const walkBackClip = { name: 'WalkBack', path: path.join(animationsDir, 'Walk Backwards.fbx') };
+const fallingClip = { name: 'FallingDown', path: path.join(animationsDir, 'Falling Down.fbx') };
+const rebornClip = { name: 'RebornIdle', path: path.join(animationsDir, 'Reborn Idle Variation.fbx') };
+const attackClip = { name: 'Attack', path: path.join(animationsDir, 'Attack.fbx') };
+
 const npcClips = locomoClips.filter((clip) => clip.name !== 'Jump');
-const creatureClips = locomoClips.filter((clip) => clip.name === 'Idle' || clip.name === 'Walk');
+const creatureClips = [
+  ...locomoClips.filter((clip) => clip.name === 'Idle' || clip.name === 'Walk'),
+  attackClip,
+];
 
 const jobs = [
   {
     outputName: 'ch33-hero',
     fbx: 'Ch33_nonPBR.fbx',
-    animations: [...locomoClips, ...playerPistolClips],
+    animations: [...locomoClips, ...playerPistolClips, walkBackClip, fallingClip],
     tags: ['character', 'mixamo', 'player', 'real-file'],
   },
   {
     outputName: 'ch44-hero',
     fbx: 'Ch44_nonPBR.fbx',
-    animations: locomoClips,
+    animations: [...locomoClips, rebornClip],
     tags: ['character', 'mixamo', 'transform', 'post-god-complex', 'real-file'],
   },
   {
@@ -115,7 +123,7 @@ const verifyGlbSkinAndClips = (glbAbsPath) => {
   const skinNames = new Set((json.skins?.[0]?.joints || []).map((index) => nodes[index]?.name));
   const hipJoint = [...skinNames].find((name) => /hips/i.test(name || ''));
   const clips = (json.animations || []).filter((anim) =>
-    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster)$/i.test(anim.name || ''),
+    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster|WalkBack|FallingDown|RebornIdle|Attack)$/i.test(anim.name || ''),
   );
   const problems = [];
   if (!hipJoint) problems.push('skin.joints has no Hips');
