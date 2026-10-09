@@ -11,48 +11,256 @@ export type LevelCredits = {
 /**
  * Unspoken leftovers, not a recap of the beats.
  * `role` is the small title. `names` are the large lines.
+ * Each name continues the thought across short lines.
  * Left and right crawl on opposite edges of the card.
  */
 export const LEVEL_CREDITS: Record<number, LevelCredits> = {
   1: {
     left: [
-      { role: 'Pierce', names: ['Let them keep the quarter'] },
-      { role: 'Zurich', names: ['Buys the story', 'Not the basement'] },
-      { role: 'The patients', names: ['Were the work'] },
-      { role: 'Who leave', names: ['Write the decade'] },
-      { role: 'Grace', names: ['Was the door', 'On the way out'] },
-      { role: 'The glass', names: ['Keeps them in'] },
-      { role: 'His promise', names: ['B3 stays dark'] },
-      { role: 'The dark', names: ['Was never his', 'To promise'] },
+      {
+        role: 'Pierce',
+        names: [
+          'Had Built A Company',
+          'That Promised Control',
+          'Over What Once Seemed',
+          'Impossible To Change',
+        ],
+      },
+      {
+        role: 'Zurich',
+        names: [
+          'Was Promised A Future',
+          'But Never Shown',
+          'What It Had Cost',
+          'To Build It',
+        ],
+      },
+      {
+        role: 'The Patients',
+        names: [
+          'Were The Work',
+          'Behind Every Promise',
+          'The Company Made',
+        ],
+      },
+      {
+        role: 'Those Who Leave',
+        names: [
+          'Would Write The Decade',
+          'Pierce Promised Zurich',
+        ],
+      },
+      {
+        role: 'Grace',
+        names: [
+          'Was Always An Option',
+          'For Someone Else',
+        ],
+      },
+      {
+        role: 'The Glass',
+        names: [
+          'Was Built To Keep',
+          'Something Inside',
+        ],
+      },
+      {
+        role: 'His Promise',
+        names: [
+          'Was That B3',
+          'Would Stay Dark',
+        ],
+      },
+      {
+        role: 'The Dark',
+        names: [
+          'Was Never His',
+          'To Promise',
+        ],
+      },
     ],
     right: [
-      { role: 'Voss', names: ['Is mad'] },
-      { role: 'Hale', names: ["Didn't like", 'Being walked out on'] },
-      { role: 'She stayed', names: ['In the room', 'They left her'] },
-      { role: 'A board', names: ['Is not a room', 'You leave'] },
-      { role: 'Lang', names: ['Only wanted', "Zurich's date"] },
-      { role: 'The charter', names: ['Asked for a seal'] },
-      { role: 'He answered', names: ['With the ride down'] },
-      { role: 'The tape', names: ['He will not bury'] },
+      {
+        role: 'Voss',
+        names: [
+          'Still Called Them Patients',
+          'Not Prototypes',
+        ],
+      },
+      {
+        role: 'Hale',
+        names: [
+          'Had Feared What',
+          'Would Happen',
+          'If The Basement',
+          'Ever Came',
+          'To Light',
+        ],
+      },
+      {
+        role: 'The Board',
+        names: [
+          'Could Debate The Future',
+          'Without Looking Down',
+        ],
+      },
+      {
+        role: 'Lang',
+        names: [
+          'Only Needed A Date',
+          'Zurich Needed A Promise',
+        ],
+      },
+      {
+        role: 'The Charter',
+        names: [
+          'Asked For A Seal',
+          'And An End To B3',
+        ],
+      },
+      {
+        role: 'Voss',
+        names: [
+          'Called Pierce First',
+          'Then Sent One Message',
+          'Pick Up The Terminal',
+        ],
+      },
+      {
+        role: 'The Terminal',
+        names: [
+          'Showed Something Moving',
+          'Deep Inside B3',
+          'Something No Report',
+          'Had Prepared Them For',
+        ],
+      },
+      {
+        role: 'Pierce',
+        names: [
+          'Could Have Stayed Upstairs',
+          'Instead He Took',
+          'The Ride Down',
+        ],
+      },
     ],
   },
+
   2: {
     left: [
-      { role: 'The creature', names: ['Was not lost'] },
-      { role: 'The halls', names: ['Were the long way'] },
-      { role: 'The vat', names: ['Was home'] },
-      { role: 'Four hits', names: ['Did not change', 'Its mind'] },
-      { role: 'The glass', names: ['Was the door', 'That mattered'] },
-      { role: 'It did not flee', names: ['It went to be opened'] },
+      {
+        role: 'The Creature',
+        names: [
+          'Was Not Lost',
+          'It Knew Where',
+          'It Was Going',
+        ],
+      },
+      {
+        role: 'The Halls',
+        names: [
+          'Were The Long Way',
+          'Back To The Vat',
+        ],
+      },
+      {
+        role: 'The Vat',
+        names: [
+          'Was Home',
+          'And The Creature',
+          'Was Trying To Return',
+        ],
+      },
+      {
+        role: 'The Containment Team',
+        names: [
+          'Saw A Threat',
+          'They Could Not Control',
+          'Not Something Trying',
+          'To Get Home',
+        ],
+      },
+      {
+        role: 'The Glass',
+        names: [
+          'Was The Door',
+          'That Stood Between',
+          'The Creature And Home',
+        ],
+      },
+      {
+        role: 'Pierce',
+        names: [
+          'Went Down To Close',
+          'A File',
+          'He Never Expected',
+          'To Become Part Of',
+        ],
+      },
     ],
     right: [
-      { role: 'Pierce', names: ['Came to close a file'] },
-      { role: 'The file', names: ['Closed on him'] },
-      { role: "Hale's fear", names: ['Was a leak', 'To the street'] },
-      { role: 'The leak', names: ['Preferred a man'] },
-      { role: 'The voice', names: ['Stayed', 'It was not asked'] },
-      { role: 'The hands', names: ['Belong to the floor'] },
-      { role: 'What walked in', names: ['Does not leave'] },
+      {
+        role: 'Hale',
+        names: [
+          'Had Feared What',
+          'Would Happen',
+          'If The Basement',
+          'Ever Came',
+          'To Light',
+        ],
+      },
+      {
+        role: 'The Acid',
+        names: [
+          'Changed Pierce',
+          'Beyond Recognition',
+          'But Left Him',
+          'With Every Memory',
+        ],
+      },
+      {
+        role: 'The Voice',
+        names: [
+          'Stayed His Own',
+          'Even When His Body',
+          'No Longer Was',
+        ],
+      },
+      {
+        role: 'The Basement',
+        names: [
+          'Would Remain Sealed',
+          'But Pierce Would',
+          'Never Leave It',
+          'Behind',
+        ],
+      },
+      {
+        role: 'The Company',
+        names: [
+          'Could Seal The Doors',
+          'And Hide The Records',
+          'But Could Not Undo',
+          'What Had Happened',
+        ],
+      },
+      {
+        role: 'The Tape',
+        names: [
+          'Would Keep The Record',
+          'Of What Happened',
+          'That Night',
+        ],
+      },
+      {
+        role: 'Pierce Hawkes',
+        names: [
+          'Could Still Remember',
+          'The Man He Was',
+          'He Would Have To Live',
+          'With What Remained',
+        ],
+      },
     ],
   },
 };
@@ -64,14 +272,19 @@ const escapeHtml = (value: string) => value
 
 const column = (blocks: CreditBlock[], side: 'left' | 'right') => {
   const body = blocks.map((block) => {
-    const names = block.names.map((name) => `<p class="credit-name">${escapeHtml(name)}</p>`).join('');
+    const names = block.names
+      .map((name) => `<p class="credit-name">${escapeHtml(name)}</p>`)
+      .join('');
+
     return `<div class="credit-block"><p class="credit-role">${escapeHtml(block.role)}</p>${names}</div>`;
   }).join('');
+
   return `<div class="credit-roll credit-roll-${side}">${body}</div>`;
 };
 
 export const renderLevelCredits = (levelId: number) => {
   const credits = LEVEL_CREDITS[levelId];
   if (!credits) return '';
+
   return column(credits.left, 'left') + column(credits.right, 'right');
 };
