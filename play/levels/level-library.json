@@ -26,10 +26,16 @@
       "reward": "The vat"
     },
     {
-      "id": "arctic-rift",
-      "path": "/levels/arctic-rift.json",
-      "comingSoon": true,
-      "difficulty": 3
+      "id": "the-return",
+      "name": "The Return",
+      "path": "/levels/b3-basement.json",
+      "theme": "B3 Basement",
+      "difficulty": 3,
+      "enemyCount": 0,
+      "combat": false,
+      "playerSpeed": 3.4,
+      "arenaSize": 140,
+      "reward": "The mirror"
     }
   ]
 }

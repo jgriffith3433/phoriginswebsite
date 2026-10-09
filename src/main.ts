@@ -23,7 +23,7 @@ import { createPhone } from './game/phone';
 import { mountPipeDrips } from './game/drips';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
-import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS } from './game/modelLoader';
+import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
 import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
@@ -163,6 +163,7 @@ if (initialSceneData?.theme) {
 const sceneLoadOptions = { omitAssetIds: PLAYER_ASSET_IDS, hideTriggers: true };
 let sceneNodes: BABYLON.Node[] = [];
 let missionScene: SceneData | null = initialSceneData;
+let dressedLevelId = 0;
 
 const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFile>>) => {
   if (loaded) {
@@ -170,6 +171,7 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     missionScene = loaded.data;
     applyTheme(scene, loaded.data.theme || currentThemeName);
     applySceneLighting(scene, loaded.data);
+    grade.setPowers(isReturnLevel());
     grade.apply(loaded.data.theme || currentThemeName);
     return;
   }
@@ -181,6 +183,7 @@ const npcs: Npc[] = [];
 let activeCutscene: ActiveCutscene | null = null;
 let storyCarry: StoryCarry[] = [];
 let act: Act1;
+let officeSwap = false;
 let playerHeroId = PLAYER_ASSET_ID;
 const objectiveMarker = createObjectiveMarker(scene);
 let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
@@ -268,11 +271,11 @@ const showObjectiveHud = (visible: boolean) => {
   objectiveHud.classList.toggle('visible', visible);
 };
 
-const isApexPeakLevel = () =>
-  getLevelDefinition(state.level).libraryId === 'apex-peak' || missionScene?.id === 'apex-peak';
+const isApexPeakLevel = () => getLevelDefinition(state.level).libraryId === 'apex-peak';
 
-const isB3Level = () =>
-  getLevelDefinition(state.level).libraryId === 'b3-basement' || missionScene?.id === 'b3-basement';
+const isB3Level = () => getLevelDefinition(state.level).libraryId === 'b3-basement';
+
+const isReturnLevel = () => getLevelDefinition(state.level).libraryId === 'the-return';
 
 const cineHud = document.createElement('div');
 cineHud.style.cssText = 'position:absolute;left:0;right:0;bottom:11%;text-align:center;pointer-events:none;z-index:24;display:none;';
@@ -382,8 +385,12 @@ const endCutscene = () => {
   act.releaseSeat();
   resetCutsceneState();
   phone.aimBeam(null);
-  if (!phone.locksBody() && phone.isRaised()) phone.setRaised(false);
-  if (reequip && gear) restoreGearAfterCutscene(gear);
+  const restoreLight = reequip && !!gear?.light && !isReturnLevel();
+  if (!restoreLight) {
+    if (phone.isRaised()) phone.setRaised(false);
+    else phone.setFlashlight(false);
+  }
+  if (reequip && gear) restoreGearAfterCutscene({ ...gear, light: restoreLight });
   if (finished) act.onCutsceneEnded(finished.id);
 };
 
@@ -421,32 +428,43 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
   act.handleTrigger(trigger);
 });
 
-const loadMissionScene = async (path: string) => {
-  gameReady = false;
-  syncStartButtonLabel();
+const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+  if (mode === 'boot') {
+    gameReady = false;
+    syncStartButtonLabel();
+  }
   try {
     clearNpcs(npcs);
     clearEnemies(enemies);
-    act.reset();
+    if (mode === 'boot') act.reset();
     resetCutsceneState();
+    if (mode === 'arrive') state.inCutscene = true;
     const loaded = await loadSceneFromJsonFile(scene, path, { ...sceneLoadOptions, replaceNodes: sceneNodes });
     applyLoadedScene(loaded);
     triggerRunner.bind(loaded?.data.triggers ?? []);
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
-    if (loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+    if (mode === 'boot' && loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
     act.dressLevel();
     mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
     clearImpactMarks();
     bindScenePickups();
-    ensurePlayerAvatar(PLAYER_ASSET_ID);
+    ensurePlayerAvatar(isReturnLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
     await Promise.all([
       waitAvatarReady(playerAvatar),
       ...npcs.map((npc) => waitAvatarReady(npc.avatar)),
     ]);
-    act.onLevelReady();
+    if (mode === 'arrive') {
+      act.onOfficeArrived();
+      dressedLevelId = 0;
+    } else {
+      act.onLevelReady();
+      dressedLevelId = state.level;
+    }
   } finally {
-    gameReady = true;
-    syncStartButtonLabel();
+    if (mode === 'boot') {
+      gameReady = true;
+      syncStartButtonLabel();
+    }
   }
 };
 
@@ -540,7 +558,7 @@ const devLevelConfig = readDevLevelConfig();
 const state = {
   running: false,
   health: MAX_HEALTH,
-  level: 1,
+  level: savedLevelId(),
   wave: 1,
   kills: 0,
   lastSpawn: 0,
@@ -556,7 +574,7 @@ const state = {
   characterYaw: 0,
   lookStickDragging: false,
   progression: {
-    currentLevel: 1,
+    currentLevel: savedLevelId(),
     highestUnlocked: getUnlockedLevelCount(save.unlocked ?? 1),
     xp: 0,
     medals: 0,
@@ -581,7 +599,7 @@ const levelStartLine = (level = getLevelDefinition(state.level)) =>
   `Level ${level.id}: ${level.name}`;
 
 const levelLoadingLine = (level = getLevelDefinition(state.level)) =>
-  level.libraryId === 'apex-peak' ? 'Loading the office…' : `Loading ${level.name}…`;
+  `Loading ${level.name}…`;
 
 const enemies: Enemy[] = [];
 const aimPoints: BABYLON.Vector3[] = [];
@@ -620,10 +638,11 @@ const SFX = {
   start: '/assets/audio/sfx/start.ogg',
   objective: '/assets/audio/sfx/objective.ogg',
 } as const;
-const endingTrack = (level: number) => `/assets/audio/ending-${Math.max(1, level)}.mp3`;
+const endingTrack = (level: number) => `/assets/audio/ending-${level >= 3 ? 2 : Math.max(1, level)}.mp3`;
 const oneShotTemplates = new Map<string, HTMLAudioElement>();
 let walkLoop: HTMLAudioElement | null = null;
 let walkStartPending = false;
+let walkWanted = false;
 let endingSong: HTMLAudioElement | null = null;
 
 const stopEndingSong = () => {
@@ -669,7 +688,8 @@ const audio = {
     void element.play().catch(() => {});
   },
   setWalk(playing: boolean) {
-    if (!playing || !this.enabled) {
+    walkWanted = Boolean(playing && this.enabled);
+    if (!walkWanted) {
       walkStartPending = false;
       if (walkLoop) {
         walkLoop.pause();
@@ -688,8 +708,12 @@ const audio = {
     walkLoop.muted = false;
     walkLoop.volume = 0.62;
     walkStartPending = true;
-    void walkLoop.play().then(() => {
+    const loop = walkLoop;
+    void loop.play().then(() => {
       walkStartPending = false;
+      if (walkWanted) return;
+      loop.pause();
+      loop.currentTime = 0;
     }).catch(() => {
       walkStartPending = false;
     });
@@ -723,7 +747,7 @@ const updateHud = () => {
   devHealth.textContent = Math.max(0, Math.ceil(state.health)).toString();
   devLevel.textContent = state.level.toString();
 
-  const storyLevel = isApexPeakLevel() || isB3Level();
+  const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel();
   if (storyLevel) {
     const items = storyCarry.length
       ? storyCarry
@@ -1158,6 +1182,7 @@ const applyLevelConfig = (config: LevelDefinition) => {
   applyLevelCombat(config);
   applyTheme(scene, config.theme);
   if (missionScene) applySceneLighting(scene, missionScene);
+  grade.setPowers(isReturnLevel());
   grade.apply(config.theme);
 };
 
@@ -1202,6 +1227,7 @@ act = createAct1({
   getNpcs: () => npcs,
   isApex: isApexPeakLevel,
   isB3: isB3Level,
+  isReturn: isReturnLevel,
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   running: () => state.running,
   inCutscene: () => state.inCutscene,
@@ -1264,7 +1290,30 @@ act = createAct1({
     phone.aimBeam(at);
   },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  releaseCamera: () => followCamera.clearCinematic(),
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  raiseLight: () => {
+    phone.setRaised(true);
+    phone.setFlashlight(true);
+    syncEquippedCamera();
+  },
+  showLine: (title, text) => showCineHud(title, text),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) audio.setWalk(false);
+  },
+  arriveOffice: () => {
+    if (officeSwap) return;
+    officeSwap = true;
+    state.inCutscene = true;
+    screenFade.to(1, 0);
+    void loadMissionScene(getLevelDefinition(1).path, 'arrive')
+      .catch(() => { act.resumeAscent(); })
+      .finally(() => {
+        state.inCutscene = false;
+        officeSwap = false;
+      });
+  },
 });
 
 const beginGame = () => {
@@ -1294,7 +1343,7 @@ const startAtLevel = async (levelId: number) => {
   try {
     state.level = level.id;
     state.progression.currentLevel = level.id;
-    if (missionScene?.id !== level.libraryId) {
+    if (dressedLevelId !== level.id) {
       applyLevelConfig(level);
       await loadMissionScene(level.path);
     }
@@ -1309,9 +1358,11 @@ const startAtLevel = async (levelId: number) => {
 
 void (async () => {
   await loadLevelLibrary();
-  const firstLevel = getLevels()[0];
-  if (firstLevel) applyLevelConfig(firstLevel);
-  await loadMissionScene(firstLevel?.path ?? DEFAULT_SCENE_FILE_PATH);
+  const bootLevel = getLevelDefinition(savedLevelId());
+  state.level = bootLevel.id;
+  state.progression.currentLevel = bootLevel.id;
+  applyLevelConfig(bootLevel);
+  await loadMissionScene(bootLevel.path);
   const params = new URLSearchParams(location.search);
   const beat = params.get('beat');
   const cutscene = params.get('cutscene');
@@ -1340,6 +1391,24 @@ void (async () => {
     act.armPhase('window');
     beginGame();
     beginNamedCutscene('apex-window');
+  } else if (beat === 'return') {
+    state.level = 3;
+    state.progression.currentLevel = 3;
+    const level = getLevelDefinition(3);
+    applyLevelConfig(level);
+    await loadMissionScene(level.path);
+    beginGame();
+    const at = params.get('at');
+    if (at === 'hall') placePierce(44, 30.2, Math.PI);
+    if (at === 'cab') {
+      act.armPhase('return-up');
+      placePierce(44.25, 21.2, 0);
+    }
+    if (at === 'mirror') {
+      void loadMissionScene(getLevelDefinition(1).path, 'arrive').then(() => {
+        placePierce(18, 31.4, Math.PI);
+      });
+    }
   } else if (beat === 'voss') {
     act.armPhase('call');
     beginGame();
@@ -1365,7 +1434,7 @@ const spawnPickup = (position: BABYLON.Vector3, item: InventoryItemType, amount 
 };
 
 const updateQuestTracker = () => {
-  if (isApexPeakLevel() || isB3Level()) return;
+  if (isApexPeakLevel() || isB3Level() || isReturnLevel()) return;
   const activeQuest = state.quests.find((quest) => !quest.completed) ?? state.quests[state.quests.length - 1];
   if (!activeQuest) return;
   const label = getGoalText(activeQuest);
@@ -1479,10 +1548,8 @@ const updatePlayer = (delta: number) => {
     state.player.jumpWindup = 0;
     state.input.jump = false;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
-    if (phone.locksBody()) {
-      playerAvatar.setLocomotion(false, true);
-      audio.setWalk(false);
-    }
+    if (phone.locksBody()) playerAvatar.setLocomotion(false, true);
+    audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
   const yaw = followCamera.getYaw();

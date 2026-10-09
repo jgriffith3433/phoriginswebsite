@@ -322,6 +322,23 @@ export const createThirdPersonCamera = (
       lookAt.x = lookAt.x * (1 - callMix) + lookX * callMix;
       lookAt.y = lookAt.y * (1 - callMix) + lookY * callMix;
       lookAt.z = lookAt.z * (1 - callMix) + lookZ * callMix;
+      // The wide shot is a fixed offset. Pull it back to the near side of a wall
+      // so the blend cannot sit the lens in the next room.
+      offsetDir.copyFrom(smoothedPos).subtractInPlace(pivot);
+      const span = offsetDir.length();
+      if (span > 0.05) {
+        offsetDir.scaleInPlace(1 / span);
+        const skin = 0.06;
+        probeOrigin.copyFrom(pivot).addInPlace(offsetDir.scale(skin));
+        const hit = pickAlong(probeOrigin, offsetDir, Math.max(0.01, span - skin), ignore);
+        if (hit?.hit && typeof hit.distance === 'number') {
+          const stop = Math.max(0.22, hit.distance + skin - cfg.collisionRadius);
+          if (stop < span - 0.01) smoothedPos.copyFrom(pivot).addInPlace(offsetDir.scale(stop));
+        }
+      }
+      const overhead = ceilingWorldY(smoothedPos.x, smoothedPos.y - 0.05, smoothedPos.z, ignore);
+      const capY = Math.min(maxCamY, overhead - ceilingClearance);
+      if (Number.isFinite(capY) && smoothedPos.y > capY) smoothedPos.y = capY;
     }
 
     camera.position.copyFrom(smoothedPos);

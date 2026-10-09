@@ -593,7 +593,7 @@ export const createCharacterAvatar = (
       applyClipBlending(clip);
     });
     skeletons = imported.skeletons;
-    idleGroup = findClip(animationGroups, 'idle');
+    idleGroup = findClip(animationGroups, 'rebornidle') ?? findClip(animationGroups, 'idle');
     walkGroup = findClip(animationGroups, 'walk');
     jumpGroup = findClip(animationGroups, 'jump');
     pistolIdleGroup = findClip(animationGroups, 'pistolIdle');

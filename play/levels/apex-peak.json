@@ -238,11 +238,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-hall-wall",
-      "uvScale": [
-        1,
-        2
-      ]
+      "materialId": "mat-office-wall"
     },
     {
       "id": "h1-wall-e",
@@ -260,11 +256,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-hall-wall",
-      "uvScale": [
-        1,
-        2
-      ]
+      "materialId": "mat-office-wall"
     },
     {
       "id": "h1-wall-n",
@@ -287,7 +279,7 @@
         "y": 0,
         "z": 0
       },
-      "materialId": "mat-hall-wall"
+      "materialId": "mat-office-wall"
     },
     {
       "id": "h1-wall-s",
@@ -296,34 +288,44 @@
       "name": "Hall 1 South",
       "x": 0,
       "y": 1.6,
-      "z": -1.12,
+      "z": -1.1200000047683716,
       "scale": {
-        "x": 4.88,
-        "y": 3.2,
-        "z": 0.24
+        "x": 4.880000114440918,
+        "y": 3.200000047683716,
+        "z": 0.23999999463558197
       },
       "components": [
         "Transform"
       ],
-      "materialId": "mat-hall-wall"
+      "materialId": "mat-office-wall",
+      "position": {
+        "x": 0,
+        "y": 1.6,
+        "z": -1.1200000047683716
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
     },
     {
       "id": "h2-wall-s",
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Hall 2 South",
-      "x": 19.2,
+      "x": 9.8,
       "y": 1.6,
       "z": 29.68,
       "scale": {
-        "x": 33.6,
+        "x": 14.8,
         "y": 3.2,
         "z": 0.24
       },
       "components": [
         "Transform"
       ],
-      "materialId": "mat-hall-wall"
+      "materialId": "mat-office-wall"
     },
     {
       "id": "h2-wall-n",
@@ -341,7 +343,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-hall-wall",
+      "materialId": "mat-office-wall",
       "rotation": {
         "x": 0,
         "y": 0,
@@ -749,7 +751,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-hall-wall"
+      "materialId": "mat-office-wall"
     },
     {
       "id": "col-nw",
@@ -767,7 +769,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-hall-wall"
+      "materialId": "mat-office-wall"
     },
     {
       "id": "office-wall-w",
@@ -1610,6 +1612,2099 @@
         "y": 0,
         "z": 32
       }
+    },
+    {
+      "id": "trim-h1-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall 1 West Trim",
+      "x": -2.165,
+      "y": 0.45,
+      "z": 17,
+      "scale": {
+        "x": 0.07,
+        "y": 0.9,
+        "z": 35.4
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "trim-h1-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall 1 East Trim",
+      "x": 2.165,
+      "y": 0.45,
+      "z": 14,
+      "scale": {
+        "x": 0.07,
+        "y": 0.9,
+        "z": 30.8
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "trim-h2-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall 2 South Trim",
+      "x": 9.95,
+      "y": 0.45,
+      "z": 29.835,
+      "scale": {
+        "x": 14.5,
+        "y": 0.9,
+        "z": 0.07
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "trim-h2-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall 2 North Trim",
+      "x": 18.47,
+      "y": 0.45,
+      "z": 34.229,
+      "scale": {
+        "x": 33,
+        "y": 0.9,
+        "z": 0.07
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "trim-office-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Office West Trim",
+      "x": 43.275,
+      "y": 0.45,
+      "z": 43.65,
+      "scale": {
+        "x": 0.07,
+        "y": 0.9,
+        "z": 6.6
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "trim-office-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Office East Trim",
+      "x": 52.725,
+      "y": 0.45,
+      "z": 43.56,
+      "scale": {
+        "x": 0.07,
+        "y": 0.9,
+        "z": 6.6
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "trim-office-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Office North Trim",
+      "x": 48,
+      "y": 0.45,
+      "z": 46.965,
+      "scale": {
+        "x": 9.4,
+        "y": 0.9,
+        "z": 0.07
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "carpet-h1",
+      "assetId": "asset-carpet-runner",
+      "kind": "model",
+      "name": "Hall 1 Runner",
+      "x": 0,
+      "y": 0.012,
+      "z": 16,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.48,
+        "y": 1,
+        "z": 27.8
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "carpet-h2",
+      "assetId": "asset-carpet-runner",
+      "kind": "model",
+      "name": "Hall 2 Runner",
+      "x": 16,
+      "y": 0.012,
+      "z": 32,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 24.1,
+        "y": 1,
+        "z": 1.48
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "carpet-office",
+      "assetId": "asset-carpet-runner",
+      "kind": "model",
+      "name": "Office Rug",
+      "x": 48,
+      "y": 0.012,
+      "z": 41.35,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 2.1,
+        "y": 1,
+        "z": 1.35
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h1-w-a",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door W1",
+      "x": -2.125,
+      "y": 0,
+      "z": 8,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h1-w-b",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door W2",
+      "x": -2.125,
+      "y": 0,
+      "z": 18,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h1-w-c",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door W3",
+      "x": -2.13,
+      "y": 0,
+      "z": 26,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948963,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "position": {
+        "x": -2.13,
+        "y": 0,
+        "z": 26
+      }
+    },
+    {
+      "id": "door-h1-e-a",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door E1",
+      "x": 2.125,
+      "y": 0,
+      "z": 6,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h1-e-b",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door E2",
+      "x": 2.125,
+      "y": 0,
+      "z": 14,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h1-e-c",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door E3",
+      "x": 2.125,
+      "y": 0,
+      "z": 22,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h2-s-a",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door S1",
+      "x": 6,
+      "y": 0,
+      "z": 29.875,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h2-s-b",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door S2",
+      "x": 14,
+      "y": 0,
+      "z": 29.875,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h2-s-c",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door S3",
+      "x": 22,
+      "y": 0,
+      "z": 29.875,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h2-s-d",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door S4",
+      "x": 30,
+      "y": 0,
+      "z": 29.875,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h2-n-a",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door N1",
+      "x": 8,
+      "y": 0,
+      "z": 34.19,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h2-n-b",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door N2",
+      "x": 16,
+      "y": 0,
+      "z": 34.19,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "door-h2-n-c",
+      "assetId": "asset-office-door",
+      "kind": "model",
+      "name": "Hall Door N3",
+      "x": 24,
+      "y": 0,
+      "z": 34.19,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cooler-h1",
+      "assetId": "asset-water-cooler",
+      "kind": "model",
+      "name": "Hall Cooler",
+      "x": -2,
+      "y": 0,
+      "z": 12.5,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "plant-h1",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "Hall Plant",
+      "x": -1.96,
+      "y": 0,
+      "z": 30.2,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cabinet-h1",
+      "assetId": "asset-filing-cabinet",
+      "kind": "model",
+      "name": "Hall Cabinet",
+      "x": 1.9,
+      "y": 0,
+      "z": 18,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "bin-h1-a",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "Hall Bin South",
+      "x": 1.95,
+      "y": 0,
+      "z": 1.6,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "bin-h1-b",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "Hall Bin North",
+      "x": -1.85,
+      "y": 0,
+      "z": 23,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "dir-h1",
+      "assetId": "asset-directory-board",
+      "kind": "model",
+      "name": "Hall Directory",
+      "x": -2.16,
+      "y": 1.2,
+      "z": 15,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cooler-h2",
+      "assetId": "asset-water-cooler",
+      "kind": "model",
+      "name": "Upper Hall Cooler",
+      "x": 31,
+      "y": 0,
+      "z": 34.06,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "plant-h2",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "Upper Hall Plant",
+      "x": 10,
+      "y": 0,
+      "z": 30.15,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cabinet-h2",
+      "assetId": "asset-filing-cabinet",
+      "kind": "model",
+      "name": "Upper Hall Cabinet",
+      "x": 24,
+      "y": 0,
+      "z": 30.100000381469727,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ],
+      "position": {
+        "x": 24,
+        "y": 0,
+        "z": 30.100000381469727
+      }
+    },
+    {
+      "id": "chair-wait-a",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "Waiting Chair A",
+      "x": 25.6,
+      "y": 0,
+      "z": 30.4,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chair-wait-b",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "Waiting Chair B",
+      "x": 26.4,
+      "y": 0,
+      "z": 30.4,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "dir-h2",
+      "assetId": "asset-directory-board",
+      "kind": "model",
+      "name": "Upper Hall Directory",
+      "x": 12,
+      "y": 1.2,
+      "z": 34.23,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cooler-office",
+      "assetId": "asset-water-cooler",
+      "kind": "model",
+      "name": "Office Cooler",
+      "x": 43.44,
+      "y": 0,
+      "z": 44.3,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "plant-office",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "Office Plant",
+      "x": 52.5,
+      "y": 0,
+      "z": 44.5,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cabinet-office",
+      "assetId": "asset-filing-cabinet",
+      "kind": "model",
+      "name": "Office Cabinet",
+      "x": 52.46,
+      "y": 0,
+      "z": 41.9,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "credenza-office",
+      "assetId": "asset-credenza",
+      "kind": "model",
+      "name": "Office Credenza",
+      "x": 51,
+      "y": 0,
+      "z": 46.77,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "clutter-office",
+      "assetId": "asset-desk-clutter",
+      "kind": "model",
+      "name": "Office Clutter",
+      "x": 51,
+      "y": 0.75,
+      "z": 46.77,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "chair-guest",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "Guest Chair",
+      "x": 50.2,
+      "y": 0,
+      "z": 43.5,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "bin-office",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "Office Bin",
+      "x": 49.9,
+      "y": 0,
+      "z": 41.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cooler-board",
+      "assetId": "asset-water-cooler",
+      "kind": "model",
+      "name": "Boardroom Cooler",
+      "x": 36.6,
+      "y": 0,
+      "z": 24.2,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "plant-board-sw",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "Boardroom Plant SW",
+      "x": 35.7,
+      "y": 0,
+      "z": 24.7,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "plant-board-ne",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "Boardroom Plant NE",
+      "x": 52.2,
+      "y": 0,
+      "z": 39.7,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "cabinet-board",
+      "assetId": "asset-filing-cabinet",
+      "kind": "model",
+      "name": "Boardroom Cabinet",
+      "x": 36.3,
+      "y": 0,
+      "z": 25.8,
+      "rotation": {
+        "x": 0,
+        "y": -1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "credenza-board",
+      "assetId": "asset-credenza",
+      "kind": "model",
+      "name": "Boardroom Credenza",
+      "x": 51.2,
+      "y": 0,
+      "z": 24.23,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "clutter-board",
+      "assetId": "asset-desk-clutter",
+      "kind": "model",
+      "name": "Boardroom Clutter",
+      "x": 51.2,
+      "y": 0.75,
+      "z": 24.23,
+      "rotation": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "h2-wall-s-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall 2 South B",
+      "x": 27.35,
+      "y": 1.6,
+      "z": 29.68,
+      "scale": {
+        "x": 17.3,
+        "y": 3.2,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "trim-h2-s-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Hall 2 South Trim B",
+      "x": 27.2,
+      "y": 0.45,
+      "z": 29.835,
+      "scale": {
+        "x": 17,
+        "y": 0.9,
+        "z": 0.07
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "floor-bath",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "Bathroom Floor",
+      "x": 18,
+      "y": 0.012,
+      "z": 27.5,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.8,
+        "y": 1,
+        "z": 4.1
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-board-floor",
+      "uvScale": [
+        4,
+        3.4
+      ]
+    },
+    {
+      "id": "bath-wall-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom West",
+      "x": 15.52,
+      "y": 1.6,
+      "z": 27.5,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.16,
+        "y": 3.2,
+        "z": 4.26
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-wall-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom East",
+      "x": 20.48,
+      "y": 1.6,
+      "z": 27.5,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.16,
+        "y": 3.2,
+        "z": 4.26
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-wall-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom South",
+      "x": 18,
+      "y": 1.6,
+      "z": 25.45,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 5.12,
+        "y": 3.2,
+        "z": 0.16
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-header",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom Door Header",
+      "x": 17.95,
+      "y": 2.96,
+      "z": 29.68,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.5,
+        "y": 0.48,
+        "z": 0.24
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-ceil",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom Ceiling",
+      "x": 18,
+      "y": 3.18,
+      "z": 27.45,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.64,
+        "y": 0.08,
+        "z": 3.9
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-ceil-tile"
+    },
+    {
+      "id": "bath-trim-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom West Trim",
+      "x": 15.66,
+      "y": 0.42,
+      "z": 27.45,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.06,
+        "y": 0.84,
+        "z": 3.9
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-trim-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom East Trim",
+      "x": 20.34,
+      "y": 0.42,
+      "z": 27.45,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.06,
+        "y": 0.84,
+        "z": 3.9
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-trim-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom South Trim",
+      "x": 18,
+      "y": 0.42,
+      "z": 25.58,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 4.7,
+        "y": 0.84,
+        "z": 0.06
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-trim-n-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom North Trim West",
+      "x": 16.25,
+      "y": 0.42,
+      "z": 29.52,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.7,
+        "y": 0.84,
+        "z": 0.06
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-trim-n-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom North Trim East",
+      "x": 19.7,
+      "y": 0.42,
+      "z": 29.52,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1.4,
+        "y": 0.84,
+        "z": 0.06
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-stall-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stall Partition A",
+      "x": 15.78,
+      "y": 1.04,
+      "z": 26.22,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 1.68,
+        "z": 1.22
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-stall-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stall Partition B",
+      "x": 16.78,
+      "y": 1.04,
+      "z": 26.22,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 1.68,
+        "z": 1.22
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-stall-c",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stall Partition C",
+      "x": 17.78,
+      "y": 1.04,
+      "z": 26.22,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 1.68,
+        "z": 1.22
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-stall-front-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stall Stile A",
+      "x": 15.92,
+      "y": 1.04,
+      "z": 26.81,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 1.68,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-stall-front-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stall Stile B",
+      "x": 16.92,
+      "y": 1.04,
+      "z": 26.81,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.22,
+        "y": 1.68,
+        "z": 0.04
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-toilet-1-bowl",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Toilet 1 Bowl",
+      "x": 16.28,
+      "y": 0.22,
+      "z": 25.92,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.4,
+        "y": 0.36,
+        "z": 0.5
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-toilet-1-tank",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Toilet 1 Tank",
+      "x": 16.28,
+      "y": 0.62,
+      "z": 25.64,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.36,
+        "y": 0.48,
+        "z": 0.16
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-toilet-1-seat",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Toilet 1 Seat",
+      "x": 16.28,
+      "y": 0.03,
+      "z": 25.96,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.36,
+        "y": 0.035,
+        "z": 0.46
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-chair-leather",
+      "position": {
+        "x": 16.28,
+        "y": 0.03,
+        "z": 25.96
+      }
+    },
+    {
+      "id": "bath-toilet-2-bowl",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Toilet 2 Bowl",
+      "x": 17.28,
+      "y": 0.22,
+      "z": 25.92,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.4,
+        "y": 0.36,
+        "z": 0.5
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-toilet-2-tank",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Toilet 2 Tank",
+      "x": 17.28,
+      "y": 0.62,
+      "z": 25.64,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.36,
+        "y": 0.48,
+        "z": 0.16
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-toilet-2-seat",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Toilet 2 Seat",
+      "x": 17.280000686645508,
+      "y": 0.026167359203100204,
+      "z": 25.959999084472656,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.36000001430511475,
+        "y": 0.03500000014901161,
+        "z": 0.46000000834465027
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-chair-leather",
+      "position": {
+        "x": 17.280000686645508,
+        "y": 0.026167359203100204,
+        "z": 25.959999084472656
+      }
+    },
+    {
+      "id": "bath-vanity-cab",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Vanity Cabinet",
+      "x": 20.16,
+      "y": 0.4,
+      "z": 28.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.46,
+        "y": 0.8,
+        "z": 1.55
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk"
+    },
+    {
+      "id": "bath-vanity-top",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Vanity Top",
+      "x": 20.12,
+      "y": 0.84,
+      "z": 28.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.5,
+        "y": 0.06,
+        "z": 1.62
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-basin-1",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Basin 1",
+      "x": 20.02,
+      "y": 0.9,
+      "z": 27.78,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.3,
+        "y": 0.05,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-basin-2",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Basin 2",
+      "x": 20.02,
+      "y": 0.9,
+      "z": 28.52,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.3,
+        "y": 0.05,
+        "z": 0.22
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-faucet-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Faucet 1",
+      "x": 20.2,
+      "y": 0.96,
+      "z": 27.78,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.05,
+        "y": 0.14,
+        "z": 0.05
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-faucet-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Faucet 2",
+      "x": 20.2,
+      "y": 0.96,
+      "z": 28.52,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.05,
+        "y": 0.14,
+        "z": 0.05
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-towel",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Towel Bar",
+      "x": 20.32,
+      "y": 1.22,
+      "z": 29.05,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 0.04,
+        "z": 0.42
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-plaque",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom Plaque",
+      "x": 16.85,
+      "y": 1.72,
+      "z": 29.9,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.36,
+        "y": 0.14,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-door",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom Door",
+      "x": 17.34,
+      "y": 1.05,
+      "z": 29.02,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.045,
+        "y": 2.1,
+        "z": 0.88
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk",
+      "uvScale": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "bath-jamb-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom Jamb West",
+      "x": 17.16,
+      "y": 1.2,
+      "z": 29.68,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.1,
+        "y": 2.4,
+        "z": 0.32
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk",
+      "uvScale": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "bath-jamb-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom Jamb East",
+      "x": 18.74,
+      "y": 1.2,
+      "z": 29.68,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.1,
+        "y": 2.4,
+        "z": 0.32
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-wood-desk",
+      "uvScale": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "bath-handle",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Bathroom Door Handle",
+      "x": 17.39,
+      "y": 1.02,
+      "z": 29.32,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.04,
+        "y": 0.12,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-stall-door-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stall Door A",
+      "x": 16.2,
+      "y": 1.06,
+      "z": 26.7,
+      "rotation": {
+        "x": 0,
+        "y": 0.55,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.56,
+        "y": 1.6,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-stall-door-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stall Door B",
+      "x": 17.2,
+      "y": 1.06,
+      "z": 26.7,
+      "rotation": {
+        "x": 0,
+        "y": 0.55,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.56,
+        "y": 1.6,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-spout-1",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Faucet Spout 1",
+      "x": 20.05,
+      "y": 1,
+      "z": 27.78,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 1.5708
+      },
+      "scale": {
+        "x": 0.02,
+        "y": 0.16,
+        "z": 0.02
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-spout-2",
+      "assetId": "structure-pillar",
+      "kind": "pillar",
+      "name": "Faucet Spout 2",
+      "x": 20.05,
+      "y": 1,
+      "z": 28.52,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 1.5708
+      },
+      "scale": {
+        "x": 0.02,
+        "y": 0.16,
+        "z": 0.02
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-soap",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Soap Dish",
+      "x": 20,
+      "y": 0.9,
+      "z": 28.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.1,
+        "y": 0.025,
+        "z": 0.07
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-office-wall"
+    },
+    {
+      "id": "bath-splash",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Vanity Backsplash",
+      "x": 20.36,
+      "y": 1.12,
+      "z": 28.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.02,
+        "y": 0.42,
+        "z": 1.48
+      },
+      "components": [
+        "Transform"
+      ],
+      "materialId": "mat-lift-metal"
+    },
+    {
+      "id": "bath-bin",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "Bathroom Bin",
+      "x": 15.88,
+      "y": 0,
+      "z": 29.05,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "bath-troffer",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Bathroom Light Fixture",
+      "x": 18,
+      "y": 3.02,
+      "z": 27.35,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "light-bath",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Bathroom Light",
+      "x": 18,
+      "y": 2.92,
+      "z": 27.35,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Light"
+      ],
+      "color": [
+        0.96,
+        0.94,
+        0.88
+      ],
+      "intensity": 1.15,
+      "range": 8
     }
   ],
   "triggers": [

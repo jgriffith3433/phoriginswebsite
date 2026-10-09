@@ -23,7 +23,8 @@ export type StoryCarry = { id: string; name: string; note: string };
 
 export type SequencePhase =
   | 'seat' | 'idle' | 'wait-board' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
-  | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform';
+  | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform'
+  | 'return-walk' | 'return-call' | 'return-up' | 'return-ride' | 'mirror' | 'mirror-look';
 
 type Objective = { title: string; text: string };
 
@@ -46,6 +47,7 @@ export type ActHost = {
   getNpcs: () => Npc[];
   isApex: () => boolean;
   isB3: () => boolean;
+  isReturn: () => boolean;
   playerXZ: () => { x: number; z: number };
   running: () => boolean;
   inCutscene: () => boolean;
@@ -81,7 +83,12 @@ export type ActHost = {
   stockAmmo: () => void;
   beamAt: (at: { x: number; y: number; z: number } | null) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
+  releaseCamera: () => void;
   fade: (to: number, seconds?: number) => void;
+  raiseLight: () => void;
+  showLine: (title: string, text: string) => void;
+  holdScene: (held: boolean) => void;
+  arriveOffice: () => void;
 };
 
 const ELEVATOR_DOOR_L_CLOSED = 43.42;
@@ -98,6 +105,40 @@ const ELEVATOR_DING_AT = 65.4;
 const LIFT_FLOOR_AT = [0, 16, 26, 36, 46, 56, 64.5];
 const LIFT_FLOOR_LEDS = ['lift-ind-58', 'lift-ind-40', 'lift-ind-20', 'lift-ind-L', 'lift-ind-B1', 'lift-ind-B2', 'lift-ind-B3'] as const;
 const LIFT_FLOOR_LABELS = ['58', '40', '20', 'L', 'B1', 'B2', 'B3'] as const;
+const RETURN_SPAWN = { x: 13.4, z: 38.15, yaw: -Math.PI / 2 };
+const HALE_HALL = { x: 44, z: 30.2 };
+const BRIGHT_HALL = { x: 44, z: 36.2 };
+
+type AsideLine = { text: string; audio: string; duration: number };
+
+const RETURN_OPENING: AsideLine[] = [
+  {
+    text: 'I need to get back to the office. There is still work on the desk, and I am not leaving it overnight.',
+    audio: '/assets/audio/cutscenes/return-walk/01-pierce-office.wav',
+    duration: 6.55,
+  },
+  {
+    text: 'Finish it. Then I go home. That is the rest of the day.',
+    audio: '/assets/audio/cutscenes/return-walk/02-pierce-home.wav',
+    duration: 4.37,
+  },
+];
+
+const RETURN_BRIGHT: AsideLine[] = [
+  {
+    text: 'Why is the hall this bright? I can see the whole length of it.',
+    audio: '/assets/audio/cutscenes/return-walk/03-pierce-bright.wav',
+    duration: 4.0,
+  },
+  {
+    text: 'I did not turn a light on. B3 does not look like this.',
+    audio: '/assets/audio/cutscenes/return-walk/04-pierce-lamps.wav',
+    duration: 4.37,
+  },
+];
+const BATH_DOOR = { x: 18, z: 30.35 };
+const MIRROR_STAND = { x: 19.05, z: 28.15, yaw: Math.PI / 2 };
+const MIRROR_GLASS = { x: 20.22, y: 1.5, z: 28.15 };
 const LAB_DOOR_L_CLOSED = 36.95;
 const LAB_DOOR_R_CLOSED = 39.05;
 const LAB_DOOR_L_OPEN = 35.5;
@@ -149,8 +190,8 @@ type HuntNav = {
   blocks: HuntBlock[];
 };
 
-const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform'];
-const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt'];
+const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look'];
+const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
 
 type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
 
@@ -172,6 +213,17 @@ export const createAct1 = (host: ActHost) => {
   let elevatorReadout = '';
   let labDoorOpen = 0;
   let transformed = false;
+  let ascending = false;
+  let asideQueue: AsideLine[] = [];
+  let asideLeft = 0;
+  let asideGap = 0;
+  let openingStarted = false;
+  let brightPlayed = false;
+  let brightQueued = false;
+  let mirrorLeft = 0;
+  let mirrorMarked = false;
+  let mirrorNodes: BABYLON.AbstractMesh[] = [];
+  let mirrorTex: BABYLON.MirrorTexture | null = null;
   let vatPath: { x: number; z: number }[] = [];
   let vatPathLen = 0;
   let vatArrive = VAT_ARRIVE;
@@ -597,7 +649,7 @@ export const createAct1 = (host: ActHost) => {
     if (lightBaseline) return;
     const points = new Map<BABYLON.Light, number>();
     host.scene.lights.forEach((light) => {
-      if (light === host.hemi || light === host.sun) return;
+      if (light === host.hemi || light === host.sun || light.name === 'phoneFlash') return;
       points.set(light, light.intensity);
     });
     lightBaseline = { hemi: host.hemi.intensity, sun: host.sun.intensity, points };
@@ -648,7 +700,7 @@ export const createAct1 = (host: ActHost) => {
     });
   };
 
-  const finishLevel = (which: 'apex' | 'b3') => {
+  const finishLevel = (which: 'apex' | 'b3' | 'return') => {
     const already = phase === 'done';
     clearVatFx();
     phase = 'done';
@@ -677,6 +729,7 @@ export const createAct1 = (host: ActHost) => {
 
   const beginSeat = () => {
     if (!host.isApex()) return;
+    mountMirror();
     phase = 'seat';
     setOfficeAmmoVisible(false);
     setCarry('sidearm');
@@ -765,6 +818,187 @@ export const createAct1 = (host: ActHost) => {
     host.showObjective(false);
     placeElevator();
     host.beginCutscene('elevator-b3');
+  };
+
+  const clearMirror = () => {
+    mirrorTex?.dispose();
+    mirrorTex = null;
+    for (const mesh of mirrorNodes) mesh.dispose(false, true);
+    mirrorNodes = [];
+    mirrorLeft = 0;
+  };
+
+  const refreshMirror = () => {
+    if (!mirrorTex) return;
+    const skip = new Set(mirrorNodes);
+    mirrorTex.renderList = host.scene.meshes.filter((mesh) => !skip.has(mesh));
+  };
+
+  const mountMirror = () => {
+    clearMirror();
+    const frame = BABYLON.MeshBuilder.CreateBox('return-mirror-frame', { width: 0.04, height: 0.98, depth: 1.4 }, host.scene);
+    frame.position.set(MIRROR_GLASS.x + 0.025, MIRROR_GLASS.y, MIRROR_GLASS.z);
+    frame.isPickable = false;
+    frame.checkCollisions = false;
+    const frameMat = new BABYLON.StandardMaterial('return-mirror-frame-mat', host.scene);
+    frameMat.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.055);
+    frameMat.specularColor = new BABYLON.Color3(0.55, 0.56, 0.58);
+    frame.material = frameMat;
+
+    const glass = BABYLON.MeshBuilder.CreatePlane('return-mirror', {
+      width: 1.24,
+      height: 0.84,
+      sideOrientation: BABYLON.Mesh.DOUBLESIDE,
+    }, host.scene);
+    glass.position.set(MIRROR_GLASS.x, MIRROR_GLASS.y, MIRROR_GLASS.z);
+    glass.rotation.y = -Math.PI / 2;
+    glass.isPickable = false;
+    glass.checkCollisions = false;
+    const glassMat = new BABYLON.StandardMaterial('return-mirror-mat', host.scene);
+    glassMat.disableLighting = true;
+    glassMat.diffuseColor = BABYLON.Color3.Black();
+    glassMat.specularColor = new BABYLON.Color3(0.22, 0.22, 0.24);
+    glassMat.specularPower = 64;
+    glassMat.emissiveColor = BABYLON.Color3.Black();
+    const caps = host.scene.getEngine().getCaps();
+    const texType = caps.textureHalfFloatRender
+      ? BABYLON.Constants.TEXTURETYPE_HALF_FLOAT
+      : BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE;
+    const tex = new BABYLON.MirrorTexture('return-mirror-tex', { width: 1024, height: 1024 }, host.scene, false, texType);
+    tex.mirrorPlane = BABYLON.Plane.FromPositionAndNormal(glass.position, new BABYLON.Vector3(1, 0, 0));
+    tex.level = 0.45;
+    glassMat.reflectionTexture = tex;
+    glass.material = glassMat;
+    mirrorTex = tex;
+    mirrorNodes = [frame, glass];
+    refreshMirror();
+  };
+
+  const placeReturnSpawn = () => {
+    host.placePierce(RETURN_SPAWN.x, RETURN_SPAWN.z, RETURN_SPAWN.yaw);
+  };
+
+  const asideBusy = () => asideLeft > 0 || asideGap > 0 || asideQueue.length > 0;
+
+  const clearAside = () => {
+    asideQueue = [];
+    asideLeft = 0;
+    asideGap = 0;
+    host.showLine('', '');
+  };
+
+  const startAsideLine = () => {
+    const line = asideQueue.shift();
+    if (!line) {
+      clearAside();
+      return;
+    }
+    asideLeft = line.duration;
+    asideGap = 0;
+    host.showLine('Pierce', line.text);
+    host.playFile(line.audio, 0.92);
+  };
+
+  const queueAside = (lines: AsideLine[]) => {
+    asideQueue = lines.map((line) => ({ ...line }));
+    startAsideLine();
+  };
+
+  const stepAside = (delta: number) => {
+    if (asideLeft > 0) {
+      asideLeft -= delta;
+      if (asideLeft > 0) return;
+      host.showLine('', '');
+      if (asideQueue.length) asideGap = 0.4;
+      return;
+    }
+    if (asideGap > 0) {
+      asideGap -= delta;
+      if (asideGap <= 0) startAsideLine();
+    }
+  };
+
+  const beginReturn = () => {
+    if (!host.isReturn()) return;
+    transformed = true;
+    ascending = false;
+    phase = 'return-walk';
+    host.swapAvatar(TRANSFORM_HERO_ASSET_ID);
+    setCarry('changed');
+    setCreatureVisible(false);
+    setVatGlassBroken(true);
+    labDoorOpen = 1;
+    elevatorDoorOpen = 1;
+    applyLabDoors(1);
+    applyElevatorDoors(1);
+    applyElevatorIndicators(LIFT_FLOOR_LABELS.length - 1, false, false);
+    applyCabLight(0, false);
+    clearMirror();
+    placeReturnSpawn();
+    const line = objective('return');
+    host.setObjective(line.title, line.text, { x: ELEVATOR_POSE.x, y: 1.6, z: ELEVATOR_POSE.z });
+    syncObjective();
+  };
+
+  const beginHaleCall = () => {
+    if (phase !== 'return-walk' || asideBusy()) return;
+    phase = 'return-call';
+    clearAside();
+    host.hideMarker();
+    host.showObjective(false);
+    host.ringCall('hale-walkout');
+  };
+
+  const beginReturnUp = () => {
+    phase = 'return-up';
+    elevatorQueued = false;
+    host.resumeLocomotion();
+    const line = objective('return-up');
+    host.setObjective(line.title, line.text, { x: ELEVATOR_POSE.x, y: 1.6, z: ELEVATOR_POSE.z });
+    syncObjective();
+  };
+
+  const beginAscent = () => {
+    if (elevatorQueued || phase !== 'return-up') return;
+    elevatorQueued = true;
+    ascending = true;
+    phase = 'return-ride';
+    elevatorLocked = true;
+    elevatorFloorIndex = LIFT_FLOOR_LABELS.length - 1;
+    host.hideMarker();
+    host.showObjective(false);
+    placeElevator();
+    host.beginCutscene('elevator-up');
+  };
+
+  const beginMirror = () => {
+    phase = 'mirror';
+    elevatorLocked = false;
+    ascending = false;
+    host.resumeLocomotion();
+    mountMirror();
+    mirrorMarked = false;
+    const line = objective('mirror');
+    host.setObjective(line.title, line.text, { x: BATH_DOOR.x, y: 1.55, z: BATH_DOOR.z });
+    syncObjective();
+  };
+
+  const beginMirrorLook = () => {
+    if (phase !== 'mirror') return;
+    phase = 'mirror-look';
+    mirrorLeft = 5.4;
+    host.holdScene(true);
+    host.hideMarker();
+    host.showObjective(false);
+    host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
+    host.holdLocomotion();
+    host.playClip('rebornidle', true);
+    host.frameCamera(
+      { x: MIRROR_STAND.x - 0.72, y: 1.68, z: MIRROR_STAND.z + 0.88 },
+      { x: MIRROR_GLASS.x, y: 1.46, z: MIRROR_GLASS.z },
+    );
+    host.showLine('Pierce', "That's me. I'm not seeing things.");
+    host.playFile('/assets/audio/cutscenes/return-mirror/01-pierce-thats-me.wav', 0.92);
   };
 
   const beginLab = () => {
@@ -1951,6 +2185,16 @@ export const createAct1 = (host: ActHost) => {
     elevatorReadout = '';
     labDoorOpen = 0;
     transformed = false;
+    ascending = false;
+    clearAside();
+    openingStarted = false;
+    brightPlayed = false;
+    brightQueued = false;
+    mirrorMarked = false;
+    clearMirror();
+    host.holdScene(false);
+    host.releaseCamera();
+    host.showLine('', '');
     creatureClip = null;
     creatureHp = 4;
     biteCooldown = 0;
@@ -2010,15 +2254,47 @@ export const createAct1 = (host: ActHost) => {
     },
     reset,
     onLevelReady: () => {
-      if (host.isB3()) beginArrival();
+      if (host.isReturn()) beginReturn();
+      else if (host.isB3()) beginArrival();
       else beginSeat();
     },
+    onOfficeArrived: () => {
+      applyElevatorDoors(1);
+      elevatorDoorOpen = 1;
+      applyElevatorIndicators(0, false, true);
+      applyCabLight(0, false);
+      setOfficeAmmoVisible(false);
+      host.holdScene(false);
+      host.placePierce(ELEVATOR_POSE.x, ELEVATOR_POSE.z + 0.35, 0);
+      host.fade(0, 1.35);
+      beginMirror();
+    },
+    resumeAscent: () => {
+      ascending = false;
+      elevatorLocked = false;
+      elevatorQueued = false;
+      host.holdScene(false);
+      host.fade(0, 0.4);
+      if (phase === 'return-ride' || phase === 'mirror') {
+        phase = 'return-up';
+        beginReturnUp();
+      }
+    },
     onStart: () => {
+      if (host.isReturn()) {
+        if (phase === 'return-walk') {
+          placeReturnSpawn();
+          host.resumeLocomotion();
+        }
+        syncObjective();
+        return;
+      }
       if (host.isB3()) beginArrival();
       else if (host.isApex() && (phase === 'idle' || phase === 'done' || phase === 'seat')) beginSeat();
       else syncObjective();
     },
     handleTrigger: (trigger: SceneTrigger) => {
+      if (host.isReturn()) return true;
       if (phase === 'call') return true;
       if (trigger.id === 'trigger-elevator-b3') {
         beginElevatorCutscene();
@@ -2065,13 +2341,15 @@ export const createAct1 = (host: ActHost) => {
         placeTerminal();
         host.playClip('idle', true);
       }
-      if (id === 'elevator-b3') {
+      if (id === 'elevator-up') ascending = true;
+      if (id === 'elevator-b3' || id === 'elevator-up') {
         elevatorLocked = true;
-        phase = 'ride';
+        if (!ascending) phase = 'ride';
+        elevatorFloorIndex = ascending ? LIFT_FLOOR_LABELS.length - 1 : 0;
         host.showObjective(false);
         host.hideMarker();
         placeElevator();
-        host.playClip('idle', true);
+        host.playClip(ascending ? 'rebornidle' : 'idle', true);
       }
       if (id === 'b3-door-reveal') {
         phase = 'reveal';
@@ -2124,7 +2402,13 @@ export const createAct1 = (host: ActHost) => {
       host.leaveHead();
     },
     onCutsceneEnded: (id: string) => {
-      if (id === 'elevator-b3') {
+      if (id === 'elevator-up' || id === 'elevator-b3') {
+        if (id === 'elevator-up' || ascending) {
+          ascending = false;
+          elevatorLocked = false;
+          host.arriveOffice();
+          return;
+        }
         finishLevel('apex');
         return;
       }
@@ -2144,6 +2428,10 @@ export const createAct1 = (host: ActHost) => {
     },
     startCall: () => beginVossCall(),
     onPhoneFinished: () => {
+      if (phase === 'return-call') {
+        beginReturnUp();
+        return;
+      }
       if (phase !== 'call') return;
       host.resumeLocomotion();
       beginAlarm();
@@ -2152,7 +2440,15 @@ export const createAct1 = (host: ActHost) => {
       if (id === 'room-for-grace') beginWalkout();
       if (id === 'apex-window') beginVossCall();
       if (id === 'apex-terminal') beginElevatorObjective();
-      if (id === 'elevator-b3') finishLevel('apex');
+      if (id === 'elevator-up' || id === 'elevator-b3') {
+        if (id === 'elevator-up' || ascending) {
+          ascending = false;
+          elevatorLocked = false;
+          host.arriveOffice();
+          return;
+        }
+        finishLevel('apex');
+      }
       if (id === 'b3-door-reveal') beginHunt();
       if (id === 'b3-vat-break') finishLevel('b3');
     },
@@ -2164,15 +2460,16 @@ export const createAct1 = (host: ActHost) => {
         elevatorDoorOpen = 1 - closeT;
         applyElevatorDoors(elevatorDoorOpen);
         pulseButton(time >= 2.35);
-        const descending = time >= ELEVATOR_RIDE_AT && time < ELEVATOR_ARRIVE_AT;
+        const rawFloor = elevatorFloorAt(time);
+        const floorIndex = ascending ? LIFT_FLOOR_LABELS.length - 1 - rawFloor : rawFloor;
+        const descending = !ascending && time >= ELEVATOR_RIDE_AT && time < ELEVATOR_ARRIVE_AT;
         const arrived = time >= ELEVATOR_ARRIVE_AT;
-        const floorIndex = elevatorFloorAt(time);
         if (floorIndex !== elevatorFloorIndex) {
           elevatorFloorIndex = floorIndex;
           if (!arrived) host.playFile('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.34);
         }
         if (arrived && !elevatorDinged && time >= ELEVATOR_DING_AT) elevatorDinged = true;
-        applyElevatorIndicators(floorIndex, descending, arrived, time);
+        applyElevatorIndicators(floorIndex, descending, arrived && !ascending, time);
         applyCabLight(time, true);
         placeElevator();
       }
@@ -2204,6 +2501,50 @@ export const createAct1 = (host: ActHost) => {
     },
     fearLevel: () => dread,
     stepWorld: (delta: number) => {
+      refreshMirror();
+      if (phase === 'return-walk' && host.running() && !host.inCutscene()) {
+        stepAside(delta);
+        const here = host.playerXZ();
+        if (!openingStarted) {
+          openingStarted = true;
+          if (Math.hypot(here.x - RETURN_SPAWN.x, here.z - RETURN_SPAWN.z) < 3) queueAside(RETURN_OPENING);
+        }
+        if (!brightPlayed && Math.hypot(here.x - BRIGHT_HALL.x, here.z - BRIGHT_HALL.z) < 2.3) {
+          brightPlayed = true;
+          if (asideBusy()) brightQueued = true;
+          else queueAside(RETURN_BRIGHT);
+        }
+        if (brightQueued && !asideBusy()) {
+          brightQueued = false;
+          queueAside(RETURN_BRIGHT);
+        }
+        const hall = Math.hypot(here.x - HALE_HALL.x, here.z - HALE_HALL.z);
+        const nearCab = here.z < 25.5 && here.z > 18 && Math.abs(here.x - ELEVATOR_POSE.x) < 2.6;
+        if (!asideBusy() && (hall < 2.8 || nearCab)) beginHaleCall();
+      }
+      if (phase === 'return-up' && host.running() && !host.inCutscene()) {
+        const here = host.playerXZ();
+        if (Math.hypot(here.x - ELEVATOR_POSE.x, here.z - ELEVATOR_POSE.z) < 1.45) beginAscent();
+      }
+      if (phase === 'mirror' && host.running() && !host.inCutscene()) {
+        const here = host.playerXZ();
+        if (!mirrorMarked && Math.hypot(here.x - BATH_DOOR.x, here.z - BATH_DOOR.z) < 2.2) {
+          mirrorMarked = true;
+          const line = objective('mirror');
+          host.setObjective(line.title, line.text, { x: MIRROR_STAND.x, y: 1.5, z: MIRROR_STAND.z });
+        }
+        if (Math.hypot(here.x - MIRROR_STAND.x, here.z - MIRROR_STAND.z) < 1.2) beginMirrorLook();
+      }
+      if (phase === 'mirror-look') {
+        host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
+        mirrorLeft -= delta;
+        if (mirrorLeft <= 0) {
+          host.showLine('', '');
+          host.releaseCamera();
+          host.holdScene(false);
+          finishLevel('return');
+        }
+      }
       if (phase === 'elevator' && elevatorDoorOpen < 1) {
         elevatorDoorOpen = Math.min(1, elevatorDoorOpen + delta / 1.05);
         applyElevatorDoors(elevatorDoorOpen);

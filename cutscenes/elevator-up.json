@@ -1,0 +1,156 @@
+{
+  "id": "elevator-up",
+  "name": "Up",
+  "duration": 69,
+  "reequip": false,
+  "notes": "The return ride. Same cab timing as elevator-b3, floors run B3 → 58 in code. Pierce questions what happened on the way up. Anim stays rebornidle.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": { "x": 43.15, "y": 1.62, "z": 21.05 },
+      "lookAt": { "x": 45.4, "y": 1.38, "z": 21.25 }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "rebornidle",
+      "loop": true
+    },
+    {
+      "at": 0,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/hum.wav",
+      "bus": "music",
+      "loop": true,
+      "volume": 0.3
+    },
+    {
+      "at": 2.5,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.7
+    },
+    {
+      "at": 4.0,
+      "type": "camera",
+      "position": { "x": 44.0, "y": 1.7, "z": 20.15 },
+      "lookAt": { "x": 44.0, "y": 1.45, "z": 23.6 }
+    },
+    {
+      "at": 4.1,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/doors.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.65
+    },
+    {
+      "at": 7.0,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/rumble.wav",
+      "bus": "sfx",
+      "loop": true,
+      "volume": 0.38
+    },
+    {
+      "at": 8.6,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "The car is going up. I am still in it. That is the only part I trust.",
+      "audio": "/assets/audio/cutscenes/elevator-up/01-pierce-trust.wav",
+      "anim": "rebornidle",
+      "duration": 6.65,
+      "volume": 0.92
+    },
+    {
+      "at": 12.0,
+      "type": "camera",
+      "position": { "x": 43.2, "y": 1.72, "z": 20.55 },
+      "lookAt": { "x": 44.1, "y": 2.7, "z": 23.48 }
+    },
+    {
+      "at": 16.4,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "There was a thing in the lab. It ran at the glass. The vat broke, and it burned, and I went down.",
+      "audio": "/assets/audio/cutscenes/elevator-up/02-pierce-lab.wav",
+      "anim": "rebornidle",
+      "duration": 7.53,
+      "volume": 0.92
+    },
+    {
+      "at": 25.1,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "After that I am reconstructing. These are not the hands I took into that room. I keep waiting for them to change back.",
+      "audio": "/assets/audio/cutscenes/elevator-up/03-pierce-hands.wav",
+      "anim": "rebornidle",
+      "duration": 7.25,
+      "volume": 0.92
+    },
+    {
+      "at": 33.6,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "Hale thinks I walked out of a meeting. She is going to the other investors. She has not seen what is riding this car.",
+      "audio": "/assets/audio/cutscenes/elevator-up/04-pierce-investors.wav",
+      "anim": "rebornidle",
+      "duration": 7.02,
+      "volume": 0.92
+    },
+    {
+      "at": 36.0,
+      "type": "camera",
+      "position": { "x": 43.35, "y": 1.78, "z": 20.7 },
+      "lookAt": { "x": 44.4, "y": 2.72, "z": 23.46 }
+    },
+    {
+      "at": 41.9,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "If this is my mind failing, the doors will open on a man I recognize. If it is not, then I found the thing. I am wearing it.",
+      "audio": "/assets/audio/cutscenes/elevator-up/05-pierce-wearing.wav",
+      "anim": "rebornidle",
+      "duration": 10.27,
+      "volume": 0.92
+    },
+    {
+      "at": 53.6,
+      "type": "line",
+      "actor": "pierce",
+      "speaker": "Pierce",
+      "text": "I need a mirror. I need a face I already know. If I am inventing this, the glass will say so.",
+      "audio": "/assets/audio/cutscenes/elevator-up/06-pierce-mirror.wav",
+      "anim": "rebornidle",
+      "duration": 7.71,
+      "volume": 0.92
+    },
+    {
+      "at": 59.5,
+      "type": "camera",
+      "position": { "x": 43.4, "y": 1.7, "z": 20.65 },
+      "lookAt": { "x": 44.18, "y": 2.74, "z": 23.44 }
+    },
+    {
+      "at": 65.4,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.82
+    },
+    {
+      "at": 69,
+      "type": "end"
+    }
+  ]
+}

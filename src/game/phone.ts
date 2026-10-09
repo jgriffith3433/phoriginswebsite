@@ -476,9 +476,14 @@ export const createPhone = (
       beamFear = Math.max(0, Math.min(1, amount));
     },
     setFlashlight: (on: boolean) => {
+      if (!on) {
+        flashlight = false;
+        syncMesh();
+        return;
+      }
       if (!raised || mode !== 'idle') return;
-      flashlight = on;
-      if (on) chirp(210, 0.04, 'square', 0.03);
+      flashlight = true;
+      chirp(210, 0.04, 'square', 0.03);
       syncMesh();
     },
     aimBeam: (at: { x: number; y: number; z: number } | null) => {

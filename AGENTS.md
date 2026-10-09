@@ -32,7 +32,7 @@ Build: `npm run build`. Preview: `npm run preview` (port 4173).
 - **GLB-only** in this website. Convert FBX with Blender tools, then reference the GLB.
 - **Do not reintroduce Mixamo JSON retarget / mixamorig rewrite.** That caused T-pose from bone-name collisions. Bake clips in Blender onto `mixamorigN`, load GLB, `glTF` `animationStartMode` none, stop clips without resetting every group to the last pistol pose.
 - **Combat off** on Apex Peak and B3 (`combat: false` in `levels/level-library.json`). Do not spawn wave enemies there.
-- **Level 3** (`arctic-rift`) is **Coming soon**.
+- **Level 3** (`the-return`) reuses the B3 scene, then the Apex Peak scene. Combat stays off. Powers are not in yet.
 - Unlock audio on first gesture (`src/game/audioUnlock.ts`). Mobile needs this.
 - Invert mouse Y is intentional (`thirdPersonCamera.ts`).
 - Start stays disabled until `gameReady` (player + NPCs `whenReady`). Characters stay hidden until idle/sit is playing — avoids T-pose on early Start.
@@ -74,15 +74,15 @@ Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman
 | `autoAim.ts` | With the sidearm out, the camera snaps onto a target in front of it when no solid collider stands between. Bounding boxes only. A hard look breaks the snap. |
 | `muzzleFlash.ts` | Additive flash at barrel; keep it fairly transparent |
 | `npcs.ts` | Board seats → Ch* NPCs, sit/talk, departure |
-| `cutscenes.ts` | Timeline player (camera/hud/line/audio/anim). `reequip` defaults true: a sidearm or flashlight that was out when the scene started is out again when it ends. Set `reequip` false to leave the hands empty (`b3-vat-break`). |
+| `cutscenes.ts` | Timeline player (camera/hud/line/audio/anim). `reequip` defaults true: a sidearm or flashlight that was out when the scene started is out again when it ends. Set `reequip` false to leave the hands empty (`b3-vat-break`, `elevator-up`). A beam the scene turns on for the shot goes back off unless it was already on. The Return never brings the flashlight back. |
 | `triggers.ts` | `enter_zone` / `cutscene` / `npc_exit` / `music` (BGM + duck) |
-| `thirdPersonCamera.ts` | Follow + over-shoulder when armed |
+| `thirdPersonCamera.ts` | Follow + over-shoulder when armed. A call pulls wider and to the left, and that shot stops at walls. |
 | `menuCamera.ts` | Title camera looking at night-city skybox (+Z moon face) |
 | `skybox.ts` | CubeTexture from images; skip rebuild if present; `noMipmap` |
 | `modelLoader.ts` | Asset library, GLB import, `PLAYER_ASSET_ID` |
 | `materials.ts` | Office materials, per-mesh UV, hologram/glass |
 | `objectiveMarker.ts` | World marker for Act I objectives |
-| `grade.ts` | Per-theme ACES grade, bloom, vignette, SSAO |
+| `grade.ts` | Per-theme ACES grade, bloom, vignette, SSAO. `setPowers` raises contrast and saturation on The Return |
 | `phone.ts` | Handset, flashlight, calls, texts. One hand: gun or phone |
 
 Act I phases, elevator and vat choreography, and story inventory live in `src/story/act1.ts`. Timelines can also `mesh` (show/hide), `objective`, `avatar`, and `carry`. `main.ts` boots the canvas and calls the director.
@@ -94,7 +94,7 @@ Act I phases, elevator and vat choreography, and story inventory live in `src/st
 
 **Level 1 — The Apex Peak** (`levels/apex-peak.json`)
 
-Office, boardroom, window, terminal, elevator. Combat off. Sequence in `src/story/act1.ts`: seat → board cutscene → wait-board (NPCs leave) → window VO → Voss calls → alarm → terminal → elevator ride → B3. The window monologue finishes, then `voss-meeting` in `src/story/phone.json` (Hale is furious, Pierce is short). The terminal alarm starts when that call ends, and Voss texts “Pick up the terminal.” **F** opens the phone screen. With the flashlight on, **F** only shows or hides that screen; Pierce keeps the handset and the beam. **G** raises the phone and turns the flashlight on without opening the screen. **G** again toggles the beam, and turning it off while the screen is closed puts the phone away. The sidearm and the phone share one hand. `?beat=voss` rings that call from the spawn. Chairs, the board table, Pierce’s desk, the terminal, and ceiling troffers are GLB props. Story inventory is the phone, the sidearm, and B3 clearance, not arena ammo.
+Office, boardroom, window, terminal, elevator. Combat off. Sequence in `src/story/act1.ts`: seat → board cutscene → wait-board (NPCs leave) → window VO → Voss calls → alarm → terminal → elevator ride → B3. The window monologue finishes, then `voss-meeting` in `src/story/phone.json` (Hale is furious, Pierce is short). The terminal alarm starts when that call ends, and Voss texts “Pick up the terminal.” **F** opens the phone screen. With the flashlight on, **F** only shows or hides that screen; Pierce keeps the handset and the beam. **G** raises the phone and turns the flashlight on without opening the screen. **G** again toggles the beam, and turning it off while the screen is closed puts the phone away. The sidearm and the phone share one hand. `?beat=voss` rings that call from the spawn. Chairs, the board table, Pierce’s desk, the terminal, ceiling troffers, and the hall dressing are GLB props. The dressing kit and how to reuse it are under **Props and new levels**. Story inventory is the phone, the sidearm, and B3 clearance, not arena ammo. Hall walls use `mat-office-wall` (plaster). Do not put `uvScale` on those long walls or the plaster stretches into one tile. `mat-hall-wall` is the old felt.
 
 Cutscenes: `room-for-grace`, `apex-window`, `apex-terminal`, `elevator-b3`. A timeline `fade` event sets the black veil (`src/game/fade.ts`): `to` is 0 clear through 1 black, over `duration` seconds. Subtitles and the level card stay above it. `apex-window` snaps to black, fades the office up, and fades out on the last line. Level Complete fades the view to black under the card, then the next level fades back in. Behind that card, two credit columns (`src/story/credits.ts`) crawl the left and right edges for about **82s**. The right column starts **7s** later. Small titles, large name lines, scaled with `--ui-scale` and the viewport. The lines are the unspoken leftovers (Hale stayed, Voss is mad, the vat was home), not a recap of the beats. Apex Peak is level 1. B3 is level 2.
 
@@ -106,7 +106,68 @@ Music trigger: `/assets/audio/room-tone.mp3`, volume **0.28**, ducks to **0.18**
 
 Basement / lab. Wave combat stays off. Cutscenes: `b3-door-reveal`, `b3-vat-break`. Pierce finds the lab door, the reveal plays his shock, and the creature flees on that timeline (Idle until 9.1s, Attack and a shriek through 13.8s, then Walk through 20.2s, out the south door into decon). Pierce’s line there is “Oh my god! What is that thing?!” For that whole timeline his flashlight stays in his hand, tipped up, and the beam tracks the creature's head, including the flee. Control then returns in a `hunt` phase: the parasite breaks into the rooms, paths along the floors, and only rushes in bursts. The hunt grid is the floors with walls, crates, and other solid colliders cut out, so it routes through doorways instead of sliding through them. It chases at about **3.2** m/s along the nav grid, including diagonals, and the path keeps a waypoint when a shortcut would cut a corner. If a chase step stops making progress, it steps off the wall onto an open cell and picks a new path. It jumps the last few meters when that line is clear, and it keeps coming until a bite lands. A bite is 22 health inside **1.8** m. Then it roams away on a crooked path at about **1.5** m/s for **5–15** seconds before it commits again. A miss keeps the chase going. Hunt SFX live in `assets/audio/sfx/creature/`: skitter and scrape while it walks, chitter when it waits, a distant cry and a pipe knock, breath within about 15 m, a hiss inside 4.6 m. A rush plays shriek **0.62**, the run clip under it at **0.26**, and an electrical tick **0.24**. Heartbeat is **0.55** inside 3.2 m and **0.28** farther out during a rush. A bite is snarl **0.7** plus wound **0.4**. A hit is wound **0.52** and a hiss, or a shriek on the last hit. The rush dips nearby practicals (intensity only — the phone spot stays enabled), stutters the flashlight, tightens a red vignette, and adds a short camera shake. A red edge flash lasts under half a second at the start of a rush. A hit makes it scatter unless it is already on you. Four torso hits drop it. It runs to the vat glass, not the southwest corner. `b3-vat-break` is about **40s**. Pierce walks up. The creature plays `Attack` at the glass. Pierce backs away on `WalkBack` while the glass cracks. At **14.4s** the glass goes, `FallingDown` plays, acid hits him, and he screams. Ch44 swaps at **18.6s** and plays `RebornIdle`. The line after that is “What happened to me…”. `reequip` stays false. Fill, sun, and the vat practicals come up for the shot; his flashlight stays aimed at the vat. The hunt loads a full clip of 8 and one ammo box. Ammo boxes cap at **4**, medkits at **3**. **E** takes the nearest supply when that stack has room; a full stack stays in the world (`Ammo box — E` / `Ammo full`). **H** spends a medkit for 40 health. Boxes and medkits sit in the pipe hall, chem stores, containment, decon, control, service, and the transformation wing. **Q** draws or holsters. **R** spends one box to refill the clip. An empty clip shows “Reload — press R”. No boxes, no reload. Shots stamp a mark on the surface they hit (`src/game/impacts.ts`). `G` is the flashlight; that beam is how the halls read. Level `ambient` is **0.05**. Theme sun is **0.015**, fog starts at 5 and ends at 32, grade exposure is **0.78**. Practicals stay colored and use standard falloff, scaled down (halls ~0.34×, vat and cell ~0.48×) with 1.5× range so the pools are wide and dim. Do not raise `maxSimultaneousLights`. Signs are emissive plates (`b3-sign-*`, including `LIVE DRIPS`). Pipe drips mount from `src/game/drips.ts` on this level only. Layout is still the Sector 4 blueprint: pipe hall, containment, chem stores, decon, control, transformation wing, utility, plus crates, drums, puddles, and caution stripes. Reveal and vat-break VO is Pierce (Jackson). Creature breath and run, plus vat glass and splash, live on those timelines.
 
-**Level 3** — coming soon.
+**Level 3 — The Return** (`the-return`, scene file stays `levels/b3-basement.json` until the ride)
+
+Same basement, after every B3 cutscene. The creature stays hidden, the vat glass is already broken, and Pierce is `asset-ch44-hero`. Standing uses `RebornIdle` when that clip is on the avatar. He starts by the vat with the flashlight off. As soon as he can walk he talks to himself: get back to the office, finish the work on the desk, then go home (`return-walk/01-pierce-office.wav`, `02-pierce-home.wav`, Jackson, **0.92**). At the north end of the pipe hall (about x 44, z 36) he questions why the hall is so bright (`03-pierce-bright.wav`, `04-pierce-lamps.wav`). Objective: the elevator. Hale does not ring until those lines are done. In the pipe hall (about x 44, z 30) Hale calls (`hale-walkout` in `src/story/phone.json`). She is furious that he walked out, wants a reschedule, he says he can't, and she will speak with the other investors. Hale is Annie at **0.92** (`phone/hale-walked-out.wav`, `hale-reschedule.wav`, `hale-investors.wav`, `hale-hear.wav`). Pierce answers with `phone/pierce-cant.wav`. After the call the flashlight stays off, and he walks into the cab. `cutscenes/elevator-up.json` reuses the level 1 cab timing (doors, hum, chimes, about 69s). Pierce talks on the way up, Jackson at **0.92**, `anim` `rebornidle`: he only trusts that the car is climbing, reconstructs the vat, notices his hands, remembers Hale is going to the investors, and decides he needs a mirror. `reequip` is false, so the flashlight stays off when the doors open. Floor LEDs run B3 → B2 → B1 → L → 20 → 40 → 58. The office is the 58th floor. On arrival the scene swaps to Apex Peak with no board NPCs, the cab doors open, and a bathroom is built off the south wall of hall 2 (doorway at x 18, z 29.68, in `levels/apex-peak.json`, so Apex Peak and the return office are the same room). Two stalls, a vanity, and an open door. The mirror is mounted at runtime on the bathroom east wall (a `MirrorTexture` plane, not in the level JSON). Its plane normal points +X, and the reflection stays at 0.45 so the office grade does not blow the glass out. The waypoint starts at the door, then moves to the glass. Walk in. The line is “That's me. I'm not seeing things.” (`return-mirror/01-pierce-thats-me.wav`, Jackson, **0.92**). The walk loop stops for that look. The powers look is on for the whole level. In the basement the fill comes up (hemi about **1.15**, ground side **0.78**), the vignette opens, shadows lift, and the practicals bloom, so the halls read without the flashlight. Fog starts at **22** and ends at **86**. In the office the fill is about **1.9** (the normal office fill is **1.55**), exposure is **1.48**, and the ceiling light blooms, so the room is too bright. Then Level Complete. `isApex` / `isB3` follow the library id, so this swap does not start the board meeting or the hunt. `?beat=return` starts this level. `at=hall` rings Hale from the pipe hall. `at=cab` starts the ride up. `at=mirror` opens the hall outside the bathroom door. Level 3 has the same credit crawl as the earlier levels. Level complete reuses `ending-2` until there is an `ending-3`.
+
+## Props and new levels
+
+The game does not run Blender. A level is `levels/<id>.json`. Each prop is one entry in `assets[]` with `kind: "model"`, an `assetId` from `assets/asset-library.json`, and `x` / `y` / `z` / `rotation.y`. Dev Tools and `/game.html` both `fetch` that file (`cache: no-store`). `npm run dev` serves the repo root, so a refresh shows the file on disk.
+
+Dev Tools keeps the scene it loaded and writes that copy back on Save and on most inspector edits. A tab opened before a JSON edit still has the old hallway. **Reload that tab before clicking anything.** Saving it overwrites `levels/<id>.json`.
+
+### Reuse the office kit
+
+Built by `tools/build_office_dressing.py`. Editable blend: `C:\Projects\phoriginsassets\models\office-dressing.blend`. Rebuild with Blender in the background:
+
+```text
+blender -b --python tools/build_office_dressing.py
+```
+
+That only refreshes the GLBs. Placements stay in the level JSON. Origins sit on the floor, centered. Front face is Blender +Y, stored in glTF as **−Z**. Level yaw `0` faces −Z.
+
+| Yaw | Front faces | Back against |
+|---|---|---|
+| `0` | −Z | north wall |
+| `π` | +Z | south wall |
+| `π/2` | −X | east wall |
+| `−π/2` | +X | west wall |
+
+| Library id | GLB | Size (m, X × depth × height) | Blocks |
+|---|---|---|---|
+| `asset-office-door` | `office-door.glb` | 1.04 × 0.15 × 2.10 | yes |
+| `asset-water-cooler` | `water-cooler.glb` | 0.38 × 0.40 × 1.23 | yes |
+| `asset-filing-cabinet` | `filing-cabinet.glb` | 0.46 × 0.60 × 1.28 | yes |
+| `asset-office-plant` | `office-plant.glb` | 0.49 × 0.42 × 1.07 | yes |
+| `asset-credenza` | `credenza.glb` | 1.60 × 0.46 × 0.75 | yes |
+| `asset-office-chair` | `office-chair.glb` | seat about 0.56 wide | yes |
+| `asset-waste-bin` | `waste-bin.glb` | 0.30 × 0.30 × 0.42 | no |
+| `asset-carpet-runner` | `carpet-runner.glb` | 1.08 × 1.08 × 0.012 tile | no |
+| `asset-desk-clutter` | `desk-clutter.glb` | 0.35 × 0.18 × 0.08 | no |
+| `asset-directory-board` | `directory-board.glb` | 0.70 × 0.05 × 0.90 | no |
+
+Collision is the `SOLID_FURNITURE` set in `src/game/sceneData.ts`. A new prop that should stop the player needs its library id added there. Bins, the runner, clutter, and the directory stay out of that set.
+
+Place the runner at `y: 0.012` and scale X/Z (a 30 m hall is about `scale.z` 27.8, because the mesh is 1.08 m). Sit clutter on a surface (`y` about 0.75 on the credenza). Hang the directory at `y` about 1.2. Wood wainscot is not a GLB: a `structure-wall` with `materialId: "mat-wood-desk"`, `y: 0.45`, height scale `0.9`, thickness about `0.07`, inset from the wall face.
+
+On Apex Peak, keep these marks clear: Pierce’s window stand `trigger-office-window` (x 48, z 46.2), the office chair walk-up (within **1.35** of `chair-office`), the board seats, and the elevator cab. A credenza on the window look (`apex-window` looks at about x 48.15, z 46.85) blocks the city.
+
+Older set props from `tools/build_set_props.py`: `asset-office-chair`, `asset-board-table`, `asset-office-desk`, `asset-office-terminal`, `asset-ceiling-troffer`, `asset-whiskey-glass`, `asset-trophy`, `asset-lab-console`.
+
+### New mesh
+
+Add it to `build_office_dressing.py` (or a sibling script in `tools/`), export a GLB into `assets/models/`, and add an id in `assets/asset-library.json` (`path` like `/assets/models/name.glb`). Save the `.blend` in `C:\Projects\phoriginsassets`. A `.blend` or `.fbx` under `assets/` is copied into `play/`.
+
+Blender MCP (`.cursor/mcp.json`) is the interactive path for a one-off mesh. Dev Tools → **Link Blender** (`npm run dev`) installs the addon if needed and starts Blender until `localhost:9876` listens. It does not close a Blender that is already open. Pierce, the pistol, and the parasite stay on `npm run bake:anims`. Do not run a headless bake while that file is open in the GUI.
+
+Then drop the GLB in Dev Tools (project tree → viewport) or add the `assets[]` entry by hand. Reload the game. Check the browser console for a missing GLB.
+
+### New level
+
+1. Add `levels/<id>.json` (`id`, `name`, `theme`, `assets`, `triggers`) and a row in `levels/level-library.json`. Story levels set `combat: false`. Unreleased slots set `comingSoon: true`.
+2. Mirror that row in `FALLBACK_LIBRARY` in `src/game/levels.ts` so a failed library fetch still lists it.
+3. Dress it by reusing the ids above before modeling anything new.
+4. Reload Dev Tools, then the game. Do not save from a tab that loaded the previous file.
 
 ## Player animation
 
@@ -118,7 +179,7 @@ Some Mixamo **filenames lied**: treat runtime tails as source of truth. Draw/hol
 
 Bake pipeline: Mixamo FBX in `phoriginsassets` → `npm run bake:anims` / `tools/blenderConvert.mjs` / `tools/build_character_glb.py` → GLB here. Editor can import FBX via `/api` during `npm run dev` (needs Blender on PATH).
 
-Blender MCP (`.cursor/mcp.json`) is for new static props. Dev Tools → **Link Blender** installs the addon if it is missing, starts Blender if it is closed, and waits until `localhost:9876` is listening. It does not close a Blender that is already open. The addon server has to be up in the GUI before Cursor can drive it. Save the `.blend` in `C:\Projects\phoriginsassets`, export GLB to `assets/models/`, and register an id in `assets/asset-library.json`. Place the prop in level JSON or Dev Tools so it loads through `modelLoader.ts`. Pierce, the pistol, and the parasite stay on the headless bake scripts. Do not rebake them through the addon, and do not run a headless bake while that file is open in the GUI. A `.blend` under `assets/` is copied into `play/`. Babylon’s Node Material, geometry, and particle MCP servers are not wired up; this game loads glTF PBR, not those node graphs.
+Static props: see **Props and new levels**. Pierce, the pistol, and the parasite stay on the bake scripts above. Babylon’s Node Material, geometry, and particle MCP servers are not wired up; this game loads glTF PBR, not those node graphs.
 
 ## Pistol
 
@@ -130,13 +191,13 @@ Blender MCP (`.cursor/mcp.json`) is for new static props. Dev Tools → **Link B
 
 ## Editor (Dev Tools)
 
-`devtools.html` + `src/editor/`. File System Access + Vite `/api` to write `levels/`, import models/textures. Hierarchy search exists. Tools menu needs high z-index (already fixed once). Clip trim UI writes `clip-trims.json`. The inspector Ambient slider writes `ambient` on the level (hemispheric fill, 0–2.5). The game applies it after the theme. Omit the field to keep the theme intensity.
+`devtools.html` + `src/editor/`. File System Access + Vite `/api` to write `levels/`, import models/textures. Hierarchy search exists. Tools menu needs high z-index (already fixed once). **Tools → Link Blender** starts the Blender MCP addon. Clip trim UI writes `clip-trims.json`. The inspector Ambient slider writes `ambient` on the level (hemispheric fill, 0–2.5). The game applies it after the theme. Omit the field to keep the theme intensity. Drag a GLB from the project tree into the viewport to place it. The editor saves the in-memory scene; reload before editing if the JSON changed on disk (see **Props and new levels**).
 
 Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/source`) → `npm run textures` → WebP + `materials.json`. Soft office look: tile UV on floors independently of walls.
 
 ## UI / controls
 
-- **Start** gated until load. A progress cookie (`ph-origins-save`, `{ unlocked, level, sound }`) makes the title ask **Continue** (saved level) or **New Game** (level 1). Progress counts once `unlocked` or `level` is above 1. **Load Level** stays grey until that cookie exists. Mission select only offers levels at or under `unlocked`. **Reset** clears that cookie. **Level Complete** offers **Continue** into the next playable level and **Exit** back to `/`. After B3 the next slot is still coming soon, so that card is Exit only. **WASD**, mouse look (Y inverted), **Space** jump, **I** inventory, **Q** or the weapon slot draws/holsters, **G** raises the phone and turns the flashlight on without the phone screen. **F** opens that screen, and with the beam already on it only shows or hides the screen. **Q** Sidearm, **G** Light, **H** Medkit, **F** Phone, and **I** Inventory are buttons on the right edge. On mobile the key caps are hidden. **R** reloads from an ammo box, **E** picks up a nearby supply if that stack has room. Those prompts are buttons, and on mobile the key letters stay hidden. **H** uses a medkit (40 health), **P** also starts (gated). With the sidearm drawn, the camera snaps onto a target in front of it only when the line to it is clear. A hard shove on the look stick, or a mouse flick, breaks that snap. The wheel does not zoom. Drawing the pistol or turning on the phone flashlight pulls the camera in (`equippedDistance` 1.55, shoulder offset **0.55**). Holstering both returns the follow distance.
+- **Start** gated until load. A progress cookie (`ph-origins-save`, `{ unlocked, level, sound }`) makes the title ask **Continue** (saved level) or **New Game** (level 1). Progress counts once `unlocked` or `level` is above 1. **Load Level** stays grey until that cookie exists. Mission select only offers levels at or under `unlocked`. **Reset** clears that cookie. **Level Complete** offers **Continue** into the next playable level and **Exit** back to `/`. After The Return there is no next level, so that card is Exit only. **WASD**, mouse look (Y inverted), **Space** jump, **I** inventory, **Q** or the weapon slot draws/holsters, **G** raises the phone and turns the flashlight on without the phone screen. **F** opens that screen, and with the beam already on it only shows or hides the screen. **Q** Sidearm, **G** Light, **H** Medkit, **F** Phone, and **I** Inventory are buttons on the right edge. On mobile the key caps are hidden. **R** reloads from an ammo box, **E** picks up a nearby supply if that stack has room. Those prompts are buttons, and on mobile the key letters stay hidden. **H** uses a medkit (40 health), **P** also starts (gated). With the sidearm drawn, the camera snaps onto a target in front of it only when the line to it is clear. A hard shove on the look stick, or a mouse flick, breaks that snap. The wheel does not zoom. Drawing the pistol or turning on the phone flashlight pulls the camera in (`equippedDistance` 1.55, shoulder offset **0.55**). Holstering both returns the follow distance.
 - Score / Best / Level HUD hidden; health bar kept. A bottom-center readout shows FPS and JS heap (`performance.memory`, Chromium). It refreshes four times a second. Other browsers show memory as n/a.
 - **Start**, **Continue**, and **New Game** lock and hide the mouse. Inventory open exits pointer lock; closing restores it. Mobile keeps touch look.
 
@@ -148,8 +209,8 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 - Landing BGM: `index.html` ~0.42.
 - UI one-shots: `assets/audio/sfx/start.ogg` (Start, **0.7**), `assets/audio/sfx/objective.ogg` (new objective, **0.55**). Level Complete plays `assets/audio/ending-{level}.mp3` once at **0.7** (`ending-1` after Apex Peak, `ending-2` after B3) and stops the level bed. The song stops when the next level starts.
 - Office terminal alarm: looping `assets/audio/cutscenes/apex-window/alarm.wav` at **0.46**, starting when the Voss call ends, until the terminal beat.
-- Voss call (`src/story/phone.json`): Voss **0.92**, Pierce **0.92**. Lines in `assets/audio/phone/`.
-- Elevator ride (`cutscenes/elevator-b3.json`): cab hum loop **0.3**, door slide, floor chime (`beep.wav`), descent rumble loop **0.38**. Passing floors reuse the chime at **0.34**; arrival uses the timeline chime only.
+- Voss call (`src/story/phone.json`): Voss **0.92**, Pierce **0.92**. Lines in `assets/audio/phone/`. Hale's walkout call is the same volume: Hale **0.92**, Pierce **0.92**.
+- Elevator ride (`cutscenes/elevator-b3.json`): cab hum loop **0.3**, door slide, floor chime (`beep.wav`), descent rumble loop **0.38**. Passing floors reuse the chime at **0.34**; arrival uses the timeline chime only. The ride up (`cutscenes/elevator-up.json`) uses that same bed. Pierce's six lines are **0.92**.
 - B3 reveal (`cutscenes/b3-door-reveal.json`): Pierce “Oh my god! What is that thing?!” **0.92** (`02-pierce-what-is-that.wav`, Jackson) at 5.8s, creature breath **0.38** at 5.8s, shriek **0.78** at 9.4s with the Attack, creature run **0.55** from 13.8s (matches the Walk flee). Door slide reuses the elevator door clip.
 - B3 vat break (`cutscenes/b3-vat-break.json`): about **40s**. Pierce “It ran…” **0.92** as he starts backing away, scream **1** (`04-pierce-scream.wav`, Jackson) when the acid hits, then after the body changes “What happened to me…” **0.92** (`05-pierce-what-happened.wav`, Jackson, about 19s). Glass **0.86** and splash **0.78** at **14.4s**. Creature shrieks at **4.2s** and **11.2s** while the glass cracks. Avatar event swaps to Ch44 at **18.6s** onto `RebornIdle`. Timeline ends at **39.6s**, then Level Complete.
 

@@ -263,6 +263,103 @@ export const LEVEL_CREDITS: Record<number, LevelCredits> = {
       },
     ],
   },
+
+  3: {
+    left: [
+      {
+        role: 'The Desk',
+        names: [
+          'Still Had The Work',
+          'He Had Meant To Finish',
+          'Before Going Home',
+        ],
+      },
+      {
+        role: 'The Hall',
+        names: [
+          'Was Brighter Than',
+          'Any Lamp He Remembered',
+        ],
+      },
+      {
+        role: 'Hale',
+        names: [
+          'Was Already Speaking',
+          'With The Other Investors',
+        ],
+      },
+      {
+        role: 'The Car',
+        names: [
+          'Only Proved',
+          'That It Was Climbing',
+        ],
+      },
+      {
+        role: 'The Hands',
+        names: [
+          'Were Not The Ones',
+          'He Took Downstairs',
+        ],
+      },
+      {
+        role: 'Home',
+        names: [
+          'Was Still The Plan',
+          'The Plan Had Not',
+          'Seen The Glass',
+        ],
+      },
+    ],
+    right: [
+      {
+        role: 'The Investors',
+        names: [
+          'Would Hear He Walked Out',
+          'They Would Not Hear',
+          'What Rode The Car',
+        ],
+      },
+      {
+        role: 'The Meeting',
+        names: [
+          'Stayed On The Books',
+          'The Man Who Left It',
+          'Did Not',
+        ],
+      },
+      {
+        role: 'The Mirror',
+        names: [
+          'Agreed With Him',
+          'And Offered',
+          'No Explanation',
+        ],
+      },
+      {
+        role: 'The Office',
+        names: [
+          'Remembered A Man',
+          'It Would Have To Learn',
+          'The Rest',
+        ],
+      },
+      {
+        role: 'The Light',
+        names: [
+          'Had Been Left Off',
+          'The Room Was Not',
+        ],
+      },
+      {
+        role: 'Pierce Hawkes',
+        names: [
+          'Still Knew The Way',
+          'To His Own Floor',
+        ],
+      },
+    ],
+  },
 };
 
 const escapeHtml = (value: string) => value

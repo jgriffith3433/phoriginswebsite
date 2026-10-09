@@ -32,7 +32,7 @@ const combatFromDifficulty = (difficulty: number) => ({
 const FALLBACK_LIBRARY: LibraryEntry[] = [
   { id: 'apex-peak', name: 'The Apex Peak', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 1, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'Room for Grace' },
   { id: 'b3-basement', name: 'B3', path: '/levels/b3-basement.json', theme: 'B3 Basement', difficulty: 2, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'The vat' },
-  { id: 'arctic-rift', path: '/levels/arctic-rift.json', comingSoon: true },
+  { id: 'the-return', name: 'The Return', path: '/levels/b3-basement.json', theme: 'B3 Basement', difficulty: 3, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'The mirror' },
 ];
 
 const normalizeLevel = (entry: LibraryEntry | Partial<LevelDefinition> | undefined, index: number): LevelDefinition => {

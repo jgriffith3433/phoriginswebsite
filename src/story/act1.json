@@ -7,7 +7,10 @@
     "lab": { "title": "Objective", "text": "The halls are black past the lamps. G is the light. F opens the phone. Find the lab door." },
     "lurk": { "title": "It is loose", "text": "It is moving in the dark. Keep the light up." },
     "hunt": { "title": "Shoot it", "text": "It is coming. Do not let it reach you." },
-    "vat": { "title": "It breaks", "text": "It is running for the vat." }
+    "vat": { "title": "It breaks", "text": "It is running for the vat." },
+    "return": { "title": "Get upstairs", "text": "The elevator is the way back." },
+    "return-up": { "title": "Elevator", "text": "Walk in. It goes up." },
+    "mirror": { "title": "Look", "text": "The hall bathroom. Find the mirror." }
   },
   "carry": {
     "sidearm": [
@@ -38,6 +41,10 @@
     "b3": {
       "title": "Level Complete",
       "text": "B3 incident is done. Pierce is not the man who walked in."
+    },
+    "return": {
+      "title": "Level Complete",
+      "text": "The mirror is sure. Whatever this is, it is him."
     }
   }
 }

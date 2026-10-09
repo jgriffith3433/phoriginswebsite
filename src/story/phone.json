@@ -1,6 +1,7 @@
 {
   "contacts": {
     "voss": { "name": "Voss", "detail": "Board" },
+    "hale": { "name": "Hale", "detail": "Director" },
     "pierce": { "name": "Pierce", "detail": "You" }
   },
   "calls": {
@@ -30,6 +31,41 @@
           "text": "I did.",
           "audio": "/assets/audio/phone/pierce-did.wav",
           "duration": 0.9
+        }
+      ]
+    },
+    "hale-walkout": {
+      "contact": "hale",
+      "lines": [
+        {
+          "speaker": "hale",
+          "text": "Pierce. You walked out of my board meeting.",
+          "audio": "/assets/audio/phone/hale-walked-out.wav",
+          "duration": 2.6
+        },
+        {
+          "speaker": "hale",
+          "text": "You will reschedule. Today.",
+          "audio": "/assets/audio/phone/hale-reschedule.wav",
+          "duration": 2.14
+        },
+        {
+          "speaker": "pierce",
+          "text": "I can't right now.",
+          "audio": "/assets/audio/phone/pierce-cant.wav",
+          "duration": 1.16
+        },
+        {
+          "speaker": "hale",
+          "text": "Then I have no choice. I will speak with the other investors.",
+          "audio": "/assets/audio/phone/hale-investors.wav",
+          "duration": 3.95
+        },
+        {
+          "speaker": "hale",
+          "text": "They will hear that you walked out.",
+          "audio": "/assets/audio/phone/hale-hear.wav",
+          "duration": 2.09
         }
       ]
     }

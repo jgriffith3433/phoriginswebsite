@@ -2,6 +2,8 @@ import * as BABYLON from '@babylonjs/core';
 
 export type SceneGrade = {
   apply: (themeName: string) => void;
+  /** Heightened contrast and saturation while Pierce is the changed body. */
+  setPowers: (on: boolean) => void;
   /** 0–1. Basement only: tighter red vignette and a darker exposure while the creature is close. */
   setFear: (amount: number) => void;
   dispose: () => void;
@@ -48,8 +50,11 @@ export const createSceneGrade = (
   }
 
   let theme = '';
+  let powers = false;
   let baseExposure = 1;
   let baseVignette = 2.2;
+  const curves = new BABYLON.ColorCurves();
+  image.colorCurves = curves;
 
   const apply = (themeName: string) => {
     theme = themeName;
@@ -59,14 +64,77 @@ export const createSceneGrade = (
     image.contrast = basement ? 1.06 : 1.12;
     pipeline.bloomWeight = basement ? 0.28 : 0.1;
     pipeline.bloomThreshold = basement ? 0.48 : 0.84;
+    pipeline.bloomKernel = 42;
+    pipeline.bloomScale = 0.45;
     image.vignetteWeight = basement ? 4.1 : 2.2;
     image.vignetteColor.set(0, 0, 0, 0);
+    curves.globalSaturation = 0;
+    curves.globalDensity = 0;
+    curves.globalExposure = 0;
+    curves.shadowsExposure = 0;
+    curves.highlightsExposure = 0;
+    image.colorCurvesEnabled = false;
+    paintHemiGround(0, 0, 0);
+    if (powers && basement) {
+      image.exposure = 1.72;
+      image.contrast = 1.08;
+      image.vignetteWeight = 1.05;
+      pipeline.bloomWeight = 0.55;
+      pipeline.bloomThreshold = 0.22;
+      pipeline.bloomKernel = 68;
+      pipeline.bloomScale = 0.64;
+      curves.globalSaturation = 18;
+      curves.shadowsExposure = 72;
+      image.colorCurvesEnabled = true;
+      liftFill(1.15, 0.32);
+      paintHemiGround(0.78, 0.82, 0.76);
+      scene.fogColor = new BABYLON.Color3(0.05, 0.07, 0.055);
+      scene.fogStart = 22;
+      scene.fogEnd = 86;
+    } else if (powers) {
+      image.exposure = apex ? 1.48 : 1.65;
+      image.contrast = 1.16;
+      image.vignetteWeight = 1.15;
+      pipeline.bloomWeight = 0.5;
+      pipeline.bloomThreshold = 0.32;
+      pipeline.bloomKernel = 72;
+      pipeline.bloomScale = 0.58;
+      curves.globalSaturation = 22;
+      curves.globalExposure = 8;
+      curves.highlightsExposure = 16;
+      curves.shadowsExposure = 6;
+      image.colorCurvesEnabled = true;
+      if (apex) liftFill(1.9, 0.55);
+    }
     baseExposure = image.exposure;
     baseVignette = image.vignetteWeight;
     if (ssao) {
-      ssao.totalStrength = basement ? 0.95 : 0.7;
-      ssao.radius = basement ? 1.6 : 1.25;
+      if (powers) {
+        ssao.totalStrength = basement ? 0.16 : 0.38;
+        ssao.radius = 1.05;
+      } else {
+        ssao.totalStrength = basement ? 0.95 : 0.7;
+        ssao.radius = basement ? 1.6 : 1.25;
+      }
     }
+  };
+
+  const liftFill = (hemiIntensity: number, sunIntensity: number) => {
+    const hemi = scene.getLightByName('hemi');
+    const sun = scene.getLightByName('sun');
+    if (hemi instanceof BABYLON.HemisphericLight) hemi.intensity = hemiIntensity;
+    if (sun instanceof BABYLON.DirectionalLight) sun.intensity = sunIntensity;
+  };
+
+  const paintHemiGround = (r: number, g: number, b: number) => {
+    const hemi = scene.getLightByName('hemi');
+    if (hemi instanceof BABYLON.HemisphericLight) hemi.groundColor.set(r, g, b);
+  };
+
+  const setPowers = (on: boolean) => {
+    if (powers === on) return;
+    powers = on;
+    if (theme) apply(theme);
   };
 
   const setFear = (amount: number) => {
@@ -79,6 +147,7 @@ export const createSceneGrade = (
 
   return {
     apply,
+    setPowers,
     setFear,
     dispose: () => {
       pipeline.dispose();

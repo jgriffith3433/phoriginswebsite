@@ -612,6 +612,78 @@
         "basement"
       ],
       "source": "project"
+    },
+    {
+      "id": "asset-water-cooler",
+      "name": "water-cooler.glb",
+      "path": "/assets/models/water-cooler.glb",
+      "type": "model",
+      "tags": ["prop", "furniture", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-filing-cabinet",
+      "name": "filing-cabinet.glb",
+      "path": "/assets/models/filing-cabinet.glb",
+      "type": "model",
+      "tags": ["prop", "furniture", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-office-plant",
+      "name": "office-plant.glb",
+      "path": "/assets/models/office-plant.glb",
+      "type": "model",
+      "tags": ["prop", "furniture", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-office-door",
+      "name": "office-door.glb",
+      "path": "/assets/models/office-door.glb",
+      "type": "model",
+      "tags": ["prop", "door", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-waste-bin",
+      "name": "waste-bin.glb",
+      "path": "/assets/models/waste-bin.glb",
+      "type": "model",
+      "tags": ["prop", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-credenza",
+      "name": "credenza.glb",
+      "path": "/assets/models/credenza.glb",
+      "type": "model",
+      "tags": ["prop", "furniture", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-carpet-runner",
+      "name": "carpet-runner.glb",
+      "path": "/assets/models/carpet-runner.glb",
+      "type": "model",
+      "tags": ["prop", "floor", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-desk-clutter",
+      "name": "desk-clutter.glb",
+      "path": "/assets/models/desk-clutter.glb",
+      "type": "model",
+      "tags": ["prop", "office"],
+      "source": "project"
+    },
+    {
+      "id": "asset-directory-board",
+      "name": "directory-board.glb",
+      "path": "/assets/models/directory-board.glb",
+      "type": "model",
+      "tags": ["prop", "sign", "office"],
+      "source": "project"
     }
   ]
 }
