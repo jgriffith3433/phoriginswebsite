@@ -2,7 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 
 import { createUnlockedAudio } from '../game/audioUnlock';
 import type { CutsceneVec3 } from '../game/cutscenes';
-import { findClip } from '../game/playerAvatar';
+import { createCharacterAvatar, findClip } from '../game/playerAvatar';
 import { TRANSFORM_HERO_ASSET_ID, PLAYER_ASSET_ID } from '../game/modelLoader';
 import {
   remainingDepartingNpcs,
@@ -16,13 +16,14 @@ import {
   type Npc,
 } from '../game/npcs';
 import { paintLiftGlyph, type SceneData, type SceneTrigger } from '../game/sceneData';
+import { pointInsideTrigger } from '../game/triggers';
 
 import actCopy from './act1.json';
 
 export type StoryCarry = { id: string; name: string; note: string };
 
 export type SequencePhase =
-  | 'seat' | 'idle' | 'wait-board' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
+  | 'seat' | 'idle' | 'late' | 'wait-board' | 'to-window' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
   | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform'
   | 'return-walk' | 'return-call' | 'return-up' | 'return-ride' | 'mirror' | 'mirror-look';
 
@@ -191,7 +192,7 @@ type HuntNav = {
 };
 
 const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look'];
-const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
+const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
 
 type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
 
@@ -202,6 +203,7 @@ export const createAct1 = (host: ActHost) => {
   let boardDeparting = false;
   let windowQueued = false;
   let callStarted = false;
+  let lateStarted = false;
   let elevatorQueued = false;
   let windowLocked = false;
   let terminalLocked = false;
@@ -239,6 +241,7 @@ export const createAct1 = (host: ActHost) => {
   let biteCooldown = 0;
   let retreatLeft = 0;
   let huntMood: 'lurk' | 'strike' = 'lurk';
+  let huntWaiting = false;
   let huntPosted: 'lurk' | 'strike' | null = null;
   let nextStrike = 5;
   let lurkIdle = 0;
@@ -304,6 +307,12 @@ export const createAct1 = (host: ActHost) => {
     return meshes;
   };
 
+  const terminalHousing = () =>
+    meshesFor('office-terminal').filter((mesh) => {
+      if (mesh.name === 'office-terminal-feed') return false;
+      return !(mesh.metadata as { terminalFeed?: boolean } | undefined)?.terminalFeed;
+    });
+
   const firstMesh = (id: string) => meshesFor(id)[0] ?? null;
 
   const syncObjective = () => {
@@ -325,6 +334,13 @@ export const createAct1 = (host: ActHost) => {
 
   const placeElevator = (yaw = ELEVATOR_POSE.yaw) => {
     host.placePierce(ELEVATOR_POSE.x, ELEVATOR_POSE.z, yaw);
+  };
+
+  /** Faces the call button, then turns toward the doors after the press. */
+  const elevatorFaceYaw = (time: number) => {
+    const t = Math.min(1, Math.max(0, (time - 2.55) / 0.7));
+    const eased = t * t * (3 - 2 * t);
+    return (Math.PI / 2) * (1 - eased);
   };
 
   const glow = (id: string, diffuse: BABYLON.Color3, emissive: BABYLON.Color3) => {
@@ -352,7 +368,7 @@ export const createAct1 = (host: ActHost) => {
   const rememberTerminal = () => {
     if (terminalColors) return;
     const saved: TerminalColors[] = [];
-    for (const mesh of meshesFor('office-terminal')) {
+    for (const mesh of terminalHousing()) {
       const material = mesh.material;
       if (material instanceof BABYLON.PBRMaterial) {
         saved.push({
@@ -394,7 +410,7 @@ export const createAct1 = (host: ActHost) => {
     rememberTerminal();
     const diffuse = new BABYLON.Color3(0.55, 0.08, 0.1);
     const emissive = new BABYLON.Color3(0.85, 0.12, 0.14);
-    for (const mesh of meshesFor('office-terminal')) {
+    for (const mesh of terminalHousing()) {
       const material = mesh.material;
       if (material instanceof BABYLON.PBRMaterial) {
         material.albedoColor = diffuse.clone();
@@ -628,12 +644,12 @@ export const createAct1 = (host: ActHost) => {
     const raw = Math.min(1, Math.max(0, (time - CREATURE_FLEE_AT) / span));
     const eased = raw * raw * (3 - 2 * raw);
     const along = fleeAlong(eased);
-    node.setEnabled(raw < 0.985);
+    node.setEnabled(true);
     node.position.x = along.x;
     node.position.y = CREATURE_HOME.y;
     node.position.z = along.z;
     node.rotation.y = along.yaw;
-    playCreature('walk', 1.45);
+    playCreature(raw > 0.98 ? 'idle' : 'walk', raw > 0.98 ? 1 : 1.45);
   };
 
   const lightCreature = () => {
@@ -658,7 +674,7 @@ export const createAct1 = (host: ActHost) => {
   const restoreLights = () => {
     if (!lightBaseline) {
       if (host.isB3()) {
-        host.hemi.intensity = 0.05;
+        host.hemi.intensity = 0.065;
         host.sun.intensity = 0.015;
       }
       return;
@@ -680,8 +696,9 @@ export const createAct1 = (host: ActHost) => {
       alarm.wav = null;
     }
     restyleTerminal(false);
+    securityFeed?.dim();
     terminalColors = null;
-    for (const mesh of meshesFor('office-terminal')) {
+    for (const mesh of terminalHousing()) {
       const material = mesh.material;
       if (!(material instanceof BABYLON.PBRMaterial) && !(material instanceof BABYLON.StandardMaterial)) continue;
       const glow = material.emissiveColor;
@@ -726,7 +743,6 @@ export const createAct1 = (host: ActHost) => {
     if (already) return;
     if (which === 'b3') setCarry('changed');
     host.unlockNext();
-    host.win();
     host.fade(1, 1.15);
     host.refreshHud();
     const card = copy.complete[which];
@@ -764,13 +780,26 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const beginWindow = () => {
-    if (windowQueued || phase === 'window' || phase === 'call' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'ride') return;
+    if (windowQueued || phase === 'to-window' || phase === 'window' || phase === 'call' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'ride') return;
     windowQueued = true;
-    phase = 'window';
-    host.fade(1, 0);
+    phase = 'to-window';
+    const data = mission();
+    const pose = data ? resolveOfficeWindow(data) : { x: 48, z: 46.2 };
+    const line = objective('window');
+    host.setObjective(line.title, line.text, { x: pose.x, y: 1.6, z: pose.z });
+    syncObjective();
+  };
+
+  const beginLateCall = () => {
+    if (lateStarted || !host.isApex()) return;
+    lateStarted = true;
+    phase = 'late';
+    host.clearInput();
+    host.holdLocomotion();
+    host.playClip('idle', true);
     host.hideMarker();
     host.showObjective(false);
-    host.beginCutscene('apex-window');
+    host.ringCall('voss-late');
   };
 
   const beginVossCall = () => {
@@ -1674,9 +1703,10 @@ export const createAct1 = (host: ActHost) => {
     creatureHp = 4;
     biteCooldown = 0.2;
     retreatLeft = 0;
-    huntMood = 'strike';
+    huntMood = 'lurk';
+    huntWaiting = true;
     huntPosted = null;
-    nextStrike = 0;
+    nextStrike = 8;
     lurkIdle = 0;
     strikeLeft = 0;
     repathIn = 0;
@@ -1697,19 +1727,20 @@ export const createAct1 = (host: ActHost) => {
     cryIn = 7;
     hissed = false;
     hurtSfx = 0;
-    const player = host.playerXZ();
-    const spawn = { x: 6.4, y: 0, z: 34.1 };
-    const yaw = Math.atan2(player.x - spawn.x, player.z - spawn.z);
+    const den = CREATURE_FLEE_PATH[CREATURE_FLEE_PATH.length - 1];
     const node = creatureRoot();
     creatureClip = null;
     if (node) {
       node.setEnabled(true);
-      node.position.set(spawn.x, spawn.y, spawn.z);
-      node.rotation.set(0, yaw, 0);
+      const drifted = Math.hypot(node.position.x - den.x, node.position.z - den.z);
+      if (drifted > 1.2) node.position.set(den.x, 0, den.z);
+      node.position.y = 0;
+      const back = CREATURE_FLEE_PATH[CREATURE_FLEE_PATH.length - 2] ?? den;
+      node.rotation.set(0, Math.atan2(back.x - den.x, back.z - den.z), 0);
     }
     stuckTime = 0;
-    stuckX = spawn.x;
-    stuckZ = spawn.z;
+    stuckX = den.x;
+    stuckZ = den.z;
     playCreature('idle', 1);
     host.resumeLocomotion();
     host.stockAmmo();
@@ -1722,6 +1753,22 @@ export const createAct1 = (host: ActHost) => {
     if (phase !== 'hunt' || host.inCutscene()) return;
     const node = creatureRoot();
     if (!node) return;
+    if (huntWaiting) {
+      node.setEnabled(true);
+      node.position.y = 0;
+      playCreature('idle', 1);
+      const here = host.playerXZ();
+      const inDen = here.z < 30.6 && here.z > 16 && here.x > 2 && here.x < 16;
+      if (inDen) {
+        huntWaiting = false;
+        huntMood = 'lurk';
+        nextStrike = 3.2 + Math.random() * 2.4;
+        lurkIdle = 0.8;
+        huntPath = [];
+      }
+      stepDread(node, Math.hypot(here.x - node.position.x, here.z - node.position.z), delta);
+      return;
+    }
     if (retreatLeft > 0) {
       retreatLeft -= delta;
       if (!huntNav) huntNav = buildHuntNav();
@@ -2166,6 +2213,225 @@ export const createAct1 = (host: ActHost) => {
     }
   };
 
+  const FEED_LAYER = 0x10000000;
+  let securityFeed: { dispose: () => void; dim: () => void } | null = null;
+  let feedToken = 0;
+
+  const disposeSecurityFeed = () => {
+    feedToken += 1;
+    const current = securityFeed;
+    securityFeed = null;
+    current?.dispose();
+  };
+
+  const materialLeaf = (mesh: BABYLON.AbstractMesh) => (mesh.material?.name ?? '').toLowerCase();
+
+  const visibleTerminal = () =>
+    terminalHousing().filter((mesh) => mesh.isVisible && mesh.getTotalVertices() > 0 && !mesh.name.endsWith('-col'));
+
+  /** GLB import is queued and finishes after dressLevel used to run. */
+  const waitForTerminalMeshes = async (token: number) => {
+    const data = mission();
+    if (!data?.assets.some((asset) => asset.id === 'office-terminal')) return [];
+    const deadline = performance.now() + 20000;
+    while (performance.now() < deadline) {
+      if (token !== feedToken) return [];
+      const meshes = visibleTerminal();
+      const named = meshes.some((mesh) => materialLeaf(mesh).includes('screen'))
+        && meshes.some((mesh) => materialLeaf(mesh).includes('bezel'));
+      if (named || meshes.length >= 2) return meshes;
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 40));
+    }
+    return token === feedToken ? visibleTerminal() : [];
+  };
+
+  const mountSecurityFeed = async () => {
+    disposeSecurityFeed();
+    const token = feedToken;
+    const terminal = await waitForTerminalMeshes(token);
+    if (token !== feedToken || !terminal.length) return;
+    const glass = terminal.find((mesh) => materialLeaf(mesh).includes('screen'))
+      ?? terminal.slice().sort((a, b) => a.getTotalVertices() - b.getTotalVertices())[0];
+    const bezel = terminal.find((mesh) => mesh !== glass && materialLeaf(mesh).includes('bezel'))
+      ?? terminal.find((mesh) => mesh !== glass)
+      ?? glass;
+    const parent = glass.parent instanceof BABYLON.TransformNode ? glass.parent : glass;
+    parent.computeWorldMatrix(true);
+    glass.computeWorldMatrix(true);
+    bezel.computeWorldMatrix(true);
+    const intoParent = parent.getWorldMatrix().clone();
+    if (!intoParent.invert()) return;
+    const gMin = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+    const gMax = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+    const corner = new BABYLON.Vector3();
+    for (const world of glass.getBoundingInfo().boundingBox.vectorsWorld) {
+      BABYLON.Vector3.TransformCoordinatesToRef(world, intoParent, corner);
+      gMin.minimizeInPlace(corner);
+      gMax.maximizeInPlace(corner);
+    }
+    // The Screen primitive is inside the bezel. The face Pierce sees is the bezel at z ≈ -0.02.
+    let front = gMin.z;
+    const positions = bezel.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    if (positions && bezel !== glass) {
+      const bezelWorld = bezel.getWorldMatrix();
+      const local = new BABYLON.Vector3();
+      const world = new BABYLON.Vector3();
+      const insetX = (gMax.x - gMin.x) * 0.08;
+      const insetY = (gMax.y - gMin.y) * 0.08;
+      let best = Number.POSITIVE_INFINITY;
+      for (let i = 0; i < positions.length; i += 3) {
+        world.set(positions[i], positions[i + 1], positions[i + 2]);
+        BABYLON.Vector3.TransformCoordinatesToRef(world, bezelWorld, world);
+        BABYLON.Vector3.TransformCoordinatesToRef(world, intoParent, local);
+        if (local.x < gMin.x + insetX || local.x > gMax.x - insetX) continue;
+        if (local.y < gMin.y + insetY || local.y > gMax.y - insetY) continue;
+        if (local.z < best) best = local.z;
+      }
+      if (Number.isFinite(best)) front = best;
+    }
+    const width = Math.max(0.08, (gMax.x - gMin.x) * 0.98);
+    const height = Math.max(0.08, (gMax.y - gMin.y) * 0.98);
+    const screen = BABYLON.MeshBuilder.CreatePlane('office-terminal-feed', { width, height }, host.scene);
+    screen.parent = parent;
+    screen.position.set((gMin.x + gMax.x) * 0.5, (gMin.y + gMax.y) * 0.5, front - 0.008);
+    screen.rotation.y = Math.PI;
+    screen.isPickable = false;
+    screen.checkCollisions = false;
+    screen.metadata = { terminalFeed: true };
+    const screenMat = new BABYLON.StandardMaterial('office-terminal-feed-mat', host.scene);
+    screenMat.disableLighting = true;
+    screenMat.fogEnabled = false;
+    // Emissive color is added to the texture, then clamped. A non-black color washes the feed out.
+    screenMat.emissiveColor = BABYLON.Color3.Black();
+    screenMat.diffuseColor = BABYLON.Color3.Black();
+    screenMat.ambientColor = BABYLON.Color3.Black();
+    screenMat.specularColor = BABYLON.Color3.Black();
+    screenMat.backFaceCulling = false;
+    screen.material = screenMat;
+
+    const origin = new BABYLON.Vector3(0, -80, 0);
+    const floor = BABYLON.MeshBuilder.CreateDisc('b3-feed-floor', { radius: 1.2 }, host.scene);
+    floor.position.set(origin.x, origin.y + 0.01, origin.z);
+    floor.rotation.x = Math.PI / 2;
+    floor.layerMask = FEED_LAYER;
+    floor.isPickable = false;
+    floor.checkCollisions = false;
+    floor.alwaysSelectAsActiveMesh = true;
+    const floorMat = new BABYLON.StandardMaterial('b3-feed-floor-mat', host.scene);
+    floorMat.disableLighting = true;
+    floorMat.emissiveColor = new BABYLON.Color3(0.07, 0.08, 0.07);
+    floorMat.specularColor = BABYLON.Color3.Black();
+    floor.material = floorMat;
+    const key = new BABYLON.PointLight('b3-feed-key', new BABYLON.Vector3(origin.x + 0.8, origin.y + 1.4, origin.z + 0.8), host.scene);
+    key.intensity = 28;
+    key.range = 6;
+    key.diffuse = new BABYLON.Color3(0.78, 0.86, 0.76);
+    key.specular = new BABYLON.Color3(0.04, 0.04, 0.04);
+    key.includeOnlyWithLayerMask = FEED_LAYER;
+    const avatar = createCharacterAvatar(host.scene, 'b3-feed-creature', 'asset-parasite-starkie');
+    avatar.group.position.set(origin.x, origin.y, origin.z);
+    const keptCamera = host.scene.activeCamera;
+    const camera = new BABYLON.FreeCamera('b3-feed-cam', new BABYLON.Vector3(origin.x + 1.4, origin.y + 1.1, origin.z - 1.6), host.scene);
+    camera.inputs.clear();
+    camera.detachControl();
+    if (keptCamera) host.scene.activeCamera = keptCamera;
+    camera.fov = 0.62;
+    camera.minZ = 0.02;
+    camera.maxZ = 12;
+    camera.layerMask = FEED_LAYER;
+    camera.setTarget(new BABYLON.Vector3(origin.x, origin.y + 0.8, origin.z));
+    const target = new BABYLON.RenderTargetTexture('b3-feed', 512, host.scene, false);
+    target.activeCamera = camera;
+    target.clearColor = new BABYLON.Color4(0.03, 0.04, 0.035, 1);
+    target.uScale = -1;
+    target.uOffset = 1;
+    target.useCameraPostProcesses = false;
+    target.renderParticles = false;
+    target.renderSprites = false;
+    target.renderList = [floor];
+    host.scene.customRenderTargets.push(target);
+    screenMat.emissiveTexture = target;
+
+    const frameCreature = () => {
+      const meshes = avatar.group.getChildMeshes(false).filter((mesh) => mesh.getTotalVertices() > 0);
+      for (const mesh of meshes) {
+        mesh.layerMask = FEED_LAYER;
+        mesh.isPickable = false;
+        mesh.checkCollisions = false;
+        mesh.alwaysSelectAsActiveMesh = true;
+      }
+      const body = meshes.filter((mesh) => mesh.getTotalVertices() > 100);
+      const measured = body.length ? body : meshes;
+      let min = new BABYLON.Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+      let max = new BABYLON.Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+      for (const mesh of measured) {
+        mesh.computeWorldMatrix(true);
+        const box = mesh.getBoundingInfo().boundingBox;
+        min = BABYLON.Vector3.Minimize(min, box.minimumWorld);
+        max = BABYLON.Vector3.Maximize(max, box.maximumWorld);
+      }
+      const height = max.y - min.y;
+      const center = min.add(max).scale(0.5);
+      const span = Math.max(height, max.x - min.x, max.z - min.z);
+      if (Number.isFinite(span) && span > 0.02 && span < 12) {
+        const dist = Math.max(span * 1.45, 0.35);
+        camera.position.set(center.x + span * 0.28, center.y + height * 0.08, center.z - dist);
+        camera.setTarget(new BABYLON.Vector3(center.x, center.y + height * 0.02, center.z));
+        camera.minZ = Math.max(0.01, dist * 0.02);
+        camera.maxZ = dist * 8 + span;
+        key.position.set(center.x + span * 0.45, center.y + height * 0.55, center.z - dist * 0.35);
+        key.range = dist * 5 + span;
+        floor.position.set(center.x, min.y + 0.004, center.z);
+        const pad = Math.max(span * 1.6, 0.4);
+        floor.scaling.set(pad, 1, pad);
+      }
+      key.includedOnlyMeshes = meshes;
+      target.renderList = [floor, ...meshes];
+      avatar.playClip('idle', true);
+    };
+
+    let dropped = false;
+    const cleanup = () => {
+      if (dropped) return;
+      dropped = true;
+      const index = host.scene.customRenderTargets.indexOf(target);
+      if (index >= 0) host.scene.customRenderTargets.splice(index, 1);
+      if (!screen.isDisposed()) {
+        screen.material = null;
+        screen.dispose();
+      }
+      target.dispose();
+      if (!camera.isDisposed()) camera.dispose();
+      if (!key.isDisposed()) key.dispose();
+      if (!floor.isDisposed()) floor.dispose(false, true);
+      avatar.dispose();
+    };
+    securityFeed = {
+      dim: () => {
+        if (screen.isDisposed() || !screenMat.emissiveTexture) return;
+        screenMat.emissiveTexture.level = 0.04;
+      },
+      dispose: cleanup,
+    };
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        window.clearInterval(watch);
+        resolve();
+      };
+      const watch = window.setInterval(() => {
+        if (token !== feedToken) finish();
+      }, 40);
+      avatar.whenReady(() => {
+        if (token === feedToken) frameCreature();
+        finish();
+      });
+    });
+  };
+
   const beginVat = () => {
     if (phase === 'transform' || phase === 'done') return;
     retreatLeft = 0;
@@ -2176,10 +2442,79 @@ export const createAct1 = (host: ActHost) => {
     host.beginCutscene('b3-vat-break');
   };
 
+  const inWalkup = (id: string, x: number, z: number, radius: number) => {
+    const here = host.playerXZ();
+    const trigger = mission()?.triggers.find((entry) => entry.id === id);
+    if (trigger) return pointInsideTrigger(trigger, here, radius);
+    const dx = here.x - x;
+    const dz = here.z - z;
+    return dx * dx + dz * dz <= radius * radius;
+  };
+
+  /** Label for the walk-up that is ready. Walking into the mark does not start the scene. */
+  const walkupLabel = (): string | null => {
+    if (!host.running() || host.inCutscene()) return null;
+    if (phase === 'seat' && inWalkup('trigger-pierce-seat', 49.4, 32, 1.55)) return 'Join meeting';
+    if (phase === 'to-window' && inWalkup('trigger-office-window', 48, 46.2, 1.35)) return 'Look outside';
+    if (phase === 'alarm') {
+      const data = mission();
+      const spot = data ? alarmSpot(data) : { x: 48, z: 41.66 };
+      const here = host.playerXZ();
+      if (Math.hypot(here.x - spot.x, here.z - spot.z) < 1.35) return 'Examine monitor';
+    }
+    if (phase === 'elevator' && inWalkup('trigger-elevator-b3', 44, 21.35, 1.55)) return 'Ride Elevator';
+    if (host.isB3() && (phase === 'to-lab' || phase === 'arrive') && inWalkup('trigger-lab-door', 17.6, 38, 1.7)) {
+      return 'Open door';
+    }
+    if (phase === 'return-up') {
+      const here = host.playerXZ();
+      if (Math.hypot(here.x - ELEVATOR_POSE.x, here.z - ELEVATOR_POSE.z) < 1.45) return 'Ride Elevator';
+    }
+    if (phase === 'mirror') {
+      const here = host.playerXZ();
+      if (Math.hypot(here.x - MIRROR_STAND.x, here.z - MIRROR_STAND.z) < 1.2) return 'Look in mirror';
+    }
+    return null;
+  };
+
+  const confirmWalkup = () => {
+    const label = walkupLabel();
+    if (label === 'Join meeting') {
+      host.beginCutscene('room-for-grace');
+      return true;
+    }
+    if (label === 'Look outside') {
+      host.beginCutscene('apex-window');
+      return true;
+    }
+    if (label === 'Examine monitor') {
+      beginTerminal();
+      return true;
+    }
+    if (label === 'Open door') {
+      host.beginCutscene('b3-door-reveal');
+      return true;
+    }
+    if (label === 'Ride Elevator' && phase === 'return-up') {
+      beginAscent();
+      return true;
+    }
+    if (label === 'Ride Elevator') {
+      beginElevatorCutscene();
+      return true;
+    }
+    if (label === 'Look in mirror') {
+      beginMirrorLook();
+      return true;
+    }
+    return false;
+  };
+
   const reset = () => {
     boardDeparting = false;
     windowQueued = false;
     callStarted = false;
+    lateStarted = false;
     host.silencePhone();
     elevatorQueued = false;
     windowLocked = false;
@@ -2188,7 +2523,9 @@ export const createAct1 = (host: ActHost) => {
     seated = false;
     host.clearObjectiveCue();
     phase = 'idle';
+    huntWaiting = false;
     stopAlarm();
+    disposeSecurityFeed();
     elevatorDoorOpen = 0;
     elevatorFloorIndex = 0;
     elevatorDinged = false;
@@ -2290,7 +2627,22 @@ export const createAct1 = (host: ActHost) => {
   };
 
   return {
+    action: () => walkupLabel(),
+    confirm: () => confirmWalkup(),
     phase: () => phase,
+    objectiveKey: () => {
+      if (phase === 'hunt') return huntMood === 'strike' ? 'hunt' : 'lurk';
+      if (phase === 'late' || phase === 'seat' || phase === 'idle') return 'seat';
+      if (phase === 'wait-board' || phase === 'to-window' || phase === 'window') return 'wait-board';
+      if (phase === 'alarm' || phase === 'terminal') return 'alarm';
+      if (phase === 'elevator' || phase === 'ride') return 'elevator';
+      if (phase === 'arrive' || phase === 'to-lab' || phase === 'reveal') return 'lab';
+      if (phase === 'transform') return 'vat';
+      if (phase === 'return-walk' || phase === 'return-call') return 'return';
+      if (phase === 'return-up' || phase === 'return-ride') return 'return-up';
+      if (phase === 'mirror' || phase === 'mirror-look') return 'mirror';
+      return 'seat';
+    },
     armPhase: (next: SequencePhase) => {
       phase = next;
     },
@@ -2332,12 +2684,15 @@ export const createAct1 = (host: ActHost) => {
         return;
       }
       if (host.isB3()) beginArrival();
-      else if (host.isApex() && (phase === 'idle' || phase === 'done' || phase === 'seat')) beginSeat();
+      else if (host.isApex() && (phase === 'idle' || phase === 'done' || phase === 'seat')) {
+        beginSeat();
+        beginLateCall();
+      }
       else syncObjective();
     },
     handleTrigger: (trigger: SceneTrigger) => {
       if (host.isReturn()) return true;
-      if (phase === 'call') return true;
+      if (phase === 'call' || phase === 'late') return true;
       if (trigger.id === 'trigger-elevator-b3') {
         beginElevatorCutscene();
         return true;
@@ -2397,7 +2752,9 @@ export const createAct1 = (host: ActHost) => {
         phase = 'reveal';
         host.showObjective(false);
         host.hideMarker();
-        host.placePierce(B3_REVEAL_START.x, B3_REVEAL_START.z, B3_REVEAL_START.yaw);
+        const faceX = CREATURE_HOME.x - B3_REVEAL_START.x;
+        const faceZ = CREATURE_HOME.z - B3_REVEAL_START.z;
+        host.placePierce(B3_REVEAL_START.x, B3_REVEAL_START.z, Math.atan2(faceX, faceZ));
         host.playClip('pistolIdle', true);
         resetCreature();
         lightCreature();
@@ -2465,11 +2822,19 @@ export const createAct1 = (host: ActHost) => {
       host.resumeLocomotion();
       syncObjective();
       if (id === 'room-for-grace') beginWalkout();
-      if (id === 'apex-window') beginVossCall();
+      if (id === 'apex-window') {
+        void mountSecurityFeed();
+        beginVossCall();
+      }
       if (id === 'apex-terminal') beginElevatorObjective();
     },
     startCall: () => beginVossCall(),
     onPhoneFinished: () => {
+      if (phase === 'late') {
+        host.resumeLocomotion();
+        beginSeat();
+        return;
+      }
       if (phase === 'return-call') {
         beginReturnUp();
         return;
@@ -2480,7 +2845,10 @@ export const createAct1 = (host: ActHost) => {
     },
     onCutsceneFailed: (id: string) => {
       if (id === 'room-for-grace') beginWalkout();
-      if (id === 'apex-window') beginVossCall();
+      if (id === 'apex-window') {
+        void mountSecurityFeed();
+        beginVossCall();
+      }
       if (id === 'apex-terminal') beginElevatorObjective();
       if (id === 'elevator-up' || id === 'elevator-b3') {
         if (id === 'elevator-up' || ascending) {
@@ -2513,7 +2881,7 @@ export const createAct1 = (host: ActHost) => {
         if (arrived && !elevatorDinged && time >= ELEVATOR_DING_AT) elevatorDinged = true;
         applyElevatorIndicators(floorIndex, descending, arrived && !ascending, time);
         applyCabLight(time, true);
-        placeElevator();
+        placeElevator(elevatorFaceYaw(time));
       }
       if (id === 'b3-door-reveal') {
         const doorT = Math.min(1, Math.max(0, (time - 0.75) / 1.35));
@@ -2521,7 +2889,11 @@ export const createAct1 = (host: ActHost) => {
         applyLabDoors(doorT);
         const walkT = Math.min(1, Math.max(0, (time - 2.35) / 3.2));
         const x = B3_REVEAL_START.x + (B3_REVEAL_END.x - B3_REVEAL_START.x) * walkT;
-        host.placePierce(x, B3_REVEAL_START.z, B3_REVEAL_START.yaw);
+        const beast = creatureRoot();
+        const aimX = beast?.position.x ?? CREATURE_HOME.x;
+        const aimZ = beast?.position.z ?? CREATURE_HOME.z;
+        const yaw = Math.atan2(aimX - x, aimZ - B3_REVEAL_START.z);
+        host.placePierce(x, B3_REVEAL_START.z, yaw);
         stepCreatureFlee(time);
         lightCreature();
       }
@@ -2536,7 +2908,7 @@ export const createAct1 = (host: ActHost) => {
       }
       if (!elevatorLocked) return;
       if (time < ELEVATOR_RIDE_AT || time > ELEVATOR_ARRIVE_AT + 1.2) return;
-      const amp = time >= ELEVATOR_ARRIVE_AT ? 0.006 : 0.02;
+      const amp = time >= ELEVATOR_ARRIVE_AT ? 0.003 : 0.011;
       host.camera.position.x += Math.sin(time * 41.3) * amp;
       host.camera.position.y += Math.sin(time * 53.7) * amp * 0.55;
       host.camera.position.z += Math.sin(time * 29.1) * amp * 0.35;
@@ -2564,10 +2936,6 @@ export const createAct1 = (host: ActHost) => {
         const nearCab = here.z < 25.5 && here.z > 18 && Math.abs(here.x - ELEVATOR_POSE.x) < 2.6;
         if (!asideBusy() && (hall < 2.8 || nearCab)) beginHaleCall();
       }
-      if (phase === 'return-up' && host.running() && !host.inCutscene()) {
-        const here = host.playerXZ();
-        if (Math.hypot(here.x - ELEVATOR_POSE.x, here.z - ELEVATOR_POSE.z) < 1.45) beginAscent();
-      }
       if (phase === 'mirror' && host.running() && !host.inCutscene()) {
         const here = host.playerXZ();
         if (!mirrorMarked && Math.hypot(here.x - BATH_DOOR.x, here.z - BATH_DOOR.z) < 2.2) {
@@ -2575,7 +2943,6 @@ export const createAct1 = (host: ActHost) => {
           const line = objective('mirror');
           host.setObjective(line.title, line.text, { x: MIRROR_STAND.x, y: 1.5, z: MIRROR_STAND.z });
         }
-        if (Math.hypot(here.x - MIRROR_STAND.x, here.z - MIRROR_STAND.z) < 1.2) beginMirrorLook();
       }
       if (phase === 'mirror-look') {
         host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
@@ -2612,13 +2979,6 @@ export const createAct1 = (host: ActHost) => {
         }
       }
       stepHunt(delta);
-      if (phase === 'alarm') {
-        const data = mission();
-        if (!data) return;
-        const spot = alarmSpot(data);
-        const player = host.playerXZ();
-        if (Math.hypot(player.x - spot.x, player.z - spot.z) < 1.35) beginTerminal();
-      }
     },
     alarmTick: (delta: number) => {
       if (!alarm.active) return;
@@ -2626,7 +2986,7 @@ export const createAct1 = (host: ActHost) => {
       alarm.pulse += delta;
       const flash = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(alarm.pulse * 9));
       const color = new BABYLON.Color3(flash, 0.08, 0.1);
-      for (const mesh of meshesFor('office-terminal')) {
+      for (const mesh of terminalHousing()) {
         const material = mesh.material;
         if (material instanceof BABYLON.StandardMaterial || material instanceof BABYLON.PBRMaterial) {
           material.emissiveColor = color;
@@ -2690,7 +3050,7 @@ export const createAct1 = (host: ActHost) => {
       next.push({ id, name, note: note ?? '' });
       host.setCarry(next);
     },
-    dressLevel: () => {
+    dressLevel: async () => {
       restyleTerminal(false);
       pulseButton(false);
       applyElevatorIndicators(0, false, false);

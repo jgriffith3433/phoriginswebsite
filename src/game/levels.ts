@@ -30,12 +30,12 @@ const combatFromDifficulty = (difficulty: number) => ({
 });
 
 const FALLBACK_LIBRARY: LibraryEntry[] = [
-  { id: 'apex-peak', name: 'The Apex Peak', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 1, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'Room for Grace' },
-  { id: 'b3-basement', name: 'B3', path: '/levels/b3-basement.json', theme: 'B3 Basement', difficulty: 2, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'The vat' },
-  { id: 'the-return', name: 'The Return', path: '/levels/b3-basement.json', theme: 'B3 Basement', difficulty: 3, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'The mirror' },
-  { id: 'the-desk', name: 'The Desk', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 4, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 140, reward: 'The work' },
-  { id: 'going-home', name: 'Going Home', path: '/levels/going-home.json', theme: 'Street', difficulty: 5, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 800, reward: 'The street' },
-  { id: 'the-station', name: 'The Station', path: '/levels/the-station.json', theme: 'Station', difficulty: 6, enemyCount: 0, combat: false, playerSpeed: 3.4, arenaSize: 200, reward: 'The train' },
+  { id: 'apex-peak', name: 'The Apex Peak', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 1, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 140, reward: 'Room for Grace' },
+  { id: 'b3-basement', name: 'B3', path: '/levels/b3-basement.json', theme: 'B3 Basement', difficulty: 2, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 140, reward: 'The vat' },
+  { id: 'the-return', name: 'The Return', path: '/levels/b3-basement.json', theme: 'B3 Basement', difficulty: 3, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 140, reward: 'The mirror' },
+  { id: 'the-desk', name: 'The Desk', path: '/levels/apex-peak.json', theme: 'Apex Peak', difficulty: 4, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 140, reward: 'The work' },
+  { id: 'going-home', name: 'Going Home', path: '/levels/going-home.json', theme: 'Street', difficulty: 5, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 800, reward: 'The street' },
+  { id: 'the-station', name: 'The Station', path: '/levels/the-station.json', theme: 'Station', difficulty: 6, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 200, reward: 'The train' },
 ];
 
 const normalizeLevel = (entry: LibraryEntry | Partial<LevelDefinition> | undefined, index: number): LevelDefinition => {

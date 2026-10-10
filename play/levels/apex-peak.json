@@ -3768,7 +3768,7 @@
       "y": 0,
       "z": 46.2,
       "data": {
-        "radius": 0.9
+        "radius": 1.35
       }
     },
     {
@@ -3817,7 +3817,7 @@
         "audio": "/assets/audio/room-tone.mp3",
         "loop": true,
         "fadeSeconds": 2,
-        "volume": 0.28
+        "volume": 0.14
       }
     }
   ]

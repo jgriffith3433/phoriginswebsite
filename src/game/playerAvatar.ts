@@ -18,6 +18,8 @@ export type PlayerAvatar = {
   setArmed: (armed: boolean) => void;
   playClip: (keyword: string, loop?: boolean, speedRatio?: number, onEnded?: () => void) => boolean;
   resumeLocomotion: () => void;
+  /** Hide the rig and stop clips. Far street people stay loaded and unsimulated. */
+  setShown: (on: boolean) => void;
   whenReady: (callback: () => void) => void;
   findJoint: (suffix: string) => BABYLON.TransformNode | null;
   findBone: (suffix: string) => BABYLON.Bone | null;
@@ -174,6 +176,7 @@ export const createCharacterAvatar = (
   let sprinting = false;
   let armed = false;
   let disposed = false;
+  let shown = true;
   let cinematic = false;
   let overlaying = false;
   let overlayArmed = false;
@@ -450,6 +453,7 @@ export const createCharacterAvatar = (
   const setLocomotion = (moving: boolean, grounded: boolean) => {
     wantsMoving = moving;
     wantsGrounded = grounded;
+    if (!shown) return;
     if (overlayLockActive()) {
       syncOverlayLocomotion();
       return;
@@ -661,21 +665,26 @@ export const createCharacterAvatar = (
       );
     }
 
-    if (pendingClip) {
-      const queued = pendingClip;
-      pendingClip = null;
-      cinematic = false;
-      current = null;
-      if (!playClip(queued.keyword, queued.loop, queued.speedRatio, queued.onEnded, queued.lockCinematic)) {
-        applyLocomotion();
-      }
-    } else {
-      applyLocomotion();
-    }
-
     if (!disposed) {
-      group.setEnabled(true);
       modelReady = true;
+      if (shown) {
+        if (pendingClip) {
+          const queued = pendingClip;
+          pendingClip = null;
+          cinematic = false;
+          current = null;
+          if (!playClip(queued.keyword, queued.loop, queued.speedRatio, queued.onEnded, queued.lockCinematic)) {
+            applyLocomotion();
+          }
+        } else {
+          applyLocomotion();
+        }
+        group.setEnabled(true);
+      } else {
+        pendingClip = null;
+        animationGroups.forEach((clip) => clip.stop());
+        group.setEnabled(false);
+      }
       for (const waiter of readyWaiters.splice(0)) waiter();
     }
   });
@@ -723,6 +732,23 @@ export const createCharacterAvatar = (
     setArmed,
     playClip,
     resumeLocomotion,
+    setShown: (on: boolean) => {
+      if (shown === on) return;
+      shown = on;
+      if (!modelReady || disposed) {
+        if (!on) group.setEnabled(false);
+        return;
+      }
+      group.setEnabled(on);
+      if (!on) {
+        animationGroups.forEach((clip) => {
+          if (clip.isPlaying) clip.stop();
+        });
+        return;
+      }
+      current = null;
+      applyLocomotion();
+    },
     whenReady: (callback) => {
       if (modelReady && !disposed) {
         callback();

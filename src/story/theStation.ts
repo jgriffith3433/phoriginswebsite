@@ -219,13 +219,13 @@ export const createTheStation = (host: TheStationHost) => {
     host.playClip('rebornidle', true);
     host.haltPlay();
     host.unlockNext();
-    host.win();
     host.fade(1, 1.15);
     host.refreshHud();
     host.showMessage('Level Complete', 'The train is waiting. There is nowhere else to go.');
   };
 
   return {
+    objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'station'),
     dispose: () => {
       active = false;
       releaseLink(false);
@@ -308,6 +308,7 @@ export const createTheStation = (host: TheStationHost) => {
       tether = best;
       best.fleeing = false;
       best.avatar.resumeLocomotion();
+      host.playFile('/assets/audio/sfx/street/possess.wav', 0.4);
       showGoal();
       return true;
     },
@@ -325,6 +326,8 @@ export const createTheStation = (host: TheStationHost) => {
       const atZ = best.mesh.position.z;
       releaseLink();
       watchDeath(atX, atZ);
+      host.playFile('/assets/audio/sfx/street/consume.wav', 0.46);
+      host.playFile('/assets/audio/sfx/street/death.wav', 0.32);
       return true;
     },
     release: () => {
@@ -339,6 +342,7 @@ export const createTheStation = (host: TheStationHost) => {
       handsOut = false;
       trailLeft = 0;
       hideBeads();
+      host.playFile(shadowOn ? '/assets/audio/sfx/street/shadow-on.wav' : '/assets/audio/sfx/street/shadow-off.wav', 0.4);
       if (shadowOn) host.holster();
       showGoal();
       return shadowOn;
@@ -380,6 +384,8 @@ export const createTheStation = (host: TheStationHost) => {
         hit = true;
       }
       if (!hit) return false;
+      host.playFile('/assets/audio/sfx/street/shock.wav', 0.5);
+      host.playFile('/assets/audio/sfx/street/death.wav', 0.28);
       shockLeft = 1.35;
       host.playClip('shadowshock', false, 1, () => {
         if (active && !finished) host.resumeLocomotion();

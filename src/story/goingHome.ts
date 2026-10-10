@@ -3,6 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import type { StoryCarry } from './act1';
+import { SHOP_LINE, STREET_BARKS, STREET_SFX, STREET_TALKS, type StreetLine } from './streetAudio';
 
 export type GoingHomeHost = {
   scene: BABYLON.Scene;
@@ -35,6 +36,7 @@ export type GoingHomeHost = {
   leftHand: () => { x: number; y: number; z: number } | null;
   holster: () => void;
   shedShadow: (x: number, z: number) => void;
+  pushPhoneText: (id: string) => void;
 };
 
 const HOME = { x: 163.5, z: 21.2 };
@@ -54,7 +56,7 @@ const CARRY: StoryCarry[] = [
   { id: 'shadow', name: 'Shadow mode', note: 'C. Click is Shadow Shock. Q raises the hands. V possesses. While linked, V consumes and Tab lets go.' },
 ];
 
-type Role = 'desk' | 'walk' | 'hostile' | 'police';
+type Role = 'desk' | 'walk' | 'hostile' | 'police' | 'shop';
 type Mood = 'calm' | 'flee' | 'chase' | 'stagger' | 'lost' | 'down';
 
 type Person = {
@@ -75,6 +77,11 @@ type Person = {
   skittish: boolean;
   shocked: boolean;
   lost: number;
+  homeYaw: number;
+  mean: boolean;
+  shown: boolean;
+  shopId: string;
+  voice: number;
 };
 
 type Car = {
@@ -84,6 +91,7 @@ type Car = {
   z: number;
   axis: 'x' | 'z';
   parked: boolean;
+  passed: boolean;
 };
 
 type Pose = { t: number; x: number; z: number; yaw: number };
@@ -136,6 +144,12 @@ const NORTH: [number, number, number, number][] = [
 ];
 const CROWD_ASSETS = ['asset-ch08-npc', 'asset-ch28-npc', 'asset-ch31-npc', 'asset-ch23-npc'];
 const HOSTILE_CHANCE = 1 / 25;
+const SHOP_DOOR_Z = 18.15;
+const SHOPS: { id: string; x: number; z: number; yaw: number; asset: string }[] = [
+  { id: 'market', x: 46, z: 14.9, yaw: 0, asset: 'asset-ch08-npc' },
+  { id: 'diner', x: 108, z: 14.9, yaw: 0, asset: 'asset-ch28-npc' },
+  { id: 'news', x: 152, z: 14.9, yaw: 0, asset: 'asset-ch31-npc' },
+];
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -156,7 +170,85 @@ const paint = (scene: BABYLON.Scene, name: string, diffuse: BABYLON.Color3, emis
   return material;
 };
 
+const streetTexture = (scene: BABYLON.Scene, url: string) => {
+  const texture = new BABYLON.Texture(url, scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+  texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  return texture;
+};
+
+/** World-meter UVs so one shared material tiles across boxes of different sizes. */
+const tileBox = (mesh: BABYLON.AbstractMesh, meters: number) => {
+  const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+  const normals = mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+  if (!positions || !normals) return;
+  const uvs = new Float32Array((positions.length / 3) * 2);
+  const sx = Math.abs(mesh.scaling.x) || 1;
+  const sy = Math.abs(mesh.scaling.y) || 1;
+  const sz = Math.abs(mesh.scaling.z) || 1;
+  const tile = Math.max(0.4, meters);
+  for (let i = 0; i < positions.length; i += 3) {
+    const px = positions[i] * sx;
+    const py = positions[i + 1] * sy;
+    const pz = positions[i + 2] * sz;
+    const ax = Math.abs(normals[i]);
+    const ay = Math.abs(normals[i + 1]);
+    const az = Math.abs(normals[i + 2]);
+    let u = px / tile;
+    let v = py / tile;
+    if (ay >= ax && ay >= az) {
+      u = px / tile;
+      v = pz / tile;
+    } else if (ax >= az) {
+      u = pz / tile;
+      v = py / tile;
+    }
+    const vi = (i / 3) * 2;
+    uvs[vi] = u;
+    uvs[vi + 1] = v;
+  }
+  mesh.setVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+};
+
+type CarLook = {
+  body: BABYLON.StandardMaterial[];
+  cabin: BABYLON.StandardMaterial;
+  lamp: BABYLON.StandardMaterial;
+  tail: BABYLON.StandardMaterial;
+  wheel: BABYLON.StandardMaterial;
+};
+
+const carLooks = new WeakMap<BABYLON.Scene, CarLook>();
+
+const carLook = (scene: BABYLON.Scene): CarLook => {
+  const existing = carLooks.get(scene);
+  if (existing) return existing;
+  const grain = streetTexture(scene, '/assets/textures/street/paint.png');
+  const tint = (name: string, color: BABYLON.Color3) => {
+    const material = paint(scene, name, color, color.scale(0.08));
+    material.diffuseTexture = grain;
+    material.specularColor = new BABYLON.Color3(0.18, 0.18, 0.2);
+    material.specularPower = 32;
+    return material;
+  };
+  const look: CarLook = {
+    body: [
+      tint('street-car-paint-a', new BABYLON.Color3(0.16, 0.17, 0.19)),
+      tint('street-car-paint-b', new BABYLON.Color3(0.28, 0.08, 0.07)),
+      tint('street-car-paint-c', new BABYLON.Color3(0.1, 0.14, 0.22)),
+      tint('street-car-paint-d', new BABYLON.Color3(0.22, 0.2, 0.16)),
+    ],
+    cabin: paint(scene, 'street-car-cabin', new BABYLON.Color3(0.05, 0.06, 0.08), new BABYLON.Color3(0.04, 0.06, 0.08)),
+    lamp: paint(scene, 'street-car-lamp', new BABYLON.Color3(1, 0.92, 0.7), new BABYLON.Color3(1, 0.86, 0.45)),
+    tail: paint(scene, 'street-car-tail', new BABYLON.Color3(0.7, 0.08, 0.06), new BABYLON.Color3(0.85, 0.05, 0.04)),
+    wheel: paint(scene, 'street-car-wheel', new BABYLON.Color3(0.02, 0.02, 0.02)),
+  };
+  carLooks.set(scene, look);
+  return look;
+};
+
 const buildCar = (scene: BABYLON.Scene, name: string, x: number, z: number, speed: number, axis: 'x' | 'z' = 'x'): Car => {
+  const look = carLook(scene);
   const root = new BABYLON.TransformNode(name, scene);
   root.position.set(x, 0, z);
   if (axis === 'z') root.rotation.y = speed < 0 ? -Math.PI / 2 : Math.PI / 2;
@@ -164,29 +256,27 @@ const buildCar = (scene: BABYLON.Scene, name: string, x: number, z: number, spee
   const body = BABYLON.MeshBuilder.CreateBox(`${name}-body`, { width: 4.4, height: 0.72, depth: 1.85 }, scene);
   body.parent = root;
   body.position.y = 0.72;
-  body.material = paint(scene, `${name}-body-mat`, new BABYLON.Color3(0.11, 0.12, 0.14));
+  body.material = look.body[Math.abs(Math.round(x + z)) % look.body.length];
   body.checkCollisions = false;
   body.isPickable = false;
   const cabin = BABYLON.MeshBuilder.CreateBox(`${name}-cabin`, { width: 2.1, height: 0.55, depth: 1.65 }, scene);
   cabin.parent = root;
   cabin.position.set(-0.15, 1.28, 0);
-  cabin.material = paint(scene, `${name}-cabin-mat`, new BABYLON.Color3(0.04, 0.05, 0.07), new BABYLON.Color3(0.02, 0.03, 0.04));
+  cabin.material = look.cabin;
   cabin.isPickable = false;
-  const lampMat = paint(scene, `${name}-lamp-mat`, new BABYLON.Color3(1, 0.92, 0.7), new BABYLON.Color3(1, 0.86, 0.45));
-  const tailMat = paint(scene, `${name}-tail-mat`, new BABYLON.Color3(0.7, 0.08, 0.06), new BABYLON.Color3(0.85, 0.05, 0.04));
   for (const side of [-0.7, 0.7]) {
     const head = BABYLON.MeshBuilder.CreateBox(`${name}-head-${side}`, { width: 0.12, height: 0.16, depth: 0.28 }, scene);
     head.parent = root;
     head.position.set(2.15, 0.78, side);
-    head.material = lampMat;
+    head.material = look.lamp;
     head.isPickable = false;
     const tail = BABYLON.MeshBuilder.CreateBox(`${name}-tail-${side}`, { width: 0.1, height: 0.14, depth: 0.26 }, scene);
     tail.parent = root;
     tail.position.set(-2.15, 0.78, side);
-    tail.material = tailMat;
+    tail.material = look.tail;
     tail.isPickable = false;
   }
-  const wheelMat = paint(scene, `${name}-wheel-mat`, new BABYLON.Color3(0.02, 0.02, 0.02));
+  const wheelMat = look.wheel;
   for (const wx of [-1.35, 1.35]) {
     for (const wz of [-0.82, 0.82]) {
       const wheel = BABYLON.MeshBuilder.CreateCylinder(`${name}-wheel-${wx}-${wz}`, { height: 0.22, diameter: 0.62 }, scene);
@@ -203,7 +293,7 @@ const buildCar = (scene: BABYLON.Scene, name: string, x: number, z: number, spee
   blocker.visibility = 0;
   blocker.isPickable = false;
   blocker.checkCollisions = speed === 0;
-  return { root, speed, x, z, axis, parked: speed === 0 };
+  return { root, speed, x, z, axis, parked: speed === 0, passed: false };
 };
 
 export const createGoingHome = (host: GoingHomeHost) => {
@@ -241,6 +331,155 @@ export const createGoingHome = (host: GoingHomeHost) => {
   const trailTo = new BABYLON.Vector3();
   const beads: BABYLON.Mesh[] = [];
   const disposers: BABYLON.Node[] = [];
+  type QueuedPerson = {
+    id: string;
+    asset: string;
+    x: number;
+    z: number;
+    yaw: number;
+    role: Role;
+    x0: number;
+    x1: number;
+    shopId: string;
+    homeYaw: number;
+  };
+  const queued: QueuedPerson[] = [];
+  const shopSpots = SHOPS.map((shop) => ({
+    id: shop.id,
+    x: shop.x,
+    open: false,
+    interior: [] as BABYLON.Node[],
+  }));
+  type CullBand = { node: BABYLON.Node; x: number; z: number; near: number; far: number; on: boolean };
+  const bands: CullBand[] = [];
+  const painted: BABYLON.AbstractMesh[] = [];
+  const paintJobs: { mesh: BABYLON.AbstractMesh; material: BABYLON.Material }[] = [];
+  const ownedMats: BABYLON.Material[] = [];
+  let shareLeft = 8;
+  let cullWait = 0;
+  let streetNoted = false;
+  let chatterWait = 6;
+  let chatterLeft = 0;
+  let chatterNext: { title: string; line: StreetLine } | null = null;
+  let insideShop = '';
+
+  const nodeId = (node: BABYLON.Node) => {
+    const meta = node.metadata as { sceneAssetId?: string } | null;
+    return meta?.sceneAssetId || node.name || '';
+  };
+
+  const dressKind = (id: string) => {
+    if (!id) return '';
+    if (id.startsWith('b3-decal-win-') || id.startsWith('tower-win')) return 'window';
+    if (id.startsWith('lamp-')) return 'lamp';
+    if (id.startsWith('b3-decal-walk-')) return 'walk';
+    if (id.startsWith('b3-decal-curb-')) return 'curb';
+    if (id.startsWith('b3-decal-xing-')) return 'xing';
+    if (id.startsWith('street-bin-') || id.startsWith('street-plant-') || id.startsWith('street-board-')) return 'furn';
+    if (id.includes('-in-')) return 'interior';
+    if (id.startsWith('shop-') || id.startsWith('b3-decal-shop-')) return 'shell';
+    return '';
+  };
+
+  const releaseMaterial = (material: BABYLON.Material) => {
+    if (ownedMats.includes(material)) return;
+    if (material instanceof BABYLON.PBRMaterial) material.reflectionTexture = null;
+    material.dispose(false, false);
+  };
+
+  const flatMat = (name: string, diffuse: BABYLON.Color3, emissive?: BABYLON.Color3, alpha = 1) => {
+    const material = paint(host.scene, name, diffuse, emissive);
+    if (alpha < 1) {
+      material.alpha = alpha;
+      material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+      material.backFaceCulling = false;
+    }
+    ownedMats.push(material);
+    return material;
+  };
+
+  const paintMesh = (mesh: BABYLON.AbstractMesh, material: BABYLON.Material) => {
+    if (!mesh.material || mesh.material === material) return;
+    const old = mesh.material;
+    mesh.material = material;
+    if (!painted.includes(mesh)) painted.push(mesh);
+    if (old.getBindedMeshes().length === 0) releaseMaterial(old);
+  };
+
+  const applyBands = (x: number, z: number) => {
+    for (const band of bands) {
+      const dx = band.x - x;
+      const dz = band.z - z;
+      const dist2 = dx * dx + dz * dz;
+      const want = band.on ? dist2 < band.far * band.far : dist2 < band.near * band.near;
+      if (want === band.on) continue;
+      band.on = want;
+      band.node.setEnabled(want);
+    }
+  };
+
+  const syncShops = (x: number, z: number) => {
+    for (const shop of shopSpots) {
+      const dx = x - shop.x;
+      const dz = z - SHOP_DOOR_Z;
+      const dist2 = dx * dx + dz * dz;
+      const want = shop.open ? dist2 < 20 * 20 : dist2 < 15 * 15;
+      if (want === shop.open) continue;
+      shop.open = want;
+      for (const node of shop.interior) {
+        if (!node.isDisposed()) node.setEnabled(want);
+      }
+    }
+  };
+
+  const shopOpen = (id: string) => shopSpots.find((shop) => shop.id === id)?.open ?? false;
+
+  const shouldShow = (person: Person, dist: number) => {
+    if (person === tether) return true;
+    if (person.role === 'desk') return playing || dist < 32;
+    if (person.role === 'shop') return shopOpen(person.shopId);
+    if (person.role === 'police' || person.mood === 'chase' || person.mood === 'flee') {
+      return dist < (person.shown ? 58 : 46);
+    }
+    if (person.mood === 'down') return dist < (person.shown ? 26 : 18);
+    return dist < (person.shown ? 28 : 20);
+  };
+
+  const setPersonShown = (person: Person, on: boolean) => {
+    if (person.shown === on) return;
+    person.shown = on;
+    person.mesh.setEnabled(on);
+    person.avatar.setShown(on);
+  };
+
+  const realize = (spec: QueuedPerson) => {
+    const person = spawnPerson(spec.id, spec.asset, spec.x, spec.z, spec.yaw, spec.role, spec.x0, spec.x1);
+    person.homeYaw = spec.homeYaw;
+    person.shopId = spec.shopId;
+    if (Math.random() < HOSTILE_CHANCE) {
+      person.hp = 3;
+      if (spec.role === 'shop') person.mean = true;
+      else person.role = 'hostile';
+    } else person.skittish = Math.random() < 0.2;
+    person.avatar.whenReady(() => {
+      if (!active || person.mood === 'down') return;
+      person.moving = person.role === 'walk';
+      if (person.shown) person.avatar.setLocomotion(person.moving, true);
+    });
+    return person;
+  };
+
+  const pumpQueue = (x: number, z: number, limit: number) => {
+    let spawned = 0;
+    for (let i = queued.length - 1; i >= 0 && spawned < limit; i -= 1) {
+      const spec = queued[i];
+      if (Math.hypot(spec.x - x, spec.z - z) > 40) continue;
+      queued.splice(i, 1);
+      const person = realize(spec);
+      setPersonShown(person, shouldShow(person, Math.hypot(person.mesh.position.x - x, person.mesh.position.z - z)));
+      spawned += 1;
+    }
+  };
 
   const face = (person: Person, yaw: number) => {
     person.avatar.group.rotation.y = yaw + Math.PI;
@@ -289,6 +528,11 @@ export const createGoingHome = (host: GoingHomeHost) => {
       skittish: false,
       shocked: false,
       lost: 0,
+      homeYaw: yaw,
+      mean: false,
+      shown: true,
+      shopId: '',
+      voice: role === 'shop' ? 0 : [...id].reduce((sum, char) => sum + char.charCodeAt(0), 0) % STREET_BARKS.length,
     };
     face(person, yaw);
     people.push(person);
@@ -452,7 +696,6 @@ export const createGoingHome = (host: GoingHomeHost) => {
     host.playClip('rebornidle', true);
     host.haltPlay();
     host.unlockNext();
-    host.win();
     host.fade(1, 1.15);
     host.refreshHud();
     host.showMessage('Level Complete', 'The stairs go down. Continue. The station is waiting.');
@@ -482,12 +725,66 @@ export const createGoingHome = (host: GoingHomeHost) => {
     host.shedShadow(x, z);
   };
 
+  const speak = (title: string, line: StreetLine) => {
+    host.showLine(title, line.text);
+    host.playFile(line.url, 0.62);
+    chatterLeft = line.hold;
+  };
+
+  const considerTalk = () => {
+    if (playing || shoutLeft > 0 || chatterLeft > 0) return;
+    const here = host.player();
+    const near = people.filter((person) => {
+      if (!person.shown || person.mood !== 'calm' || person === tether || person.role === 'desk' || person.role === 'police') return false;
+      return Math.hypot(person.mesh.position.x - here.x, person.mesh.position.z - here.z) < 10;
+    });
+    if (near.length >= 2 && Math.random() < 0.1) {
+      for (let i = 0; i < near.length; i += 1) {
+        for (let j = i + 1; j < near.length; j += 1) {
+          const apart = Math.hypot(
+            near[i].mesh.position.x - near[j].mesh.position.x,
+            near[i].mesh.position.z - near[j].mesh.position.z,
+          );
+          if (apart > 2.8) continue;
+          const row = STREET_TALKS.find((talk) => (
+            (near[i].voice === talk.a && near[j].voice === talk.b)
+            || (near[i].voice === talk.b && near[j].voice === talk.a)
+          ));
+          if (!row) continue;
+          speak('Passerby', row.first);
+          chatterNext = { title: 'Passerby', line: row.second };
+          return;
+        }
+      }
+    }
+    if (!near.length || Math.random() >= 0.1) return;
+    const person = near[Math.floor(Math.random() * near.length)];
+    if (person.role === 'shop') {
+      speak('Shopkeeper', SHOP_LINE);
+      return;
+    }
+    const pool = STREET_BARKS[person.voice] ?? [];
+    if (!pool.length) return;
+    const line = pool[Math.floor(Math.random() * pool.length)];
+    if (line) speak('Passerby', line);
+  };
+
+  const shopHere = () => {
+    const here = host.player();
+    if (here.z > 18.25 || here.z < 13.9) return '';
+    for (const shop of SHOPS) {
+      if (Math.abs(here.x - shop.x) < 2.9) return shop.id;
+    }
+    return '';
+  };
+
   const bind = (person: Person) => {
     tether = person;
     person.mood = 'calm';
     person.stagger = 0;
     person.attack = 0;
     ensureBeads();
+    host.playFile(STREET_SFX.possess, 0.4);
     host.setObjective('Shadow Link', 'WASD walks them. V consumes. Tab lets go.', null);
   };
 
@@ -526,6 +823,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
   };
 
   return {
+    objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'home'),
     playing: () => playing,
     skip: () => {
       if (active && playing && !finished) handoff();
@@ -541,26 +839,51 @@ export const createGoingHome = (host: GoingHomeHost) => {
       finished = false;
       policeWaves = 0;
       policeLine = false;
+      streetNoted = false;
+      streetTime = 0;
+      chatterWait = 6;
+      chatterLeft = 0;
+      chatterNext = null;
+      insideShop = '';
       people.length = 0;
-      for (const car of cars) car.root.dispose(false, true);
+      queued.length = 0;
+      for (const car of cars) car.root.dispose(false, false);
       cars.length = 0;
+      const bootX = new URLSearchParams(location.search).get('at') === 'stairs' ? 150 : STREET.x;
+      const nearBoot = (x: number, z: number) => Math.hypot(x - bootX, z - STREET.z) <= 34;
       spawnPerson('street-receptionist', 'asset-ch37-npc', 5.5, 4.55, -Math.PI / 2, 'desk');
       CROWD.concat(FAR, NORTH).forEach(([x, z, yaw, x0], index) => {
-        const person = spawnPerson(
-          `street-walk-${index}`,
-          CROWD_ASSETS[index % CROWD_ASSETS.length],
+        const spec: QueuedPerson = {
+          id: `street-walk-${index}`,
+          asset: CROWD_ASSETS[index % CROWD_ASSETS.length],
           x,
           z,
           yaw,
-          'walk',
+          role: 'walk',
           x0,
-          Math.abs(z - 21.2) < 2.5 ? Math.min(x0 + 12, 156) : x0 + 14,
-        );
-        if (Math.random() < HOSTILE_CHANCE) {
-          person.role = 'hostile';
-          person.hp = 3;
-        } else person.skittish = Math.random() < 0.2;
+          x1: Math.abs(z - 21.2) < 2.5 ? Math.min(x0 + 12, 156) : x0 + 14,
+          shopId: '',
+          homeYaw: yaw,
+        };
+        if (nearBoot(x, z)) realize(spec);
+        else queued.push(spec);
       });
+      for (const shop of SHOPS) {
+        const spec: QueuedPerson = {
+          id: `shop-${shop.id}-owner`,
+          asset: shop.asset,
+          x: shop.x,
+          z: shop.z,
+          yaw: shop.yaw,
+          role: 'shop',
+          x0: shop.x,
+          x1: shop.x,
+          shopId: shop.id,
+          homeYaw: shop.yaw,
+        };
+        if (nearBoot(shop.x, shop.z)) realize(spec);
+        else queued.push(spec);
+      }
       const specs: [number, number, number][] = [
         [-22, 26.7, 7.2],
         [8, 26.9, 8.4],
@@ -589,6 +912,124 @@ export const createGoingHome = (host: GoingHomeHost) => {
       });
       cars.push(buildCar(host.scene, 'street-car-park-a', -10, 23.15, 0));
       cars.push(buildCar(host.scene, 'street-car-park-b', 16, 23.25, 0));
+      const texMat = (name: string, url: string, diffuse: BABYLON.Color3, emissive: BABYLON.Color3, glow = false) => {
+        const material = paint(host.scene, name, diffuse, emissive);
+        const texture = streetTexture(host.scene, url);
+        if (glow) material.emissiveTexture = texture;
+        else material.diffuseTexture = texture;
+        ownedMats.push(material);
+        return material;
+      };
+      const facadeTex = streetTexture(host.scene, '/assets/textures/street/facade.png');
+      const facadeMat = (name: string, diffuse: BABYLON.Color3) => {
+        const material = paint(host.scene, name, diffuse, new BABYLON.Color3(0.055, 0.05, 0.045));
+        material.diffuseTexture = facadeTex;
+        ownedMats.push(material);
+        return material;
+      };
+      const metalTex = streetTexture(host.scene, '/assets/textures/lift-metal.webp');
+      const metalOf = (name: string, diffuse: BABYLON.Color3) => {
+        const material = paint(host.scene, name, diffuse, diffuse.scale(0.12));
+        material.diffuseTexture = metalTex;
+        material.specularColor = new BABYLON.Color3(0.12, 0.12, 0.13);
+        ownedMats.push(material);
+        return material;
+      };
+      const windowMat = texMat('street-window-shared', '/assets/textures/street/window.png', new BABYLON.Color3(0.12, 0.1, 0.08), new BABYLON.Color3(0.42, 0.34, 0.22), true);
+      const walkMat = texMat('street-walk-shared', '/assets/textures/street/sidewalk.png', new BABYLON.Color3(0.92, 0.9, 0.86), new BABYLON.Color3(0.07, 0.07, 0.065));
+      const curbMat = metalOf('street-curb-shared', new BABYLON.Color3(0.28, 0.28, 0.3));
+      const xingMat = flatMat('street-xing-shared', new BABYLON.Color3(0.88, 0.7, 0.16), new BABYLON.Color3(0.14, 0.09, 0.02));
+      const wallMat = texMat('street-shop-wall', '/assets/textures/street/wood.png', new BABYLON.Color3(0.72, 0.58, 0.4), new BABYLON.Color3(0.05, 0.035, 0.02));
+      const metalMat = metalOf('street-shop-metal', new BABYLON.Color3(0.42, 0.42, 0.44));
+      const glassMat = flatMat('street-shop-glass', new BABYLON.Color3(0.55, 0.68, 0.78), new BABYLON.Color3(0.08, 0.1, 0.12), 0.38);
+      const awningMat: Record<string, BABYLON.StandardMaterial> = {
+        market: flatMat('street-awning-market', new BABYLON.Color3(0.55, 0.12, 0.09), new BABYLON.Color3(0.08, 0.02, 0.012)),
+        diner: flatMat('street-awning-diner', new BABYLON.Color3(0.12, 0.2, 0.42), new BABYLON.Color3(0.03, 0.04, 0.08)),
+        news: flatMat('street-awning-news', new BABYLON.Color3(0.42, 0.34, 0.12), new BABYLON.Color3(0.07, 0.05, 0.015)),
+      };
+      const boardMat = facadeMat('street-block-board', new BABYLON.Color3(0.78, 0.72, 0.64));
+      const hallMat = facadeMat('street-block-hall', new BABYLON.Color3(0.58, 0.62, 0.68));
+      const officeMat = facadeMat('street-block-office', new BABYLON.Color3(0.86, 0.8, 0.7));
+      const groundMat = texMat('street-ground-shared', '/assets/textures/street/asphalt.png', new BABYLON.Color3(0.55, 0.55, 0.58), new BABYLON.Color3(0.045, 0.045, 0.05));
+      const roadMat = texMat('street-road-shared', '/assets/textures/street/asphalt.png', new BABYLON.Color3(0.7, 0.7, 0.74), new BABYLON.Color3(0.04, 0.04, 0.045));
+      const look = carLook(host.scene);
+      for (const material of [...look.body, look.cabin, look.lamp, look.tail, look.wheel]) {
+        if (!ownedMats.includes(material)) ownedMats.push(material);
+      }
+      const assignFlat = (mesh: BABYLON.AbstractMesh, material: BABYLON.Material, meters = 0) => {
+        if (meters > 0) tileBox(mesh, meters);
+        paintJobs.push({ mesh, material });
+        paintMesh(mesh, material);
+      };
+      const dressNodes = [...host.scene.meshes, ...host.scene.transformNodes];
+      for (const node of dressNodes) {
+        const id = nodeId(node);
+        const kind = dressKind(id);
+        const matId = (node.metadata as { materialId?: string } | null)?.materialId ?? '';
+        if (node instanceof BABYLON.AbstractMesh && (id.startsWith('block-') || id.startsWith('city-') || id === 'tower')) {
+          const material = matId === 'mat-hall-wall' ? hallMat : matId === 'mat-office-wall' ? officeMat : boardMat;
+          assignFlat(node, material, 2.4);
+          if (id.startsWith('block-')) {
+            const at = node.getAbsolutePosition();
+            bands.push({ node, x: at.x, z: at.z, near: 52, far: 70, on: true });
+          }
+          continue;
+        }
+        if (node instanceof BABYLON.AbstractMesh && (id.startsWith('street-ground') || id.startsWith('b3-decal-ave-') || id.startsWith('b3-decal-cross-') || id === 'b3-decal-road')) {
+          assignFlat(node, id.startsWith('street-ground') ? groundMat : roadMat, id.startsWith('street-ground') ? 4 : 3.2);
+          continue;
+        }
+        if (node instanceof BABYLON.AbstractMesh && id.startsWith('b3-decal-lane-')) {
+          assignFlat(node, xingMat);
+          continue;
+        }
+        if (!kind) continue;
+        if (kind === 'interior' || kind === 'shell') {
+          const spot = shopSpots.find((shop) => id.includes(`shop-${shop.id}`));
+          if (!spot) continue;
+          if (kind === 'interior') {
+            spot.interior.push(node);
+            node.setEnabled(false);
+          } else {
+            const at = node.getAbsolutePosition();
+            bands.push({ node, x: at.x, z: at.z, near: 56, far: 74, on: true });
+          }
+        } else {
+          const at = node.getAbsolutePosition();
+          const near = kind === 'furn' ? 34 : kind === 'window' ? 46 : 42;
+          const far = kind === 'furn' ? 46 : kind === 'window' ? 60 : 56;
+          bands.push({ node, x: at.x, z: at.z, near, far, on: true });
+        }
+        if (!(node instanceof BABYLON.AbstractMesh) || id.includes('-in-') && !id.includes('-in-lamp')) continue;
+        let material: BABYLON.Material | null = null;
+        let tile = 0;
+        if (kind === 'window' || id.includes('lamp-head') || id.includes('shell-sign') || id.includes('-in-lamp')) {
+          material = windowMat;
+          tile = 1.45;
+        } else if (kind === 'walk') {
+          material = walkMat;
+          tile = 1.6;
+        } else if (kind === 'curb') {
+          material = curbMat;
+          tile = 1.1;
+        } else if (kind === 'xing' || id.includes('shell-sill')) material = xingMat;
+        else if (id.includes('shell-glass')) material = glassMat;
+        else if (id.includes('shell-awning')) material = awningMat[shopSpots.find((shop) => id.includes(`shop-${shop.id}`))?.id ?? ''] ?? wallMat;
+        else if (id.includes('shell-lintel') || id.includes('lamp-post')) {
+          material = metalMat;
+          tile = 0.7;
+        } else if (id.includes('shell-w') || id.includes('shell-e')) {
+          material = wallMat;
+          tile = 0.85;
+        }
+        if (material) assignFlat(node, material, tile);
+      }
+      syncShops(bootX, STREET.z);
+      applyBands(bootX, STREET.z);
+      for (const person of people) {
+        const dist = Math.hypot(person.mesh.position.x - bootX, person.mesh.position.z - STREET.z);
+        setPersonShown(person, shouldShow(person, dist));
+      }
       host.placePierce(SPAWN.x, SPAWN.z, SPAWN.yaw);
       slideDoors(0);
       await Promise.all(people.map((person) => new Promise<void>((resolve) => person.avatar.whenReady(resolve))));
@@ -612,10 +1053,24 @@ export const createGoingHome = (host: GoingHomeHost) => {
         if (!person.mesh.isDisposed()) person.mesh.dispose();
       }
       people.length = 0;
-      for (const car of cars) car.root.dispose(false, true);
+      for (const car of cars) car.root.dispose(false, false);
       cars.length = 0;
       for (const node of disposers) node.dispose(false, true);
       disposers.length = 0;
+      for (const mesh of painted) {
+        if (!mesh.isDisposed() && mesh.material && ownedMats.includes(mesh.material)) mesh.material = null;
+      }
+      painted.length = 0;
+      paintJobs.length = 0;
+      for (const mat of ownedMats) mat.dispose();
+      ownedMats.length = 0;
+      carLooks.delete(host.scene);
+      bands.length = 0;
+      queued.length = 0;
+      for (const shop of shopSpots) {
+        shop.interior.length = 0;
+        shop.open = false;
+      }
     },
     onStart: () => {
       shadowOn = false;
@@ -642,7 +1097,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       const marks: { x: number; y: number; z: number }[] = [];
       if (!shadowOn || !handsOut || tether) return marks;
       for (const person of people) {
-        if (person.mood === 'down' || person.hp <= 0) continue;
+        if (!person.shown || person.mood === 'down' || person.hp <= 0) continue;
         marks.push({ x: person.mesh.position.x, y: person.mesh.position.y, z: person.mesh.position.z });
       }
       return marks;
@@ -658,7 +1113,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       let best: Person | null = null;
       let bestDist = 1.35;
       for (const person of people) {
-        if (person.mood === 'down' || person.hp <= 0) continue;
+        if (!person.shown || person.mood === 'down' || person.hp <= 0) continue;
         const dist = Math.hypot(person.mesh.position.x - x, person.mesh.position.y - y, person.mesh.position.z - z);
         if (dist > bestDist) continue;
         best = person;
@@ -686,6 +1141,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
       const atZ = best.mesh.position.z;
       releaseLink(false);
       watchDeath(atX, atZ);
+      host.playFile(STREET_SFX.consume, 0.46);
+      host.playFile(STREET_SFX.death, 0.32);
       shake = 0.22;
       showStreet();
       return true;
@@ -703,7 +1160,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
         const here = host.player();
         for (const person of people) {
           if (person.mood === 'down' || person === tether) continue;
-          if (person.role !== 'police' && person.role !== 'hostile') continue;
+          if (person.role !== 'police' && person.role !== 'hostile' && !person.mean) continue;
           const dist = Math.hypot(person.mesh.position.x - here.x, person.mesh.position.z - here.z);
           if (dist < 16) person.mood = 'chase';
           else if (person.mood === 'lost') person.mood = 'calm';
@@ -712,6 +1169,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       handsOut = false;
       trailLeft = 0;
       hideBeads();
+      host.playFile(shadowOn ? STREET_SFX.shadowOn : STREET_SFX.shadowOff, 0.4);
       if (shadowOn) host.holster();
       showStreet();
       return shadowOn;
@@ -739,7 +1197,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       const bodyZ = Math.cos(here.yaw);
       let hit = false;
       for (const person of people) {
-        if (person.mood === 'down' || person === tether) continue;
+        if (!person.shown || person.mood === 'down' || person === tether) continue;
         const dx = person.mesh.position.x - here.x;
         const dz = person.mesh.position.z - here.z;
         const dist = Math.hypot(dx, dz);
@@ -757,6 +1215,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
         hit = true;
       }
       if (!hit) return false;
+      host.playFile(STREET_SFX.shock, 0.5);
       shoveLeft = 1.35;
       shake = 0.18;
       host.playClip('shadowshock', false, 1, () => {
@@ -775,7 +1234,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       let best: Person | null = null;
       let bestAlong = 28;
       for (const person of people) {
-        if (person.mood === 'down' || person.hp <= 0) continue;
+        if (!person.shown || person.mood === 'down' || person.hp <= 0) continue;
         const to = person.mesh.position.add(new BABYLON.Vector3(0, 0.2, 0)).subtract(origin);
         const along = BABYLON.Vector3.Dot(to, dir);
         if (along < 0.4 || along > bestAlong) continue;
@@ -832,11 +1291,46 @@ export const createGoingHome = (host: GoingHomeHost) => {
         if (time >= 36.2) handoff();
       } else if (host.running()) {
         streetTime += dt;
+        if (!streetNoted && streetTime >= 30) {
+          streetNoted = true;
+          host.pushPhoneText('voss-street');
+        }
+        const shopNow = shopHere();
+        if (shopNow && shopNow !== insideShop) host.playFile(STREET_SFX.bell, 0.32);
+        insideShop = shopNow;
+      }
+      if (chatterLeft > 0) {
+        chatterLeft = Math.max(0, chatterLeft - dt);
+        if (chatterLeft <= 0 && chatterNext && shoutLeft <= 0) {
+          const next = chatterNext;
+          chatterNext = null;
+          speak(next.title, next.line);
+        } else if (chatterLeft <= 0 && shoutLeft <= 0) host.showLine('', '');
+      } else if (!playing && host.running()) {
+        chatterWait -= dt;
+        if (chatterWait <= 0) {
+          chatterWait = 4.6;
+          considerTalk();
+        }
       }
 
       trailLeft = Math.max(0, trailLeft - dt);
       linkTime += dt;
       const here = host.player();
+      cullWait -= dt;
+      const cullNow = cullWait <= 0;
+      if (cullNow) {
+        applyBands(here.x, here.z);
+        cullWait = 0.28;
+      }
+      if (shareLeft > 0 && cullNow) {
+        shareLeft -= 0.28;
+        for (const job of paintJobs) {
+          if (!job.mesh.isDisposed() && job.mesh.material !== job.material) paintMesh(job.mesh, job.material);
+        }
+      }
+      syncShops(here.x, here.z);
+      pumpQueue(here.x, here.z, 1);
       updateRibbon();
       if (tether && !playing) {
         const breakDx = tether.mesh.position.x - here.x;
@@ -850,6 +1344,9 @@ export const createGoingHome = (host: GoingHomeHost) => {
         const dx = here.x - px;
         const dz = here.z - pz;
         const dist = Math.hypot(dx, dz);
+        const want = shouldShow(person, dist);
+        setPersonShown(person, want);
+        if (!want) continue;
         if (person === tether) {
           const mx = tetherMove.x;
           const mz = tetherMove.z;
@@ -867,6 +1364,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
           if (!person.fell) {
             person.fell = person.avatar.playClip(person.shocked ? 'electrocuted' : 'deathforward', false);
             person.moving = false;
+            if (!person.shocked) host.playFile(STREET_SFX.death, 0.42);
           }
           continue;
         }
@@ -879,21 +1377,21 @@ export const createGoingHome = (host: GoingHomeHost) => {
         if (person.stagger > 0 && person.mood !== 'lost') {
           person.stagger -= dt;
           if (person.stagger <= 0) {
-            person.mood = person.role === 'hostile' || person.role === 'police'
+            person.mood = person.role === 'hostile' || person.role === 'police' || person.mean
               ? 'chase'
               : person.skittish || person.role === 'desk'
                 ? 'flee'
                 : 'calm';
           }
         }
-        if (!shadowOn && seen && person.mood === 'calm' && person.skittish && person.role === 'walk' && dist < 2.4) {
+        if (!shadowOn && seen && person.mood === 'calm' && person.skittish && (person.role === 'walk' || person.role === 'shop') && dist < 2.4) {
           person.mood = 'flee';
           if (!person.screamed) {
             person.screamed = true;
             host.playFile(PEDESTRIAN, 0.7);
           }
         }
-        if (!shadowOn && person.role === 'hostile' && !playing && streetTime > 2.5 && person.mood === 'calm') person.mood = 'chase';
+        if (!shadowOn && (person.role === 'hostile' || person.mean) && !playing && streetTime > 2.5 && person.mood === 'calm') person.mood = 'chase';
         let mx = 0;
         let mz = 0;
         let speed = 0;
@@ -930,6 +1428,10 @@ export const createGoingHome = (host: GoingHomeHost) => {
           }
           mx = person.dir;
           mz = 0;
+        } else if (person.role === 'shop' && person.mood === 'calm') {
+          speed = 0;
+          const look = !shadowOn && dist < 3.4 && dist > 0.15;
+          face(person, look ? Math.atan2(here.x - px, here.z - pz) : person.homeYaw);
         } else if (person.role === 'desk' && person.mood === 'calm') {
           speed = 0;
           face(person, -Math.PI / 2);
@@ -953,13 +1455,19 @@ export const createGoingHome = (host: GoingHomeHost) => {
             }
           }
         }
-        if (!playing && !taught && !shadowOn && !tether && (person.role === 'hostile' || person.role === 'police') && person.mood === 'chase' && dist < 6) {
+        if (!playing && !taught && !shadowOn && !tether && (person.role === 'hostile' || person.role === 'police' || person.mean) && person.mood === 'chase' && dist < 6) {
           taught = true;
           host.setObjective('Shadow Shock', 'C for shadow mode. V shocks anyone in front.', { x: HOME.x, y: 1.2, z: HOME.z });
         }
       }
 
       for (const car of cars) {
+        const nearX = car.root.position.x - here.x;
+        const nearZ = car.root.position.z - here.z;
+        const near2 = nearX * nearX + nearZ * nearZ;
+        const carOn = car.root.isEnabled();
+        const wantCar = carOn ? near2 < 68 * 68 : near2 < 50 * 50;
+        if (wantCar !== carOn) car.root.setEnabled(wantCar);
         if (car.parked) continue;
         if (car.axis === 'z') {
           car.root.position.z += car.speed * dt;
@@ -969,6 +1477,21 @@ export const createGoingHome = (host: GoingHomeHost) => {
           car.root.position.x += car.speed * dt;
           if (car.root.position.x > 320) car.root.position.x = -140;
           if (car.root.position.x < -140) car.root.position.x = 320;
+        }
+        if (!car.parked) {
+          const alongNow = car.axis === 'z'
+            ? Math.abs(car.root.position.z - here.z)
+            : Math.abs(car.root.position.x - here.x);
+          const acrossNow = car.axis === 'z'
+            ? Math.abs(car.x - here.x)
+            : Math.abs(car.z - here.z);
+          if (alongNow < 3.2 && acrossNow < 7) {
+            if (!car.passed && !playing) {
+              car.passed = true;
+              const dist = Math.hypot(nearX, nearZ);
+              host.playFile(STREET_SFX.car, Math.max(0.07, Math.min(0.2, 0.26 - dist * 0.018)));
+            }
+          } else if (alongNow > 8) car.passed = false;
         }
         if (playing || carHit > 0) continue;
         const dx = Math.abs((car.axis === 'z' ? car.x : car.root.position.x) - here.x);

@@ -2,6 +2,7 @@
   "objectives": {
     "seat": { "title": "Take your seat", "text": "Join the board" },
     "wait-board": { "title": "Objective", "text": "Wait for the board to leave" },
+    "window": { "title": "Objective", "text": "Walk to the window" },
     "alarm": { "title": "Objective", "text": "Investigate the terminal" },
     "elevator": { "title": "Objective", "text": "Get to the elevator" },
     "lab": { "title": "Objective", "text": "The halls are black past the lamps. G is the light. F opens the phone. Find the lab door." },

@@ -64,7 +64,7 @@ export const createSceneGrade = (
     const apex = themeName === 'Apex Peak';
     const street = themeName === 'Street';
     const station = themeName === 'Station';
-    image.exposure = basement ? 0.78 : street ? 0.9 : apex ? 1.12 : 1.05;
+    image.exposure = basement ? 0.84 : street ? 0.9 : apex ? 1.12 : 1.05;
     image.contrast = basement ? 1.06 : 1.12;
     pipeline.bloomWeight = basement ? 0.28 : apex ? 0.06 : 0.1;
     pipeline.bloomThreshold = basement ? 0.48 : 0.84;
@@ -108,18 +108,21 @@ export const createSceneGrade = (
       scene.fogStart = 22;
       scene.fogEnd = 86;
     } else if (powers && street) {
-      image.exposure = 0.98;
-      image.contrast = 1.12;
-      image.vignetteWeight = 1.45;
-      pipeline.bloomWeight = 0.46;
-      pipeline.bloomThreshold = 0.28;
-      pipeline.bloomKernel = 64;
-      pipeline.bloomScale = 0.55;
-      curves.globalSaturation = 14;
-      curves.shadowsExposure = 18;
+      image.exposure = 1.2;
+      image.contrast = 1.08;
+      image.vignetteWeight = 1.12;
+      pipeline.bloomWeight = 0.4;
+      pipeline.bloomThreshold = 0.34;
+      pipeline.bloomKernel = 56;
+      pipeline.bloomScale = 0.5;
+      curves.globalSaturation = 12;
+      curves.shadowsExposure = 36;
       image.colorCurvesEnabled = true;
-      liftFill(0.78, 0.18);
-      paintHemiGround(0.1, 0.11, 0.14);
+      liftFill(1.15, 0.36);
+      paintHemiGround(0.24, 0.25, 0.28);
+      scene.fogColor = new BABYLON.Color3(0.075, 0.08, 0.095);
+      scene.fogStart = 46;
+      scene.fogEnd = 150;
     } else if (powers) {
       image.exposure = apex ? 1.48 : 1.65;
       image.contrast = 1.16;

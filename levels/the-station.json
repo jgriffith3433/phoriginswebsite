@@ -888,7 +888,7 @@
       "data": {
         "audio": "/assets/audio/room-tone.mp3",
         "radius": 90,
-        "volume": 0.2,
+        "volume": 0.1,
         "loop": true,
         "fadeSeconds": 1.5
       }

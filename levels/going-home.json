@@ -1067,78 +1067,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-0-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-0-s-0",
-      "x": -133,
-      "y": 6.08,
-      "z": -128.87,
-      "scale": {
-        "x": 19.53,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-0-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-0-s-1",
-      "x": -133,
-      "y": 10.56,
-      "z": -128.87,
-      "scale": {
-        "x": 19.53,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-0-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-0-n-0",
-      "x": -133,
-      "y": 6.08,
-      "z": -87.63,
-      "scale": {
-        "x": 19.53,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-0-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-0-n-1",
-      "x": -133,
-      "y": 10.56,
-      "z": -87.63,
-      "scale": {
-        "x": 19.53,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-1",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -1157,78 +1085,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-1-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-1-s-0",
-      "x": -133,
-      "y": 10.26,
-      "z": -79.37,
-      "scale": {
-        "x": 19.53,
-        "y": 2.16,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-1-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-1-s-1",
-      "x": -133,
-      "y": 17.82,
-      "z": -79.37,
-      "scale": {
-        "x": 19.53,
-        "y": 2.16,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-1-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-1-n-0",
-      "x": -133,
-      "y": 10.26,
-      "z": -38.13,
-      "scale": {
-        "x": 19.53,
-        "y": 2.16,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-1-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-1-n-1",
-      "x": -133,
-      "y": 17.82,
-      "z": -38.13,
-      "scale": {
-        "x": 19.53,
-        "y": 2.16,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-2",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -1242,42 +1098,6 @@
         "z": 33.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-2-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-2-s-0",
-      "x": -133,
-      "y": 11.78,
-      "z": -19.87,
-      "scale": {
-        "x": 19.53,
-        "y": 2.48,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-2-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-2-s-1",
-      "x": -133,
-      "y": 20.46,
-      "z": -19.87,
-      "scale": {
-        "x": 19.53,
-        "y": 2.48,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -1373,42 +1193,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-3-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-3-n-0",
-      "x": -133,
-      "y": 13.3,
-      "z": 77.87,
-      "scale": {
-        "x": 19.53,
-        "y": 2.8000000000000003,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-3-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-3-n-1",
-      "x": -133,
-      "y": 23.1,
-      "z": 77.87,
-      "scale": {
-        "x": 19.53,
-        "y": 2.8000000000000003,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-4",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -1422,78 +1206,6 @@
         "z": 39.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-4-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-4-s-0",
-      "x": -133,
-      "y": 14.82,
-      "z": 96.13,
-      "scale": {
-        "x": 19.53,
-        "y": 3.12,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-4-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-4-s-1",
-      "x": -133,
-      "y": 25.740000000000002,
-      "z": 96.13,
-      "scale": {
-        "x": 19.53,
-        "y": 3.12,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-4-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-4-n-0",
-      "x": -133,
-      "y": 14.82,
-      "z": 135.87,
-      "scale": {
-        "x": 19.53,
-        "y": 3.12,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-4-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-4-n-1",
-      "x": -133,
-      "y": 25.740000000000002,
-      "z": 135.87,
-      "scale": {
-        "x": 19.53,
-        "y": 3.12,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -1517,78 +1229,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-5-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-5-s-0",
-      "x": -133,
-      "y": 16.34,
-      "z": 154.13,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-5-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-5-s-1",
-      "x": -133,
-      "y": 28.380000000000003,
-      "z": 154.13,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-5-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-5-n-0",
-      "x": -133,
-      "y": 16.34,
-      "z": 193.87,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-5-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-5-n-1",
-      "x": -133,
-      "y": 28.380000000000003,
-      "z": 193.87,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-6",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -1602,78 +1242,6 @@
         "z": 36.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-6-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-6-s-0",
-      "x": -133,
-      "y": 17.86,
-      "z": 212.13,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-6-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-6-s-1",
-      "x": -133,
-      "y": 31.020000000000003,
-      "z": 212.13,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-6-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-6-n-0",
-      "x": -133,
-      "y": 17.86,
-      "z": 248.87,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-6-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-6-n-1",
-      "x": -133,
-      "y": 31.020000000000003,
-      "z": 248.87,
-      "scale": {
-        "x": 19.53,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -1697,78 +1265,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-7-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-7-s-0",
-      "x": -79,
-      "y": 19.76,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-7-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-7-s-1",
-      "x": -79,
-      "y": 34.32,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-7-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-7-n-0",
-      "x": -79,
-      "y": 19.76,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-7-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-7-n-1",
-      "x": -79,
-      "y": 34.32,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-8",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -1787,78 +1283,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-8-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-8-s-0",
-      "x": -79,
-      "y": 23.94,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-8-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-8-s-1",
-      "x": -79,
-      "y": 41.580000000000005,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-8-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-8-n-0",
-      "x": -79,
-      "y": 23.94,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-8-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-8-n-1",
-      "x": -79,
-      "y": 41.580000000000005,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-9",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -1872,42 +1296,6 @@
         "z": 33.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-9-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-9-s-0",
-      "x": -79,
-      "y": 25.46,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-9-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-9-s-1",
-      "x": -79,
-      "y": 44.22,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -2003,42 +1391,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-10-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-10-n-0",
-      "x": -79,
-      "y": 26.98,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-10-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-10-n-1",
-      "x": -79,
-      "y": 46.86,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-11",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -2052,78 +1404,6 @@
         "z": 39.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-11-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-11-s-0",
-      "x": -79,
-      "y": 6.46,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-11-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-11-s-1",
-      "x": -79,
-      "y": 11.22,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-11-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-11-n-0",
-      "x": -79,
-      "y": 6.46,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-11-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-11-n-1",
-      "x": -79,
-      "y": 11.22,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -2147,78 +1427,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-12-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-12-s-0",
-      "x": -79,
-      "y": 7.98,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.68,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-12-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-12-s-1",
-      "x": -79,
-      "y": 13.860000000000001,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.68,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-12-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-12-n-0",
-      "x": -79,
-      "y": 7.98,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.68,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-12-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-12-n-1",
-      "x": -79,
-      "y": 13.860000000000001,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.68,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-13",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -2232,78 +1440,6 @@
         "z": 36.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-13-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-13-s-0",
-      "x": -79,
-      "y": 9.5,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-13-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-13-s-1",
-      "x": -79,
-      "y": 16.5,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-13-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-13-n-0",
-      "x": -79,
-      "y": 9.5,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-13-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-13-n-1",
-      "x": -79,
-      "y": 16.5,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -2327,78 +1463,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-14-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-14-s-0",
-      "x": -29.5,
-      "y": 11.4,
-      "z": -128.87,
-      "scale": {
-        "x": 13.95,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-14-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-14-s-1",
-      "x": -29.5,
-      "y": 19.8,
-      "z": -128.87,
-      "scale": {
-        "x": 13.95,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-14-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-14-n-0",
-      "x": -29.5,
-      "y": 11.4,
-      "z": -38.13,
-      "scale": {
-        "x": 13.95,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-14-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-14-n-1",
-      "x": -29.5,
-      "y": 19.8,
-      "z": -38.13,
-      "scale": {
-        "x": 13.95,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-15",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -2412,78 +1476,6 @@
         "z": 90.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-15-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-15-s-0",
-      "x": 1.5,
-      "y": 15.58,
-      "z": -128.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-15-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-15-s-1",
-      "x": 1.5,
-      "y": 27.060000000000002,
-      "z": -128.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-15-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-15-n-0",
-      "x": 1.5,
-      "y": 15.58,
-      "z": -38.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-15-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-15-n-1",
-      "x": 1.5,
-      "y": 27.060000000000002,
-      "z": -38.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -2507,78 +1499,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-16-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-16-s-0",
-      "x": -29.5,
-      "y": 17.1,
-      "z": -19.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-16-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-16-s-1",
-      "x": -29.5,
-      "y": 29.700000000000003,
-      "z": -19.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-16-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-16-n-0",
-      "x": -29.5,
-      "y": 17.1,
-      "z": -3.63,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-16-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-16-n-1",
-      "x": -29.5,
-      "y": 29.700000000000003,
-      "z": -3.63,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-17",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -2592,78 +1512,6 @@
         "z": 16
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-17-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-17-s-0",
-      "x": 1.5,
-      "y": 21.28,
-      "z": -19.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-17-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-17-s-1",
-      "x": 1.5,
-      "y": 36.96,
-      "z": -19.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-17-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-17-n-0",
-      "x": 1.5,
-      "y": 21.28,
-      "z": -3.63,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-17-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-17-n-1",
-      "x": 1.5,
-      "y": 36.96,
-      "z": -3.63,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -2712,42 +1560,6 @@
       "x": -29.5,
       "y": 39.6,
       "z": 44.63,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-18-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-18-n-0",
-      "x": -29.5,
-      "y": 22.8,
-      "z": 77.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-18-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-18-n-1",
-      "x": -29.5,
-      "y": 39.6,
-      "z": 77.87,
       "scale": {
         "x": 13.95,
         "y": 3.2,
@@ -2813,42 +1625,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-19-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-19-n-0",
-      "x": 1.5,
-      "y": 26.98,
-      "z": 77.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-19-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-19-n-1",
-      "x": 1.5,
-      "y": 46.86,
-      "z": 77.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-20",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -2862,78 +1638,6 @@
         "z": 39.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-20-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-20-s-0",
-      "x": -29.5,
-      "y": 6.46,
-      "z": 96.13,
-      "scale": {
-        "x": 13.95,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-20-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-20-s-1",
-      "x": -29.5,
-      "y": 11.22,
-      "z": 96.13,
-      "scale": {
-        "x": 13.95,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-20-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-20-n-0",
-      "x": -29.5,
-      "y": 6.46,
-      "z": 135.87,
-      "scale": {
-        "x": 13.95,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-20-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-20-n-1",
-      "x": -29.5,
-      "y": 11.22,
-      "z": 135.87,
-      "scale": {
-        "x": 13.95,
-        "y": 1.36,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -2957,78 +1661,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-21-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-21-s-0",
-      "x": 1.5,
-      "y": 10.64,
-      "z": 96.13,
-      "scale": {
-        "x": 13.95,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-21-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-21-s-1",
-      "x": 1.5,
-      "y": 18.48,
-      "z": 96.13,
-      "scale": {
-        "x": 13.95,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-21-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-21-n-0",
-      "x": 1.5,
-      "y": 10.64,
-      "z": 135.87,
-      "scale": {
-        "x": 13.95,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-21-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-21-n-1",
-      "x": 1.5,
-      "y": 18.48,
-      "z": 135.87,
-      "scale": {
-        "x": 13.95,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-22",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -3042,78 +1674,6 @@
         "z": 39.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-22-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-22-s-0",
-      "x": -29.5,
-      "y": 12.16,
-      "z": 154.13,
-      "scale": {
-        "x": 13.95,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-22-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-22-s-1",
-      "x": -29.5,
-      "y": 21.12,
-      "z": 154.13,
-      "scale": {
-        "x": 13.95,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-22-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-22-n-0",
-      "x": -29.5,
-      "y": 12.16,
-      "z": 193.87,
-      "scale": {
-        "x": 13.95,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-22-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-22-n-1",
-      "x": -29.5,
-      "y": 21.12,
-      "z": 193.87,
-      "scale": {
-        "x": 13.95,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -3137,78 +1697,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-23-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-23-s-0",
-      "x": 1.5,
-      "y": 16.34,
-      "z": 154.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-23-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-23-s-1",
-      "x": 1.5,
-      "y": 28.380000000000003,
-      "z": 154.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-23-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-23-n-0",
-      "x": 1.5,
-      "y": 16.34,
-      "z": 193.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-23-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-23-n-1",
-      "x": 1.5,
-      "y": 28.380000000000003,
-      "z": 193.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-24",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -3222,78 +1710,6 @@
         "z": 36.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-24-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-24-s-0",
-      "x": -29.5,
-      "y": 17.86,
-      "z": 212.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-24-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-24-s-1",
-      "x": -29.5,
-      "y": 31.020000000000003,
-      "z": 212.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-24-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-24-n-0",
-      "x": -29.5,
-      "y": 17.86,
-      "z": 248.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-24-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-24-n-1",
-      "x": -29.5,
-      "y": 31.020000000000003,
-      "z": 248.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -3317,78 +1733,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-25-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-25-s-0",
-      "x": 1.5,
-      "y": 22.04,
-      "z": 212.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-25-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-25-s-1",
-      "x": 1.5,
-      "y": 38.28,
-      "z": 212.13,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-25-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-25-n-0",
-      "x": 1.5,
-      "y": 22.04,
-      "z": 248.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-25-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-25-n-1",
-      "x": 1.5,
-      "y": 38.28,
-      "z": 248.87,
-      "scale": {
-        "x": 13.95,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-26",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -3402,78 +1746,6 @@
         "z": 41
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-26-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-26-s-0",
-      "x": 51,
-      "y": 23.94,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-26-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-26-s-1",
-      "x": 51,
-      "y": 41.580000000000005,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-26-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-26-n-0",
-      "x": 51,
-      "y": 23.94,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-26-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-26-n-1",
-      "x": 51,
-      "y": 41.580000000000005,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -3497,78 +1769,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-27-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-27-s-0",
-      "x": 51,
-      "y": 6.08,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-27-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-27-s-1",
-      "x": 51,
-      "y": 10.56,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-27-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-27-n-0",
-      "x": 51,
-      "y": 6.08,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-27-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-27-n-1",
-      "x": 51,
-      "y": 10.56,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-28",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -3582,42 +1782,6 @@
         "z": 33.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-28-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-28-s-0",
-      "x": 51,
-      "y": 7.6,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.6,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-28-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-28-s-1",
-      "x": 51,
-      "y": 13.200000000000001,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.6,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -3713,42 +1877,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-29-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-29-n-0",
-      "x": 51,
-      "y": 9.120000000000001,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.92,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-29-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-29-n-1",
-      "x": 51,
-      "y": 15.84,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.92,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-30",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -3762,78 +1890,6 @@
         "z": 39.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-30-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-30-s-0",
-      "x": 51,
-      "y": 10.64,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-30-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-30-s-1",
-      "x": 51,
-      "y": 18.48,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-30-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-30-n-0",
-      "x": 51,
-      "y": 10.64,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-30-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-30-n-1",
-      "x": 51,
-      "y": 18.48,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -3857,78 +1913,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-31-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-31-s-0",
-      "x": 51,
-      "y": 12.16,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-31-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-31-s-1",
-      "x": 51,
-      "y": 21.12,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-31-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-31-n-0",
-      "x": 51,
-      "y": 12.16,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-31-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-31-n-1",
-      "x": 51,
-      "y": 21.12,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.56,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-32",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -3942,78 +1926,6 @@
         "z": 36.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-32-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-32-s-0",
-      "x": 51,
-      "y": 13.68,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.88,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-32-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-32-s-1",
-      "x": 51,
-      "y": 23.76,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.88,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-32-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-32-n-0",
-      "x": 51,
-      "y": 13.68,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.88,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-32-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-32-n-1",
-      "x": 51,
-      "y": 23.76,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.88,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -4037,78 +1949,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-33-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-33-s-0",
-      "x": 109,
-      "y": 15.58,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-33-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-33-s-1",
-      "x": 109,
-      "y": 27.060000000000002,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-33-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-33-n-0",
-      "x": 109,
-      "y": 15.58,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-33-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-33-n-1",
-      "x": 109,
-      "y": 27.060000000000002,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-34",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -4127,78 +1967,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-34-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-34-s-0",
-      "x": 109,
-      "y": 19.76,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-34-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-34-s-1",
-      "x": 109,
-      "y": 34.32,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-34-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-34-n-0",
-      "x": 109,
-      "y": 19.76,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-34-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-34-n-1",
-      "x": 109,
-      "y": 34.32,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-35",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -4212,42 +1980,6 @@
         "z": 33.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-35-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-35-s-0",
-      "x": 109,
-      "y": 21.28,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-35-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-35-s-1",
-      "x": 109,
-      "y": 36.96,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -4343,42 +2075,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-36-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-36-n-0",
-      "x": 109,
-      "y": 22.8,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-36-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-36-n-1",
-      "x": 109,
-      "y": 39.6,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-37",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -4392,78 +2088,6 @@
         "z": 39.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-37-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-37-s-0",
-      "x": 109,
-      "y": 24.32,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-37-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-37-s-1",
-      "x": 109,
-      "y": 42.24,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-37-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-37-n-0",
-      "x": 109,
-      "y": 24.32,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-37-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-37-n-1",
-      "x": 109,
-      "y": 42.24,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -4487,78 +2111,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-38-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-38-s-0",
-      "x": 109,
-      "y": 25.84,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-38-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-38-s-1",
-      "x": 109,
-      "y": 44.88,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-38-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-38-n-0",
-      "x": 109,
-      "y": 25.84,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-38-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-38-n-1",
-      "x": 109,
-      "y": 44.88,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-39",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -4572,78 +2124,6 @@
         "z": 36.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-39-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-39-s-0",
-      "x": 109,
-      "y": 27.36,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-39-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-39-s-1",
-      "x": 109,
-      "y": 47.52,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-39-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-39-n-0",
-      "x": 109,
-      "y": 27.36,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-39-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-39-n-1",
-      "x": 109,
-      "y": 47.52,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -4667,78 +2147,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-40-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-40-s-0",
-      "x": 167,
-      "y": 7.22,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.52,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-40-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-40-s-1",
-      "x": 167,
-      "y": 12.540000000000001,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.52,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-40-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-40-n-0",
-      "x": 167,
-      "y": 7.22,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 1.52,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-40-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-40-n-1",
-      "x": 167,
-      "y": 12.540000000000001,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 1.52,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-41",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -4757,78 +2165,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-41-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-41-s-0",
-      "x": 167,
-      "y": 11.4,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-41-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-41-s-1",
-      "x": 167,
-      "y": 19.8,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-41-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-41-n-0",
-      "x": 167,
-      "y": 11.4,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-41-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-41-n-1",
-      "x": 167,
-      "y": 19.8,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-42",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -4842,42 +2178,6 @@
         "z": 33.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-42-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-42-s-0",
-      "x": 167,
-      "y": 12.92,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.72,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-42-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-42-s-1",
-      "x": 167,
-      "y": 22.44,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.72,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -4973,42 +2273,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-43-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-43-n-0",
-      "x": 167,
-      "y": 14.44,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.04,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-43-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-43-n-1",
-      "x": 167,
-      "y": 25.080000000000002,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.04,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-44",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -5022,78 +2286,6 @@
         "z": 39.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-44-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-44-s-0",
-      "x": 167,
-      "y": 15.96,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-44-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-44-s-1",
-      "x": 167,
-      "y": 27.720000000000002,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-44-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-44-n-0",
-      "x": 167,
-      "y": 15.96,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-44-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-44-n-1",
-      "x": 167,
-      "y": 27.720000000000002,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -5117,78 +2309,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-45-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-45-s-0",
-      "x": 167,
-      "y": 17.48,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-45-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-45-s-1",
-      "x": 167,
-      "y": 30.360000000000003,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-45-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-45-n-0",
-      "x": 167,
-      "y": 17.48,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-45-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-45-n-1",
-      "x": 167,
-      "y": 30.360000000000003,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-46",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -5202,78 +2322,6 @@
         "z": 36.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-46-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-46-s-0",
-      "x": 167,
-      "y": 19,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-46-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-46-s-1",
-      "x": 167,
-      "y": 33,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-46-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-46-n-0",
-      "x": 167,
-      "y": 19,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-46-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-46-n-1",
-      "x": 167,
-      "y": 33,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -5297,78 +2345,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-47-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-47-s-0",
-      "x": 225,
-      "y": 20.9,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-47-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-47-s-1",
-      "x": 225,
-      "y": 36.300000000000004,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-47-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-47-n-0",
-      "x": 225,
-      "y": 20.9,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-47-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-47-n-1",
-      "x": 225,
-      "y": 36.300000000000004,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-48",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -5387,78 +2363,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-48-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-48-s-0",
-      "x": 225,
-      "y": 25.080000000000002,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-48-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-48-s-1",
-      "x": 225,
-      "y": 43.56,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-48-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-48-n-0",
-      "x": 225,
-      "y": 25.080000000000002,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-48-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-48-n-1",
-      "x": 225,
-      "y": 43.56,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-49",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -5472,42 +2376,6 @@
         "z": 33.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-49-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-49-s-0",
-      "x": 225,
-      "y": 26.6,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-49-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-49-s-1",
-      "x": 225,
-      "y": 46.2,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -5603,42 +2471,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-50-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-50-n-0",
-      "x": 225,
-      "y": 6.08,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-50-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-50-n-1",
-      "x": 225,
-      "y": 10.56,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.28,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-51",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -5652,78 +2484,6 @@
         "z": 39.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-51-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-51-s-0",
-      "x": 225,
-      "y": 7.6,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.6,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-51-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-51-s-1",
-      "x": 225,
-      "y": 13.200000000000001,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.6,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-51-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-51-n-0",
-      "x": 225,
-      "y": 7.6,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.6,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-51-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-51-n-1",
-      "x": 225,
-      "y": 13.200000000000001,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.6,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -5747,78 +2507,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-52-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-52-s-0",
-      "x": 225,
-      "y": 9.120000000000001,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.92,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-52-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-52-s-1",
-      "x": 225,
-      "y": 15.84,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 1.92,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-52-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-52-n-0",
-      "x": 225,
-      "y": 9.120000000000001,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.92,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-52-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-52-n-1",
-      "x": 225,
-      "y": 15.84,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 1.92,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-53",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -5832,78 +2520,6 @@
         "z": 36.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-53-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-53-s-0",
-      "x": 225,
-      "y": 10.64,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-53-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-53-s-1",
-      "x": 225,
-      "y": 18.48,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-53-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-53-n-0",
-      "x": 225,
-      "y": 10.64,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-53-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-53-n-1",
-      "x": 225,
-      "y": 18.48,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.24,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -5927,78 +2543,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-54-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-54-s-0",
-      "x": 283,
-      "y": 12.540000000000001,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.64,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-54-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-54-s-1",
-      "x": 283,
-      "y": 21.78,
-      "z": -128.87,
-      "scale": {
-        "x": 24.49,
-        "y": 2.64,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-54-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-54-n-0",
-      "x": 283,
-      "y": 12.540000000000001,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 2.64,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-54-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-54-n-1",
-      "x": 283,
-      "y": 21.78,
-      "z": -87.63,
-      "scale": {
-        "x": 24.49,
-        "y": 2.64,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-55",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -6017,78 +2561,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-55-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-55-s-0",
-      "x": 283,
-      "y": 16.72,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-55-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-55-s-1",
-      "x": 283,
-      "y": 29.040000000000003,
-      "z": -79.37,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-55-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-55-n-0",
-      "x": 283,
-      "y": 16.72,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-55-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-55-n-1",
-      "x": 283,
-      "y": 29.040000000000003,
-      "z": -38.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-56",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -6102,42 +2574,6 @@
         "z": 33.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-56-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-56-s-0",
-      "x": 283,
-      "y": 18.240000000000002,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-56-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-56-s-1",
-      "x": 283,
-      "y": 31.68,
-      "z": -19.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -6233,42 +2669,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-57-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-57-n-0",
-      "x": 283,
-      "y": 19.76,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-57-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-57-n-1",
-      "x": 283,
-      "y": 34.32,
-      "z": 77.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-58",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -6282,78 +2682,6 @@
         "z": 39.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-58-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-58-s-0",
-      "x": 283,
-      "y": 21.28,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-58-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-58-s-1",
-      "x": 283,
-      "y": 36.96,
-      "z": 96.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-58-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-58-n-0",
-      "x": 283,
-      "y": 21.28,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-58-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-58-n-1",
-      "x": 283,
-      "y": 36.96,
-      "z": 135.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -6377,78 +2705,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-59-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-59-s-0",
-      "x": 283,
-      "y": 22.8,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-59-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-59-s-1",
-      "x": 283,
-      "y": 39.6,
-      "z": 154.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-59-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-59-n-0",
-      "x": 283,
-      "y": 22.8,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-59-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-59-n-1",
-      "x": 283,
-      "y": 39.6,
-      "z": 193.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-60",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -6462,78 +2718,6 @@
         "z": 36.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-60-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-60-s-0",
-      "x": 283,
-      "y": 24.32,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-60-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-60-s-1",
-      "x": 283,
-      "y": 42.24,
-      "z": 212.13,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-60-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-60-n-0",
-      "x": 283,
-      "y": 24.32,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-60-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-60-n-1",
-      "x": 283,
-      "y": 42.24,
-      "z": 248.87,
-      "scale": {
-        "x": 24.49,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -6557,78 +2741,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-61-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-61-s-0",
-      "x": 330,
-      "y": 26.22,
-      "z": -128.87,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-61-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-61-s-1",
-      "x": 330,
-      "y": 45.54,
-      "z": -128.87,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-61-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-61-n-0",
-      "x": 330,
-      "y": 26.22,
-      "z": -87.63,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-61-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-61-n-1",
-      "x": 330,
-      "y": 45.54,
-      "z": -87.63,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-62",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -6647,78 +2759,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-62-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-62-s-0",
-      "x": 330,
-      "y": 8.36,
-      "z": -79.37,
-      "scale": {
-        "x": 10.85,
-        "y": 1.76,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-62-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-62-s-1",
-      "x": 330,
-      "y": 14.520000000000001,
-      "z": -79.37,
-      "scale": {
-        "x": 10.85,
-        "y": 1.76,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-62-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-62-n-0",
-      "x": 330,
-      "y": 8.36,
-      "z": -38.13,
-      "scale": {
-        "x": 10.85,
-        "y": 1.76,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-62-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-62-n-1",
-      "x": 330,
-      "y": 14.520000000000001,
-      "z": -38.13,
-      "scale": {
-        "x": 10.85,
-        "y": 1.76,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-63",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -6732,42 +2772,6 @@
         "z": 33.5
       },
       "materialId": "mat-office-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-63-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-63-s-0",
-      "x": 330,
-      "y": 9.88,
-      "z": -19.87,
-      "scale": {
-        "x": 10.85,
-        "y": 2.08,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-63-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-63-s-1",
-      "x": 330,
-      "y": 17.16,
-      "z": -19.87,
-      "scale": {
-        "x": 10.85,
-        "y": 2.08,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -6863,42 +2867,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-64-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-64-n-0",
-      "x": 330,
-      "y": 11.4,
-      "z": 77.87,
-      "scale": {
-        "x": 10.85,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-64-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-64-n-1",
-      "x": 330,
-      "y": 19.8,
-      "z": 77.87,
-      "scale": {
-        "x": 10.85,
-        "y": 2.4,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-65",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -6912,78 +2880,6 @@
         "z": 39.5
       },
       "materialId": "mat-hall-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-65-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-65-s-0",
-      "x": 330,
-      "y": 12.92,
-      "z": 96.13,
-      "scale": {
-        "x": 10.85,
-        "y": 2.72,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-65-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-65-s-1",
-      "x": 330,
-      "y": 22.44,
-      "z": 96.13,
-      "scale": {
-        "x": 10.85,
-        "y": 2.72,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-65-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-65-n-0",
-      "x": 330,
-      "y": 12.92,
-      "z": 135.87,
-      "scale": {
-        "x": 10.85,
-        "y": 2.72,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-65-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-65-n-1",
-      "x": 330,
-      "y": 22.44,
-      "z": 135.87,
-      "scale": {
-        "x": 10.85,
-        "y": 2.72,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -7007,78 +2903,6 @@
       ]
     },
     {
-      "id": "b3-decal-win-block-66-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-66-s-0",
-      "x": 330,
-      "y": 14.44,
-      "z": 154.13,
-      "scale": {
-        "x": 10.85,
-        "y": 3.04,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-66-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-66-s-1",
-      "x": 330,
-      "y": 25.080000000000002,
-      "z": 154.13,
-      "scale": {
-        "x": 10.85,
-        "y": 3.04,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-66-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-66-n-0",
-      "x": 330,
-      "y": 14.44,
-      "z": 193.87,
-      "scale": {
-        "x": 10.85,
-        "y": 3.04,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-66-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-66-n-1",
-      "x": 330,
-      "y": 25.080000000000002,
-      "z": 193.87,
-      "scale": {
-        "x": 10.85,
-        "y": 3.04,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
       "id": "block-67",
       "assetId": "structure-wall",
       "kind": "wall",
@@ -7092,78 +2916,6 @@
         "z": 36.5
       },
       "materialId": "mat-board-wall",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-67-s-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-67-s-0",
-      "x": 330,
-      "y": 15.96,
-      "z": 212.13,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-67-s-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-67-s-1",
-      "x": 330,
-      "y": 27.720000000000002,
-      "z": 212.13,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-67-n-0",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-67-n-0",
-      "x": 330,
-      "y": 15.96,
-      "z": 248.87,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
-      "components": [
-        "Transform"
-      ]
-    },
-    {
-      "id": "b3-decal-win-block-67-n-1",
-      "assetId": "structure-wall",
-      "kind": "wall",
-      "name": "b3-decal-win-block-67-n-1",
-      "x": 330,
-      "y": 27.720000000000002,
-      "z": 248.87,
-      "scale": {
-        "x": 10.85,
-        "y": 3.2,
-        "z": 0.16
-      },
-      "materialId": "mat-street-window",
       "components": [
         "Transform"
       ]
@@ -8321,6 +4073,3208 @@
       ]
     },
     {
+      "id": "b3-decal-walk-s-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-0",
+      "x": -134.075,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 41.849999999999994,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-1",
+      "x": -79,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 47.699999999999996,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-2",
+      "x": -26.875,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 35.95,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-3",
+      "x": 12.875,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 7.950000000000001,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-4",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-4",
+      "x": 0,
+      "y": 0.045,
+      "z": 20.84,
+      "scale": {
+        "x": 17.8,
+        "y": 0.06,
+        "z": 5.240000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-5",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-5",
+      "x": 34.9,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 15.5,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-6",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-6",
+      "x": 62.099999999999994,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 25.499999999999993,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-7",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-7",
+      "x": 46,
+      "y": 0.045,
+      "z": 20.87,
+      "scale": {
+        "x": 6.700000000000003,
+        "y": 0.06,
+        "z": 5.18
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-8",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-8",
+      "x": 94.9,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 19.499999999999986,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-9",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-9",
+      "x": 122.1,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 21.499999999999986,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-10",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-10",
+      "x": 108,
+      "y": 0.045,
+      "z": 20.87,
+      "scale": {
+        "x": 6.700000000000017,
+        "y": 0.06,
+        "z": 5.18
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-11",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-11",
+      "x": 145.9,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 5.5,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-12",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-12",
+      "x": 158.875,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 7.050000000000011,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-13",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-13",
+      "x": 181.725,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 18.25,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-14",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-14",
+      "x": 167.5,
+      "y": 0.045,
+      "z": 20.880000000000003,
+      "scale": {
+        "x": 10.199999999999989,
+        "y": 0.06,
+        "z": 5.16
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-15",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-15",
+      "x": 152,
+      "y": 0.045,
+      "z": 20.87,
+      "scale": {
+        "x": 6.699999999999989,
+        "y": 0.06,
+        "z": 5.18
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-16",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-16",
+      "x": 225,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-17",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-17",
+      "x": 283,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 47.700000000000045,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-s-18",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-s-18",
+      "x": 331.075,
+      "y": 0.045,
+      "z": 18.82,
+      "scale": {
+        "x": 27.850000000000023,
+        "y": 0.06,
+        "z": 9.280000000000001
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-19",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-19",
+      "x": -134.075,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 41.849999999999994,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-20",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-20",
+      "x": -79,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 47.699999999999996,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-21",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-21",
+      "x": -14,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 61.7,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-22",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-22",
+      "x": 51,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 47.699999999999996,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-23",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-23",
+      "x": 109,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-24",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-24",
+      "x": 167,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-25",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-25",
+      "x": 225,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-26",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-26",
+      "x": 283,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 47.700000000000045,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-n-27",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-n-27",
+      "x": 331.075,
+      "y": 0.045,
+      "z": 39.39,
+      "scale": {
+        "x": 27.850000000000023,
+        "y": 0.06,
+        "z": 10.060000000000002
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-28",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-28",
+      "x": -134.075,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 41.849999999999994,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-29",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-29",
+      "x": -134.075,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 41.849999999999994,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-30",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-30",
+      "x": -79,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 47.699999999999996,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-31",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-31",
+      "x": -79,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 47.699999999999996,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-32",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-32",
+      "x": -14,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 61.7,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-33",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-33",
+      "x": -14,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 61.7,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-34",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-34",
+      "x": 51,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 47.699999999999996,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-35",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-35",
+      "x": 51,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 47.699999999999996,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-36",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-36",
+      "x": 109,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-37",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-37",
+      "x": 109,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-38",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-38",
+      "x": 152.775,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 19.25,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-39",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-39",
+      "x": 181.725,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 18.25,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-40",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-40",
+      "x": 167,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-41",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-41",
+      "x": 225,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-42",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-42",
+      "x": 225,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 47.69999999999999,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-43",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-43",
+      "x": 283,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 47.700000000000045,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-44",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-44",
+      "x": 283,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 47.700000000000045,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-s-45",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-s-45",
+      "x": 331.075,
+      "y": 0.09,
+      "z": 23.62,
+      "scale": {
+        "x": 27.850000000000023,
+        "y": 0.14,
+        "z": 0.3999999999999986
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-curb-n-46",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-curb-n-46",
+      "x": 331.075,
+      "y": 0.09,
+      "z": 34.21,
+      "scale": {
+        "x": 27.850000000000023,
+        "y": 0.14,
+        "z": 0.37999999999999545
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-47",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-47",
+      "x": -114.67500000000001,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-48",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-48",
+      "x": -114.67500000000001,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-49",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-49",
+      "x": -101.32499999999999,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-50",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-50",
+      "x": -101.32499999999999,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-51",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-51",
+      "x": -56.675,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.0500000000000043,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-52",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-52",
+      "x": -56.675,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.0500000000000043,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-53",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-53",
+      "x": -43.325,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.0500000000000043,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-54",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-54",
+      "x": -43.325,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.0500000000000043,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-55",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-55",
+      "x": 15.325000000000001,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.0500000000000007,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-56",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-56",
+      "x": 15.325000000000001,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.0500000000000007,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-57",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-57",
+      "x": 28.674999999999997,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.0500000000000007,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-58",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-58",
+      "x": 28.674999999999997,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.0500000000000007,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-59",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-59",
+      "x": 73.32499999999999,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-60",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-60",
+      "x": 73.32499999999999,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-61",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-61",
+      "x": 86.67500000000001,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-62",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-62",
+      "x": 86.67500000000001,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999997,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-63",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-63",
+      "x": 131.325,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-64",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-64",
+      "x": 131.325,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-65",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-65",
+      "x": 144.675,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-66",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-66",
+      "x": 144.675,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-67",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-67",
+      "x": 189.325,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-68",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-68",
+      "x": 189.325,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-69",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-69",
+      "x": 202.675,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-70",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-70",
+      "x": 202.675,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-71",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-71",
+      "x": 247.325,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-72",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-72",
+      "x": 247.325,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.049999999999983,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-73",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-73",
+      "x": 260.67499999999995,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.0500000000000114,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-74",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-74",
+      "x": 260.67499999999995,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.0500000000000114,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-75",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-75",
+      "x": 305.32500000000005,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.0500000000000114,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-76",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-76",
+      "x": 305.32500000000005,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.0500000000000114,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-77",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-77",
+      "x": 318.67499999999995,
+      "y": 0.045,
+      "z": 7.64,
+      "scale": {
+        "x": 3.0500000000000114,
+        "y": 0.06,
+        "z": 12.88
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-walk-ns-78",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-walk-ns-78",
+      "x": 318.67499999999995,
+      "y": 0.045,
+      "z": 53.275,
+      "scale": {
+        "x": 3.0500000000000114,
+        "y": 0.06,
+        "z": 17.450000000000003
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s--50-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s--50-0",
+      "x": -53,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s--50-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s--50-1",
+      "x": -51,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s--50-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s--50-2",
+      "x": -49,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s--50-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s--50-3",
+      "x": -47,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-22-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-22-0",
+      "x": 19,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-22-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-22-1",
+      "x": 21,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-22-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-22-2",
+      "x": 23,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-22-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-22-3",
+      "x": 25,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6400000000000006,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-80-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-80-0",
+      "x": 77,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-80-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-80-1",
+      "x": 79,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-80-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-80-2",
+      "x": 81,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-80-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-80-3",
+      "x": 83,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-138-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-138-0",
+      "x": 135,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-138-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-138-1",
+      "x": 137,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-138-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-138-2",
+      "x": 139,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-138-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-138-3",
+      "x": 141,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-196-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-196-0",
+      "x": 193,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-196-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-196-1",
+      "x": 195,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-196-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-196-2",
+      "x": 197,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-s-196-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-s-196-3",
+      "x": 199,
+      "y": 0.08,
+      "z": 21.2,
+      "scale": {
+        "x": 0.6399999999999864,
+        "y": 0.025,
+        "z": 3.3999999999999986
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-22-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-22-0",
+      "x": 22,
+      "y": 0.08,
+      "z": 25.4,
+      "scale": {
+        "x": 8.600000000000001,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-22-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-22-1",
+      "x": 22,
+      "y": 0.08,
+      "z": 28,
+      "scale": {
+        "x": 8.600000000000001,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-22-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-22-2",
+      "x": 22,
+      "y": 0.08,
+      "z": 30.599999999999998,
+      "scale": {
+        "x": 8.600000000000001,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-80-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-80-0",
+      "x": 80,
+      "y": 0.08,
+      "z": 25.4,
+      "scale": {
+        "x": 8.599999999999994,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-80-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-80-1",
+      "x": 80,
+      "y": 0.08,
+      "z": 28,
+      "scale": {
+        "x": 8.599999999999994,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-80-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-80-2",
+      "x": 80,
+      "y": 0.08,
+      "z": 30.599999999999998,
+      "scale": {
+        "x": 8.599999999999994,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-138-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-138-0",
+      "x": 138,
+      "y": 0.08,
+      "z": 25.4,
+      "scale": {
+        "x": 8.600000000000023,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-138-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-138-1",
+      "x": 138,
+      "y": 0.08,
+      "z": 28,
+      "scale": {
+        "x": 8.600000000000023,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-xing-a-138-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-xing-a-138-2",
+      "x": 138,
+      "y": 0.08,
+      "z": 30.599999999999998,
+      "scale": {
+        "x": 8.600000000000023,
+        "y": 0.025,
+        "z": 0.4399999999999977
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-shell-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-shell-w",
+      "x": 42.85,
+      "y": 1.58,
+      "z": 15.985,
+      "scale": {
+        "x": 0.16,
+        "y": 3.16,
+        "z": 4.329999999999998
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-shell-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-shell-e",
+      "x": 49.15,
+      "y": 1.58,
+      "z": 15.985,
+      "scale": {
+        "x": 0.16,
+        "y": 3.16,
+        "z": 4.329999999999998
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-shell-glass-l",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-shell-glass-l",
+      "x": 44.14,
+      "y": 1.28,
+      "z": 18.15,
+      "scale": {
+        "x": 2.2199999999999998,
+        "y": 2.56,
+        "z": 0.06
+      },
+      "materialId": "mat-office-glass",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-shell-glass-r",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-shell-glass-r",
+      "x": 47.86,
+      "y": 1.28,
+      "z": 18.15,
+      "scale": {
+        "x": 2.2199999999999998,
+        "y": 2.56,
+        "z": 0.06
+      },
+      "materialId": "mat-office-glass",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-shell-lintel",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-shell-lintel",
+      "x": 46,
+      "y": 2.78,
+      "z": 18.15,
+      "scale": {
+        "x": 6.38,
+        "y": 0.44,
+        "z": 0.14
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-shell-awning",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-shell-awning",
+      "x": 46,
+      "y": 2.96,
+      "z": 18.93,
+      "scale": {
+        "x": 6.8,
+        "y": 0.1,
+        "z": 1.55
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-shell-sign",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-shell-sign",
+      "x": 46,
+      "y": 3.46,
+      "z": 18.229999999999997,
+      "scale": {
+        "x": 2.3,
+        "y": 0.46,
+        "z": 0.08
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-shop-market-shell-sill",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-shop-market-shell-sill",
+      "x": 46,
+      "y": 0.055,
+      "z": 18.349999999999998,
+      "scale": {
+        "x": 1.65,
+        "y": 0.02,
+        "z": 0.42
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-shop-market-in-floor",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-shop-market-in-floor",
+      "x": 46,
+      "y": 0.04,
+      "z": 15.985,
+      "scale": {
+        "x": 6,
+        "y": 0.05,
+        "z": 4.1099999999999985
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-in-ceil",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-in-ceil",
+      "x": 46,
+      "y": 3.12,
+      "z": 15.985,
+      "scale": {
+        "x": 6.08,
+        "y": 0.1,
+        "z": 4.169999999999998
+      },
+      "materialId": "mat-ceil-tile",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-in-lamp",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-market-in-lamp",
+      "x": 46,
+      "y": 3.02,
+      "z": 16.335,
+      "scale": {
+        "x": 0.9,
+        "y": 0.06,
+        "z": 0.4
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-in-counter",
+      "assetId": "asset-credenza",
+      "kind": "model",
+      "name": "shop-market-in-counter",
+      "x": 46,
+      "y": 0.02,
+      "z": 16.05,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-in-chair",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "shop-market-in-chair",
+      "x": 46.85,
+      "y": 0.02,
+      "z": 14.7,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-in-clutter",
+      "assetId": "asset-desk-clutter",
+      "kind": "model",
+      "name": "shop-market-in-clutter",
+      "x": 45.72,
+      "y": 0.78,
+      "z": 16.05,
+      "rotation": {
+        "x": 0,
+        "y": 0.3,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-bin-market",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "street-bin-market",
+      "x": 48.75,
+      "y": 0.02,
+      "z": 19.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-shell-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-shell-w",
+      "x": 104.85,
+      "y": 1.58,
+      "z": 15.985,
+      "scale": {
+        "x": 0.16,
+        "y": 3.16,
+        "z": 4.329999999999998
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-shell-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-shell-e",
+      "x": 111.15,
+      "y": 1.58,
+      "z": 15.985,
+      "scale": {
+        "x": 0.16,
+        "y": 3.16,
+        "z": 4.329999999999998
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-shell-glass-l",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-shell-glass-l",
+      "x": 106.14,
+      "y": 1.28,
+      "z": 18.15,
+      "scale": {
+        "x": 2.2199999999999998,
+        "y": 2.56,
+        "z": 0.06
+      },
+      "materialId": "mat-office-glass",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-shell-glass-r",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-shell-glass-r",
+      "x": 109.86,
+      "y": 1.28,
+      "z": 18.15,
+      "scale": {
+        "x": 2.2199999999999998,
+        "y": 2.56,
+        "z": 0.06
+      },
+      "materialId": "mat-office-glass",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-shell-lintel",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-shell-lintel",
+      "x": 108,
+      "y": 2.78,
+      "z": 18.15,
+      "scale": {
+        "x": 6.38,
+        "y": 0.44,
+        "z": 0.14
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-shell-awning",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-shell-awning",
+      "x": 108,
+      "y": 2.96,
+      "z": 18.93,
+      "scale": {
+        "x": 6.8,
+        "y": 0.1,
+        "z": 1.55
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-shell-sign",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-shell-sign",
+      "x": 108,
+      "y": 3.46,
+      "z": 18.229999999999997,
+      "scale": {
+        "x": 2.3,
+        "y": 0.46,
+        "z": 0.08
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-shop-diner-shell-sill",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-shop-diner-shell-sill",
+      "x": 108,
+      "y": 0.055,
+      "z": 18.349999999999998,
+      "scale": {
+        "x": 1.65,
+        "y": 0.02,
+        "z": 0.42
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-shop-diner-in-floor",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-shop-diner-in-floor",
+      "x": 108,
+      "y": 0.04,
+      "z": 15.985,
+      "scale": {
+        "x": 6,
+        "y": 0.05,
+        "z": 4.1099999999999985
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-in-ceil",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-in-ceil",
+      "x": 108,
+      "y": 3.12,
+      "z": 15.985,
+      "scale": {
+        "x": 6.08,
+        "y": 0.1,
+        "z": 4.169999999999998
+      },
+      "materialId": "mat-ceil-tile",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-in-lamp",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-diner-in-lamp",
+      "x": 108,
+      "y": 3.02,
+      "z": 16.335,
+      "scale": {
+        "x": 0.9,
+        "y": 0.06,
+        "z": 0.4
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-in-counter",
+      "assetId": "asset-credenza",
+      "kind": "model",
+      "name": "shop-diner-in-counter",
+      "x": 108,
+      "y": 0.02,
+      "z": 16.05,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-in-chair",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "shop-diner-in-chair",
+      "x": 108.85,
+      "y": 0.02,
+      "z": 14.7,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-in-clutter",
+      "assetId": "asset-desk-clutter",
+      "kind": "model",
+      "name": "shop-diner-in-clutter",
+      "x": 107.72,
+      "y": 0.78,
+      "z": 16.05,
+      "rotation": {
+        "x": 0,
+        "y": 0.3,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-bin-diner",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "street-bin-diner",
+      "x": 110.75,
+      "y": 0.02,
+      "z": 19.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-shell-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-shell-w",
+      "x": 148.85,
+      "y": 1.58,
+      "z": 15.985,
+      "scale": {
+        "x": 0.16,
+        "y": 3.16,
+        "z": 4.329999999999998
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-shell-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-shell-e",
+      "x": 155.15,
+      "y": 1.58,
+      "z": 15.985,
+      "scale": {
+        "x": 0.16,
+        "y": 3.16,
+        "z": 4.329999999999998
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-shell-glass-l",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-shell-glass-l",
+      "x": 150.14,
+      "y": 1.28,
+      "z": 18.15,
+      "scale": {
+        "x": 2.2199999999999998,
+        "y": 2.56,
+        "z": 0.06
+      },
+      "materialId": "mat-office-glass",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-shell-glass-r",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-shell-glass-r",
+      "x": 153.86,
+      "y": 1.28,
+      "z": 18.15,
+      "scale": {
+        "x": 2.2199999999999998,
+        "y": 2.56,
+        "z": 0.06
+      },
+      "materialId": "mat-office-glass",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-shell-lintel",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-shell-lintel",
+      "x": 152,
+      "y": 2.78,
+      "z": 18.15,
+      "scale": {
+        "x": 6.38,
+        "y": 0.44,
+        "z": 0.14
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-shell-awning",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-shell-awning",
+      "x": 152,
+      "y": 2.96,
+      "z": 18.93,
+      "scale": {
+        "x": 6.8,
+        "y": 0.1,
+        "z": 1.55
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-shell-sign",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-shell-sign",
+      "x": 152,
+      "y": 3.46,
+      "z": 18.229999999999997,
+      "scale": {
+        "x": 2.3,
+        "y": 0.46,
+        "z": 0.08
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-shop-news-shell-sill",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-shop-news-shell-sill",
+      "x": 152,
+      "y": 0.055,
+      "z": 18.349999999999998,
+      "scale": {
+        "x": 1.65,
+        "y": 0.02,
+        "z": 0.42
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-shop-news-in-floor",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-shop-news-in-floor",
+      "x": 152,
+      "y": 0.04,
+      "z": 15.985,
+      "scale": {
+        "x": 6,
+        "y": 0.05,
+        "z": 4.1099999999999985
+      },
+      "materialId": "mat-wood-desk",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-in-ceil",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-in-ceil",
+      "x": 152,
+      "y": 3.12,
+      "z": 15.985,
+      "scale": {
+        "x": 6.08,
+        "y": 0.1,
+        "z": 4.169999999999998
+      },
+      "materialId": "mat-ceil-tile",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-in-lamp",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shop-news-in-lamp",
+      "x": 152,
+      "y": 3.02,
+      "z": 16.335,
+      "scale": {
+        "x": 0.9,
+        "y": 0.06,
+        "z": 0.4
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-in-counter",
+      "assetId": "asset-credenza",
+      "kind": "model",
+      "name": "shop-news-in-counter",
+      "x": 152,
+      "y": 0.02,
+      "z": 16.05,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-in-chair",
+      "assetId": "asset-office-chair",
+      "kind": "model",
+      "name": "shop-news-in-chair",
+      "x": 152.85,
+      "y": 0.02,
+      "z": 14.7,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-in-clutter",
+      "assetId": "asset-desk-clutter",
+      "kind": "model",
+      "name": "shop-news-in-clutter",
+      "x": 151.72,
+      "y": 0.78,
+      "z": 16.05,
+      "rotation": {
+        "x": 0,
+        "y": 0.3,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-bin-news",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "street-bin-news",
+      "x": 154.75,
+      "y": 0.02,
+      "z": 19.15,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-market-in-plant",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "shop-market-in-plant",
+      "x": 43.65,
+      "y": 0.02,
+      "z": 14.85,
+      "rotation": {
+        "x": 0,
+        "y": 0.2,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-diner-in-cooler",
+      "assetId": "asset-water-cooler",
+      "kind": "model",
+      "name": "shop-diner-in-cooler",
+      "x": 110.25,
+      "y": 0.02,
+      "z": 14.9,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shop-news-in-cabinet",
+      "assetId": "asset-filing-cabinet",
+      "kind": "model",
+      "name": "shop-news-in-cabinet",
+      "x": 149.85,
+      "y": 0.02,
+      "z": 14.95,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-plant-a",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "street-plant-a",
+      "x": 33.2,
+      "y": 0.02,
+      "z": 14.5,
+      "rotation": {
+        "x": 0,
+        "y": 0.1,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-plant-b",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "street-plant-b",
+      "x": 74.5,
+      "y": 0.02,
+      "z": 14.5,
+      "rotation": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-plant-c",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "street-plant-c",
+      "x": 134.2,
+      "y": 0.02,
+      "z": 14.5,
+      "rotation": {
+        "x": 0,
+        "y": -0.2,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-plant-n",
+      "assetId": "asset-office-plant",
+      "kind": "model",
+      "name": "street-plant-n",
+      "x": 58,
+      "y": 0.02,
+      "z": 44.15,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-board-ave",
+      "assetId": "asset-directory-board",
+      "kind": "model",
+      "name": "street-board-ave",
+      "x": 14.2,
+      "y": 1.22,
+      "z": 14.4,
+      "rotation": {
+        "x": 0,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-bin-corner",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "street-bin-corner",
+      "x": 29.4,
+      "y": 0.02,
+      "z": 22.55,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "street-bin-stair",
+      "assetId": "asset-waste-bin",
+      "kind": "model",
+      "name": "street-bin-stair",
+      "x": 158.2,
+      "y": 0.02,
+      "z": 22.35,
+      "rotation": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-post-n-8",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-post-n-8",
+      "x": 8,
+      "y": 2.1,
+      "z": 34.75,
+      "scale": {
+        "x": 0.16,
+        "y": 4.2,
+        "z": 0.16
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-head-n-8",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-head-n-8",
+      "x": 8,
+      "y": 4.15,
+      "z": 34.75,
+      "scale": {
+        "x": 0.55,
+        "y": 0.12,
+        "z": 0.28
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-post-n-44",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-post-n-44",
+      "x": 44,
+      "y": 2.1,
+      "z": 34.75,
+      "scale": {
+        "x": 0.16,
+        "y": 4.2,
+        "z": 0.16
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-head-n-44",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-head-n-44",
+      "x": 44,
+      "y": 4.15,
+      "z": 34.75,
+      "scale": {
+        "x": 0.55,
+        "y": 0.12,
+        "z": 0.28
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-post-n-86",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-post-n-86",
+      "x": 86,
+      "y": 2.1,
+      "z": 34.75,
+      "scale": {
+        "x": 0.16,
+        "y": 4.2,
+        "z": 0.16
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-head-n-86",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-head-n-86",
+      "x": 86,
+      "y": 4.15,
+      "z": 34.75,
+      "scale": {
+        "x": 0.55,
+        "y": 0.12,
+        "z": 0.28
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-post-n-128",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-post-n-128",
+      "x": 128,
+      "y": 2.1,
+      "z": 34.75,
+      "scale": {
+        "x": 0.16,
+        "y": 4.2,
+        "z": 0.16
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-head-n-128",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-head-n-128",
+      "x": 128,
+      "y": 4.15,
+      "z": 34.75,
+      "scale": {
+        "x": 0.55,
+        "y": 0.12,
+        "z": 0.28
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-post-n-168",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-post-n-168",
+      "x": 168,
+      "y": 2.1,
+      "z": 34.75,
+      "scale": {
+        "x": 0.16,
+        "y": 4.2,
+        "z": 0.16
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "lamp-head-n-168",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "lamp-head-n-168",
+      "x": 168,
+      "y": 4.15,
+      "z": 34.75,
+      "scale": {
+        "x": 0.55,
+        "y": 0.12,
+        "z": 0.28
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
       "id": "lobby-desk-a",
       "assetId": "asset-credenza",
       "kind": "model",
@@ -8580,7 +7534,7 @@
       "data": {
         "audio": "/assets/audio/room-tone.mp3",
         "radius": 520,
-        "volume": 0.24,
+        "volume": 0.12,
         "loop": true,
         "fadeSeconds": 1.5
       }

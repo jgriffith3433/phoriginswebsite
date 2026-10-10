@@ -108,8 +108,10 @@ const city = () => {
       const mat = mats[(key + n) % mats.length];
       const id = `block-${n}`;
       wall(id, cx, height / 2, cz, sx, height, sz, mat);
-      strips(`${id}-s`, 'x', cx, cz - sz / 2 - 0.12, sx, height);
-      strips(`${id}-n`, 'x', cx, cz + sz / 2 + 0.12, sx, height);
+      const southFace = cz - sz / 2;
+      const northFace = cz + sz / 2;
+      if (southFace > 8 && southFace < 52) strips(`${id}-s`, 'x', cx, southFace - 0.12, sx, height);
+      if (northFace > 8 && northFace < 52) strips(`${id}-n`, 'x', cx, northFace + 0.12, sx, height);
       n += 1;
     }
   };
@@ -208,6 +210,151 @@ for (const x of [-90, -70, -28, 6, 42, 62, 104, 122, 156, 178, 220, 242, 280, 30
   wall(`lamp-head-${x}`, x, 4.15, 23.35, 0.55, 0.12, 0.28, 'mat-street-window');
 }
 
+const dressStreet = () => {
+  // South building face is z=13.75. Shops protrude to z=18.15. Keep these in sync with SHOPS in goingHome.ts.
+  const crosses = [-108, -50, 22, 80, 138, 196, 254, 312];
+  const edges = [-155, ...crosses, 345];
+  const road = 5.15;
+  const shops = [
+    { id: 'market', x: 46 },
+    { id: 'diner', x: 108 },
+    { id: 'news', x: 152 },
+  ];
+  const face = 13.82;
+  const front = 18.15;
+  const half = 3.15;
+  let n = 0;
+  const slab = (id, x0, x1, z0, z1, materialId, y, h) => {
+    if (x1 - x0 < 0.3 || z1 - z0 < 0.3) return;
+    wall(id, (x0 + x1) / 2, y, (z0 + z1) / 2, x1 - x0, h, z1 - z0, materialId);
+  };
+  const cutX = (x0, x1, holes) => {
+    let spans = [[x0, x1]];
+    for (const [h0, h1] of holes) {
+      const next = [];
+      for (const [a, b] of spans) {
+        if (h1 <= a || h0 >= b) {
+          next.push([a, b]);
+          continue;
+        }
+        if (h0 > a + 0.45) next.push([a, h0]);
+        if (h1 < b - 0.45) next.push([h1, b]);
+      }
+      spans = next;
+    }
+    return spans;
+  };
+  const avenue = () => {
+    const spans = [];
+    for (let i = 0; i < edges.length - 1; i += 1) {
+      const x0 = i === 0 ? edges[0] : edges[i] + road;
+      const x1 = i === edges.length - 2 ? edges[i + 1] : edges[i + 1] - road;
+      spans.push([x0, x1]);
+    }
+    return spans;
+  };
+  const southHoles = [
+    [-8.9, 8.9, 18.22],
+    ...shops.map((shop) => [shop.x - half - 0.2, shop.x + half + 0.2, 18.28]),
+    [162.4, 172.6, 18.3],
+  ];
+  for (const [x0, x1] of avenue()) {
+    let pieces = [{ x0, x1, z0: 14.18, z1: 23.46 }];
+    for (const [h0, h1, zSplit] of southHoles) {
+      const next = [];
+      for (const piece of pieces) {
+        if (h1 <= piece.x0 || h0 >= piece.x1) {
+          next.push(piece);
+          continue;
+        }
+        if (h0 > piece.x0 + 0.45) next.push({ ...piece, x1: h0 });
+        if (h1 < piece.x1 - 0.45) next.push({ ...piece, x0: h1 });
+        const mx0 = Math.max(piece.x0, h0);
+        const mx1 = Math.min(piece.x1, h1);
+        if (mx1 - mx0 > 0.45 && piece.z1 > zSplit + 0.3) {
+          next.push({ x0: mx0, x1: mx1, z0: Math.max(piece.z0, zSplit), z1: piece.z1 });
+        }
+      }
+      pieces = next;
+    }
+    for (const piece of pieces) {
+      slab(`b3-decal-walk-s-${n}`, piece.x0, piece.x1, piece.z0, piece.z1, 'mat-board-floor', 0.045, 0.06);
+      n += 1;
+    }
+  }
+  for (const [x0, x1] of avenue()) {
+    slab(`b3-decal-walk-n-${n}`, x0, x1, 34.36, 44.42, 'mat-board-floor', 0.045, 0.06);
+    n += 1;
+  }
+  for (const [x0, x1] of avenue()) {
+    for (const [a, b] of cutX(x0, x1, [[162.4, 172.6]])) {
+      slab(`b3-decal-curb-s-${n}`, a, b, 23.42, 23.82, 'mat-lift-metal', 0.09, 0.14);
+      n += 1;
+    }
+    slab(`b3-decal-curb-n-${n}`, x0, x1, 34.02, 34.4, 'mat-lift-metal', 0.09, 0.14);
+    n += 1;
+  }
+  for (const cx of crosses) {
+    const bands = [[cx - 8.2, cx - road], [cx + road, cx + 8.2]];
+    for (const [a, b] of bands) {
+      slab(`b3-decal-walk-ns-${n}`, a, b, 1.2, 14.08, 'mat-board-floor', 0.045, 0.06);
+      n += 1;
+      slab(`b3-decal-walk-ns-${n}`, a, b, 44.55, 62, 'mat-board-floor', 0.045, 0.06);
+      n += 1;
+    }
+  }
+  for (const cx of [-50, 22, 80, 138, 196]) {
+    for (let i = 0; i < 4; i += 1) {
+      const x = cx - 3 + i * 2;
+      slab(`b3-decal-xing-s-${cx}-${i}`, x - 0.32, x + 0.32, 19.5, 22.9, 'mat-b3-hazard', 0.08, 0.025);
+    }
+  }
+  for (const cx of [22, 80, 138]) {
+    for (let i = 0; i < 3; i += 1) {
+      const z = 25.4 + i * 2.6;
+      slab(`b3-decal-xing-a-${cx}-${i}`, cx - 4.3, cx + 4.3, z - 0.22, z + 0.22, 'mat-b3-hazard', 0.08, 0.025);
+    }
+  }
+  const door = 1.5;
+  for (const shop of shops) {
+    const { id, x } = shop;
+    const depth = front - face;
+    const zc = (face + front) / 2;
+    wall(`shop-${id}-shell-w`, x - half, 1.58, zc, 0.16, 3.16, depth, 'mat-wood-desk');
+    wall(`shop-${id}-shell-e`, x + half, 1.58, zc, 0.16, 3.16, depth, 'mat-wood-desk');
+    const glassW = (half * 2 - 0.36 - door) / 2;
+    wall(`shop-${id}-shell-glass-l`, x - door / 2 - glassW / 2, 1.28, front, glassW, 2.56, 0.06, 'mat-office-glass');
+    wall(`shop-${id}-shell-glass-r`, x + door / 2 + glassW / 2, 1.28, front, glassW, 2.56, 0.06, 'mat-office-glass');
+    wall(`shop-${id}-shell-lintel`, x, 2.78, front, half * 2 + 0.08, 0.44, 0.14, 'mat-lift-metal');
+    wall(`shop-${id}-shell-awning`, x, 2.96, front + 0.78, half * 2 + 0.5, 0.1, 1.55, 'mat-wood-desk');
+    wall(`shop-${id}-shell-sign`, x, 3.46, front + 0.08, 2.3, 0.46, 0.08, 'mat-street-window');
+    wall(`b3-decal-shop-${id}-shell-sill`, x, 0.055, front + 0.2, door + 0.15, 0.02, 0.42, 'mat-b3-hazard');
+    wall(`b3-decal-shop-${id}-in-floor`, x, 0.04, zc, half * 2 - 0.3, 0.05, depth - 0.22, 'mat-wood-desk');
+    wall(`shop-${id}-in-ceil`, x, 3.12, zc, half * 2 - 0.22, 0.1, depth - 0.16, 'mat-ceil-tile');
+    wall(`shop-${id}-in-lamp`, x, 3.02, zc + 0.35, 0.9, 0.06, 0.4, 'mat-street-window');
+    model(`shop-${id}-in-counter`, 'asset-credenza', x, 0.02, 16.05, Math.PI);
+    model(`shop-${id}-in-chair`, 'asset-office-chair', x + 0.85, 0.02, 14.7, Math.PI);
+    model(`shop-${id}-in-clutter`, 'asset-desk-clutter', x - 0.28, 0.78, 16.05, 0.3);
+    model(`street-bin-${id}`, 'asset-waste-bin', x + 2.75, 0.02, 19.15, 0);
+  }
+  model('shop-market-in-plant', 'asset-office-plant', 46 - 2.35, 0.02, 14.85, 0.2);
+  model('shop-diner-in-cooler', 'asset-water-cooler', 108 + 2.25, 0.02, 14.9, 0);
+  model('shop-news-in-cabinet', 'asset-filing-cabinet', 152 - 2.15, 0.02, 14.95, Math.PI / 2);
+  model('street-plant-a', 'asset-office-plant', 33.2, 0.02, 14.5, 0.1);
+  model('street-plant-b', 'asset-office-plant', 74.5, 0.02, 14.5, 0.4);
+  model('street-plant-c', 'asset-office-plant', 134.2, 0.02, 14.5, -0.2);
+  model('street-plant-n', 'asset-office-plant', 58, 0.02, 44.15, Math.PI);
+  model('street-board-ave', 'asset-directory-board', 14.2, 1.22, 14.4, Math.PI);
+  model('street-bin-corner', 'asset-waste-bin', 29.4, 0.02, 22.55, 0);
+  model('street-bin-stair', 'asset-waste-bin', 158.2, 0.02, 22.35, 0.4);
+  for (const x of [8, 44, 86, 128, 168]) {
+    wall(`lamp-post-n-${x}`, x, 2.1, 34.75, 0.16, 4.2, 0.16, 'mat-lift-metal');
+    wall(`lamp-head-n-${x}`, x, 4.15, 34.75, 0.55, 0.12, 0.28, 'mat-street-window');
+  }
+};
+
+dressStreet();
+
 model('lobby-desk-a', 'asset-credenza', 4.55, 0.02, 3.15, Math.PI / 2);
 model('lobby-desk-b', 'asset-credenza', 4.55, 0.02, 4.75, Math.PI / 2);
 model('lobby-chair', 'asset-office-chair', 5.45, 0.02, 3.2, -Math.PI / 2);
@@ -264,7 +411,7 @@ const scene = {
       data: {
         audio: '/assets/audio/room-tone.mp3',
         radius: 520,
-        volume: 0.24,
+        volume: 0.12,
         loop: true,
         fadeSeconds: 1.5,
       },

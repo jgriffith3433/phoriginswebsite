@@ -9,7 +9,7 @@
       "difficulty": 1,
       "enemyCount": 0,
       "combat": false,
-      "playerSpeed": 3.4,
+      "playerSpeed": 3.05,
       "arenaSize": 140,
       "reward": "Room for Grace"
     },
@@ -21,7 +21,7 @@
       "difficulty": 2,
       "enemyCount": 0,
       "combat": false,
-      "playerSpeed": 3.4,
+      "playerSpeed": 3.05,
       "arenaSize": 140,
       "reward": "The vat"
     },
@@ -33,7 +33,7 @@
       "difficulty": 3,
       "enemyCount": 0,
       "combat": false,
-      "playerSpeed": 3.4,
+      "playerSpeed": 3.05,
       "arenaSize": 140,
       "reward": "The mirror"
     },
@@ -45,7 +45,7 @@
       "difficulty": 4,
       "enemyCount": 0,
       "combat": false,
-      "playerSpeed": 3.4,
+      "playerSpeed": 3.05,
       "arenaSize": 140,
       "reward": "The work"
     },
@@ -57,7 +57,7 @@
       "difficulty": 5,
       "enemyCount": 0,
       "combat": false,
-      "playerSpeed": 3.4,
+      "playerSpeed": 3.05,
       "arenaSize": 800,
       "reward": "The street"
     },
@@ -69,7 +69,7 @@
       "difficulty": 6,
       "enemyCount": 0,
       "combat": false,
-      "playerSpeed": 3.4,
+      "playerSpeed": 3.05,
       "arenaSize": 200,
       "reward": "The train"
     }

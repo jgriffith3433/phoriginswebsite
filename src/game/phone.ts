@@ -6,14 +6,26 @@ import type { PlayerAvatar } from './playerAvatar';
 
 type Contact = { name: string; detail: string };
 type CallLine = { speaker: string; text: string; audio?: string; duration: number };
-type CallScript = { contact: string; lines: CallLine[] };
+type CallScript = { contact: string; dial?: boolean; lines: CallLine[] };
 type TextDef = { contact: string; text: string };
 
 const copy = phoneCopy as {
   contacts: Record<string, Contact>;
   calls: Record<string, CallScript>;
   texts: Record<string, TextDef>;
+  byObjective?: Record<string, Record<string, CallScript>>;
 };
+
+const TONE = {
+  dial: '/assets/audio/sfx/phone/dial.wav',
+  ringback: '/assets/audio/sfx/phone/ringback.wav',
+  busy: '/assets/audio/sfx/phone/busy.wav',
+  hangup: '/assets/audio/sfx/phone/hangup.wav',
+  ring: '/assets/audio/sfx/phone/ring.wav',
+  connect: '/assets/audio/sfx/phone/connect.wav',
+};
+
+const PICKUP_CHANCE = 1 / 3;
 
 export type PhoneMessage = { id: string; from: string; text: string; unread: boolean };
 
@@ -24,6 +36,7 @@ export type PhoneView = {
   screen: boolean;
   flashlight: boolean;
   ringing: boolean;
+  outgoing: boolean;
   badge: string;
   status: string;
   contact: string;
@@ -37,6 +50,9 @@ export type PhoneView = {
   showMessages: boolean;
   messages: PhoneMessage[];
   toast: string;
+  app: 'home' | 'messages' | 'contacts' | 'recents';
+  contacts: { id: string; name: string; detail: string }[];
+  recents: { contact: string; name: string; detail: string }[];
 };
 
 export type Phone = {
@@ -57,7 +73,10 @@ export type Phone = {
   ring: (id: string) => void;
   answer: () => void;
   end: () => void;
+  dial: (contactId: string) => void;
   pushText: (id: string) => void;
+  openApp: (app: 'messages' | 'contacts' | 'recents') => void;
+  back: () => void;
   silence: () => void;
   update: (dt: number, camera: BABYLON.Camera, feet: { x: number; y: number; z: number }) => void;
   view: () => PhoneView;
@@ -65,6 +84,10 @@ export type Phone = {
 
 /** Metres out from the wrist along the fingers. The bone's +Y is that axis. */
 const FINGER_REACH = 0.16;
+/** World height of the slab once it is seated. Half the previous 0.146 m handset. */
+const HANDSET_HEIGHT = 0.073;
+/** Metres past the slab tip. The spot stays outside the handset so the cone is not born inside it. */
+const BEAM_CLEAR = 0.06;
 
 const contactOf = (id: string): Contact => copy.contacts[id] ?? { name: id, detail: '' };
 
@@ -81,6 +104,7 @@ export const createPhone = (
     soundOn: () => boolean;
     onFinished: () => void;
     onHand: (raised: boolean) => void;
+    objectiveId: () => string;
   },
 ): Phone => {
   const attach = new BABYLON.TransformNode('phoneAttach', scene);
@@ -104,25 +128,28 @@ export const createPhone = (
   ledMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
   ledMat.specularColor = BABYLON.Color3.Black();
 
-  const body = BABYLON.MeshBuilder.CreateBox('phoneBody', { width: 0.072, height: 0.146, depth: 0.009 }, scene);
+  const body = BABYLON.MeshBuilder.CreateBox('phoneBody', { width: 0.036, height: HANDSET_HEIGHT, depth: 0.0045 }, scene);
   body.parent = root;
   body.material = bodyMat;
   body.isPickable = false;
   body.checkCollisions = false;
+  body.receiveShadows = false;
 
-  const screen = BABYLON.MeshBuilder.CreateBox('phoneScreen', { width: 0.06, height: 0.118, depth: 0.002 }, scene);
+  const screen = BABYLON.MeshBuilder.CreateBox('phoneScreen', { width: 0.03, height: 0.059, depth: 0.001 }, scene);
   screen.parent = body;
-  screen.position.z = 0.006;
+  screen.position.z = 0.003;
   screen.material = screenMat;
   screen.isPickable = false;
   screen.checkCollisions = false;
+  screen.receiveShadows = false;
 
-  const led = BABYLON.MeshBuilder.CreateBox('phoneLed', { width: 0.012, height: 0.008, depth: 0.004 }, scene);
+  const led = BABYLON.MeshBuilder.CreateBox('phoneLed', { width: 0.006, height: 0.004, depth: 0.002 }, scene);
   led.parent = body;
-  led.position.set(0, 0.07, 0.004);
+  led.position.set(0, 0.035, 0.002);
   led.material = ledMat;
   led.isPickable = false;
   led.checkCollisions = false;
+  led.receiveShadows = false;
 
   const spot = new BABYLON.SpotLight(
     'phoneFlash',
@@ -167,6 +194,8 @@ export const createPhone = (
   };
 
   const meshes = [body, screen, led];
+  // The slab is excluded from the spot, and it does not receive shadows, so it cannot
+  // sit in the cone and black out the beam. The origin itself is pushed past the tip.
   spot.excludedMeshes = meshes;
   for (const mesh of meshes) mesh.alwaysSelectAsActiveMesh = true;
 
@@ -225,30 +254,72 @@ export const createPhone = (
   let handMesh: BABYLON.AbstractMesh | null = null;
   const bonePos = new BABYLON.Vector3();
   const finger = new BABYLON.Vector3();
-  const axisX = new BABYLON.Vector3();
-  const axisZ = new BABYLON.Vector3();
   const boneWorld = new BABYLON.Matrix();
   attach.rotationQuaternion = new BABYLON.Quaternion();
 
+  const seatOnBone = () => {
+    if (!handBone || !handMesh) return;
+    try {
+      attach.detachFromBone();
+    } catch {
+      /* not on a bone yet */
+    }
+    // Fixed pose on the bone. Rebuilding a world quaternion each frame spun the
+    // slab in the palm whenever the camera moved.
+    attach.attachToBone(handBone, handMesh);
+    attach.rotationQuaternion = BABYLON.Quaternion.Identity();
+    attach.rotation.set(0, 0, 0);
+    handBone.getSkeleton().prepare(true);
+    const boneScale = new BABYLON.Vector3(1, 1, 1);
+    handBone.getFinalMatrix().decompose(boneScale);
+    const parentS = Math.max(Math.abs(boneScale.x), Math.abs(boneScale.y), Math.abs(boneScale.z), 1e-4);
+    const s = 1 / parentS;
+    const mirrored = boneScale.x < 0 || boneScale.y < 0 || boneScale.z < 0;
+    attach.scaling.set(s, mirrored ? -s : s, s);
+    attach.position.set(0, FINGER_REACH / parentS, 0);
+    attach.computeWorldMatrix(true);
+    const bounds = root.getHierarchyBoundingVectors(true);
+    const height = bounds.max.y - bounds.min.y;
+    if (height > 1e-4 && Math.abs(height - HANDSET_HEIGHT) / HANDSET_HEIGHT > 0.35) {
+      const fix = HANDSET_HEIGHT / height;
+      attach.scaling.scaleInPlace(fix);
+      attach.position.scaleInPlace(fix);
+    }
+  };
+
   const poseHand = () => {
-    if (disposed || !handBone || !handMesh || !attach.rotationQuaternion) return;
-    // Parenting to the bone inherits a 0.01 scale and turns the slab into a wedge.
-    // The joint quaternion drops the bone's mirrored Y, which aims the beam backward.
-    // Take the bone's world axes, with scale removed and the mirror kept.
+    if (disposed || !handBone || !handMesh) return;
     handBone.getSkeleton().prepare(true);
     handMesh.computeWorldMatrix(true);
     handBone.getFinalMatrix().multiplyToRef(handMesh.getWorldMatrix(), boneWorld);
-    axisX.set(boneWorld.m[0], boneWorld.m[1], boneWorld.m[2]).normalize();
-    finger.set(boneWorld.m[4], boneWorld.m[5], boneWorld.m[6]).normalize();
-    axisZ.set(boneWorld.m[8], boneWorld.m[9], boneWorld.m[10]).normalize();
-    BABYLON.Quaternion.RotationQuaternionFromAxisToRef(axisX, finger, axisZ, attach.rotationQuaternion);
+    finger.set(boneWorld.m[4], boneWorld.m[5], boneWorld.m[6]);
+    if (finger.lengthSquared() > 1e-4) finger.normalize();
     bonePos.set(boneWorld.m[12], boneWorld.m[13], boneWorld.m[14]);
-    attach.parent = null;
-    const mirrored = BABYLON.Vector3.Dot(axisX, BABYLON.Vector3.Cross(finger, axisZ)) < 0;
-    attach.scaling.set(1, mirrored ? -1 : 1, 1);
-    attach.position.copyFrom(bonePos).addInPlace(finger.scale(FINGER_REACH));
-    spot.position.copyFrom(bonePos).addInPlace(finger.scale(FINGER_REACH + 0.05));
-    spot.direction.copyFrom(finger);
+    // Past the handset tip, still unparented. A parented spot inherits the bone's 0.01 scale.
+    const clear = FINGER_REACH + HANDSET_HEIGHT * 0.5 + BEAM_CLEAR;
+    spot.position.copyFrom(bonePos).addInPlace(finger.scale(clear));
+    if (root.isEnabled()) {
+      const box = body.getHierarchyBoundingVectors(true);
+      const cx = (box.min.x + box.max.x) * 0.5;
+      const cy = (box.min.y + box.max.y) * 0.5;
+      const cz = (box.min.z + box.max.z) * 0.5;
+      const half = Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z) * 0.5;
+      const dist = Math.hypot(spot.position.x - cx, spot.position.y - cy, spot.position.z - cz);
+      if (dist < half + 0.04) {
+        spot.position.set(cx, cy, cz).addInPlace(finger.scale(half + BEAM_CLEAR));
+      }
+    }
+    if (beamAim) {
+      const aimed = beamAim.subtract(spot.position);
+      if (aimed.lengthSquared() > 1e-4) {
+        aimed.normalize();
+        spot.direction.copyFrom(aimed);
+      }
+    } else {
+      const lowered = finger.add(new BABYLON.Vector3(0, -0.2, 0));
+      if (lowered.lengthSquared() > 1e-4) lowered.normalize();
+      spot.direction.copyFrom(lowered);
+    }
     applyBeam(scene.getEngine().getDeltaTime() / 1000);
   };
   scene.onBeforeRenderObservable.add(poseHand);
@@ -256,7 +327,10 @@ export const createPhone = (
   let uiOpen = false;
   let flashlight = false;
   let beamAim: BABYLON.Vector3 | null = null;
-  let mode: 'idle' | 'incoming' | 'active' | 'ended' = 'idle';
+  let mode: 'idle' | 'incoming' | 'outgoing' | 'active' | 'ended' = 'idle';
+  let party = '';
+  let ringbackIn = 0;
+  let ringsLeft = 0;
   let script: CallScript | null = null;
   let scriptId = '';
   let lineIndex = 0;
@@ -271,6 +345,25 @@ export const createPhone = (
   let toastLeft = 0;
   let endLeft = 0;
   const inbox: PhoneMessage[] = [];
+  let app: 'home' | 'messages' | 'contacts' | 'recents' = 'home';
+  const recents: { contact: string; name: string; detail: string }[] = [];
+  const contacts = Object.entries(copy.contacts)
+    .filter(([id]) => id !== 'pierce')
+    .map(([id, contact]) => ({ id, name: contact.name, detail: contact.detail }));
+
+  const rememberCall = (detail: string) => {
+    const id = party || script?.contact || '';
+    if (!id) return;
+    recents.unshift({ contact: id, name: contactOf(id).name, detail });
+    if (recents.length > 16) recents.pop();
+  };
+
+  const pickupFor = (contactId: string) => {
+    const key = options.objectiveId();
+    const call = copy.byObjective?.[key]?.[contactId];
+    if (!call?.lines.length) return null;
+    return { id: `${key}-${contactId}`, call };
+  };
 
   const bindHand = (avatar: PlayerAvatar) => {
     if (disposed) return;
@@ -288,6 +381,8 @@ export const createPhone = (
       const joint = avatar.findJoint('righthand');
       attach.parent = joint ?? avatar.group;
       attach.position.set(0.16, 1.15, 0.28);
+    } else {
+      seatOnBone();
     }
     poseHand();
     syncMesh();
@@ -324,6 +419,24 @@ export const createPhone = (
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
     osc.start(now);
     osc.stop(now + duration + 0.02);
+  };
+
+  let toneClip: HTMLAudioElement | null = null;
+
+  const stopTones = () => {
+    if (!toneClip) return;
+    toneClip.pause();
+    toneClip.src = '';
+    toneClip = null;
+  };
+
+  const playTone = (src: string, volume: number) => {
+    stopTones();
+    if (!options.soundOn()) return;
+    const clip = createUnlockedAudio(src);
+    clip.volume = volume;
+    toneClip = clip;
+    void clip.play().catch(() => {});
   };
 
   const stopVoice = () => {
@@ -368,30 +481,63 @@ export const createPhone = (
   };
 
   const beginEnded = () => {
+    rememberCall('Answered');
     stopVoice();
     mode = 'ended';
     lineText = '';
     speakerId = '';
     endLeft = 1.5;
-    chirp(520, 0.12, 'sine', 0.05);
-    window.setTimeout(() => chirp(340, 0.16, 'sine', 0.04), 140);
+    playTone(TONE.hangup, 0.45);
     syncMesh();
   };
 
+  let notifyOnFinish = false;
+  let returnToRecents = false;
+
+  const noAnswer = () => {
+    playTone(TONE.busy, 0.42);
+    rememberCall('No answer');
+    mode = 'ended';
+    lineText = 'No answer.';
+    speakerId = '';
+    endLeft = 1.8;
+    returnToRecents = true;
+    syncMesh();
+  };
+
+  const connectDial = (id: string, next: CallScript) => {
+    playTone(TONE.connect, 0.4);
+    script = next;
+    scriptId = id;
+    mode = 'active';
+    elapsed = 0;
+    lineIndex = 0;
+    playLine();
+  };
+
   const finish = () => {
+    const notify = notifyOnFinish;
+    notifyOnFinish = false;
     mode = 'idle';
     script = null;
     scriptId = '';
+    party = '';
     lineText = '';
     speakerId = '';
     elapsed = 0;
     endLeft = 0;
+    if (returnToRecents) {
+      returnToRecents = false;
+      uiOpen = true;
+      app = 'recents';
+    }
     syncMesh();
-    options.onFinished();
+    if (notify) options.onFinished();
   };
 
   const openScreen = () => {
     uiOpen = true;
+    app = 'home';
     for (const message of inbox) message.unread = false;
   };
 
@@ -472,13 +618,16 @@ export const createPhone = (
       if (!beamAim) beamAim = new BABYLON.Vector3();
       beamAim.set(at.x, at.y, at.z);
     },
-    locksBody: () => mode === 'incoming' || mode === 'active' || mode === 'ended',
-    wantsCallCamera: () => mode === 'active' || mode === 'ended',
+    locksBody: () => mode === 'incoming' || mode === 'outgoing' || mode === 'active' || mode === 'ended',
+    wantsCallCamera: () => mode === 'outgoing' || mode === 'active' || mode === 'ended',
     ring: (id: string) => {
       const next = copy.calls[id];
       if (!next || mode !== 'idle') return;
+      stopTones();
       script = next;
       scriptId = id;
+      party = next.contact;
+      notifyOnFinish = true;
       lineIndex = 0;
       lineText = '';
       speakerId = '';
@@ -497,11 +646,48 @@ export const createPhone = (
       elapsed = 0;
       lineIndex = 0;
       nextRing = 0;
+      stopTones();
       playLine();
     },
+    dial: (contactId: string) => {
+      if (mode !== 'idle') return;
+      if (!copy.contacts[contactId] || contactId === 'pierce') return;
+      stopTones();
+      party = contactId;
+      script = null;
+      scriptId = '';
+      lineIndex = 0;
+      lineText = '';
+      speakerId = '';
+      elapsed = 0;
+      mode = 'outgoing';
+      notifyOnFinish = false;
+      raised = true;
+      uiOpen = true;
+      flashlight = false;
+      ringsLeft = 2;
+      ringbackIn = 1.3;
+      playTone(TONE.dial, 0.42);
+      syncMesh();
+      options.onHand(true);
+    },
     end: () => {
+      if (mode === 'outgoing') {
+        playTone(TONE.hangup, 0.45);
+        rememberCall('Canceled');
+        mode = 'idle';
+        party = '';
+        lineText = '';
+        speakerId = '';
+        uiOpen = true;
+        app = 'recents';
+        syncMesh();
+        return;
+      }
       if (mode !== 'active' && mode !== 'incoming') return;
       if (mode === 'incoming') {
+        playTone(TONE.hangup, 0.4);
+        rememberCall('Missed');
         mode = 'idle';
         script = null;
         scriptId = '';
@@ -512,6 +698,16 @@ export const createPhone = (
       }
       beginEnded();
     },
+    openApp: (next) => {
+      if (mode !== 'idle' || !uiOpen) return;
+      app = next;
+      if (next === 'messages') {
+        for (const message of inbox) message.unread = false;
+      }
+    },
+    back: () => {
+      app = 'home';
+    },
     pushText: (id: string) => {
       const text = copy.texts[id];
       if (!text) return;
@@ -519,17 +715,23 @@ export const createPhone = (
       const from = contactOf(text.contact).name;
       inbox.unshift({ id, from, text: text.text, unread: !(uiOpen && mode === 'idle') });
       toast = `${from}  ·  ${text.text}`;
-      toastLeft = 4.2;
+      toastLeft = Math.min(8, 3.4 + text.text.length / 28);
       chirp(740, 0.09, 'sine', 0.05);
     },
     silence: () => {
       stopVoice();
+      stopTones();
       mode = 'idle';
       script = null;
       scriptId = '';
+      party = '';
+      notifyOnFinish = false;
+      returnToRecents = false;
+      ringsLeft = 0;
       raised = false;
       uiOpen = false;
       flashlight = false;
+      beamAim = null;
       lineText = '';
       toast = '';
       toastLeft = 0;
@@ -541,9 +743,23 @@ export const createPhone = (
       if (mode === 'incoming') {
         nextRing -= dt;
         if (nextRing <= 0) {
-          chirp(880, 0.09, 'sine', 0.06);
-          window.setTimeout(() => chirp(660, 0.1, 'sine', 0.05), 160);
-          nextRing = 2.7;
+          playTone(TONE.ring, 0.5);
+          nextRing = 2.8;
+        }
+      }
+      if (mode === 'outgoing') {
+        elapsed += dt;
+        ringbackIn -= dt;
+        if (ringbackIn <= 0) {
+          if (ringsLeft <= 0) {
+            const outbound = Math.random() < PICKUP_CHANCE ? pickupFor(party) : null;
+            if (outbound) connectDial(outbound.id, outbound.call);
+            else noAnswer();
+          } else {
+            playTone(TONE.ringback, 0.4);
+            ringsLeft -= 1;
+            ringbackIn = 4.2;
+          }
         }
       }
       if (mode === 'active') {
@@ -569,7 +785,7 @@ export const createPhone = (
       syncBeamSlot(flashlight && raised && mode === 'idle');
     },
     view: () => {
-      const who = script ? contactOf(script.contact) : null;
+      const who = script ? contactOf(script.contact) : party ? contactOf(party) : null;
       const talking = speakerId ? contactOf(speakerId) : null;
       const unread = inbox.filter((message) => message.unread).length;
       const panel = mode !== 'idle' || uiOpen;
@@ -580,25 +796,33 @@ export const createPhone = (
         screen: uiOpen && mode === 'idle',
         flashlight,
         ringing: mode === 'incoming',
+        outgoing: mode === 'outgoing',
         badge: unread > 0 ? String(unread) : '',
         status: mode === 'incoming'
           ? 'Incoming'
-          : mode === 'active'
-            ? 'Connected'
-            : mode === 'ended'
-              ? 'Call ended'
-              : 'Phone',
+          : mode === 'outgoing'
+            ? 'Calling'
+            : mode === 'active'
+              ? 'Connected'
+              : mode === 'ended'
+                ? 'Ended'
+                : 'Phone',
         contact: who?.name ?? '',
-        detail: who?.detail ?? (uiOpen && mode === 'idle' ? (flashlight ? 'F hides the screen' : 'G turns the light') : ''),
+        detail: mode === 'outgoing'
+          ? 'Ringing'
+          : who?.detail ?? (uiOpen && mode === 'idle' ? (flashlight ? 'F hides the screen' : 'G turns the light') : ''),
         speaker: talking?.name ?? '',
         line: lineText,
-        clock: mode === 'active' || mode === 'ended' ? clockOf(elapsed) : '',
+        clock: mode === 'outgoing' || mode === 'active' || mode === 'ended' ? clockOf(elapsed) : '',
         showAnswer: mode === 'incoming',
-        showEnd: mode === 'active',
+        showEnd: mode === 'outgoing' || mode === 'active',
         showFlash: uiOpen && mode === 'idle',
         showMessages: uiOpen && mode === 'idle',
         messages: inbox.map((message) => ({ ...message })),
         toast,
+        app,
+        contacts,
+        recents: recents.map((entry) => ({ ...entry })),
       };
     },
   };

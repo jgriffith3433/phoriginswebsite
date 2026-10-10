@@ -6,8 +6,8 @@ export type ScreenFade = {
 };
 
 export const createScreenFade = (veil: HTMLElement): ScreenFade => {
-  let opacity = 0;
-  let target = 0;
+  let opacity = 1;
+  let target = 1;
   let rate = 0;
 
   const paint = () => {

@@ -16,6 +16,8 @@ export type DeskHost = {
   playFile: (url: string, volume: number) => void;
   setWalk: (moving: boolean) => void;
   setCarry: (items: StoryCarry[]) => void;
+  playerXZ: () => { x: number; z: number };
+  resumeLocomotion: () => void;
   win: () => void;
   showMessage: (title: string, text: string) => void;
   haltPlay: () => void;
@@ -232,6 +234,34 @@ export const createTheDesk = (host: DeskHost) => {
     }
   };
 
+  const nearMirror = () => {
+    const here = host.playerXZ();
+    return Math.hypot(here.x - MIRROR.x, here.z - MIRROR.z) < 1.35;
+  };
+
+  const beginLook = () => {
+    if (!active || playing || finished) return false;
+    playing = true;
+    time = 0;
+    clip = '';
+    lineUntil = 0;
+    saidAccept = false;
+    saidNature = false;
+    saidStill = false;
+    swept = false;
+    saidGoing = false;
+    shake = 0;
+    host.fade(1, 0);
+    host.fade(0, 1.6);
+    host.holdScene(true);
+    host.showObjective(false);
+    host.clearMarker();
+    host.placePierce(MIRROR.x, MIRROR.z, MIRROR.yaw);
+    host.playClip('rebornidle', true);
+    clip = 'idle';
+    return true;
+  };
+
   const finish = () => {
     if (finished) return;
     finished = true;
@@ -244,14 +274,16 @@ export const createTheDesk = (host: DeskHost) => {
     host.playClip('rebornidle', true);
     host.haltPlay();
     host.unlockNext();
-    host.win();
     host.fade(1, 1.15);
     host.refreshHud();
     host.showMessage('Level Complete', 'The work is on the floor. Continue. He is going home.');
   };
 
   return {
+    objectiveKey: () => 'desk',
     playing: () => playing,
+    action: () => (active && !playing && !finished && nearMirror() ? 'Look in mirror' : null),
+    confirm: () => beginLook(),
     shake: () => shake,
     skip: () => {
       if (active && playing && !finished) finish();
@@ -272,7 +304,7 @@ export const createTheDesk = (host: DeskHost) => {
       sheets.length = 0;
       clearMirror();
       active = true;
-      playing = true;
+      playing = false;
       finished = false;
       time = 0;
       clip = '';
@@ -284,15 +316,14 @@ export const createTheDesk = (host: DeskHost) => {
       saidGoing = false;
       shake = 0;
       host.setCarry(CARRY);
-      host.fade(1, 0);
-      host.fade(0, 1.6);
-      host.holdScene(true);
+      host.holdScene(false);
       host.showObjective(false);
       host.clearMarker();
       host.scene.getMeshByName('Office Ammo')?.setEnabled(false);
       mountMirror();
       spawnWork();
       host.placePierce(MIRROR.x, MIRROR.z, MIRROR.yaw);
+      host.resumeLocomotion();
       host.playClip('rebornidle', true);
       clip = 'idle';
     },

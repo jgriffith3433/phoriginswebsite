@@ -2,7 +2,7 @@
   "id": "b3-basement",
   "name": "B3",
   "theme": "B3 Basement",
-  "ambient": 0.05,
+  "ambient": 0.065,
   "assets": [
     {
       "id": "floor-lift",

@@ -55,3 +55,28 @@ export const applySkyboxForTheme = (scene: BABYLON.Scene, themeName: string) => 
   material.disableDepthWrite = true;
   box.material = material;
 };
+
+/** Resolves once the night-city faces are uploaded, or immediately when this theme has no cube. */
+export const whenSkyboxReady = (scene: BABYLON.Scene) =>
+  new Promise<void>((resolve) => {
+    const texture = scene.getTextureByName('night-city-cube');
+    if (!(texture instanceof BABYLON.CubeTexture)) {
+      resolve();
+      return;
+    }
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    if (texture.isReady()) {
+      done();
+      return;
+    }
+    const timer = window.setTimeout(done, 8000);
+    texture.onLoadObservable.addOnce(() => {
+      window.clearTimeout(timer);
+      done();
+    });
+  });

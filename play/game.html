@@ -213,7 +213,8 @@
       }
 
       button.reload-hint,
-      button.interact-hint {
+      button.interact-hint,
+      button.action-hint {
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
@@ -236,13 +237,16 @@
 
       button.reload-hint:hover,
       button.interact-hint:hover,
+      button.action-hint:hover,
       button.reload-hint:active,
-      button.interact-hint:active {
+      button.interact-hint:active,
+      button.action-hint:active {
         transform: translateX(-50%);
       }
 
       .reload-hint kbd,
-      .interact-hint kbd {
+      .interact-hint kbd,
+      .action-hint kbd {
         font: inherit;
         letter-spacing: inherit;
         color: inherit;
@@ -250,8 +254,10 @@
 
       body[data-device='mobile'] button.reload-hint,
       body[data-device='mobile'] button.interact-hint,
+      body[data-device='mobile'] button.action-hint,
       body[data-device='tablet'] button.reload-hint,
-      body[data-device='tablet'] button.interact-hint {
+      body[data-device='tablet'] button.interact-hint,
+      body[data-device='tablet'] button.action-hint {
         min-height: 44px;
         padding: 12px 20px;
         font-size: 13px;
@@ -264,6 +270,15 @@
       .interact-hint {
         top: calc(50% + 86px);
         color: #f0d48a;
+      }
+
+      .action-hint {
+        top: calc(50% + 86px);
+        color: #f0d48a;
+      }
+
+      .interact-hint.stacked {
+        top: calc(50% + 132px);
       }
 
       .perf-monitor {
@@ -547,118 +562,310 @@
       .phone-panel {
         position: absolute;
         left: 28px;
-        top: 18%;
-        width: min(340px, calc(100vw - 48px));
+        top: calc(var(--safe-top, 0px) + 148px);
         z-index: 9;
+        width: min(280px, calc(100vw - 40px));
+        height: min(520px, calc(100vh - var(--safe-top, 0px) - 164px));
         pointer-events: auto;
-        color: var(--text);
-      }
-
-      .phone-panel.focused {
-        top: 12%;
-        width: min(420px, 42vw);
+        color: #f2f2f7;
       }
 
       .phone-bezel {
-        padding: 18px 18px 16px;
-        border-radius: 28px;
-        background: linear-gradient(180deg, rgba(12, 16, 20, 0.94), rgba(6, 8, 12, 0.92));
-        border: 1px solid rgba(212, 180, 131, 0.45);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+        height: 100%;
+        padding: 10px;
+        border-radius: 42px;
+        background: #0b0b0d;
+        border: 2px solid #2c2c2e;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 0 0 1px #3a3a3c;
+      }
+
+      .phone-screen {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 32px;
+        background:
+          radial-gradient(120% 80% at 50% -10%, #1c3a5a 0%, transparent 55%),
+          linear-gradient(180deg, #12141a 0%, #07080c 100%);
+      }
+
+      .phone-notch {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        width: 92px;
+        height: 22px;
+        transform: translateX(-50%);
+        border-radius: 14px;
+        background: #000;
+        z-index: 2;
+      }
+
+      .phone-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 12px 16px 0 18px;
+        min-height: 32px;
+        position: relative;
+        z-index: 3;
+      }
+
+      .phone-clock {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0;
+        text-transform: none;
+        color: #f2f2f7;
       }
 
       .phone-status {
-        font-size: 11px;
-        letter-spacing: 0.18rem;
+        flex: 0 1 auto;
+        max-width: 42%;
+        overflow: hidden;
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0;
+        line-height: 1.2;
         text-transform: uppercase;
-        color: var(--gold);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-align: right;
+        color: rgba(242, 242, 247, 0.55);
+      }
+
+      .phone-body {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        padding: 8px 16px 0;
+      }
+
+      .phone-panel.calling .phone-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
       }
 
       .phone-contact {
         margin-top: 8px;
-        font-size: 28px;
-        font-weight: 800;
-        letter-spacing: 0.04rem;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
       }
 
       .phone-detail,
-      .phone-clock,
       .phone-speaker {
-        color: var(--muted);
-        font-size: 12px;
-        letter-spacing: 0.12rem;
+        color: rgba(242, 242, 247, 0.62);
+        font-size: 13px;
+        letter-spacing: 0.04rem;
         text-transform: uppercase;
       }
 
       .phone-line {
-        min-height: 3.2em;
-        margin: 14px 0 0;
-        font-size: 18px;
+        margin: 16px 0 0;
+        font-size: 17px;
         line-height: 1.35;
-        color: var(--text);
+        color: #f2f2f7;
       }
 
       .phone-actions {
         display: flex;
         gap: 8px;
-        margin-top: 16px;
+        padding: 8px 16px 0;
       }
 
       .phone-actions button {
         appearance: none;
         flex: 1;
-        padding: 10px 12px;
+        padding: 12px 10px;
         border-radius: 999px;
-        border: 1px solid rgba(212, 180, 131, 0.45);
-        background: rgba(212, 180, 131, 0.12);
-        color: var(--text);
+        border: 0;
+        background: rgba(255, 255, 255, 0.12);
+        color: #f2f2f7;
         font: inherit;
-        font-size: 12px;
-        font-weight: 800;
-        letter-spacing: 0.12rem;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.04rem;
         text-transform: uppercase;
         cursor: pointer;
       }
 
+      .phone-actions button[hidden] {
+        display: none;
+      }
+
       .phone-actions button.answer {
-        background: #1f6b45;
-        border-color: #7af0c9;
+        background: #30d158;
+        color: #04140a;
       }
 
       .phone-actions button.end {
-        background: #6b2430;
-        border-color: #e07a86;
+        background: #ff453a;
+        color: #1a0505;
       }
 
       .phone-actions button.on {
-        color: var(--gold);
-        border-color: var(--gold);
+        background: #ffd60a;
+        color: #1a1404;
+      }
+
+      .phone-homebar {
+        width: 112px;
+        height: 5px;
+        margin: 12px auto 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.85);
       }
 
       .phone-messages {
         display: flex;
         flex-direction: column;
         gap: 8px;
-        margin-top: 14px;
       }
 
       .phone-message {
-        padding: 8px 10px;
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.04);
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .phone-message strong {
         display: block;
-        font-size: 11px;
-        letter-spacing: 0.12rem;
+        margin-bottom: 2px;
+        font-size: 12px;
+        letter-spacing: 0.04rem;
         text-transform: uppercase;
-        color: var(--gold);
+        color: #ffd60a;
+      }
+
+      .phone-person {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        width: 100%;
+        padding: 12px;
+        border: 0;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #f2f2f7;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .phone-person strong {
+        font-size: 16px;
+        font-weight: 650;
+        letter-spacing: 0;
+        text-transform: none;
+        color: #f2f2f7;
+      }
+
+      .phone-person span {
+        font-size: 12px;
+        color: rgba(242, 242, 247, 0.55);
+      }
+
+      .phone-person:hover {
+        background: rgba(255, 255, 255, 0.14);
       }
 
       .phone-empty {
-        color: var(--muted);
-        font-size: 13px;
+        color: rgba(242, 242, 247, 0.55);
+        font-size: 14px;
+      }
+
+      .phone-apps:not([hidden]) {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px 8px;
+        margin-top: 28px;
+        justify-items: center;
+      }
+
+      .phone-apps button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #f2f2f7;
+        font: inherit;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 1.15;
+        text-align: center;
+        cursor: pointer;
+      }
+
+      .phone-apps button::before {
+        content: "";
+        width: 58px;
+        height: 58px;
+        border-radius: 16px;
+        background: #3a3a3c center / 28px 28px no-repeat;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+      }
+
+      .phone-apps button[data-phone-app="messages"]::before {
+        background-color: #30d158;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M5 6h14v9H8l-3 3V6z'/%3E%3C/svg%3E");
+      }
+
+      .phone-apps button[data-phone-app="contacts"]::before {
+        background-color: #8e8e93;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Ccircle cx='12' cy='8' r='3.2'/%3E%3Cpath d='M6.5 18.5c1.2-2.6 3.1-3.8 5.5-3.8s4.3 1.2 5.5 3.8'/%3E%3C/svg%3E");
+      }
+
+      .phone-apps button[data-phone-app="recents"]::before {
+        background-color: #0a84ff;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpath d='M7 7h7v7'/%3E%3Cpath d='M14 7l-8 8'/%3E%3Cpath d='M16 13v4h4'/%3E%3Cpath d='M20 17l-6-6'/%3E%3C/svg%3E");
+      }
+
+      .phone-apps button:hover::before {
+        filter: brightness(1.08);
+      }
+
+      .phone-sheet-title {
+        margin: 8px 0;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      .phone-back {
+        border: 0;
+        background: transparent;
+        color: #0a84ff;
+        padding: 4px 0;
+        font: inherit;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .phone-actions kbd {
+        display: inline-block;
+        margin-right: 6px;
+        padding: 1px 6px;
+        border-radius: 5px;
+        border: 1px solid rgba(0, 0, 0, 0.25);
+        background: rgba(255, 255, 255, 0.28);
+        font-family: inherit;
+        font-size: 11px;
+      }
+
+      body[data-device="mobile"] .phone-actions kbd {
+        display: none;
       }
 
       .phone-toast {
@@ -967,7 +1174,7 @@
         position: absolute;
         inset: 0;
         background: #000;
-        opacity: 0;
+        opacity: 1;
         pointer-events: none;
         z-index: 8;
       }
@@ -1341,7 +1548,7 @@
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" crossorigin src="./assets/index-DuZw0PkG.js"></script>
+    <script type="module" crossorigin src="./assets/index-D3nzQvIq.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -1364,6 +1571,7 @@
 
       <div id="crosshair" aria-hidden="true"></div>
       <button type="button" id="reloadHint" class="reload-hint" hidden>Reload<kbd> — R</kbd></button>
+      <button type="button" id="actionHint" class="action-hint" hidden>Join meeting<kbd> — E</kbd></button>
       <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
       <button type="button" id="skipCutscene" class="skip-cutscene" hidden>Skip</button>
       <div id="objectiveHud" class="objective-hud" aria-live="polite">
@@ -1374,18 +1582,36 @@
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <aside id="phonePanel" class="phone-panel" hidden>
         <div class="phone-bezel">
-          <div id="phoneStatus" class="phone-status">Phone</div>
-          <div id="phoneContact" class="phone-contact"></div>
-          <div id="phoneDetail" class="phone-detail"></div>
-          <div id="phoneClock" class="phone-clock"></div>
-          <div id="phoneSpeaker" class="phone-speaker"></div>
-          <p id="phoneLine" class="phone-line"></p>
-          <div class="phone-actions">
-            <button type="button" id="phoneAnswer" class="answer" hidden>Answer</button>
-            <button type="button" id="phoneEnd" class="end" hidden>End</button>
-            <button type="button" id="phoneFlash" hidden>Flashlight</button>
+          <div class="phone-screen">
+            <div class="phone-notch" aria-hidden="true"></div>
+            <div class="phone-top">
+              <div id="phoneClock" class="phone-clock">9:41</div>
+              <div id="phoneStatus" class="phone-status">Phone</div>
+            </div>
+            <div class="phone-body">
+              <div id="phoneContact" class="phone-contact"></div>
+              <div id="phoneDetail" class="phone-detail"></div>
+              <div id="phoneSpeaker" class="phone-speaker"></div>
+              <p id="phoneLine" class="phone-line"></p>
+              <div id="phoneHome" class="phone-apps">
+                <button type="button" data-phone-app="messages"><span>Messages</span></button>
+                <button type="button" data-phone-app="contacts"><span>Contacts</span></button>
+                <button type="button" data-phone-app="recents"><span>Recents</span></button>
+              </div>
+              <div id="phoneSheet" class="phone-sheet" hidden>
+                <button type="button" id="phoneBack" class="phone-back">Back</button>
+                <div id="phoneSheetTitle" class="phone-sheet-title"></div>
+                <div id="phoneSheetBody" class="phone-messages"></div>
+              </div>
+            </div>
+            <div class="phone-actions">
+              <button type="button" id="phoneAnswer" class="answer" hidden><kbd>F</kbd> Answer</button>
+              <button type="button" id="phoneEnd" class="end" hidden>End</button>
+              <button type="button" id="phoneFlash" hidden>Flashlight</button>
+            </div>
+            <div class="phone-homebar" aria-hidden="true"></div>
           </div>
-          <div id="phoneMessages" class="phone-messages"></div>
+          <div id="phoneMessages" class="phone-messages" hidden></div>
         </div>
       </aside>
       <div id="phoneToast" class="phone-toast" hidden></div>
