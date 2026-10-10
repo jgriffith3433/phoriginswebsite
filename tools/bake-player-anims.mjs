@@ -48,8 +48,12 @@ const walkBackClip = { name: 'WalkBack', path: path.join(animationsDir, 'Walk Ba
 const fallingClip = { name: 'FallingDown', path: path.join(animationsDir, 'Falling Down.fbx') };
 const rebornClip = { name: 'RebornIdle', path: path.join(animationsDir, 'Reborn Idle Variation.fbx') };
 const attackClip = { name: 'Attack', path: path.join(animationsDir, 'Attack.fbx') };
+const runClip = { name: 'Run', path: path.join(animationsDir, 'Standard Run.fbx') };
+const shockClip = { name: 'ShadowShock', path: path.join(animationsDir, 'Shadow Shock.fbx') };
+const electroClip = { name: 'Electrocuted', path: path.join(animationsDir, 'Being Electrocuted.fbx') };
+const deathClip = { name: 'DeathForward', path: path.join(animationsDir, 'Standing React Death Forward.fbx') };
 
-const npcClips = locomoClips.filter((clip) => clip.name !== 'Jump');
+const npcClips = [...locomoClips.filter((clip) => clip.name !== 'Jump'), electroClip, deathClip];
 const creatureClips = [
   ...locomoClips.filter((clip) => clip.name === 'Idle' || clip.name === 'Walk'),
   attackClip,
@@ -59,13 +63,13 @@ const jobs = [
   {
     outputName: 'ch33-hero',
     fbx: 'Ch33_nonPBR.fbx',
-    animations: [...locomoClips, ...playerPistolClips, walkBackClip, fallingClip],
+    animations: [...locomoClips, ...playerPistolClips, walkBackClip, fallingClip, runClip, shockClip, deathClip],
     tags: ['character', 'mixamo', 'player', 'real-file'],
   },
   {
     outputName: 'ch44-hero',
     fbx: 'Ch44_nonPBR.fbx',
-    animations: [...locomoClips, rebornClip],
+    animations: [...locomoClips, rebornClip, runClip, shockClip, deathClip],
     tags: ['character', 'mixamo', 'transform', 'post-god-complex', 'real-file'],
   },
   {
@@ -123,7 +127,7 @@ const verifyGlbSkinAndClips = (glbAbsPath) => {
   const skinNames = new Set((json.skins?.[0]?.joints || []).map((index) => nodes[index]?.name));
   const hipJoint = [...skinNames].find((name) => /hips/i.test(name || ''));
   const clips = (json.animations || []).filter((anim) =>
-    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster|WalkBack|FallingDown|RebornIdle|Attack)$/i.test(anim.name || ''),
+    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster|WalkBack|FallingDown|RebornIdle|Attack|Run|ShadowShock|Electrocuted|DeathForward)$/i.test(anim.name || ''),
   );
   const problems = [];
   if (!hipJoint) problems.push('skin.joints has no Hips');

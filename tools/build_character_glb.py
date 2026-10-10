@@ -366,7 +366,37 @@ def flatten_character_materials():
     print('Flattened character materials to non-metal / dielectric')
 
 
+# Hair, lashes, and beards keep texture alpha (cutout cards). Body atlases on
+# some Mixamo files are RGBA too; if that alpha stays linked, glTF exports the
+# skin as BLEND and the head sorts inside-out. Unlink alpha on everything else.
+HAIR_ALPHA_TOKENS = ('hair', 'eyelash', 'lash', 'beard', 'brow')
+
+
+def force_body_opaque():
+    for mat in bpy.data.materials:
+        name = mat.name.lower()
+        if any(token in name for token in HAIR_ALPHA_TOKENS):
+            continue
+        if hasattr(mat, 'blend_method'):
+            mat.blend_method = 'OPAQUE'
+        if not mat.use_nodes or mat.node_tree is None:
+            continue
+        for node in mat.node_tree.nodes:
+            if node.type != 'BSDF_PRINCIPLED':
+                continue
+            alpha = node.inputs.get('Alpha')
+            if alpha is None:
+                continue
+            _unlink_socket(mat.node_tree, alpha)
+            try:
+                alpha.default_value = 1.0
+            except (TypeError, ValueError):
+                pass
+    print('Forced non-hair character materials to opaque alpha')
+
+
 flatten_character_materials()
+force_body_opaque()
 
 export_kwargs = dict(
     filepath=output_path,

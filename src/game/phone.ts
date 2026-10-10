@@ -244,30 +244,11 @@ export const createPhone = (
     BABYLON.Quaternion.RotationQuaternionFromAxisToRef(axisX, finger, axisZ, attach.rotationQuaternion);
     bonePos.set(boneWorld.m[12], boneWorld.m[13], boneWorld.m[14]);
     attach.parent = null;
-    // The hand basis is mirrored. The quaternion drops that, which spins the slab backward.
     const mirrored = BABYLON.Vector3.Dot(axisX, BABYLON.Vector3.Cross(finger, axisZ)) < 0;
     attach.scaling.set(1, mirrored ? -1 : 1, 1);
     attach.position.copyFrom(bonePos).addInPlace(finger.scale(FINGER_REACH));
-    // World direction, not the attach quaternion. Decompose drops the bone's mirrored
-    // Y and aims a parented spot back into the camera.
     spot.position.copyFrom(bonePos).addInPlace(finger.scale(FINGER_REACH + 0.05));
-    const look = scene.activeCamera?.getDirection(BABYLON.Vector3.Forward());
-    if (flashlight && mode === 'idle' && beamAim) {
-      beamAim.subtractToRef(spot.position, aimScratch);
-      if (aimScratch.lengthSquared() > 1e-4) {
-        aimScratch.normalize();
-        spot.direction.copyFrom(aimScratch);
-        attach.position.y += 0.08;
-        spot.position.y += 0.08;
-        BABYLON.Vector3.CrossToRef(aimScratch, axisZ, sideAxis);
-        if (sideAxis.lengthSquared() < 1e-5) BABYLON.Vector3.CrossToRef(aimScratch, axisX, sideAxis);
-        sideAxis.normalize();
-        BABYLON.Vector3.CrossToRef(sideAxis, aimScratch, twistAxis);
-        twistAxis.normalize();
-        BABYLON.Quaternion.RotationQuaternionFromAxisToRef(sideAxis, aimScratch, twistAxis, attach.rotationQuaternion);
-      }
-    } else if (look && flashlight && mode === 'idle') spot.direction.copyFrom(look);
-    else spot.direction.copyFrom(finger);
+    spot.direction.copyFrom(finger);
     applyBeam(scene.getEngine().getDeltaTime() / 1000);
   };
   scene.onBeforeRenderObservable.add(poseHand);
@@ -275,9 +256,6 @@ export const createPhone = (
   let uiOpen = false;
   let flashlight = false;
   let beamAim: BABYLON.Vector3 | null = null;
-  const aimScratch = new BABYLON.Vector3();
-  const sideAxis = new BABYLON.Vector3();
-  const twistAxis = new BABYLON.Vector3();
   let mode: 'idle' | 'incoming' | 'active' | 'ended' = 'idle';
   let script: CallScript | null = null;
   let scriptId = '';

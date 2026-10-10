@@ -1,0 +1,897 @@
+{
+  "id": "the-station",
+  "name": "The Station",
+  "theme": "Station",
+  "ambient": 0.85,
+  "assets": [
+    {
+      "id": "station-floor",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "station-floor",
+      "x": 40,
+      "y": 0,
+      "z": -2.4,
+      "scale": {
+        "x": 82,
+        "y": 1,
+        "z": 9.6
+      },
+      "materialId": "mat-board-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "track-floor",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "track-floor",
+      "x": 46,
+      "y": -1.15,
+      "z": 5.15,
+      "scale": {
+        "x": 68,
+        "y": 1,
+        "z": 5.1
+      },
+      "materialId": "mat-b3-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shell-west",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shell-west",
+      "x": -1.1,
+      "y": 1.8,
+      "z": -0.6,
+      "scale": {
+        "x": 0.4,
+        "y": 3.6,
+        "z": 16.2
+      },
+      "materialId": "mat-board-wall",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shell-south",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shell-south",
+      "x": 40,
+      "y": 1.8,
+      "z": -7.3,
+      "scale": {
+        "x": 82.4,
+        "y": 3.6,
+        "z": 0.35
+      },
+      "materialId": "mat-office-wall",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shell-east",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shell-east",
+      "x": 81.2,
+      "y": 1.8,
+      "z": -0.6,
+      "scale": {
+        "x": 0.4,
+        "y": 3.6,
+        "z": 16.2
+      },
+      "materialId": "mat-board-wall",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shell-north",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shell-north",
+      "x": 46,
+      "y": 1.8,
+      "z": 7.8,
+      "scale": {
+        "x": 70,
+        "y": 3.6,
+        "z": 0.4
+      },
+      "materialId": "mat-b3-wall",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "shell-ceil",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "shell-ceil",
+      "x": 40,
+      "y": 3.55,
+      "z": -0.6,
+      "scale": {
+        "x": 84,
+        "y": 0.16,
+        "z": 16.6
+      },
+      "materialId": "mat-ceil-tile",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-up-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stair-up-0",
+      "x": 1.1,
+      "y": 0.2,
+      "z": -4.6,
+      "scale": {
+        "x": 0.85,
+        "y": 0.4,
+        "z": 2.2
+      },
+      "materialId": "mat-b3-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-up-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stair-up-1",
+      "x": 1.9500000000000002,
+      "y": 0.38,
+      "z": -4.6,
+      "scale": {
+        "x": 0.85,
+        "y": 0.76,
+        "z": 2.2
+      },
+      "materialId": "mat-b3-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-up-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stair-up-2",
+      "x": 2.8,
+      "y": 0.56,
+      "z": -4.6,
+      "scale": {
+        "x": 0.85,
+        "y": 1.12,
+        "z": 2.2
+      },
+      "materialId": "mat-b3-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-up-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stair-up-3",
+      "x": 3.65,
+      "y": 0.74,
+      "z": -4.6,
+      "scale": {
+        "x": 0.85,
+        "y": 1.48,
+        "z": 2.2
+      },
+      "materialId": "mat-b3-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-up-4",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stair-up-4",
+      "x": 4.5,
+      "y": 0.9199999999999999,
+      "z": -4.6,
+      "scale": {
+        "x": 0.85,
+        "y": 1.8399999999999999,
+        "z": 2.2
+      },
+      "materialId": "mat-b3-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-up-5",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stair-up-5",
+      "x": 5.35,
+      "y": 1.0999999999999999,
+      "z": -4.6,
+      "scale": {
+        "x": 0.85,
+        "y": 2.1999999999999997,
+        "z": 2.2
+      },
+      "materialId": "mat-b3-floor",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stair-rail",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stair-rail",
+      "x": 3.4,
+      "y": 1.15,
+      "z": -3.35,
+      "scale": {
+        "x": 5.2,
+        "y": 0.08,
+        "z": 0.08
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stile-12.4",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stile-12.4",
+      "x": 12.4,
+      "y": 0.52,
+      "z": -4.6,
+      "scale": {
+        "x": 0.12,
+        "y": 1.05,
+        "z": 1.7
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stile-b-12.4",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stile-b-12.4",
+      "x": 12.4,
+      "y": 0.52,
+      "z": -0.4,
+      "scale": {
+        "x": 0.12,
+        "y": 1.05,
+        "z": 1.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stile-15.2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stile-15.2",
+      "x": 15.2,
+      "y": 0.52,
+      "z": -4.6,
+      "scale": {
+        "x": 0.12,
+        "y": 1.05,
+        "z": 1.7
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stile-b-15.2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stile-b-15.2",
+      "x": 15.2,
+      "y": 0.52,
+      "z": -0.4,
+      "scale": {
+        "x": 0.12,
+        "y": 1.05,
+        "z": 1.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stile-18",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stile-18",
+      "x": 18,
+      "y": 0.52,
+      "z": -4.6,
+      "scale": {
+        "x": 0.12,
+        "y": 1.05,
+        "z": 1.7
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "stile-b-18",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "stile-b-18",
+      "x": 18,
+      "y": 0.52,
+      "z": -0.4,
+      "scale": {
+        "x": 0.12,
+        "y": 1.05,
+        "z": 1.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "curb-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "curb-w",
+      "x": 28,
+      "y": 0.28,
+      "z": 2.35,
+      "scale": {
+        "x": 40,
+        "y": 0.55,
+        "z": 0.22
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "curb-door",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "curb-door",
+      "x": 50.3,
+      "y": 0.5,
+      "z": 2.42,
+      "scale": {
+        "x": 6.2,
+        "y": 1,
+        "z": 0.2
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "curb-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "curb-e",
+      "x": 66,
+      "y": 0.28,
+      "z": 2.35,
+      "scale": {
+        "x": 24,
+        "y": 0.55,
+        "z": 0.22
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-safety",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-safety",
+      "x": 40,
+      "y": 0.03,
+      "z": 1.95,
+      "scale": {
+        "x": 70,
+        "y": 0.02,
+        "z": 0.18
+      },
+      "materialId": "mat-b3-hazard",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "column-30",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "column-30",
+      "x": 30,
+      "y": 1.8,
+      "z": -4.8,
+      "scale": {
+        "x": 0.5,
+        "y": 3.6,
+        "z": 0.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "troffer-30",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "troffer-30",
+      "x": 30,
+      "y": 3.32,
+      "z": -2.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "column-44",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "column-44",
+      "x": 44,
+      "y": 1.8,
+      "z": -4.8,
+      "scale": {
+        "x": 0.5,
+        "y": 3.6,
+        "z": 0.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "troffer-44",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "troffer-44",
+      "x": 44,
+      "y": 3.32,
+      "z": -2.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "column-58",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "column-58",
+      "x": 58,
+      "y": 1.8,
+      "z": -4.8,
+      "scale": {
+        "x": 0.5,
+        "y": 3.6,
+        "z": 0.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "troffer-58",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "troffer-58",
+      "x": 58,
+      "y": 3.32,
+      "z": -2.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "column-72",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "column-72",
+      "x": 72,
+      "y": 1.8,
+      "z": -4.8,
+      "scale": {
+        "x": 0.5,
+        "y": 3.6,
+        "z": 0.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "troffer-72",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "troffer-72",
+      "x": 72,
+      "y": 3.32,
+      "z": -2.2,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "troffer-hall",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "troffer-hall",
+      "x": 10,
+      "y": 3.32,
+      "z": -2.2,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "troffer-mid",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "troffer-mid",
+      "x": 22,
+      "y": 3.32,
+      "z": -2.2,
+      "rotation": {
+        "x": 0,
+        "y": 1.5707963267948966,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "bench-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "bench-a",
+      "x": 34,
+      "y": 0.4,
+      "z": -5.7,
+      "scale": {
+        "x": 2.4,
+        "y": 0.4,
+        "z": 0.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "bench-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "bench-b",
+      "x": 62,
+      "y": 0.4,
+      "z": -5.7,
+      "scale": {
+        "x": 2.4,
+        "y": 0.4,
+        "z": 0.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-sign-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-sign-a",
+      "x": 26,
+      "y": 2.55,
+      "z": -7.05,
+      "scale": {
+        "x": 0.08,
+        "y": 0.62,
+        "z": 2.2
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-sign-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-sign-b",
+      "x": 68,
+      "y": 2.55,
+      "z": -7.05,
+      "scale": {
+        "x": 0.08,
+        "y": 0.62,
+        "z": 2.2
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "train-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "train-a",
+      "x": 38,
+      "y": 1.55,
+      "z": 5.05,
+      "scale": {
+        "x": 22,
+        "y": 2.55,
+        "z": 2.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "train-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "train-b",
+      "x": 62.2,
+      "y": 1.55,
+      "z": 5.05,
+      "scale": {
+        "x": 20,
+        "y": 2.55,
+        "z": 2.5
+      },
+      "materialId": "mat-lift-metal",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-train-win-a",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-train-win-a",
+      "x": 38,
+      "y": 2.05,
+      "z": 3.76,
+      "scale": {
+        "x": 16,
+        "y": 0.62,
+        "z": 0.06
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-train-win-b",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "b3-decal-train-win-b",
+      "x": 62,
+      "y": 2.05,
+      "z": 3.76,
+      "scale": {
+        "x": 14,
+        "y": 0.62,
+        "z": 0.06
+      },
+      "materialId": "mat-street-window",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "train-door-l",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "train-door-l",
+      "x": 49.15,
+      "y": 1.35,
+      "z": 4.05,
+      "scale": {
+        "x": 0.1,
+        "y": 2.15,
+        "z": 0.7
+      },
+      "materialId": "mat-b3-wall",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "train-door-r",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "train-door-r",
+      "x": 51.55,
+      "y": 1.35,
+      "z": 4.05,
+      "scale": {
+        "x": 0.1,
+        "y": 2.15,
+        "z": 0.7
+      },
+      "materialId": "mat-b3-wall",
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "station-light-hall",
+      "assetId": "structure-light",
+      "kind": "light",
+      "name": "station-light-hall",
+      "x": 12,
+      "y": 3.05,
+      "z": -2.2,
+      "intensity": 2.1,
+      "range": 16,
+      "color": [
+        0.86,
+        0.9,
+        0.82
+      ],
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "station-light-mid",
+      "assetId": "structure-light",
+      "kind": "light",
+      "name": "station-light-mid",
+      "x": 40,
+      "y": 3.05,
+      "z": -2,
+      "intensity": 2.3,
+      "range": 18,
+      "color": [
+        0.86,
+        0.9,
+        0.82
+      ],
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "station-light-far",
+      "assetId": "structure-light",
+      "kind": "light",
+      "name": "station-light-far",
+      "x": 66,
+      "y": 3.05,
+      "z": -2,
+      "intensity": 2.1,
+      "range": 16,
+      "color": [
+        0.86,
+        0.9,
+        0.82
+      ],
+      "components": [
+        "Transform"
+      ]
+    }
+  ],
+  "triggers": [
+    {
+      "id": "station-bed",
+      "type": "music",
+      "x": 36,
+      "y": 0,
+      "z": -1,
+      "data": {
+        "audio": "/assets/audio/room-tone.mp3",
+        "radius": 90,
+        "volume": 0.2,
+        "loop": true,
+        "fadeSeconds": 1.5
+      }
+    }
+  ]
+}

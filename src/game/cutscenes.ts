@@ -62,6 +62,7 @@ export type ActiveCutscene = {
   playing: HTMLAudioElement[];
   hooks: CutsceneHooks;
   lineHold: { until: number; actor: string; restClip: string } | null;
+  silent?: boolean;
 };
 
 const cache = new Map<string, CutsceneTimeline>();
@@ -158,6 +159,8 @@ const resolveLineDuration = (event: TimelineEvent) => {
 };
 
 const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
+  if (cutscene.silent && (event.type === 'audio' || event.type === 'line' || event.type === 'hud' || event.type === 'camera')) return;
+  if (cutscene.silent && event.type === 'fade' && (event.to ?? 1) > 0.2) return;
   if (event.type === 'camera' && event.position && event.lookAt) {
     cutscene.hooks.onCamera(event.position, event.lookAt);
     return;
@@ -268,6 +271,14 @@ export const stepCutscene = (cutscene: ActiveCutscene, delta: number): boolean =
 
 export const stopCutsceneAudio = (cutscene: ActiveCutscene | null) => {
   if (cutscene) stopAudio(cutscene);
+};
+
+export const skipToEnd = (cutscene: ActiveCutscene) => {
+  cutscene.silent = true;
+  cutscene.time = cutscene.duration;
+  flushDueEvents(cutscene);
+  stopAudio(cutscene);
+  cutscene.lineHold = null;
 };
 
 type AnimAvatar = { playClip: (clip: string, loop?: boolean) => boolean };

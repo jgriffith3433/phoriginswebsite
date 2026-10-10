@@ -3,7 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { refreshCharacterProbe } from './modelLoader';
 import { applySkyboxForTheme } from './skybox';
 
-export type SceneThemeName = 'Neon Drift' | 'Crimson Surge' | 'Arctic Rift' | 'Apex Peak' | 'B3 Basement';
+export type SceneThemeName = 'Neon Drift' | 'Crimson Surge' | 'Arctic Rift' | 'Apex Peak' | 'B3 Basement' | 'Street' | 'Station';
 
 export type SceneTheme = {
   name: SceneThemeName;
@@ -67,6 +67,30 @@ const themes: Record<SceneThemeName, SceneTheme> = {
     sunIntensity: 0.33,
     fogDistance: 42,
   },
+  Street: {
+    name: 'Street',
+    skyTop: new BABYLON.Color3(0.02, 0.03, 0.05),
+    skyBottom: new BABYLON.Color3(0.03, 0.035, 0.05),
+    fog: new BABYLON.Color3(0.04, 0.045, 0.06),
+    ground: new BABYLON.Color3(0.08, 0.08, 0.09),
+    wall: new BABYLON.Color3(0.14, 0.145, 0.16),
+    ambient: new BABYLON.Color3(0.22, 0.24, 0.28),
+    hemiIntensity: 0.72,
+    sunIntensity: 0.2,
+    fogDistance: 120,
+  },
+  Station: {
+    name: 'Station',
+    skyTop: new BABYLON.Color3(0.07, 0.08, 0.08),
+    skyBottom: new BABYLON.Color3(0.1, 0.11, 0.1),
+    fog: new BABYLON.Color3(0.09, 0.1, 0.09),
+    ground: new BABYLON.Color3(0.22, 0.22, 0.2),
+    wall: new BABYLON.Color3(0.28, 0.29, 0.28),
+    ambient: new BABYLON.Color3(0.42, 0.44, 0.4),
+    hemiIntensity: 0.85,
+    sunIntensity: 0.12,
+    fogDistance: 46,
+  },
   'B3 Basement': {
     name: 'B3 Basement',
     skyTop: new BABYLON.Color3(0.015, 0.02, 0.018),
@@ -90,7 +114,7 @@ export const applyTheme = (scene: BABYLON.Scene, themeName: string) => {
   scene.clearColor = new BABYLON.Color4(theme.skyBottom.r, theme.skyBottom.g, theme.skyBottom.b, 1);
   scene.fogColor = theme.fog;
   scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
-  scene.fogStart = theme.name === 'B3 Basement' ? 5 : 10;
+  scene.fogStart = theme.name === 'B3 Basement' ? 5 : theme.name === 'Street' ? 28 : theme.name === 'Station' ? 12 : 10;
   scene.fogEnd = theme.fogDistance;
   scene.ambientColor = theme.ambient;
   scene.metadata = { ...(scene.metadata ?? {}), themeName: theme.name };

@@ -556,6 +556,17 @@
       "normal": "/assets/textures/lift-metal-n.webp",
       "roughnessMap": "/assets/textures/lift-metal-r.webp",
       "roughness": 0.34
+    },
+    {
+      "id": "mat-street-window",
+      "name": "Lit tower window",
+      "albedo": "/assets/textures/office-glass.webp",
+      "tileMeters": 1.2,
+      "diffuse": [0.55, 0.42, 0.22],
+      "specular": [0.35, 0.28, 0.16],
+      "specularPower": 28,
+      "emissive": [0.92, 0.62, 0.28],
+      "tags": ["light", "street"]
     }
   ]
 }

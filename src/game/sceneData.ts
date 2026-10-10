@@ -759,6 +759,44 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     if (asset.id === 'board-glass-sill' || asset.id === 'office-wall-n') {
       return createWindowFrameWall(scene, asset, position, rotation, scale, metadata, theme);
     }
+    if (asset.id === 'lift-b3-button') {
+      const plate = BABYLON.MeshBuilder.CreateBox('lift-b3-plate', { width: 1, height: 1, depth: 1 }, scene);
+      plate.position = position.clone();
+      plate.rotation = rotation.clone();
+      plate.scaling.set(0.045, 0.42, 0.28);
+      const plateMat = new BABYLON.StandardMaterial('lift-b3-plate-mat', scene);
+      plateMat.diffuseColor = new BABYLON.Color3(0.16, 0.17, 0.18);
+      plateMat.emissiveColor = new BABYLON.Color3(0.02, 0.02, 0.025);
+      plateMat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.22);
+      plate.material = plateMat;
+      plate.isPickable = false;
+      plate.checkCollisions = false;
+      const button = BABYLON.MeshBuilder.CreateCylinder(asset.name ?? asset.id, { height: 1, diameter: 1, tessellation: 20 }, scene);
+      button.position = position.add(new BABYLON.Vector3(-0.04, 0, 0));
+      button.rotation = rotation.clone();
+      button.rotation.z += Math.PI / 2;
+      button.scaling.set(0.11, 0.045, 0.11);
+      const material = new BABYLON.StandardMaterial(`${asset.id}-mat`, scene);
+      material.diffuseColor = new BABYLON.Color3(0.45, 0.08, 0.06);
+      material.emissiveColor = new BABYLON.Color3(0.55, 0.12, 0.05);
+      material.specularColor = new BABYLON.Color3(0.3, 0.15, 0.1);
+      button.material = material;
+      button.metadata = metadata;
+      button.isPickable = false;
+      button.checkCollisions = false;
+      const bezel = BABYLON.MeshBuilder.CreateTorus('lift-b3-bezel', { diameter: 1, thickness: 0.12, tessellation: 20 }, scene);
+      bezel.parent = button;
+      bezel.position.set(0, 0.35, 0);
+      bezel.scaling.set(1.35, 0.35, 1.35);
+      const bezelMat = new BABYLON.StandardMaterial('lift-b3-bezel-mat', scene);
+      bezelMat.diffuseColor = new BABYLON.Color3(0.55, 0.56, 0.58);
+      bezelMat.emissiveColor = new BABYLON.Color3(0.04, 0.04, 0.05);
+      bezelMat.specularColor = new BABYLON.Color3(0.35, 0.35, 0.38);
+      bezel.material = bezelMat;
+      bezel.isPickable = false;
+      bezel.checkCollisions = false;
+      return button;
+    }
     const mesh = BABYLON.MeshBuilder.CreateBox(asset.name ?? asset.id, { width: 1, height: 1, depth: 1 }, scene);
     mesh.position = position;
     mesh.rotation = rotation;

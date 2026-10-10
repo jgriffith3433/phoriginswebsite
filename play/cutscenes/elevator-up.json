@@ -61,10 +61,10 @@
       "type": "line",
       "actor": "pierce",
       "speaker": "Pierce",
-      "text": "The car is going up. I am still in it. That is the only part I trust.",
+      "text": "The elevator is going up. I am still in it. That is the only part I trust.",
       "audio": "/assets/audio/cutscenes/elevator-up/01-pierce-trust.wav",
       "anim": "rebornidle",
-      "duration": 6.65,
+      "duration": 5.67,
       "volume": 0.92
     },
     {
@@ -100,10 +100,10 @@
       "type": "line",
       "actor": "pierce",
       "speaker": "Pierce",
-      "text": "Hale thinks I walked out of a meeting. She is going to the other investors. She has not seen what is riding this car.",
+      "text": "Hale thinks I walked out of a meeting. She is going to the other investors. She has not seen what is riding this elevator.",
       "audio": "/assets/audio/cutscenes/elevator-up/04-pierce-investors.wav",
       "anim": "rebornidle",
-      "duration": 7.02,
+      "duration": 8.5,
       "volume": 0.92
     },
     {
@@ -113,7 +113,7 @@
       "lookAt": { "x": 44.4, "y": 2.72, "z": 23.46 }
     },
     {
-      "at": 41.9,
+      "at": 42.4,
       "type": "line",
       "actor": "pierce",
       "speaker": "Pierce",

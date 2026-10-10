@@ -13,7 +13,7 @@ const NIGHT_CITY_FACES = [
   '/assets/textures/skybox/night-city_nz.webp',
 ];
 
-const CITY_SKYBOX_THEMES = new Set(['Apex Peak']);
+const CITY_SKYBOX_THEMES = new Set(['Apex Peak', 'Street']);
 
 export const disposeSkybox = (scene: BABYLON.Scene) => {
   const box = scene.getMeshByName(NIGHT_CITY_SKYBOX_NAME);

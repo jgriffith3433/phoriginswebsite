@@ -289,7 +289,7 @@ export const LEVEL_CREDITS: Record<number, LevelCredits> = {
         ],
       },
       {
-        role: 'The Car',
+        role: 'The Elevator',
         names: [
           'Only Proved',
           'That It Was Climbing',
@@ -317,7 +317,7 @@ export const LEVEL_CREDITS: Record<number, LevelCredits> = {
         names: [
           'Would Hear He Walked Out',
           'They Would Not Hear',
-          'What Rode The Car',
+          'What Rode The Elevator',
         ],
       },
       {
@@ -356,6 +356,316 @@ export const LEVEL_CREDITS: Record<number, LevelCredits> = {
         names: [
           'Still Knew The Way',
           'To His Own Floor',
+        ],
+      },
+    ],
+  },
+  4: {
+    left: [
+      {
+        role: 'The Bathroom',
+        names: [
+          'Had A Door',
+          'The Rest Of The Floor',
+          'Did Not Need One',
+        ],
+      },
+      {
+        role: 'The Mirror',
+        names: [
+          'Kept Its Answer',
+          'And Would Not',
+          'Soften It',
+        ],
+      },
+      {
+        role: 'The Work',
+        names: [
+          'Waited Where',
+          'He Had Left It',
+          'The Night Before',
+        ],
+      },
+      {
+        role: 'The Papers',
+        names: [
+          'Were Finished',
+          'The Moment',
+          'They Left The Desk',
+        ],
+      },
+      {
+        role: 'The Hall',
+        names: [
+          'Was Already Looking',
+          'Before Anyone',
+          'Was In It',
+        ],
+      },
+      {
+        role: 'Pierce Hawkes',
+        names: [
+          'Left The Floor',
+          'Whatever It Still',
+          'Wanted From Him',
+        ],
+      },
+    ],
+    right: [
+      {
+        role: 'Hale',
+        names: [
+          'Would Tell The Investors',
+          'A Man Had Walked Out',
+          'She Would Leave',
+          'The Rest Unsaid',
+        ],
+      },
+      {
+        role: 'The Investors',
+        names: [
+          'Still Had A Meeting',
+          'On A Floor',
+          'He Was Leaving',
+        ],
+      },
+      {
+        role: 'The Brightness',
+        names: [
+          'Belonged To The Building',
+          'He Had Stopped',
+          'Belonging To It',
+        ],
+      },
+      {
+        role: 'The Elevator',
+        names: [
+          'Knew The Way Down',
+          'He Only Had',
+          'To Stand In It',
+        ],
+      },
+      {
+        role: 'Home',
+        names: [
+          'Was A Word',
+          'He Still Used',
+          'For A Place',
+          'That Had Not Seen Him',
+        ],
+      },
+      {
+        role: 'The Hands',
+        names: [
+          'Were The First Thing',
+          'The Mirror',
+          'Had Been Honest About',
+        ],
+      },
+    ],
+  },
+  5: {
+    left: [
+      {
+        role: 'The Lobby',
+        names: [
+          'Still Had A Shift',
+          'And A Phone',
+          'Within Reach',
+        ],
+      },
+      {
+        role: 'The Receptionist',
+        names: [
+          'Said His Name',
+          'To Someone',
+          'Who Was Not There',
+        ],
+      },
+      {
+        role: 'The Police',
+        names: [
+          'Were Given A Floor',
+          'And A Description',
+          'The Directory',
+          'Could Not Match',
+        ],
+      },
+      {
+        role: 'The Street',
+        names: [
+          'Took Him In',
+          'Without Asking',
+          'For Identification',
+        ],
+      },
+      {
+        role: 'The Crowd',
+        names: [
+          'Mostly Kept',
+          'Their Errands',
+        ],
+      },
+      {
+        role: 'The Few',
+        names: [
+          'Who Ran',
+          'Had To Be',
+          'Close Enough To See',
+        ],
+      },
+    ],
+    right: [
+      {
+        role: 'The Cars',
+        names: [
+          'Kept The Lane',
+          'And The Right',
+          'Of Way',
+        ],
+      },
+      {
+        role: 'The Hands',
+        names: [
+          'Found People',
+          'The Way A Gaze Finds',
+          'A Face In A Crowd',
+        ],
+      },
+      {
+        role: 'The Tower',
+        names: [
+          'Stayed Lit',
+          'Behind Him',
+          'On A Floor',
+          'He Was Done With',
+        ],
+      },
+      {
+        role: 'The Sidewalk',
+        names: [
+          'Ran For Blocks',
+          'And Ended',
+          'At A Stair',
+        ],
+      },
+      {
+        role: 'The Sign',
+        names: [
+          'Promised A Train',
+          'Where A Door',
+          'Would Have Promised',
+          'A Room',
+        ],
+      },
+      {
+        role: 'Pierce Hawkes',
+        names: [
+          'Went Down',
+          'Instead Of In',
+        ],
+      },
+    ],
+  },
+  6: {
+    left: [
+      {
+        role: 'The Stairs',
+        names: [
+          'Took The Street',
+          'Off His Shoulders',
+          'One Flight',
+          'At A Time',
+        ],
+      },
+      {
+        role: 'The Lights',
+        names: [
+          'Had Been On',
+          'Longer Than',
+          'The City Above',
+        ],
+      },
+      {
+        role: 'The Turnstiles',
+        names: [
+          'Counted No One',
+          'Who Mattered',
+        ],
+      },
+      {
+        role: 'The Platform',
+        names: [
+          'Held Its Line',
+          'In Yellow',
+          'And Waited',
+        ],
+      },
+      {
+        role: 'The Commuters',
+        names: [
+          'Had Somewhere',
+          'They Still Believed',
+          'They Were Going',
+        ],
+      },
+      {
+        role: 'The Quiet',
+        names: [
+          'Was The Street',
+          'With The Sky',
+          'Taken Off It',
+        ],
+      },
+    ],
+    right: [
+      {
+        role: 'The Train',
+        names: [
+          'Sat With A Door',
+          'Open On Nothing',
+          'He Could Name',
+        ],
+      },
+      {
+        role: 'The Tracks',
+        names: [
+          'Went On',
+          'Past The Light',
+          'He Was Standing In',
+        ],
+      },
+      {
+        role: 'The Hands',
+        names: [
+          'Still Knew',
+          'How To Close',
+          'A Distance',
+        ],
+      },
+      {
+        role: 'Above',
+        names: [
+          'The Tower Kept',
+          'Its Meeting',
+          'And Its Name',
+          'On The Directory',
+        ],
+      },
+      {
+        role: 'The Phone',
+        names: [
+          'Had Nothing',
+          'Left To Ring For',
+        ],
+      },
+      {
+        role: 'Pierce Hawkes',
+        names: [
+          'Stepped Toward',
+          'A Door',
+          'That Did Not Ask',
+          'Him To Explain',
         ],
       },
     ],

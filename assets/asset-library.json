@@ -113,6 +113,18 @@
         {
           "name": "RebornIdle",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Reborn Idle Variation.fbx"
+        },
+        {
+          "name": "Run",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standard Run.fbx"
+        },
+        {
+          "name": "ShadowShock",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Shadow Shock.fbx"
+        },
+        {
+          "name": "DeathForward",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
         }
       ]
     },
@@ -181,6 +193,18 @@
         {
           "name": "FallingDown",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Falling Down.fbx"
+        },
+        {
+          "name": "Run",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standard Run.fbx"
+        },
+        {
+          "name": "ShadowShock",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Shadow Shock.fbx"
+        },
+        {
+          "name": "DeathForward",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
         }
       ]
     },
@@ -214,6 +238,14 @@
         {
           "name": "SitTalk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        },
+        {
+          "name": "Electrocuted",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Being Electrocuted.fbx"
+        },
+        {
+          "name": "DeathForward",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
         }
       ]
     },
@@ -247,6 +279,14 @@
         {
           "name": "SitTalk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        },
+        {
+          "name": "Electrocuted",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Being Electrocuted.fbx"
+        },
+        {
+          "name": "DeathForward",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
         }
       ]
     },
@@ -280,6 +320,14 @@
         {
           "name": "SitTalk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        },
+        {
+          "name": "Electrocuted",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Being Electrocuted.fbx"
+        },
+        {
+          "name": "DeathForward",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
         }
       ]
     },
@@ -313,6 +361,14 @@
         {
           "name": "SitTalk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        },
+        {
+          "name": "Electrocuted",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Being Electrocuted.fbx"
+        },
+        {
+          "name": "DeathForward",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
         }
       ]
     },
@@ -346,6 +402,14 @@
         {
           "name": "SitTalk",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Sitting Talking.fbx"
+        },
+        {
+          "name": "Electrocuted",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Being Electrocuted.fbx"
+        },
+        {
+          "name": "DeathForward",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
         }
       ]
     },
@@ -618,7 +682,11 @@
       "name": "water-cooler.glb",
       "path": "/assets/models/water-cooler.glb",
       "type": "model",
-      "tags": ["prop", "furniture", "office"],
+      "tags": [
+        "prop",
+        "furniture",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -626,7 +694,11 @@
       "name": "filing-cabinet.glb",
       "path": "/assets/models/filing-cabinet.glb",
       "type": "model",
-      "tags": ["prop", "furniture", "office"],
+      "tags": [
+        "prop",
+        "furniture",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -634,7 +706,11 @@
       "name": "office-plant.glb",
       "path": "/assets/models/office-plant.glb",
       "type": "model",
-      "tags": ["prop", "furniture", "office"],
+      "tags": [
+        "prop",
+        "furniture",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -642,7 +718,11 @@
       "name": "office-door.glb",
       "path": "/assets/models/office-door.glb",
       "type": "model",
-      "tags": ["prop", "door", "office"],
+      "tags": [
+        "prop",
+        "door",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -650,7 +730,10 @@
       "name": "waste-bin.glb",
       "path": "/assets/models/waste-bin.glb",
       "type": "model",
-      "tags": ["prop", "office"],
+      "tags": [
+        "prop",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -658,7 +741,11 @@
       "name": "credenza.glb",
       "path": "/assets/models/credenza.glb",
       "type": "model",
-      "tags": ["prop", "furniture", "office"],
+      "tags": [
+        "prop",
+        "furniture",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -666,7 +753,11 @@
       "name": "carpet-runner.glb",
       "path": "/assets/models/carpet-runner.glb",
       "type": "model",
-      "tags": ["prop", "floor", "office"],
+      "tags": [
+        "prop",
+        "floor",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -674,7 +765,10 @@
       "name": "desk-clutter.glb",
       "path": "/assets/models/desk-clutter.glb",
       "type": "model",
-      "tags": ["prop", "office"],
+      "tags": [
+        "prop",
+        "office"
+      ],
       "source": "project"
     },
     {
@@ -682,7 +776,11 @@
       "name": "directory-board.glb",
       "path": "/assets/models/directory-board.glb",
       "type": "model",
-      "tags": ["prop", "sign", "office"],
+      "tags": [
+        "prop",
+        "sign",
+        "office"
+      ],
       "source": "project"
     }
   ]

@@ -680,6 +680,16 @@ export const createAct1 = (host: ActHost) => {
       alarm.wav = null;
     }
     restyleTerminal(false);
+    terminalColors = null;
+    for (const mesh of meshesFor('office-terminal')) {
+      const material = mesh.material;
+      if (!(material instanceof BABYLON.PBRMaterial) && !(material instanceof BABYLON.StandardMaterial)) continue;
+      const glow = material.emissiveColor;
+      if (glow.b < 0.15 || glow.b < glow.r + 0.05) continue;
+      material.emissiveColor = new BABYLON.Color3(0.02, 0.025, 0.03);
+      if (material instanceof BABYLON.PBRMaterial) material.albedoColor = new BABYLON.Color3(0.05, 0.055, 0.06);
+      else material.diffuseColor = new BABYLON.Color3(0.05, 0.055, 0.06);
+    }
   };
 
   const startAlarm = () => {
@@ -2247,6 +2257,38 @@ export const createAct1 = (host: ActHost) => {
     host.showObjective(false);
   };
 
+  const spawnDeskPapers = () => {
+    if (!host.isApex() && !host.isReturn()) return;
+    if (host.scene.getMeshByName('desk-paper-0')) return;
+    const paperMat = new BABYLON.StandardMaterial('desk-paper-mat', host.scene);
+    paperMat.diffuseColor = new BABYLON.Color3(0.86, 0.84, 0.78);
+    paperMat.specularColor = new BABYLON.Color3(0.04, 0.04, 0.04);
+    const spots: [number, number, number, number, number][] = [
+      [47.62, 42.42, 0.22, 0.28, 0.2],
+      [47.95, 42.55, 0.24, 0.3, -0.4],
+      [48.28, 42.38, 0.2, 0.26, 0.6],
+      [48.55, 42.62, 0.18, 0.24, 1.1],
+      [48.12, 42.28, 0.16, 0.2, 0.15],
+    ];
+    spots.forEach(([x, z, w, d, yaw], index) => {
+      const mesh = BABYLON.MeshBuilder.CreateBox(`desk-paper-${index}`, { width: w, height: 0.008, depth: d }, host.scene);
+      mesh.position.set(x, 0.755 + index * 0.004, z);
+      mesh.rotation.y = yaw;
+      mesh.material = paperMat;
+      mesh.isPickable = false;
+      mesh.checkCollisions = false;
+    });
+    const folder = BABYLON.MeshBuilder.CreateBox('desk-folder', { width: 0.28, height: 0.02, depth: 0.36 }, host.scene);
+    folder.position.set(47.78, 0.79, 42.7);
+    folder.rotation.y = -0.25;
+    const folderMat = new BABYLON.StandardMaterial('desk-folder-mat', host.scene);
+    folderMat.diffuseColor = new BABYLON.Color3(0.62, 0.48, 0.28);
+    folderMat.specularColor = new BABYLON.Color3(0.04, 0.04, 0.04);
+    folder.material = folderMat;
+    folder.isPickable = false;
+    folder.checkCollisions = false;
+  };
+
   return {
     phase: () => phase,
     armPhase: (next: SequencePhase) => {
@@ -2653,6 +2695,7 @@ export const createAct1 = (host: ActHost) => {
       pulseButton(false);
       applyElevatorIndicators(0, false, false);
       applyCabLight(0, false);
+      spawnDeskPapers();
     },
   };
 };

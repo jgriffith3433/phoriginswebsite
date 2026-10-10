@@ -13,6 +13,8 @@ import { PLAYER_ASSET_ID, getAssetLibrary, jointSuffix, loadGlbByAssetId, resolv
 export type PlayerAvatar = {
   group: BABYLON.TransformNode;
   setLocomotion: (moving: boolean, grounded: boolean) => void;
+  setPace: (rate: number) => void;
+  setSprinting: (sprinting: boolean) => void;
   setArmed: (armed: boolean) => void;
   playClip: (keyword: string, loop?: boolean, speedRatio?: number, onEnded?: () => void) => boolean;
   resumeLocomotion: () => void;
@@ -155,6 +157,7 @@ export const createCharacterAvatar = (
   let skeletons: BABYLON.Skeleton[] = [];
   let idleGroup: BABYLON.AnimationGroup | null = null;
   let walkGroup: BABYLON.AnimationGroup | null = null;
+  let runGroup: BABYLON.AnimationGroup | null = null;
   let jumpGroup: BABYLON.AnimationGroup | null = null;
   let pistolIdleGroup: BABYLON.AnimationGroup | null = null;
   let pistolWalkGroup: BABYLON.AnimationGroup | null = null;
@@ -168,6 +171,7 @@ export const createCharacterAvatar = (
   let playGen = 0;
   let wantsMoving = false;
   let wantsGrounded = true;
+  let sprinting = false;
   let armed = false;
   let disposed = false;
   let cinematic = false;
@@ -193,7 +197,11 @@ export const createCharacterAvatar = (
     clipPlayRange(clip, lookupClipTrim(clipTrims ?? { version: 1, clips: {} }, clipTail(clip.name), modelPath));
 
   const activeIdle = () => (armed ? pistolIdleGroup ?? idleGroup : idleGroup);
-  const activeWalk = () => (armed ? pistolWalkGroup ?? walkGroup : walkGroup);
+  const activeWalk = () => {
+    if (armed) return pistolWalkGroup ?? walkGroup;
+    if (sprinting && runGroup) return runGroup;
+    return walkGroup;
+  };
   const activeJump = () => (armed ? pistolJumpGroup ?? jumpGroup : jumpGroup);
   const overlayWalk = () => (overlayArmed ? pistolWalkGroup ?? walkGroup : walkGroup ?? pistolWalkGroup);
   const overlayBody = () => {
@@ -202,7 +210,7 @@ export const createCharacterAvatar = (
   };
   const pistolReadyIdle = () => pistolIdleGroup ?? idleGroup;
 
-  const locoGroups = () => [idleGroup, walkGroup, pistolIdleGroup, pistolWalkGroup, jumpGroup, pistolJumpGroup];
+  const locoGroups = () => [idleGroup, walkGroup, runGroup, pistolIdleGroup, pistolWalkGroup, jumpGroup, pistolJumpGroup];
   const isIdleName = (name: string | null) => name === 'idle' || name === 'pistolidle';
 
   const clipFullyDriving = (clip: BABYLON.AnimationGroup) => {
@@ -382,7 +390,11 @@ export const createCharacterAvatar = (
 
   const locomotionKeyword = () => {
     if (!wantsGrounded && activeJump()) return armed ? 'pistolJump' : 'jump';
-    if (wantsMoving) return armed ? 'pistolWalk' : 'walk';
+    if (wantsMoving) {
+      if (armed) return 'pistolWalk';
+      if (sprinting && runGroup) return 'run';
+      return 'walk';
+    }
     return armed ? 'pistolIdle' : 'idle';
   };
 
@@ -392,7 +404,7 @@ export const createCharacterAvatar = (
       playJump();
       return;
     }
-    const movingName = armed ? 'pistolwalk' : 'walk';
+    const movingName = armed ? 'pistolwalk' : sprinting && runGroup ? 'run' : 'walk';
     const idleName = armed ? 'pistolidle' : 'idle';
     const walk = activeWalk();
     playLoop(
@@ -444,6 +456,21 @@ export const createCharacterAvatar = (
     }
     if (cinematic) return;
     applyLocomotion();
+  };
+
+  const setSprinting = (next: boolean) => {
+    const resolved = Boolean(next && runGroup);
+    if (sprinting === resolved) return;
+    sprinting = resolved;
+    if (current === 'walk' || current === 'run') current = null;
+    if (!cinematic) applyLocomotion();
+  };
+
+  const setPace = (rate: number) => {
+    const pace = Math.max(0.25, rate);
+    for (const clip of locoGroups()) {
+      if (clip) clip.speedRatio = pace;
+    }
   };
 
   const setArmed = (next: boolean) => {
@@ -595,6 +622,7 @@ export const createCharacterAvatar = (
     skeletons = imported.skeletons;
     idleGroup = findClip(animationGroups, 'rebornidle') ?? findClip(animationGroups, 'idle');
     walkGroup = findClip(animationGroups, 'walk');
+    runGroup = findClip(animationGroups, 'run');
     jumpGroup = findClip(animationGroups, 'jump');
     pistolIdleGroup = findClip(animationGroups, 'pistolIdle');
     pistolWalkGroup = findClip(animationGroups, 'pistolWalk');
@@ -690,6 +718,8 @@ export const createCharacterAvatar = (
   return {
     group,
     setLocomotion,
+    setPace,
+    setSprinting,
     setArmed,
     playClip,
     resumeLocomotion,

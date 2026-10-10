@@ -10,7 +10,9 @@
     "vat": { "title": "It breaks", "text": "It is running for the vat." },
     "return": { "title": "Get upstairs", "text": "The elevator is the way back." },
     "return-up": { "title": "Elevator", "text": "Walk in. It goes up." },
-    "mirror": { "title": "Look", "text": "The hall bathroom. Find the mirror." }
+    "mirror": { "title": "Look", "text": "The hall bathroom. Find the mirror." },
+    "home": { "title": "Get home", "text": "East on the sidewalk. Do not go back inside." },
+    "shove": { "title": "Shove", "text": "They will not move. V knocks them back." }
   },
   "carry": {
     "sidearm": [
@@ -44,7 +46,11 @@
     },
     "return": {
       "title": "Level Complete",
-      "text": "The mirror is sure. Whatever this is, it is him."
+      "text": "The mirror is sure. Whatever this is, it is him. Continue. The desk is still waiting."
+    },
+    "home": {
+      "title": "Level Complete",
+      "text": "The tower is behind him. The street already knows."
     }
   }
 }

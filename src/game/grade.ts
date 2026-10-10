@@ -37,8 +37,10 @@ export const createSceneGrade = (
   image.vignetteCameraFov = 0.7;
 
   let ssao: BABYLON.SSAO2RenderingPipeline | null = null;
+  let ssaoAttached = false;
   try {
     ssao = new BABYLON.SSAO2RenderingPipeline('ph-ssao', scene, { ssaoRatio: 0.5, blurRatio: 0.5 }, cameras);
+    ssaoAttached = true;
     ssao.radius = 1.35;
     ssao.totalStrength = 0.72;
     ssao.base = 0.18;
@@ -60,11 +62,13 @@ export const createSceneGrade = (
     theme = themeName;
     const basement = themeName === 'B3 Basement';
     const apex = themeName === 'Apex Peak';
-    image.exposure = basement ? 0.78 : apex ? 1.12 : 1.05;
+    const street = themeName === 'Street';
+    const station = themeName === 'Station';
+    image.exposure = basement ? 0.78 : street ? 0.9 : apex ? 1.12 : 1.05;
     image.contrast = basement ? 1.06 : 1.12;
-    pipeline.bloomWeight = basement ? 0.28 : 0.1;
+    pipeline.bloomWeight = basement ? 0.28 : apex ? 0.06 : 0.1;
     pipeline.bloomThreshold = basement ? 0.48 : 0.84;
-    pipeline.bloomKernel = 42;
+    pipeline.bloomKernel = apex ? 16 : 32;
     pipeline.bloomScale = 0.45;
     image.vignetteWeight = basement ? 4.1 : 2.2;
     image.vignetteColor.set(0, 0, 0, 0);
@@ -75,7 +79,19 @@ export const createSceneGrade = (
     curves.highlightsExposure = 0;
     image.colorCurvesEnabled = false;
     paintHemiGround(0, 0, 0);
-    if (powers && basement) {
+    if (station) {
+      image.exposure = 0.94;
+      image.contrast = 1.04;
+      image.vignetteWeight = 1.5;
+      pipeline.bloomWeight = 0.24;
+      pipeline.bloomThreshold = 0.52;
+      pipeline.bloomKernel = 48;
+      pipeline.bloomScale = 0.42;
+      curves.globalSaturation = 6;
+      image.colorCurvesEnabled = true;
+      liftFill(0.95, 0.2);
+      paintHemiGround(0.16, 0.17, 0.15);
+    } else if (powers && basement) {
       image.exposure = 1.72;
       image.contrast = 1.08;
       image.vignetteWeight = 1.05;
@@ -91,13 +107,26 @@ export const createSceneGrade = (
       scene.fogColor = new BABYLON.Color3(0.05, 0.07, 0.055);
       scene.fogStart = 22;
       scene.fogEnd = 86;
+    } else if (powers && street) {
+      image.exposure = 0.98;
+      image.contrast = 1.12;
+      image.vignetteWeight = 1.45;
+      pipeline.bloomWeight = 0.46;
+      pipeline.bloomThreshold = 0.28;
+      pipeline.bloomKernel = 64;
+      pipeline.bloomScale = 0.55;
+      curves.globalSaturation = 14;
+      curves.shadowsExposure = 18;
+      image.colorCurvesEnabled = true;
+      liftFill(0.78, 0.18);
+      paintHemiGround(0.1, 0.11, 0.14);
     } else if (powers) {
       image.exposure = apex ? 1.48 : 1.65;
       image.contrast = 1.16;
       image.vignetteWeight = 1.15;
       pipeline.bloomWeight = 0.5;
       pipeline.bloomThreshold = 0.32;
-      pipeline.bloomKernel = 72;
+      pipeline.bloomKernel = apex ? 28 : 72;
       pipeline.bloomScale = 0.58;
       curves.globalSaturation = 22;
       curves.globalExposure = 8;
@@ -109,6 +138,14 @@ export const createSceneGrade = (
     baseExposure = image.exposure;
     baseVignette = image.vignetteWeight;
     if (ssao) {
+      const manager = scene.postProcessRenderPipelineManager;
+      if (apex && ssaoAttached) {
+        manager.detachCamerasFromRenderPipeline(ssao.name, cameras);
+        ssaoAttached = false;
+      } else if (!apex && !ssaoAttached) {
+        manager.attachCamerasToRenderPipeline(ssao.name, cameras);
+        ssaoAttached = true;
+      }
       if (powers) {
         ssao.totalStrength = basement ? 0.16 : 0.38;
         ssao.radius = 1.05;

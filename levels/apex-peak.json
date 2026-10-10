@@ -79,7 +79,7 @@
       "kind": "ground",
       "name": "Office Floor",
       "x": 48.30162048339844,
-      "y": 0.009999999776482582,
+      "y": 0.001,
       "z": 43.98246383666992,
       "rotation": {
         "x": 0,
@@ -94,7 +94,12 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-board-floor"
+      "materialId": "mat-board-floor",
+      "position": {
+        "x": 48.30162048339844,
+        "y": 0.001,
+        "z": 43.98246383666992
+      }
     },
     {
       "id": "floor-lift",

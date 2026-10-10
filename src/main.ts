@@ -19,6 +19,7 @@ import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
+import { createShadowVeil } from './game/shadowVeil';
 import { createPhone } from './game/phone';
 import { mountPipeDrips } from './game/drips';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
@@ -26,8 +27,11 @@ import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
 import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
-import { applyNpcAnim, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
+import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createAct1, type Act1, type StoryCarry } from './story/act1';
+import { createGoingHome, type GoingHome } from './story/goingHome';
+import { createTheDesk, type TheDesk } from './story/theDesk';
+import { createTheStation, type TheStation } from './story/theStation';
 import { renderLevelCredits } from './story/credits';
 import { createUnlockedAudio, getSharedAudioContext, installAudioUnlock, unlockAudio } from './game/audioUnlock';
 import { createMuzzleFlash } from './game/muzzleFlash';
@@ -77,10 +81,15 @@ const inventoryHud = document.getElementById('inventoryHud') as HTMLDivElement;
 const inventoryHint = document.getElementById('inventoryHint') as HTMLButtonElement | null;
 const sidearmHint = document.getElementById('sidearmHint') as HTMLButtonElement | null;
 const lightHint = document.getElementById('lightHint') as HTMLButtonElement | null;
+const shoveHint = document.getElementById('shoveHint') as HTMLButtonElement | null;
+const skipCutsceneBtn = document.getElementById('skipCutscene') as HTMLButtonElement | null;
+const shadowHint = document.getElementById('shadowHint') as HTMLButtonElement | null;
+const consumeHint = document.getElementById('consumeHint') as HTMLButtonElement | null;
 const medkitHint = document.getElementById('medkitHint') as HTMLButtonElement | null;
 const inventoryItems = document.getElementById('inventoryItems') as HTMLDivElement;
 const inventoryClose = document.getElementById('inventoryClose') as HTMLButtonElement;
 const weaponSlot = document.getElementById('weaponSlot') as HTMLButtonElement | null;
+const weaponSlotName = document.getElementById('weaponSlotName') as HTMLElement | null;
 const weaponSlotState = document.getElementById('weaponSlotState') as HTMLSpanElement | null;
 const reloadHint = document.getElementById('reloadHint') as HTMLButtonElement | null;
 const interactHint = document.getElementById('interactHint') as HTMLButtonElement | null;
@@ -113,6 +122,7 @@ root.appendChild(canvas);
 
 const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
 const scene = new BABYLON.Scene(engine);
+const shadowVeil = createShadowVeil(scene);
 scene.collisionsEnabled = true;
 scene.gravity = BABYLON.Vector3.Zero();
 
@@ -171,7 +181,7 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     missionScene = loaded.data;
     applyTheme(scene, loaded.data.theme || currentThemeName);
     applySceneLighting(scene, loaded.data);
-    grade.setPowers(isReturnLevel());
+    grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
     grade.apply(loaded.data.theme || currentThemeName);
     return;
   }
@@ -276,6 +286,9 @@ const isApexPeakLevel = () => getLevelDefinition(state.level).libraryId === 'ape
 const isB3Level = () => getLevelDefinition(state.level).libraryId === 'b3-basement';
 
 const isReturnLevel = () => getLevelDefinition(state.level).libraryId === 'the-return';
+const isHomeLevel = () => getLevelDefinition(state.level).libraryId === 'going-home';
+const isDeskLevel = () => getLevelDefinition(state.level).libraryId === 'the-desk';
+const isStationLevel = () => getLevelDefinition(state.level).libraryId === 'the-station';
 
 const cineHud = document.createElement('div');
 cineHud.style.cssText = 'position:absolute;left:0;right:0;bottom:11%;text-align:center;pointer-events:none;z-index:24;display:none;';
@@ -385,7 +398,7 @@ const endCutscene = () => {
   act.releaseSeat();
   resetCutsceneState();
   phone.aimBeam(null);
-  const restoreLight = reequip && !!gear?.light && !isReturnLevel();
+  const restoreLight = reequip && !!gear?.light && !isReturnLevel() && !isHomeLevel() && !isDeskLevel() && !isStationLevel();
   if (!restoreLight) {
     if (phone.isRaised()) phone.setRaised(false);
     else phone.setFlashlight(false);
@@ -436,6 +449,9 @@ const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') 
   try {
     clearNpcs(npcs);
     clearEnemies(enemies);
+    home.dispose();
+    desk.dispose();
+    station.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
@@ -443,12 +459,15 @@ const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') 
     applyLoadedScene(loaded);
     triggerRunner.bind(loaded?.data.triggers ?? []);
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
-    if (mode === 'boot' && loaded?.data) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+    if (mode === 'boot' && loaded?.data && !isDeskLevel()) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
     act.dressLevel();
+    freezeStaticScene();
     mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
     clearImpactMarks();
     bindScenePickups();
-    ensurePlayerAvatar(isReturnLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
+    ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
+    if (isHomeLevel()) await home.mount();
+    if (isStationLevel()) await station.mount();
     await Promise.all([
       waitAvatarReady(playerAvatar),
       ...npcs.map((npc) => waitAvatarReady(npc.avatar)),
@@ -471,7 +490,7 @@ const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') 
 const SAVE_COOKIE = 'ph-origins-save';
 const SAVE_STORAGE_KEY = 'ph-origins-save';
 const SAVE_MAX_AGE = 60 * 60 * 24 * 400;
-type SaveData = { unlocked: number; level: number; sound: boolean };
+type SaveData = { unlocked: number; level: number; sound: boolean; health?: number; ammo?: number; medkits?: number };
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
 const MAX_HEALTH = 100;
 
@@ -507,10 +526,16 @@ const clearSave = () => {
 const parseSave = (raw: string): SaveData => {
   const parsed = JSON.parse(raw) as Partial<SaveData>;
   const unlocked = Math.max(1, Number(parsed.unlocked) || 1);
+  const health = Number(parsed.health);
+  const ammo = Number(parsed.ammo);
+  const medkits = Number(parsed.medkits);
   return {
     unlocked,
     level: Math.max(1, Number(parsed.level) || unlocked),
     sound: parsed.sound !== false,
+    health: Number.isFinite(health) ? Math.max(1, Math.min(MAX_HEALTH, health)) : undefined,
+    ammo: Number.isFinite(ammo) ? Math.max(0, Math.min(4, ammo)) : undefined,
+    medkits: Number.isFinite(medkits) ? Math.max(0, Math.min(3, medkits)) : undefined,
   };
 };
 
@@ -540,6 +565,9 @@ const saveGame = (next: Partial<SaveData>) => {
     unlocked: Math.max(1, Number(next.unlocked ?? save.unlocked) || 1),
     level: Math.max(1, Number(next.level ?? save.level) || 1),
     sound: next.sound ?? save.sound,
+    health: next.health ?? save.health,
+    ammo: next.ammo ?? save.ammo,
+    medkits: next.medkits ?? save.medkits,
   };
   writeSaveCookie(save);
   return save;
@@ -588,6 +616,7 @@ const state = {
     left: false,
     right: false,
     jump: false,
+    sprint: false,
   },
   movementVector: { x: 0, y: 0 },
   fireHeld: false,
@@ -613,6 +642,7 @@ const autoAim = createAutoAim(scene, (mesh) => {
   const meta = mesh.metadata as { pickup?: unknown; sceneAssetId?: string } | undefined;
   if (meta?.pickup || meta?.sceneAssetId === 'b3-creature') return true;
   if (LOS_SKIP.test(mesh.name)) return true;
+  if ((isHomeLevel() && home.ignoresAim(mesh)) || (isStationLevel() && station.ignoresAim(mesh))) return true;
   for (const enemy of enemies) {
     if (mesh === enemy.mesh || mesh.isDescendantOf(enemy.root)) return true;
   }
@@ -638,7 +668,7 @@ const SFX = {
   start: '/assets/audio/sfx/start.ogg',
   objective: '/assets/audio/sfx/objective.ogg',
 } as const;
-const endingTrack = (level: number) => `/assets/audio/ending-${level >= 3 ? 2 : Math.max(1, level)}.mp3`;
+const endingTrack = (level: number) => `/assets/audio/ending-${Math.max(1, level)}.mp3`;
 const oneShotTemplates = new Map<string, HTMLAudioElement>();
 let walkLoop: HTMLAudioElement | null = null;
 let walkStartPending = false;
@@ -747,7 +777,32 @@ const updateHud = () => {
   devHealth.textContent = Math.max(0, Math.ceil(state.health)).toString();
   devLevel.textContent = state.level.toString();
 
-  const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel();
+  const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel();
+  const shadowHands = shadowPlay().controls() && shadowPlay().shadowMode();
+  const handsRaised = shadowHands && shadowPlay().handsOut();
+  const linked = shadowPlay().linked();
+  if (shoveHint) {
+    shoveHint.hidden = !shadowHands;
+    shoveHint.innerHTML = linked ? '<kbd>Tab</kbd> Release' : 'Click Shock';
+    shoveHint.setAttribute('aria-label', linked ? 'Release' : 'Shadow Shock');
+  }
+  if (shadowHint) {
+    shadowHint.hidden = !shadowPlay().shadowShown();
+    shadowHint.classList.toggle('lit', shadowHands);
+  }
+  if (consumeHint) {
+    const showConsume = linked || (handsRaised && !linked);
+    consumeHint.hidden = !showConsume;
+    consumeHint.innerHTML = linked ? '<kbd>V</kbd> Consume' : '<kbd>V</kbd> Possess';
+    consumeHint.setAttribute('aria-label', linked ? 'Consume' : 'Possess');
+    consumeHint.classList.toggle('lit', linked);
+  }
+  if (sidearmHint) {
+    sidearmHint.innerHTML = shadowHands ? '<kbd>Q</kbd> Hands' : '<kbd>Q</kbd> Sidearm';
+    sidearmHint.classList.toggle('lit', handsRaised);
+    sidearmHint.classList.toggle('drawn', handsRaised || (!shadowHands && state.player.weaponDrawn));
+    sidearmHint.setAttribute('aria-pressed', handsRaised || (!shadowHands && state.player.weaponDrawn) ? 'true' : 'false');
+  }
   if (storyLevel) {
     const items = storyCarry.length
       ? storyCarry
@@ -773,13 +828,16 @@ const updateHud = () => {
     const drawn = state.player.weaponDrawn;
     const boxes = state.inventory.items.ammo ?? 0;
     const boxLabel = boxes === 1 ? 'box' : 'boxes';
-    weaponSlotState.textContent = `${drawn ? 'Drawn' : 'Holstered'} · ${state.player.clip}/${CLIP_SIZE} · ${boxes}/${ITEM_CAP.ammo} ${boxLabel}`;
-    weaponSlot.classList.toggle('drawn', drawn);
-    weaponSlot.setAttribute('aria-pressed', drawn ? 'true' : 'false');
+    const shadowHands = shadowPlay().controls() && shadowPlay().shadowMode();
+    const handsRaised = shadowHands && shadowPlay().handsOut();
+    if (weaponSlotName) weaponSlotName.textContent = shadowHands ? 'Shadow Link' : 'Sidearm';
+    weaponSlotState.textContent = shadowHands
+      ? (shadowPlay().linked() ? 'Linked' : handsRaised ? 'Raised' : 'Lowered')
+      : `${drawn ? 'Drawn' : 'Holstered'} · ${state.player.clip}/${CLIP_SIZE} · ${boxes}/${ITEM_CAP.ammo} ${boxLabel}`;
+    weaponSlot.classList.toggle('drawn', (drawn && !shadowHands) || handsRaised);
+    weaponSlot.setAttribute('aria-pressed', (drawn && !shadowHands) || handsRaised ? 'true' : 'false');
     weaponSlot.disabled = weaponBusy || !state.running || state.inCutscene || phone.locksBody() || phone.isRaised();
   }
-  sidearmHint?.classList.toggle('drawn', state.player.weaponDrawn);
-  sidearmHint?.setAttribute('aria-pressed', state.player.weaponDrawn ? 'true' : 'false');
   syncPhoneHud();
   syncInteractHint();
   syncReloadHint();
@@ -827,6 +885,8 @@ const syncPhoneHud = () => {
 
 let inventoryOpen = false;
 let weaponBusy = false;
+let defeatLeft = 0;
+let wasInCutscene = false;
 let reloadReadyAt = 0;
 let reloadNote = '';
 let reloadNoteUntil = 0;
@@ -834,15 +894,23 @@ let reloadNoteUntil = 0;
 const canLockGameplayPointer = () =>
   state.running && !state.inCutscene && messageBox.classList.contains('hidden') && !inventoryOpen;
 
+const requestPlayLock = () => {
+  if (document.body.dataset.device === 'mobile') return;
+  if (document.pointerLockElement === canvas) return;
+  if (!canvas.isConnected || !document.hasFocus()) return;
+  const pending = canvas.requestPointerLock();
+  if (pending && typeof pending.catch === 'function') void pending.catch(() => {});
+};
+
 const lockGameplayPointer = () => {
   if (!canLockGameplayPointer()) return;
-  void canvas.requestPointerLock();
+  requestPlayLock();
 };
 
 const lockPlayPointer = () => {
   if (document.body.dataset.device === 'mobile') return;
   state.mouseLookActive = true;
-  void canvas.requestPointerLock();
+  requestPlayLock();
 };
 
 const setInventoryOpen = (open: boolean) => {
@@ -946,8 +1014,9 @@ const unlockPointer = () => {
 };
 
 const updateCrosshairVisibility = () => {
+  const aiming = state.player.weaponDrawn || (shadowPlay().controls() && shadowPlay().handsOut() && !shadowPlay().linked());
   const visible = state.running
-    && state.player.weaponDrawn
+    && aiming
     && !inventoryOpen
     && messageBox.classList.contains('hidden');
   crosshair.style.display = visible ? 'block' : 'none';
@@ -965,6 +1034,12 @@ const finishWeaponToggle = (drawn: boolean) => {
   playerAvatar.resumeLocomotion();
   updateHud();
   updateCrosshairVisibility();
+  if (holsterAfterWeapon && state.player.weaponDrawn) {
+    holsterAfterWeapon = false;
+    holsterSidearm();
+    return;
+  }
+  holsterAfterWeapon = false;
   if (!drawn && armPhoneAfterHolster) {
     armPhoneAfterHolster = false;
     const withLight = armFlashAfterRaise;
@@ -980,9 +1055,36 @@ const finishWeaponToggle = (drawn: boolean) => {
 
 let armPhoneAfterHolster = false;
 let armFlashAfterRaise = false;
+let holsterAfterWeapon = false;
+
+const holsterSidearm = () => {
+  if (phone.isRaised()) {
+    phone.setRaised(false);
+    playerAvatar.resumeLocomotion();
+  }
+  if (!state.player.weaponDrawn) {
+    if (weaponBusy) holsterAfterWeapon = true;
+    syncEquippedCamera();
+    updateHud();
+    return;
+  }
+  if (weaponBusy) {
+    holsterAfterWeapon = true;
+    return;
+  }
+  holsterAfterWeapon = false;
+  weaponBusy = true;
+  state.player.weaponDrawn = false;
+  updateCrosshairVisibility();
+  syncEquippedCamera();
+  updateHud();
+  audio.holster();
+  const played = playerAvatar.playClip('holster', false, 4, () => finishWeaponToggle(false));
+  if (!played) finishWeaponToggle(false);
+};
 
 const syncEquippedCamera = () => {
-  const close = phone.flashlightOn() || state.player.weaponDrawn;
+  const close = phone.flashlightOn() || state.player.weaponDrawn || (shadowPlay().controls() && shadowPlay().handsOut());
   followCamera.setOverShoulder(close);
   followCamera.setToolClose(close);
 };
@@ -1055,7 +1157,42 @@ const toggleFlashlight = () => {
   updateHud();
 };
 
+const finishShadowHands = (drawn: boolean) => {
+  weaponBusy = false;
+  const raised = drawn && shadowPlay().controls() && shadowPlay().handsOut();
+  playerAvatar.setArmed(raised);
+  playerPistol.setVisible(false);
+  state.player.weaponDrawn = false;
+  playerAvatar.resumeLocomotion();
+  syncEquippedCamera();
+  updateCrosshairVisibility();
+  updateHud();
+};
+
+const toggleShadowHands = () => {
+  if (!shadowPlay().controls() || weaponBusy || phone.locksBody()) return;
+  if (phone.isRaised()) phone.setRaised(false);
+  const drawing = !shadowPlay().handsOut();
+  shadowPlay().setHands(drawing);
+  weaponBusy = true;
+  followCamera.setOverShoulder(drawing);
+  followCamera.setToolClose(drawing);
+  playerPistol.setVisible(false);
+  state.player.weaponDrawn = false;
+  if (!drawing) updateCrosshairVisibility();
+  updateHud();
+  if (drawing) audio.draw();
+  else audio.holster();
+  const played = playerAvatar.playClip(drawing ? 'draw' : 'holster', false, 4, () => finishShadowHands(drawing));
+  if (!played) finishShadowHands(drawing);
+  setInventoryOpen(false);
+};
+
 const toggleWeapon = () => {
+  if (shadowPlay().controls() && shadowPlay().shadowMode()) {
+    if (state.running && messageBox.classList.contains('hidden') && !inventoryOpen) toggleShadowHands();
+    return;
+  }
   if (!state.running || state.inCutscene || weaponBusy || phone.locksBody()) return;
   if (phone.isRaised()) phone.setRaised(false);
   const drawing = !state.player.weaponDrawn;
@@ -1083,6 +1220,49 @@ weaponSlot?.addEventListener('click', (event) => {
 sidearmHint?.addEventListener('click', (event) => {
   event.stopPropagation();
   if (state.running && messageBox.classList.contains('hidden')) toggleWeapon();
+});
+shoveHint?.addEventListener('click', (event) => {
+  event.preventDefault();
+  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !messageBox.classList.contains('hidden')) return;
+  if (shadowPlay().linked()) shadowPlay().release();
+  else shadowPlay().shock();
+  updateHud();
+});
+skipCutsceneBtn?.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (activeCutscene) {
+    const finished = activeCutscene;
+    skipToEnd(finished);
+    act.beforeCutsceneStep(finished.id, finished.duration);
+    endCutscene();
+    return;
+  }
+  if (home.playing()) home.skip();
+  else if (desk.playing()) desk.skip();
+  lockGameplayPointer();
+});
+shadowHint?.addEventListener('click', (event) => {
+  event.preventDefault();
+  if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !inventoryOpen) {
+    shadowPlay().toggleShadow();
+    if (!shadowPlay().shadowMode()) {
+      playerAvatar.setArmed(false);
+      syncEquippedCamera();
+      updateCrosshairVisibility();
+    }
+    updateHud();
+  }
+});
+consumeHint?.addEventListener('click', (event) => {
+  event.preventDefault();
+  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !messageBox.classList.contains('hidden') || inventoryOpen) return;
+  if (shadowPlay().linked()) {
+    if (shadowPlay().consume()) audio.tone(64, 0.14, 'sine', 0.07);
+  } else if (shadowPlay().handsOut()) {
+    possessAimed();
+  }
+  updateHud();
 });
 lightHint?.addEventListener('click', (event) => {
   event.stopPropagation();
@@ -1182,11 +1362,35 @@ const applyLevelConfig = (config: LevelDefinition) => {
   applyLevelCombat(config);
   applyTheme(scene, config.theme);
   if (missionScene) applySceneLighting(scene, missionScene);
-  grade.setPowers(isReturnLevel());
+  grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
   grade.apply(config.theme);
 };
 
-const resetPlayer = (keepLevel = false) => {
+const freezeStaticScene = () => {
+  for (const mesh of scene.meshes) {
+    const id = (mesh.metadata as { sceneAssetId?: string } | null)?.sceneAssetId ?? '';
+    if (!id || mesh.skeleton) continue;
+    if (/door|paper|folder|button|mirror/i.test(id)) continue;
+    mesh.computeWorldMatrix(true);
+    mesh.freezeWorldMatrix();
+  }
+};
+
+const unlockProgress = () => {
+  const next = getLevels()[state.level];
+  const resumeId = next && !next.comingSoon ? next.id : state.level;
+  state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level + 1));
+  saveGame({
+    unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked),
+    level: Math.max(save.level ?? 1, resumeId),
+    sound: audio.enabled,
+    health: state.health,
+    ammo: itemCount(state.inventory, 'ammo'),
+    medkits: itemCount(state.inventory, 'medkit'),
+  });
+};
+
+const resetPlayer = (keepLevel = false, fresh = false) => {
   const selectedLevel = keepLevel ? Math.max(1, state.level) : 1;
   state.player = createPlayerState();
   state.level = selectedLevel;
@@ -1208,6 +1412,13 @@ const resetPlayer = (keepLevel = false) => {
   state.progression.currentLevel = selectedLevel;
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
+  if (fresh) {
+    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit') });
+  } else if (typeof save.health === 'number') {
+    state.health = save.health;
+    state.inventory.items.ammo = save.ammo ?? 0;
+    state.inventory.items.medkit = save.medkits ?? state.inventory.items.medkit;
+  }
   state.quests = createQuestState();
   state.characterYaw = 0;
   applyLevelConfig(getLevelDefinition(selectedLevel));
@@ -1266,16 +1477,7 @@ act = createAct1({
   showMessage,
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
-  unlockNext: () => {
-    const next = getLevels()[state.level];
-    const resumeId = next && !next.comingSoon ? next.id : state.level;
-    state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(state.progression.highestUnlocked, state.level + 1));
-    saveGame({
-      unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked),
-      level: Math.max(save.level ?? 1, resumeId),
-      sound: audio.enabled,
-    });
-  },
+  unlockNext: () => unlockProgress(),
   refreshHud: () => updateHud(),
   setCarry: (items) => { storyCarry = items; },
   hurt: (amount) => applyHurt(amount),
@@ -1316,6 +1518,112 @@ act = createAct1({
   },
 });
 
+const home: GoingHome = createGoingHome({
+  scene,
+  camera,
+  running: () => state.running,
+  placePierce,
+  playClip: (clip, loop, speed, onEnded) => { playerAvatar.playClip(clip, loop, speed, onEnded); },
+  holdLocomotion: () => playerAvatar.setLocomotion(false, true),
+  resumeLocomotion: () => playerAvatar.resumeLocomotion(),
+  frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  releaseCamera: () => followCamera.clearCinematic(),
+  fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  showLine: (title, text) => showCineHud(title, text),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) audio.setWalk(false);
+  },
+  setObjective,
+  showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
+  clearMarker: () => objectiveMarker.setTarget(null),
+  playFile: (url, volume) => { audio.play(url, volume); },
+  setWalk: (moving) => audio.setWalk(moving),
+  setCarry: (items) => { storyCarry = items; },
+  hurt: (amount) => applyHurt(amount),
+  win: () => audio.win(),
+  showMessage,
+  haltPlay: () => { state.running = false; },
+  clearInput: () => clearInputState(),
+  unlockNext: () => unlockProgress(),
+  refreshHud: () => updateHud(),
+  player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
+  shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  hand: () => {
+    const joint = playerAvatar.findJoint('RightHand');
+    if (!joint) return null;
+    const at = joint.getAbsolutePosition();
+    return { x: at.x, y: at.y, z: at.z };
+  },
+  leftHand: () => {
+    const joint = playerAvatar.findJoint('LeftHand');
+    if (!joint) return null;
+    const at = joint.getAbsolutePosition();
+    return { x: at.x, y: at.y, z: at.z };
+  },
+  holster: () => holsterSidearm(),
+});
+
+const desk: TheDesk = createTheDesk({
+  scene,
+  placePierce,
+  playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
+  frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  releaseCamera: () => followCamera.clearCinematic(),
+  fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  showLine: (title, text) => showCineHud(title, text),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) audio.setWalk(false);
+  },
+  clearMarker: () => objectiveMarker.setTarget(null),
+  showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
+  playFile: (url, volume) => { audio.play(url, volume); },
+  setWalk: (moving) => audio.setWalk(moving),
+  setCarry: (items) => { storyCarry = items; },
+  win: () => audio.win(),
+  showMessage,
+  haltPlay: () => { state.running = false; },
+  clearInput: () => clearInputState(),
+  unlockNext: () => unlockProgress(),
+  refreshHud: () => updateHud(),
+});
+
+const station: TheStation = createTheStation({
+  scene,
+  camera,
+  running: () => state.running,
+  placePierce,
+  playClip: (clip, loop, speed, onEnded) => { playerAvatar.playClip(clip, loop, speed, onEnded); },
+  resumeLocomotion: () => playerAvatar.resumeLocomotion(),
+  fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  setObjective,
+  showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
+  clearMarker: () => objectiveMarker.setTarget(null),
+  playFile: (url, volume) => { audio.play(url, volume); },
+  setWalk: (moving) => audio.setWalk(moving),
+  setCarry: (items) => { storyCarry = items; },
+  win: () => audio.win(),
+  showMessage,
+  haltPlay: () => { state.running = false; },
+  clearInput: () => clearInputState(),
+  unlockNext: () => unlockProgress(),
+  refreshHud: () => updateHud(),
+  holster: () => holsterSidearm(),
+  hand: () => {
+    const joint = playerAvatar.findJoint('RightHand');
+    if (!joint) return null;
+    const at = joint.getAbsolutePosition();
+    return { x: at.x, y: at.y, z: at.z };
+  },
+  player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
+  shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+});
+
+const shadowPlay = () => (isStationLevel() ? station : home);
+
+let freshStart = false;
+
 const beginGame = () => {
   if (!gameReady) return;
   stopEndingSong();
@@ -1325,20 +1633,25 @@ const beginGame = () => {
   menuCameraActive = false;
   activateGameCamera(scene, camera);
   clearDynamicObjects();
-  resetPlayer(true);
+  resetPlayer(true, freshStart);
+  freshStart = false;
   syncStartButtonLabel();
   updateHud();
   hideMessage();
   act.onStart();
+  if (isHomeLevel()) home.onStart();
+  if (isDeskLevel()) desk.onStart();
+  if (isStationLevel()) station.onStart();
 };
 
 let startingLevel = false;
 
-const startAtLevel = async (levelId: number) => {
+const startAtLevel = async (levelId: number, fresh = false) => {
   if (startingLevel || !gameReady) return;
   const level = getLevelDefinition(levelId);
   if (level.comingSoon) return;
   startingLevel = true;
+  freshStart = fresh;
   unlockAudio();
   try {
     state.level = level.id;
@@ -1409,6 +1722,28 @@ void (async () => {
         placePierce(18, 31.4, Math.PI);
       });
     }
+  } else if (beat === 'desk') {
+    const level = getLevels().find((entry) => entry.libraryId === 'the-desk') ?? getLevelDefinition(4);
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    applyLevelConfig(level);
+    await loadMissionScene(level.path);
+    beginGame();
+  } else if (beat === 'home') {
+    const level = getLevels().find((entry) => entry.libraryId === 'going-home') ?? getLevelDefinition(5);
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    applyLevelConfig(level);
+    home.armSkip(params.get('at') === 'street' || params.get('at') === 'stairs');
+    await loadMissionScene(level.path);
+    beginGame();
+  } else if (beat === 'station') {
+    const level = getLevels().find((entry) => entry.libraryId === 'the-station') ?? getLevelDefinition(6);
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    applyLevelConfig(level);
+    await loadMissionScene(level.path);
+    beginGame();
   } else if (beat === 'voss') {
     act.armPhase('call');
     beginGame();
@@ -1454,8 +1789,9 @@ const finishGame = (won = false) => {
     screenFade.to(1, 1.15);
     showMessage('Mission Clear', GAME_COPY.missionClear);
   } else {
-    audio.hit();
-    showMessage('Defeat', GAME_COPY.defeat);
+    playerAvatar.playClip('deathforward', false);
+    audio.play('/assets/audio/sfx/creature/wound.wav', 0.62);
+    defeatLeft = 1.45;
   }
 };
 
@@ -1500,6 +1836,7 @@ const clearInputState = () => {
   state.input.left = false;
   state.input.right = false;
   state.input.jump = false;
+  state.input.sprint = false;
   state.movementVector.x = 0;
   state.movementVector.y = 0;
   leftStickKnob.style.left = '50%';
@@ -1536,7 +1873,10 @@ const gatherCameraIgnoreMeshes = () => {
 };
 
 const updateCamera = (delta: number, moving = false, moveHeading: number | null = null) => {
-  followCamera.update(delta, state.player, moving, moveHeading, gatherCameraIgnoreMeshes());
+  const focus = shadowPlay().linkFocus();
+  if (focus) state.characterYaw = Math.atan2(focus.x - state.player.x, focus.z - state.player.z);
+  const subject = focus ? { ...state.player, x: focus.x, z: focus.z } : state.player;
+  followCamera.update(delta, subject, moving, moveHeading, gatherCameraIgnoreMeshes());
 
   if (state.inCutscene) return;
   playerAvatar.group.rotation.y = state.characterYaw + Math.PI;
@@ -1544,6 +1884,37 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
 };
 
 const updatePlayer = (delta: number) => {
+  if (shadowPlay().linked()) {
+    const yaw = followCamera.getYaw();
+    const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+    const right = new BABYLON.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+    let moveX = 0;
+    let moveZ = 0;
+    if (state.input.right) moveX += 1;
+    if (state.input.left) moveX -= 1;
+    if (state.input.forward) moveZ += 1;
+    if (state.input.backward) moveZ -= 1;
+    moveX += state.movementVector.x;
+    moveZ += -state.movementVector.y;
+    const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
+    if (desiredMove.lengthSquared() > 0) desiredMove.normalize();
+    const sprinting = state.input.sprint && shadowPlay().shadowMode();
+    const speed = state.playerSpeed * (sprinting ? 1.75 : 1);
+    shadowPlay().driveLinked(desiredMove.x * speed * delta, desiredMove.z * speed * delta);
+    state.input.jump = false;
+    state.player.jumpWindup = 0;
+    playerCollider.position.set(state.player.x, state.player.y, state.player.z);
+    playerAvatar.setLocomotion(false, true);
+    audio.setWalk(false);
+    return { moving: false, moveHeading: null };
+  }
+  if (shadowPlay().controls() && shadowPlay().shocking()) {
+    state.player.jumpWindup = 0;
+    state.input.jump = false;
+    playerCollider.position.set(state.player.x, state.player.y, state.player.z);
+    audio.setWalk(false);
+    return { moving: false, moveHeading: null };
+  }
   if (state.inCutscene || phone.locksBody()) {
     state.player.jumpWindup = 0;
     state.input.jump = false;
@@ -1570,7 +1941,8 @@ const updatePlayer = (delta: number) => {
   const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
-    const speed = state.playerSpeed;
+    const sprinting = state.input.sprint && shadowPlay().controls() && shadowPlay().shadowMode();
+    const speed = state.playerSpeed * (sprinting ? 1.75 : 1);
     movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * delta, desiredMove.z * speed * delta);
   } else {
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
@@ -1597,10 +1969,17 @@ const updatePlayer = (delta: number) => {
   const facingTarget = followCamera.isLooking() || !moving || moveHeading === null
     ? followCamera.getYaw()
     : moveHeading;
-  state.characterYaw = lerpAngle(state.characterYaw, facingTarget, 1 - Math.exp(-(followCamera.isLooking() ? 18 : 10) * Math.min(delta, 0.05)));
+  state.characterYaw = lerpAngle(
+    state.characterYaw,
+    facingTarget,
+    1 - Math.exp(-(followCamera.isLooking() ? 22 : 24) * Math.min(delta, 0.05)),
+  );
 
   const jumpAnim = !state.player.grounded || state.player.jumpWindup > 0;
+  const sprinting = moving && state.input.sprint && shadowPlay().controls() && shadowPlay().shadowMode();
+  playerAvatar.setSprinting(sprinting);
   playerAvatar.setLocomotion(moving, !jumpAnim);
+  playerAvatar.setPace(1);
   audio.setWalk(
     moving
     && !jumpAnim
@@ -1737,7 +2116,23 @@ const reloadWeapon = () => {
   updateHud();
 };
 
+const possessAimed = () => {
+  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !shadowPlay().handsOut() || shadowPlay().linked()) return false;
+  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.isRaised() || phone.locksBody()) return false;
+  const spot = autoAim.point();
+  if (!spot || !shadowPlay().possessAt(spot.x, spot.y, spot.z)) return false;
+  audio.tone(78, 0.1, 'sine', 0.06);
+  updateHud();
+  return true;
+};
+
 const fireWeapon = () => {
+  if (shadowPlay().controls() && shadowPlay().shadowMode()) {
+    if (!state.running || state.inCutscene || inventoryOpen || phone.isRaised() || phone.locksBody()) return;
+    shadowPlay().shock();
+    updateHud();
+    return;
+  }
   if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.isRaised() || phone.locksBody() || !state.player.weaponDrawn || state.shootCooldown > 0) return;
   if (performance.now() < reloadReadyAt) return;
   if (state.player.clip <= 0) {
@@ -1756,6 +2151,7 @@ const fireWeapon = () => {
   if (assisted) shotDirection.copyFrom(assisted);
   else camera.getDirectionToRef(BABYLON.Vector3.Forward(), shotDirection);
   act.shotAt(camera.globalPosition, shotDirection);
+  if (isHomeLevel()) home.shotAt(camera.globalPosition, shotDirection);
   stampBulletMark(scene, camera.globalPosition, shotDirection, gatherCameraIgnoreMeshes());
   updateHud();
 };
@@ -1770,7 +2166,8 @@ const writeAim = (index: number, x: number, y: number, z: number) => {
 };
 
 const refreshAim = (delta: number) => {
-  if (!state.running || state.inCutscene || inventoryOpen || !state.player.weaponDrawn || phone.isRaised()) {
+  const shadowAim = shadowPlay().controls() && shadowPlay().handsOut() && !shadowPlay().linked();
+  if (!state.running || state.inCutscene || inventoryOpen || (!state.player.weaponDrawn && !shadowAim) || phone.isRaised()) {
     autoAim.clear();
     followCamera.clearAim();
     aimSuppress = 0;
@@ -1803,6 +2200,12 @@ const refreshAim = (delta: number) => {
     writeAim(count, at.x, at.y + 0.9, at.z);
     count += 1;
   }
+  if (shadowAim) {
+    for (const mark of shadowPlay().aimMarks()) {
+      writeAim(count, mark.x, mark.y, mark.z);
+      count += 1;
+    }
+  }
   autoAim.update(camera, aimPoints, count);
   const spot = autoAim.point();
   if (spot) followCamera.aimAt(spot.x, spot.y, spot.z);
@@ -1830,6 +2233,7 @@ window.addEventListener('keydown', (event) => {
   if (key === 's' || key === 'arrowdown') state.input.backward = true;
   if (key === 'a' || key === 'arrowleft') state.input.left = true;
   if (key === 'd' || key === 'arrowright') state.input.right = true;
+  if (key === 'shift') state.input.sprint = true;
   if (key === ' ' && state.player.grounded) {
     event.preventDefault();
     state.input.jump = true;
@@ -1856,6 +2260,35 @@ window.addEventListener('keydown', (event) => {
   if (key === 'q') {
     event.preventDefault();
     if (state.running && messageBox.classList.contains('hidden')) toggleWeapon();
+  }
+  if (key === 'tab') {
+    if (shadowPlay().controls() && shadowPlay().linked() && messageBox.classList.contains('hidden') && !inventoryOpen) {
+      event.preventDefault();
+      shadowPlay().release();
+      updateHud();
+    }
+  }
+  if (key === 'v') {
+    event.preventDefault();
+    if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !messageBox.classList.contains('hidden') || inventoryOpen) return;
+    if (shadowPlay().linked()) {
+      if (shadowPlay().consume()) audio.tone(64, 0.14, 'sine', 0.07);
+    } else {
+      possessAimed();
+    }
+    updateHud();
+  }
+  if (key === 'c') {
+    event.preventDefault();
+    if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !inventoryOpen) {
+      shadowPlay().toggleShadow();
+      if (!shadowPlay().shadowMode()) {
+        playerAvatar.setArmed(false);
+        syncEquippedCamera();
+        updateCrosshairVisibility();
+      }
+      updateHud();
+    }
   }
   if (key === 'r') {
     event.preventDefault();
@@ -1895,6 +2328,7 @@ window.addEventListener('keyup', (event) => {
   if (key === 's' || key === 'arrowdown') state.input.backward = false;
   if (key === 'a' || key === 'arrowleft') state.input.left = false;
   if (key === 'd' || key === 'arrowright') state.input.right = false;
+  if (key === 'shift') state.input.sprint = false;
   if (key === ' ') state.input.jump = false;
 });
 
@@ -1908,7 +2342,7 @@ canvas.addEventListener('pointerdown', (event) => {
   if (inventoryOpen || state.inCutscene) return;
   if (event.pointerType === 'mouse') {
     state.mouseLookActive = true;
-    canvas.requestPointerLock();
+    requestPlayLock();
   }
   if (state.running) fireWeapon();
 });
@@ -2099,7 +2533,7 @@ startBtn.addEventListener('click', () => {
 newGameBtn.addEventListener('click', () => {
   unlockAudio();
   lockPlayPointer();
-  void startAtLevel(1);
+  void startAtLevel(1, true);
 });
 canvas.addEventListener('pointerdown', () => unlockAudio());
 installAudioUnlock();
@@ -2126,6 +2560,17 @@ resetBtn.addEventListener('click', () => {
 const renderLoop = () => {
   const delta = engine.getDeltaTime() / 1000;
   screenFade.update(delta);
+  if (defeatLeft > 0) {
+    defeatLeft = Math.max(0, defeatLeft - delta);
+    if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
+  }
+  const cine = state.inCutscene || home.playing() || desk.playing();
+  if (wasInCutscene && !cine) lockGameplayPointer();
+  wasInCutscene = cine;
+  if (skipCutsceneBtn) {
+    const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing());
+    skipCutsceneBtn.hidden = !canSkip;
+  }
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
   muzzleFlash.update();
 
@@ -2140,6 +2585,22 @@ const renderLoop = () => {
       objectiveMarker.update(delta);
       updateCamera(delta, false, null);
       if (activeCutscene) act.afterCamera(activeCutscene.time);
+    } else if (home.playing()) {
+      home.step(delta);
+      updateCamera(delta, false, null);
+      const amp = home.shake();
+      if (amp > 0) {
+        camera.position.x += (Math.random() - 0.5) * amp;
+        camera.position.y += (Math.random() - 0.5) * amp * 0.65;
+      }
+    } else if (desk.playing()) {
+      desk.step(delta);
+      updateCamera(delta, false, null);
+      const amp = desk.shake();
+      if (amp > 0) {
+        camera.position.x += (Math.random() - 0.5) * amp;
+        camera.position.y += (Math.random() - 0.5) * amp * 0.65;
+      }
     } else {
     phone.update(delta, followCamera.camera, state.player);
     if (state.fireHeld) fireWeapon();
@@ -2163,10 +2624,17 @@ const renderLoop = () => {
     }
 
     const locomotion = updatePlayer(delta);
-    updateCamera(delta, locomotion.moving, locomotion.moveHeading);
+    updateCamera(delta, shadowPlay().linked() ? shadowPlay().linkMoving() : locomotion.moving, locomotion.moveHeading);
     refreshAim(delta);
     triggerRunner.update(state.player);
     act.stepWorld(delta);
+    home.step(delta);
+    station.step(delta);
+    const streetShake = home.shake();
+    if (streetShake > 0) {
+      camera.position.x += (Math.random() - 0.5) * streetShake;
+      camera.position.y += (Math.random() - 0.5) * streetShake * 0.65;
+    }
     const fear = act.fearLevel();
     grade.setFear(fear);
     phone.setFear(fear);
@@ -2244,6 +2712,14 @@ const renderLoop = () => {
   );
 
   perfMonitor.update(delta, engine.getFps());
+  shadowVeil.update(
+    shadowPlay().controls() && shadowPlay().shadowMode(),
+    playerAvatar,
+    state.player.x,
+    state.player.z,
+    state.characterYaw,
+    delta,
+  );
   scene.render();
 };
 

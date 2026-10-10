@@ -1,6 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
-const MAX_RANGE = 16;
+const MAX_RANGE = 20;
 /** About 41 degrees off the crosshair. Wider than that is not "in front". */
 const MIN_DOT = 0.75;
 const BODY_CLEARANCE = 0.35;

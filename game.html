@@ -480,6 +480,30 @@
         user-select: none;
       }
 
+      .phone-hint[hidden] {
+        display: none;
+      }
+
+      .skip-cutscene {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        z-index: 30;
+        padding: 8px 16px;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        border-radius: 4px;
+        background: rgba(8, 10, 14, 0.72);
+        color: #f2f2f2;
+        font: 600 13px/1.2 inherit;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .skip-cutscene[hidden] {
+        display: none;
+      }
+
       .phone-hint kbd {
         display: inline-block;
         min-width: 1.4em;
@@ -1341,6 +1365,7 @@
       <div id="crosshair" aria-hidden="true"></div>
       <button type="button" id="reloadHint" class="reload-hint" hidden>Reload<kbd> — R</kbd></button>
       <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
+      <button type="button" id="skipCutscene" class="skip-cutscene" hidden>Skip</button>
       <div id="objectiveHud" class="objective-hud" aria-live="polite">
         <span class="objective-kicker">Objective</span>
         <span id="objectiveText" class="objective-text"></span>
@@ -1367,6 +1392,9 @@
 
       <div id="inventoryHud" class="inventory-hud" aria-live="polite">
         <button type="button" id="sidearmHint" class="phone-hint" aria-label="Sidearm"><kbd>Q</kbd> Sidearm</button>
+        <button type="button" id="shoveHint" class="phone-hint" hidden aria-label="Shadow Shock">Click Shock</button>
+        <button type="button" id="shadowHint" class="phone-hint" hidden aria-label="Shadow mode"><kbd>C</kbd> Shadow</button>
+        <button type="button" id="consumeHint" class="phone-hint" hidden aria-label="Possess"><kbd>V</kbd> Possess</button>
         <button type="button" id="lightHint" class="phone-hint" aria-label="Flashlight"><kbd>G</kbd> Light</button>
         <button type="button" id="medkitHint" class="phone-hint" aria-label="Medkit"><kbd>H</kbd> Medkit</button>
         <button type="button" id="phoneHint" class="phone-hint" aria-label="Phone"><kbd>F</kbd> Phone <span id="phoneBadge" class="phone-badge" hidden></span></button>
