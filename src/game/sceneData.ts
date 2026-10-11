@@ -440,6 +440,15 @@ const SOLID_FURNITURE = new Set([
   'asset-office-plant',
   'asset-office-door',
   'asset-credenza',
+  'asset-subway-bench',
+  'asset-subway-bin',
+  'asset-subway-kiosk',
+  'asset-subway-column',
+  'asset-subway-turnstile',
+  'asset-subway-train',
+  'asset-b3-drum',
+  'asset-b3-locker',
+  'asset-b3-gurney',
 ]);
 
 /** Screens are a centimeter thick in the GLB. Thicken them so the capsule cannot step through. */

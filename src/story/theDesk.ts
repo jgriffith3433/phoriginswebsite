@@ -13,6 +13,7 @@ export type DeskHost = {
   holdScene: (held: boolean) => void;
   clearMarker: () => void;
   showObjective: (visible: boolean) => void;
+  setObjective: (title: string, text: string, target: { x: number; z: number; y?: number } | null) => void;
   playFile: (url: string, volume: number) => void;
   setWalk: (moving: boolean) => void;
   setCarry: (items: StoryCarry[]) => void;
@@ -20,6 +21,7 @@ export type DeskHost = {
   resumeLocomotion: () => void;
   win: () => void;
   showMessage: (title: string, text: string) => void;
+  offerEnd: (title: string, text: string) => void;
   haltPlay: () => void;
   clearInput: () => void;
   unlockNext: () => void;
@@ -270,13 +272,14 @@ export const createTheDesk = (host: DeskHost) => {
     host.showLine('', '');
     host.clearMarker();
     host.showObjective(false);
+    host.releaseCamera();
+    host.holdScene(false);
     host.clearInput();
+    host.resumeLocomotion();
     host.playClip('rebornidle', true);
-    host.haltPlay();
     host.unlockNext();
-    host.fade(1, 1.15);
     host.refreshHud();
-    host.showMessage('Level Complete', 'The work is on the floor. Continue. He is going home.');
+    host.offerEnd('Level Complete', 'The work is on the floor. Continue. He is going home.');
   };
 
   return {
@@ -317,8 +320,8 @@ export const createTheDesk = (host: DeskHost) => {
       shake = 0;
       host.setCarry(CARRY);
       host.holdScene(false);
-      host.showObjective(false);
-      host.clearMarker();
+      host.setObjective('Look', 'The hall bathroom. The mirror.', { x: MIRROR.x, y: 1.5, z: MIRROR.z });
+      host.showObjective(true);
       host.scene.getMeshByName('Office Ammo')?.setEnabled(false);
       mountMirror();
       spawnWork();

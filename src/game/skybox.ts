@@ -15,11 +15,27 @@ const NIGHT_CITY_FACES = [
 
 const CITY_SKYBOX_THEMES = new Set(['Apex Peak', 'Street']);
 
+const disposeCubeWhenReady = (cube: BABYLON.BaseTexture | null) => {
+  if (!(cube instanceof BABYLON.CubeTexture) || !cube.getScene()) return;
+  // Disposing a cube while its faces are still uploading unbinds the GL texture.
+  // The late onload then breaks every texture created after it, and the next level is flat grey.
+  if (!cube.isReady()) {
+    cube.onLoadObservable.addOnce(() => {
+      if (cube.getScene()) cube.dispose();
+    });
+    return;
+  }
+  cube.dispose();
+};
+
 export const disposeSkybox = (scene: BABYLON.Scene) => {
   const box = scene.getMeshByName(NIGHT_CITY_SKYBOX_NAME);
+  const material = box?.material;
+  if (material instanceof BABYLON.StandardMaterial) material.reflectionTexture = null;
   const cube = scene.getTextureByName('night-city-cube');
-  box?.dispose(false, true);
-  cube?.dispose();
+  box?.dispose(false, false);
+  material?.dispose(false, false);
+  disposeCubeWhenReady(cube);
 };
 
 export const applySkyboxForTheme = (scene: BABYLON.Scene, themeName: string) => {

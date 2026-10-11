@@ -57,6 +57,22 @@ const moveVertical = (player: PlayerState, collider: BABYLON.Mesh | undefined, d
   return { blocked };
 };
 
+/** Shadow running flight. Space climbs. Releasing Space holds the height. */
+export const flyPlayer = (
+  player: PlayerState,
+  collider: BABYLON.Mesh | undefined,
+  delta: number,
+  climbing: boolean,
+) => {
+  player.jumpWindup = 0;
+  player.grounded = false;
+  player.velocityY = climbing ? 6.5 : 0;
+  if (!collider || !climbing) return;
+  collider.position.set(player.x, player.y, player.z);
+  collider.moveWithCollisions(new BABYLON.Vector3(0, player.velocityY * delta, 0));
+  player.y = collider.position.y;
+};
+
 export const updateVerticalMotion = (
   player: PlayerState,
   delta: number,

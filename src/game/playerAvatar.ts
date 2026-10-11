@@ -17,6 +17,8 @@ export type PlayerAvatar = {
   setSprinting: (sprinting: boolean) => void;
   setArmed: (armed: boolean) => void;
   playClip: (keyword: string, loop?: boolean, speedRatio?: number, onEnded?: () => void) => boolean;
+  /** Seconds the clip plays, or null until the rig has loaded. */
+  clipDuration: (keyword: string) => number | null;
   resumeLocomotion: () => void;
   /** Hide the rig and stop clips. Far street people stay loaded and unsimulated. */
   setShown: (on: boolean) => void;
@@ -36,7 +38,7 @@ const byTail = (clips: BABYLON.AnimationGroup[], tail: string) =>
 /**
  * Exact clip-tail match. Tails: Idle Walk WalkBack Jump FallingDown SitIdle
  * SitTalk PistolIdle PistolWalk PistolJump Draw Holster PistolAim Shoot
- * RebornIdle. Attack is on the creature.
+ * RebornIdle Punch Kick. Attack is on the creature. Punch on NPCs is their strike.
  * draw→Draw, holster→Holster, shoot→Shoot else PistolAim.
  */
 export const findClip = (clips: BABYLON.AnimationGroup[], keyword: string): BABYLON.AnimationGroup | null => {
@@ -724,6 +726,15 @@ export const createCharacterAvatar = (
     return biggest ?? null;
   };
 
+  const clipDuration = (keyword: string) => {
+    if (!animationGroups.length) return null;
+    const clip = findClip(animationGroups, keyword);
+    if (!clip) return null;
+    const { from, to } = rangeFor(clip);
+    const speed = clipSpeedRatios[keyword.trim().toLowerCase()] ?? 1;
+    return clipDurationMs(clip, speed, from, to) / 1000;
+  };
+
   return {
     group,
     setLocomotion,
@@ -731,6 +742,7 @@ export const createCharacterAvatar = (
     setSprinting,
     setArmed,
     playClip,
+    clipDuration,
     resumeLocomotion,
     setShown: (on: boolean) => {
       if (shown === on) return;

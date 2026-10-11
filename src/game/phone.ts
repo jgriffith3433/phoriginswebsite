@@ -83,11 +83,17 @@ export type Phone = {
 };
 
 /** Metres out from the wrist along the fingers. The bone's +Y is that axis. */
-const FINGER_REACH = 0.16;
-/** World height of the slab once it is seated. Half the previous 0.146 m handset. */
-const HANDSET_HEIGHT = 0.073;
-/** Metres past the slab tip. The spot stays outside the handset so the cone is not born inside it. */
-const BEAM_CLEAR = 0.06;
+const FINGER_REACH = 0.08;
+/** World height of the slab once it is seated. */
+const HANDSET_HEIGHT = 0.1;
+/**
+ * Metres past the slab tip, along the fingers.
+ * The hand extends past the slab, and the walk cycle swings the wrist into the body.
+ * 0.15 left the cone in the fist on the frames where the axis failed to normalize.
+ */
+const BEAM_CLEAR = 0.4;
+/** Bone columns are length ~0.01. A 1e-4 test treats that as "no axis" and skips normalize. */
+const AXIS_EPSILON = 1e-8;
 
 const contactOf = (id: string): Contact => copy.contacts[id] ?? { name: id, detail: '' };
 
@@ -104,7 +110,10 @@ export const createPhone = (
     soundOn: () => boolean;
     onFinished: () => void;
     onHand: (raised: boolean) => void;
+    onConnected?: (contactId: string) => void;
     objectiveId: () => string;
+    /** Open Call Voss / Call Hale on this level. Those outbound calls connect. */
+    callQuestOpen: (contactId: string) => boolean;
   },
 ): Phone => {
   const attach = new BABYLON.TransformNode('phoneAttach', scene);
@@ -128,24 +137,24 @@ export const createPhone = (
   ledMat.emissiveColor = new BABYLON.Color3(0, 0, 0);
   ledMat.specularColor = BABYLON.Color3.Black();
 
-  const body = BABYLON.MeshBuilder.CreateBox('phoneBody', { width: 0.036, height: HANDSET_HEIGHT, depth: 0.0045 }, scene);
+  const body = BABYLON.MeshBuilder.CreateBox('phoneBody', { width: 0.054, height: HANDSET_HEIGHT, depth: 0.00675 }, scene);
   body.parent = root;
   body.material = bodyMat;
   body.isPickable = false;
   body.checkCollisions = false;
   body.receiveShadows = false;
 
-  const screen = BABYLON.MeshBuilder.CreateBox('phoneScreen', { width: 0.03, height: 0.059, depth: 0.001 }, scene);
+  const screen = BABYLON.MeshBuilder.CreateBox('phoneScreen', { width: 0.045, height: 0.0885, depth: 0.0015 }, scene);
   screen.parent = body;
-  screen.position.z = 0.003;
+  screen.position.z = 0.0045;
   screen.material = screenMat;
   screen.isPickable = false;
   screen.checkCollisions = false;
   screen.receiveShadows = false;
 
-  const led = BABYLON.MeshBuilder.CreateBox('phoneLed', { width: 0.006, height: 0.004, depth: 0.002 }, scene);
+  const led = BABYLON.MeshBuilder.CreateBox('phoneLed', { width: 0.009, height: 0.006, depth: 0.003 }, scene);
   led.parent = body;
-  led.position.set(0, 0.035, 0.002);
+  led.position.set(0, 0.0525, 0.003);
   led.material = ledMat;
   led.isPickable = false;
   led.checkCollisions = false;
@@ -194,9 +203,13 @@ export const createPhone = (
   };
 
   const meshes = [body, screen, led];
-  // The slab is excluded from the spot, and it does not receive shadows, so it cannot
-  // sit in the cone and black out the beam. The origin itself is pushed past the tip.
-  spot.excludedMeshes = meshes;
+  // Phone meshes only. Avatar meshes are pushed later; this array is the public handset list.
+  const excluded: BABYLON.AbstractMesh[] = [body, screen, led];
+  const excludedSet = new Set<BABYLON.AbstractMesh>(excluded);
+  // Hooked array: pushing a mesh pulls the spot out of that mesh's light list.
+  // The slab does not receive shadows. The player rig is added as it loads, every frame,
+  // because a list built at startup misses the skinned meshes.
+  spot.excludedMeshes = excluded;
   for (const mesh of meshes) mesh.alwaysSelectAsActiveMesh = true;
 
   // Four lights per material. The scene list is creation order, so the office was
@@ -242,18 +255,56 @@ export const createPhone = (
       mesh._markSubMeshesAsLightDirty();
     }
   };
-  scene.onBeforeRenderObservable.add(() => {
-    if (scene.meshes.length === seenMeshes && scene.lights.length === seenLights) return;
-    seenMeshes = scene.meshes.length;
-    seenLights = scene.lights.length;
-    applyLightLists();
-  });
   let disposed = false;
   let boundAvatar: PlayerAvatar | null = null;
   let handBone: BABYLON.Bone | null = null;
   let handMesh: BABYLON.AbstractMesh | null = null;
+
+  let scannedMeshes = -1;
+
+  const rememberExcluded = (mesh: BABYLON.AbstractMesh | null | undefined) => {
+    if (!mesh || excludedSet.has(mesh)) return false;
+    excludedSet.add(mesh);
+    excluded.push(mesh);
+    return true;
+  };
+
+  const syncExcluded = () => {
+    let grew = false;
+    const avatar = boundAvatar;
+    if (avatar) {
+      for (const mesh of avatar.group.getChildMeshes(false)) {
+        if (rememberExcluded(mesh)) grew = true;
+      }
+    }
+    const skeleton = handBone?.getSkeleton() ?? null;
+    const meshCount = scene.meshes.length;
+    if (skeleton && meshCount !== scannedMeshes) {
+      scannedMeshes = meshCount;
+      for (const mesh of scene.meshes) {
+        if (mesh.skeleton !== skeleton) continue;
+        if (rememberExcluded(mesh)) grew = true;
+      }
+    }
+    const stop = avatar?.group ?? null;
+    let parent: BABYLON.Node | null = handMesh;
+    while (parent && parent !== stop) {
+      if (parent instanceof BABYLON.AbstractMesh && rememberExcluded(parent)) grew = true;
+      parent = parent.parent;
+    }
+    return grew;
+  };
+
+  scene.onBeforeRenderObservable.add(() => {
+    const grew = syncExcluded();
+    if (!grew && scene.meshes.length === seenMeshes && scene.lights.length === seenLights) return;
+    seenMeshes = scene.meshes.length;
+    seenLights = scene.lights.length;
+    applyLightLists();
+  });
   const bonePos = new BABYLON.Vector3();
-  const finger = new BABYLON.Vector3();
+  const finger = new BABYLON.Vector3(0, 1, 0);
+  const lastFinger = new BABYLON.Vector3(0, 1, 0);
   const boneWorld = new BABYLON.Matrix();
   attach.rotationQuaternion = new BABYLON.Quaternion();
 
@@ -268,7 +319,11 @@ export const createPhone = (
     // slab in the palm whenever the camera moved.
     attach.attachToBone(handBone, handMesh);
     attach.rotationQuaternion = BABYLON.Quaternion.Identity();
-    attach.rotation.set(0, 0, 0);
+    attach.rotationQuaternion = BABYLON.Quaternion.RotationYawPitchRoll(
+      Math.PI,      // Y: 180°
+      Math.PI / 2,  // X: 90°
+      Math.PI / 2   // Z: 90°
+    );
     handBone.getSkeleton().prepare(true);
     const boneScale = new BABYLON.Vector3(1, 1, 1);
     handBone.getFinalMatrix().decompose(boneScale);
@@ -276,7 +331,7 @@ export const createPhone = (
     const s = 1 / parentS;
     const mirrored = boneScale.x < 0 || boneScale.y < 0 || boneScale.z < 0;
     attach.scaling.set(s, mirrored ? -s : s, s);
-    attach.position.set(0, FINGER_REACH / parentS, 0);
+    attach.position.set(0.03, FINGER_REACH / parentS, 0.02);
     attach.computeWorldMatrix(true);
     const bounds = root.getHierarchyBoundingVectors(true);
     const height = bounds.max.y - bounds.min.y;
@@ -292,10 +347,19 @@ export const createPhone = (
     handBone.getSkeleton().prepare(true);
     handMesh.computeWorldMatrix(true);
     handBone.getFinalMatrix().multiplyToRef(handMesh.getWorldMatrix(), boneWorld);
+    // Column length is the bone scale (~0.01). lengthSquared is 1e-4, so a `> 1e-4`
+    // test never normalizes a clean pose and then succeeds on walk frames whose
+    // rotation stretches the column. The spot popped between the wrist and the beam.
     finger.set(boneWorld.m[4], boneWorld.m[5], boneWorld.m[6]);
-    if (finger.lengthSquared() > 1e-4) finger.normalize();
+    const axisLen = Math.hypot(finger.x, finger.y, finger.z);
+    if (axisLen > AXIS_EPSILON) {
+      finger.scaleInPlace(1 / axisLen);
+      lastFinger.copyFrom(finger);
+    } else {
+      finger.copyFrom(lastFinger);
+    }
     bonePos.set(boneWorld.m[12], boneWorld.m[13], boneWorld.m[14]);
-    // Past the handset tip, still unparented. A parented spot inherits the bone's 0.01 scale.
+    // Past the handset tip and the hand. Still unparented. A parented spot inherits the bone's 0.01 scale.
     const clear = FINGER_REACH + HANDSET_HEIGHT * 0.5 + BEAM_CLEAR;
     spot.position.copyFrom(bonePos).addInPlace(finger.scale(clear));
     if (root.isEnabled()) {
@@ -305,8 +369,11 @@ export const createPhone = (
       const cz = (box.min.z + box.max.z) * 0.5;
       const half = Math.max(box.max.x - box.min.x, box.max.y - box.min.y, box.max.z - box.min.z) * 0.5;
       const dist = Math.hypot(spot.position.x - cx, spot.position.y - cy, spot.position.z - cz);
-      if (dist < half + 0.04) {
-        spot.position.set(cx, cy, cz).addInPlace(finger.scale(half + BEAM_CLEAR));
+      // Ignore a broken hierarchy box. Only push further along the fingers, never back into the wrist.
+      if (half > 1e-4 && half < 0.35 && dist < half + 0.02) {
+        const pushed = BABYLON.Vector3.Dot(finger, new BABYLON.Vector3(cx - bonePos.x, cy - bonePos.y, cz - bonePos.z));
+        const along = pushed + half + BEAM_CLEAR;
+        if (along > clear) spot.position.copyFrom(bonePos).addInPlace(finger.scale(along));
       }
     }
     if (beamAim) {
@@ -317,7 +384,7 @@ export const createPhone = (
       }
     } else {
       const lowered = finger.add(new BABYLON.Vector3(0, -0.2, 0));
-      if (lowered.lengthSquared() > 1e-4) lowered.normalize();
+      if (lowered.lengthSquared() > AXIS_EPSILON) lowered.normalize();
       spot.direction.copyFrom(lowered);
     }
     applyBeam(scene.getEngine().getDeltaTime() / 1000);
@@ -363,6 +430,14 @@ export const createPhone = (
     const call = copy.byObjective?.[key]?.[contactId];
     if (!call?.lines.length) return null;
     return { id: `${key}-${contactId}`, call };
+  };
+
+  /** Open call quests connect. Anyone else is answered about one time in three, or not at all when this objective has no lines. */
+  const scriptForOutbound = (contactId: string) => {
+    const next = pickupFor(contactId);
+    if (!next) return null;
+    if (options.callQuestOpen(contactId)) return next;
+    return Math.random() < PICKUP_CHANCE ? next : null;
   };
 
   const bindHand = (avatar: PlayerAvatar) => {
@@ -512,6 +587,7 @@ export const createPhone = (
     mode = 'active';
     elapsed = 0;
     lineIndex = 0;
+    options.onConnected?.(next.contact);
     playLine();
   };
 
@@ -647,6 +723,7 @@ export const createPhone = (
       lineIndex = 0;
       nextRing = 0;
       stopTones();
+      options.onConnected?.(script.contact);
       playLine();
     },
     dial: (contactId: string) => {
@@ -752,7 +829,7 @@ export const createPhone = (
         ringbackIn -= dt;
         if (ringbackIn <= 0) {
           if (ringsLeft <= 0) {
-            const outbound = Math.random() < PICKUP_CHANCE ? pickupFor(party) : null;
+            const outbound = scriptForOutbound(party);
             if (outbound) connectDial(outbound.id, outbound.call);
             else noAnswer();
           } else {

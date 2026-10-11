@@ -125,6 +125,14 @@
         {
           "name": "DeathForward",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
+        },
+        {
+          "name": "Punch",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Punch.fbx"
+        },
+        {
+          "name": "Kick",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Kick.fbx"
         }
       ]
     },
@@ -246,6 +254,10 @@
         {
           "name": "DeathForward",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
+        },
+        {
+          "name": "Punch",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\NPCPunch.fbx"
         }
       ]
     },
@@ -287,6 +299,10 @@
         {
           "name": "DeathForward",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
+        },
+        {
+          "name": "Punch",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\NPCPunch.fbx"
         }
       ]
     },
@@ -328,6 +344,10 @@
         {
           "name": "DeathForward",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
+        },
+        {
+          "name": "Punch",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\NPCPunch.fbx"
         }
       ]
     },
@@ -369,6 +389,10 @@
         {
           "name": "DeathForward",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
+        },
+        {
+          "name": "Punch",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\NPCPunch.fbx"
         }
       ]
     },
@@ -410,6 +434,10 @@
         {
           "name": "DeathForward",
           "path": "C:\\Projects\\phoriginsassets\\animations\\Standing React Death Forward.fbx"
+        },
+        {
+          "name": "Punch",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\NPCPunch.fbx"
         }
       ]
     },
@@ -781,6 +809,208 @@
         "sign",
         "office"
       ],
+      "source": "project"
+    },
+    {
+      "id": "asset-subway-bench",
+      "name": "subway-bench.glb",
+      "path": "/assets/models/subway-bench.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "station"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-subway-bin",
+      "name": "subway-bin.glb",
+      "path": "/assets/models/subway-bin.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "station"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-subway-kiosk",
+      "name": "subway-kiosk.glb",
+      "path": "/assets/models/subway-kiosk.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "station"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-subway-column",
+      "name": "subway-column.glb",
+      "path": "/assets/models/subway-column.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "station"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-subway-turnstile",
+      "name": "subway-turnstile.glb",
+      "path": "/assets/models/subway-turnstile.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "station"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-subway-train",
+      "name": "subway-train.glb",
+      "path": "/assets/models/subway-train.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "station"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-hydrant",
+      "name": "street-hydrant.glb",
+      "path": "/assets/models/street-hydrant.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-can",
+      "name": "street-can.glb",
+      "path": "/assets/models/street-can.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-paperbox",
+      "name": "street-paperbox.glb",
+      "path": "/assets/models/street-paperbox.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-planter",
+      "name": "street-planter.glb",
+      "path": "/assets/models/street-planter.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-b3-drum",
+      "name": "b3-drum.glb",
+      "path": "/assets/models/b3-drum.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "basement"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-b3-crate",
+      "name": "b3-crate.glb",
+      "path": "/assets/models/b3-crate.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "basement"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-b3-locker",
+      "name": "b3-locker.glb",
+      "path": "/assets/models/b3-locker.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "basement"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-b3-gurney",
+      "name": "b3-gurney.glb",
+      "path": "/assets/models/b3-gurney.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "basement"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-facade-brick",
+      "name": "street-facade-brick.glb",
+      "path": "/assets/models/street-facade-brick.glb",
+      "type": "model",
+      "tags": ["prop", "street"],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-facade-concrete",
+      "name": "street-facade-concrete.glb",
+      "path": "/assets/models/street-facade-concrete.glb",
+      "type": "model",
+      "tags": ["prop", "street"],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-shop-market",
+      "name": "street-shop-market.glb",
+      "path": "/assets/models/street-shop-market.glb",
+      "type": "model",
+      "tags": ["prop", "street"],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-shop-diner",
+      "name": "street-shop-diner.glb",
+      "path": "/assets/models/street-shop-diner.glb",
+      "type": "model",
+      "tags": ["prop", "street"],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-shop-news",
+      "name": "street-shop-news.glb",
+      "path": "/assets/models/street-shop-news.glb",
+      "type": "model",
+      "tags": ["prop", "street"],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-car",
+      "name": "street-car.glb",
+      "path": "/assets/models/street-car.glb",
+      "type": "model",
+      "tags": ["prop", "street"],
       "source": "project"
     }
   ]

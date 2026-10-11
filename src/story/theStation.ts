@@ -3,6 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import type { StoryCarry } from './act1';
+import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
 
 export type TheStationHost = {
   scene: BABYLON.Scene;
@@ -20,6 +21,7 @@ export type TheStationHost = {
   setCarry: (items: StoryCarry[]) => void;
   win: () => void;
   showMessage: (title: string, text: string) => void;
+  offerEnd: (title: string, text: string) => void;
   haltPlay: () => void;
   clearInput: () => void;
   unlockNext: () => void;
@@ -37,7 +39,7 @@ const ASSETS = ['asset-ch08-npc', 'asset-ch28-npc', 'asset-ch31-npc', 'asset-ch2
 const CARRY: StoryCarry[] = [
   { id: 'phone', name: 'Phone', note: 'No signal this far down.' },
   { id: 'sidearm', name: 'Sidearm', note: 'Q draws it, until Shadow mode.' },
-  { id: 'shadow', name: 'Shadow mode', note: 'C. Click is Shadow Shock. Q raises the hands. V possesses. While linked, V consumes and Tab lets go.' },
+  { id: 'shadow', name: 'Shadow mode', note: 'C or the Shadow button turns it on. Powers only work while it is on.' },
 ];
 
 type Person = {
@@ -52,6 +54,11 @@ type Person = {
   screamed: boolean;
   moving: boolean;
   down: boolean;
+  shocked: boolean;
+  corpse: number;
+  resting: boolean;
+  poseHold: number;
+  floorY: number;
 };
 
 export type TheStation = ReturnType<typeof createTheStation>;
@@ -68,9 +75,11 @@ export const createTheStation = (host: TheStationHost) => {
   let tether: Person | null = null;
   let tetherMove = { x: 0, z: 0 };
   let tetherMoving = false;
+  let linkLeft = 0;
   let linkTime = 0;
   let trailLeft = 0;
   let shockLeft = 0;
+  let meleeLeft = 0;
   let watchLeft = 0;
   let watchX = 0;
   let watchZ = 0;
@@ -102,6 +111,11 @@ export const createTheStation = (host: TheStationHost) => {
       screamed: false,
       moving: true,
       down: false,
+      shocked: false,
+      corpse: 0,
+      resting: false,
+      poseHold: 0,
+      floorY: 0,
     };
     face(person, Math.PI / 2);
     avatar.whenReady(() => {
@@ -113,18 +127,18 @@ export const createTheStation = (host: TheStationHost) => {
   const showGoal = () => {
     const door = { x: DOOR.x, y: 1.3, z: DOOR.z };
     if (tether) {
-      host.setObjective('Shadow Link', 'WASD walks them. V consumes. Tab lets go.', null);
+      host.setObjective('Shadow Link', 'WASD walks them. Click kills. Tab switches the ability.', null);
       return;
     }
     if (shadowOn && !handsOut) {
-      host.setObjective('Shadow mode', 'Click is Shadow Shock. Q raises the hands.', door);
+      host.setObjective('Shadow mode', 'Tab switches the ability. Q raises the hands.', door);
       return;
     }
     if (shadowOn) {
-      host.setObjective('Shadow Link', 'Aim at them. V possesses. Click still shocks.', door);
+      host.setObjective('Shadow Link', 'Aim at them. Click uses Possess.', door);
       return;
     }
-    host.setObjective('The train', 'The open door, down the platform.', door);
+    host.setObjective('The train', 'The open door, down the platform. Tab switches the ability.', door);
   };
 
   const hideBeads = () => {
@@ -203,10 +217,32 @@ export const createTheStation = (host: TheStationHost) => {
 
   const releaseLink = (announce = true) => {
     tether = null;
+    linkLeft = 0;
     tetherMove = { x: 0, z: 0 };
     tetherMoving = false;
     hideBeads();
     if (announce && active && !finished) showGoal();
+  };
+
+  const layDown = (person: Person, shocked: boolean) => {
+    if (person.down) return;
+    person.down = true;
+    person.shocked = shocked;
+    person.moving = false;
+    person.fleeing = false;
+    person.corpse = CORPSE_SECONDS;
+    person.resting = false;
+    person.poseHold = 0;
+    const feet = person.mesh.position.y + person.avatar.group.position.y;
+    person.floorY = floorUnder(host.scene, person.mesh.position.x, person.mesh.position.z, feet, person.avatar.group);
+    person.avatar.playClip(shocked ? 'electrocuted' : 'deathforward', false);
+  };
+
+  const bury = (person: Person) => {
+    const index = people.indexOf(person);
+    if (index >= 0) people.splice(index, 1);
+    person.avatar.dispose();
+    if (!person.mesh.isDisposed()) person.mesh.dispose();
   };
 
   const finish = () => {
@@ -217,11 +253,9 @@ export const createTheStation = (host: TheStationHost) => {
     host.showObjective(false);
     host.clearInput();
     host.playClip('rebornidle', true);
-    host.haltPlay();
     host.unlockNext();
-    host.fade(1, 1.15);
     host.refreshHud();
-    host.showMessage('Level Complete', 'The train is waiting. There is nowhere else to go.');
+    host.offerEnd('Level Complete', 'The train is waiting. There is nowhere else to go.');
   };
 
   return {
@@ -243,6 +277,7 @@ export const createTheStation = (host: TheStationHost) => {
       shadowOn = false;
       handsOut = false;
       tether = null;
+      linkLeft = 0;
       people.length = 0;
       const spots: [number, number, number, number][] = [
         [22, -4.2, 16, 28],
@@ -306,6 +341,36 @@ export const createTheStation = (host: TheStationHost) => {
       }
       if (!best) return false;
       tether = best;
+      linkLeft = POSSESS_SECONDS;
+      best.fleeing = false;
+      best.avatar.resumeLocomotion();
+      host.playFile('/assets/audio/sfx/street/possess.wav', 0.4);
+      showGoal();
+      return true;
+    },
+    possessLook: () => {
+      if (!active || finished || !shadowOn || tether) return false;
+      const here = host.player();
+      const look = host.camera.getForwardRay(1).direction;
+      const camLen = Math.hypot(look.x, look.z) || 1;
+      const camX = look.x / camLen;
+      const camZ = look.z / camLen;
+      let best: Person | null = null;
+      let bestDist = 6.2;
+      for (const person of people) {
+        if (person.down) continue;
+        const dx = person.mesh.position.x - here.x;
+        const dz = person.mesh.position.z - here.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > bestDist || dist < 0.05) continue;
+        const dot = (dx * camX + dz * camZ) / dist;
+        if (dist > 2.8 ? dot < 0.4 : dot < 0.08) continue;
+        best = person;
+        bestDist = dist;
+      }
+      if (!best) return false;
+      tether = best;
+      linkLeft = POSSESS_SECONDS;
       best.fleeing = false;
       best.avatar.resumeLocomotion();
       host.playFile('/assets/audio/sfx/street/possess.wav', 0.4);
@@ -319,9 +384,7 @@ export const createTheStation = (host: TheStationHost) => {
       trailTo.set(best.mesh.position.x, best.mesh.position.y, best.mesh.position.z);
       trailLeft = 0.55;
       ensureBeads();
-      best.down = true;
-      best.moving = false;
-      best.avatar.playClip('deathforward', false);
+      layDown(best, false);
       const atX = best.mesh.position.x;
       const atZ = best.mesh.position.z;
       releaseLink();
@@ -348,6 +411,7 @@ export const createTheStation = (host: TheStationHost) => {
       return shadowOn;
     },
     linked: () => !!tether,
+    possessLeft: () => (tether ? Math.max(0, linkLeft) : 0),
     linkFocus: () => {
       if (tether) return { x: tether.mesh.position.x, z: tether.mesh.position.z };
       if (watchLeft > 0) return { x: watchX, z: watchZ };
@@ -360,7 +424,7 @@ export const createTheStation = (host: TheStationHost) => {
     },
     shadowShown: () => active && !finished,
     shock: () => {
-      if (!active || finished || shockLeft > 0) return false;
+      if (!active || finished || !shadowOn || shockLeft > 0) return false;
       const here = host.player();
       const look = host.camera.getForwardRay(1).direction;
       const camLen = Math.hypot(look.x, look.z) || 1;
@@ -377,9 +441,7 @@ export const createTheStation = (host: TheStationHost) => {
         if (dist > 6.2 || dist < 0.05) continue;
         const dot = Math.max((dx * camX + dz * camZ) / dist, (dx * bodyX + dz * bodyZ) / dist);
         if (dist > 2.8 ? dot < 0.4 : dot < 0.08) continue;
-        person.down = true;
-        person.moving = false;
-        person.avatar.playClip('electrocuted', false);
+        layDown(person, true);
         host.shedShadow(person.mesh.position.x, person.mesh.position.z);
         hit = true;
       }
@@ -392,18 +454,69 @@ export const createTheStation = (host: TheStationHost) => {
       });
       return true;
     },
+    strike: (kind: 'punch' | 'kick') => {
+      if (!active || finished || shadowOn || meleeLeft > 0) return false;
+      const here = host.player();
+      const look = host.camera.getForwardRay(1).direction;
+      const camLen = Math.hypot(look.x, look.z) || 1;
+      const camX = look.x / camLen;
+      const camZ = look.z / camLen;
+      const reach = kind === 'kick' ? 2.35 : 1.7;
+      let best: Person | null = null;
+      let bestDist = reach;
+      for (const person of people) {
+        if (person.down || person === tether) continue;
+        const dx = person.mesh.position.x - here.x;
+        const dz = person.mesh.position.z - here.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > bestDist || dist < 0.05) continue;
+        const dot = (dx * camX + dz * camZ) / dist;
+        if (dot < 0.35) continue;
+        best = person;
+        bestDist = dist;
+      }
+      if (best) layDown(best, false);
+      meleeLeft = 0.85;
+      host.playClip(kind, false, 1, () => {
+        if (active && !finished) host.resumeLocomotion();
+      });
+      return true;
+    },
     shocking: () => shockLeft > 0,
     step: (dt: number) => {
       if (!active || finished) return;
       const stepDt = Math.min(0.05, Math.max(0, dt));
       shockLeft = Math.max(0, shockLeft - stepDt);
+      meleeLeft = Math.max(0, meleeLeft - stepDt);
       watchLeft = Math.max(0, watchLeft - stepDt);
       linkTime += stepDt;
       trailLeft = Math.max(0, trailLeft - stepDt);
       const here = host.player();
       updateRibbon();
-      if (tether && Math.hypot(tether.mesh.position.x - here.x, tether.mesh.position.z - here.z) > 18) releaseLink();
+      if (tether) {
+        linkLeft -= stepDt;
+        if (linkLeft <= 0) releaseLink();
+      }
+      const buried: Person[] = [];
       for (const person of people) {
+        if (person.down) {
+          const posed = settleCorpse(
+            person.avatar,
+            person.floorY,
+            person.shocked ? 'electrocuted' : 'deathforward',
+            person.poseHold,
+            stepDt,
+            person.resting,
+          );
+          person.poseHold = posed.age;
+          person.resting = posed.resting;
+          person.corpse -= stepDt;
+          if (person.corpse <= 0) {
+            if (tether === person) releaseLink(false);
+            buried.push(person);
+          }
+          continue;
+        }
         if (person === tether) {
           const mx = tetherMove.x;
           const mz = tetherMove.z;
@@ -417,7 +530,6 @@ export const createTheStation = (host: TheStationHost) => {
           tetherMove = { x: 0, z: 0 };
           continue;
         }
-        if (person.down) continue;
         const dx = person.mesh.position.x - here.x;
         const dz = person.mesh.position.z - here.z;
         const dist = Math.hypot(dx, dz);
@@ -444,6 +556,7 @@ export const createTheStation = (host: TheStationHost) => {
         person.avatar.setLocomotion(moving, true);
         face(person, person.dir > 0 ? Math.PI / 2 : -Math.PI / 2);
       }
+      for (const person of buried) bury(person);
       if (!tether && host.running() && Math.abs(here.x - DOOR.x) < 1.6 && here.z > 0.85 && here.z < 2.15) finish();
     },
   };

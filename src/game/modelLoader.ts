@@ -124,23 +124,44 @@ const CHARACTER_ENV_INTENSITY = 0.32;
 
 const FACES = ['px', 'py', 'pz', 'nx', 'ny', 'nz'] as const;
 
-const probeFaces = (themeName: string) => {
-  const set = themeName === 'B3 Basement' ? 'lab' : 'office';
-  return FACES.map((face) => `/assets/textures/probe/${set}_${face}.webp`);
+const probeFaces = (set: string) => {
+  const folder = set === 'lab' ? 'lab' : 'office';
+  return FACES.map((face) => `/assets/textures/probe/${folder}_${face}.webp`);
 };
 
 const probeCache = new WeakMap<BABYLON.Scene, { theme: string; cube: BABYLON.CubeTexture }>();
 
-/** Flat interior cube. Not assigned to scene.environmentTexture — that races the skybox. */
+const probeSet = (themeName: string) => (themeName === 'B3 Basement' ? 'lab' : 'office');
+
+/** This Babylon build has no texture.isDisposed. dispose() clears the scene. */
+const releaseCube = (cube: BABYLON.CubeTexture) => {
+  if (!cube.getScene()) return;
+  if (cube.isReady()) {
+    cube.dispose();
+    return;
+  }
+  cube.onLoadObservable.addOnce(() => {
+    if (cube.getScene()) cube.dispose();
+  });
+};
+
+/** Street and Station share the office faces. Do not rebuild that cube just because the theme name changed. */
 export const characterProbe = (scene: BABYLON.Scene) => {
-  const theme = (scene.metadata as { themeName?: string } | null)?.themeName ?? 'Apex Peak';
+  const theme = probeSet((scene.metadata as { themeName?: string } | null)?.themeName ?? 'Apex Peak');
   const cached = probeCache.get(scene);
-  if (cached && cached.theme === theme) return cached.cube;
-  if (cached) cached.cube.dispose();
+  if (cached && cached.theme === theme && cached.cube.getScene()) return cached.cube;
+  if (cached) releaseCube(cached.cube);
   const cube = BABYLON.CubeTexture.CreateFromImages(probeFaces(theme), scene, true);
   cube.name = 'character-probe';
   probeCache.set(scene, { theme, cube });
   return cube;
+};
+
+/** Props share one probe. A mesh dispose that also frees textures would free that cube and grey the next level. */
+export const detachSharedProbe = (materials: Iterable<BABYLON.Material | null | undefined>) => {
+  for (const material of materials) {
+    if (material instanceof BABYLON.PBRMaterial) material.reflectionTexture = null;
+  }
 };
 
 export const refreshCharacterProbe = (scene: BABYLON.Scene) => {
@@ -235,6 +256,7 @@ export const importGlbUnderParent = async (
     const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(rootUrl, fileName, scene);
     capSimultaneousLights(scene);
     if (parent.isDisposed()) {
+      detachSharedProbe(container.materials);
       container.dispose();
       return { meshes: [], animationGroups: [], skeletons: [] };
     }

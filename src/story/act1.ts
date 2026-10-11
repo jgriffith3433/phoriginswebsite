@@ -72,6 +72,7 @@ export type ActHost = {
   tone: (hz: number, seconds: number, type: OscillatorType, gain: number) => void;
   win: () => void;
   showMessage: (title: string, text: string) => void;
+  offerEnd: (title: string, text: string) => void;
   haltPlay: () => void;
   clearInput: () => void;
   unlockNext: () => void;
@@ -728,6 +729,9 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const finishLevel = (which: 'apex' | 'b3' | 'return') => {
+    if (which === 'apex' && !host.isApex()) return;
+    if (which === 'b3' && !host.isB3()) return;
+    if (which === 'return' && !host.isReturn()) return;
     const already = phase === 'done';
     clearVatFx();
     phase = 'done';
@@ -739,14 +743,12 @@ export const createAct1 = (host: ActHost) => {
     host.clearInput();
     host.holdLocomotion();
     host.playClip('idle', true);
-    host.haltPlay();
     if (already) return;
     if (which === 'b3') setCarry('changed');
     host.unlockNext();
-    host.fade(1, 1.15);
     host.refreshHud();
     const card = copy.complete[which];
-    host.showMessage(card.title, card.text);
+    host.offerEnd(card.title, card.text);
   };
 
   const setOfficeAmmoVisible = (visible: boolean) => {
@@ -1023,7 +1025,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const beginMirrorLook = () => {
-    if (phase !== 'mirror') return;
+    if (!host.isReturn() || phase !== 'mirror') return;
     phase = 'mirror-look';
     mirrorLeft = 5.4;
     host.holdScene(true);
@@ -2470,7 +2472,7 @@ export const createAct1 = (host: ActHost) => {
       const here = host.playerXZ();
       if (Math.hypot(here.x - ELEVATOR_POSE.x, here.z - ELEVATOR_POSE.z) < 1.45) return 'Ride Elevator';
     }
-    if (phase === 'mirror') {
+    if (host.isReturn() && phase === 'mirror') {
       const here = host.playerXZ();
       if (Math.hypot(here.x - MIRROR_STAND.x, here.z - MIRROR_STAND.z) < 1.2) return 'Look in mirror';
     }
@@ -2650,7 +2652,7 @@ export const createAct1 = (host: ActHost) => {
     onLevelReady: () => {
       if (host.isReturn()) beginReturn();
       else if (host.isB3()) beginArrival();
-      else beginSeat();
+      else if (host.isApex()) beginSeat();
     },
     onOfficeArrived: () => {
       applyElevatorDoors(1);
@@ -2675,6 +2677,12 @@ export const createAct1 = (host: ActHost) => {
       }
     },
     onStart: () => {
+      if (!host.isApex() && !host.isB3() && !host.isReturn()) {
+        phase = 'idle';
+        host.showObjective(false);
+        host.hideMarker();
+        return;
+      }
       if (host.isReturn()) {
         if (phase === 'return-walk') {
           placeReturnSpawn();
@@ -2915,6 +2923,7 @@ export const createAct1 = (host: ActHost) => {
     },
     fearLevel: () => dread,
     stepWorld: (delta: number) => {
+      if (!host.isApex() && !host.isB3() && !host.isReturn()) return;
       refreshMirror();
       if (phase === 'return-walk' && host.running() && !host.inCutscene()) {
         stepAside(delta);
@@ -2944,7 +2953,7 @@ export const createAct1 = (host: ActHost) => {
           host.setObjective(line.title, line.text, { x: MIRROR_STAND.x, y: 1.5, z: MIRROR_STAND.z });
         }
       }
-      if (phase === 'mirror-look') {
+      if (host.isReturn() && phase === 'mirror-look') {
         host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
         mirrorLeft -= delta;
         if (mirrorLeft <= 0) {

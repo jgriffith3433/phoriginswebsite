@@ -52,8 +52,11 @@ const runClip = { name: 'Run', path: path.join(animationsDir, 'Standard Run.fbx'
 const shockClip = { name: 'ShadowShock', path: path.join(animationsDir, 'Shadow Shock.fbx') };
 const electroClip = { name: 'Electrocuted', path: path.join(animationsDir, 'Being Electrocuted.fbx') };
 const deathClip = { name: 'DeathForward', path: path.join(animationsDir, 'Standing React Death Forward.fbx') };
+const punchClip = { name: 'Punch', path: path.join(animationsDir, 'Punch.fbx') };
+const kickClip = { name: 'Kick', path: path.join(animationsDir, 'Kick.fbx') };
+const npcPunchClip = { name: 'Punch', path: path.join(animationsDir, 'NPCPunch.fbx') };
 
-const npcClips = [...locomoClips.filter((clip) => clip.name !== 'Jump'), electroClip, deathClip];
+const npcClips = [...locomoClips.filter((clip) => clip.name !== 'Jump'), electroClip, deathClip, npcPunchClip];
 const creatureClips = [
   ...locomoClips.filter((clip) => clip.name === 'Idle' || clip.name === 'Walk'),
   attackClip,
@@ -69,7 +72,7 @@ const jobs = [
   {
     outputName: 'ch44-hero',
     fbx: 'Ch44_nonPBR.fbx',
-    animations: [...locomoClips, rebornClip, runClip, shockClip, deathClip],
+    animations: [...locomoClips, rebornClip, runClip, shockClip, deathClip, punchClip, kickClip],
     tags: ['character', 'mixamo', 'transform', 'post-god-complex', 'real-file'],
   },
   {
@@ -127,7 +130,7 @@ const verifyGlbSkinAndClips = (glbAbsPath) => {
   const skinNames = new Set((json.skins?.[0]?.joints || []).map((index) => nodes[index]?.name));
   const hipJoint = [...skinNames].find((name) => /hips/i.test(name || ''));
   const clips = (json.animations || []).filter((anim) =>
-    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster|WalkBack|FallingDown|RebornIdle|Attack|Run|ShadowShock|Electrocuted|DeathForward)$/i.test(anim.name || ''),
+    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster|WalkBack|FallingDown|RebornIdle|Attack|Run|ShadowShock|Electrocuted|DeathForward|Punch|Kick)$/i.test(anim.name || ''),
   );
   const problems = [];
   if (!hipJoint) problems.push('skin.joints has no Hips');

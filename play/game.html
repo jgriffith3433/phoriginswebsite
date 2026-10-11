@@ -281,6 +281,73 @@
         top: calc(50% + 132px);
       }
 
+      .ability-readout {
+        position: absolute;
+        left: 50%;
+        bottom: calc(var(--safe-bottom) + 52px);
+        transform: translateX(-50%);
+        z-index: 8;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        min-width: 180px;
+        padding: 8px 18px 10px;
+        border-radius: 16px;
+        background: rgba(10, 20, 31, 0.78);
+        border: 1px solid var(--panel-border);
+        pointer-events: none;
+        text-align: center;
+      }
+
+      .ability-readout[hidden] {
+        display: none;
+      }
+
+      .ability-kicker {
+        font-size: 9px;
+        letter-spacing: 0.16rem;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .ability-readout strong {
+        font-size: 15px;
+        font-weight: 800;
+        letter-spacing: 0.08rem;
+        text-transform: uppercase;
+      }
+
+      .possess-bar {
+        align-self: stretch;
+        height: 4px;
+        margin: 0 0 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        overflow: hidden;
+      }
+
+      .possess-bar[hidden] {
+        display: none;
+      }
+
+      .possess-fill {
+        display: block;
+        height: 100%;
+        width: 100%;
+        transform-origin: left center;
+        background: #e4e7ee;
+      }
+
+      .shadow-run-fill {
+        background: #1a1c22;
+      }
+
+      body[data-device='mobile'] .ability-readout,
+      body[data-device='tablet'] .ability-readout {
+        bottom: calc(var(--safe-bottom) + 168px);
+      }
+
       .perf-monitor {
         position: absolute;
         left: 50%;
@@ -898,6 +965,23 @@
         pointer-events: none;
       }
 
+      .missions-hud {
+        position: absolute;
+        left: 18px;
+        bottom: calc(var(--safe-bottom) + 24px);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        z-index: 8;
+        pointer-events: none;
+      }
+
+      body[data-device='mobile'] .missions-hud,
+      body[data-device='tablet'] .missions-hud {
+        bottom: calc(var(--safe-bottom) + 176px);
+      }
+
       .inventory-hint,
       .inventory-close,
       .weapon-slot {
@@ -1020,6 +1104,45 @@
 
       .inventory-hud.open .inventory-panel {
         display: flex;
+      }
+
+      .missions-hud.open #missionsHint {
+        display: none;
+      }
+
+      .missions-hud.open .missions-panel {
+        display: flex;
+      }
+
+      .missions-panel {
+        width: min(300px, calc(100vw - 36px));
+      }
+
+      .mission-row {
+        min-width: 0;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(10, 14, 18, 0.54);
+        border: 1px solid var(--panel-border);
+        text-align: left;
+      }
+
+      .mission-row.done {
+        border-color: rgba(122, 240, 201, 0.45);
+      }
+
+      .mission-row .inventory-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .mission-score {
+        margin: 8px 0 0;
+        font-size: 12px;
+        letter-spacing: 0.12rem;
+        text-transform: uppercase;
+        color: var(--muted);
       }
 
       .inventory-item {
@@ -1193,7 +1316,9 @@
         display: none;
       }
 
-      body:has(.message:not(.hidden)) .inventory-hud {
+      body:has(.message:not(.hidden)) .inventory-hud,
+      body:has(.message:not(.hidden)) .missions-hud,
+      body:has(.message:not(.hidden)) .ability-readout {
         visibility: hidden;
       }
 
@@ -1548,7 +1673,7 @@
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" crossorigin src="./assets/index-D3nzQvIq.js"></script>
+    <script type="module" crossorigin src="./assets/index-Cr4d3GzH.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -1564,6 +1689,12 @@
         </div>
       </div>
 
+      <div id="abilityReadout" class="ability-readout" hidden>
+        <div id="possessBar" class="possess-bar" hidden><span id="possessFill" class="possess-fill"></span></div>
+        <div id="shadowRunBar" class="possess-bar" hidden><span id="shadowRunFill" class="possess-fill shadow-run-fill"></span></div>
+        <span class="ability-kicker">Current ability</span>
+        <strong id="abilityName">Shadow Shock</strong>
+      </div>
       <div id="perfMonitor" class="perf-monitor" aria-hidden="true">
         <span><span class="perf-k">FPS</span><span id="perfFps">—</span></span>
         <span><span class="perf-k">MEM</span><span id="perfMem">—</span></span>
@@ -1616,11 +1747,21 @@
       </aside>
       <div id="phoneToast" class="phone-toast" hidden></div>
 
+      <div id="missionsHud" class="missions-hud" aria-live="polite">
+        <button type="button" id="missionsHint" class="inventory-hint phone-hint" aria-label="Open missions"><kbd>O</kbd> Missions</button>
+        <div id="missionsPanel" class="inventory-panel missions-panel">
+          <div class="inventory-panel-header">
+            <span class="inventory-panel-title" id="missionsTitle">Missions</span>
+            <button type="button" id="missionsClose" class="inventory-close" aria-label="Close missions">›</button>
+          </div>
+          <div id="missionsList" class="inventory-items"></div>
+        </div>
+      </div>
+
       <div id="inventoryHud" class="inventory-hud" aria-live="polite">
         <button type="button" id="sidearmHint" class="phone-hint" aria-label="Sidearm"><kbd>Q</kbd> Sidearm</button>
-        <button type="button" id="shoveHint" class="phone-hint" hidden aria-label="Shadow Shock">Click Shock</button>
+        <button type="button" id="abilityHint" class="phone-hint" hidden aria-label="Switch ability"><kbd>Tab</kbd> Switch Ability</button>
         <button type="button" id="shadowHint" class="phone-hint" hidden aria-label="Shadow mode"><kbd>C</kbd> Shadow</button>
-        <button type="button" id="consumeHint" class="phone-hint" hidden aria-label="Possess"><kbd>V</kbd> Possess</button>
         <button type="button" id="lightHint" class="phone-hint" aria-label="Flashlight"><kbd>G</kbd> Light</button>
         <button type="button" id="medkitHint" class="phone-hint" aria-label="Medkit"><kbd>H</kbd> Medkit</button>
         <button type="button" id="phoneHint" class="phone-hint" aria-label="Phone"><kbd>F</kbd> Phone <span id="phoneBadge" class="phone-badge" hidden></span></button>
@@ -1696,6 +1837,7 @@
           <div class="eyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
           <p class="subtitle" id="messageText">Loading</p>
+          <p class="mission-score" id="missionScore" hidden></p>
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">

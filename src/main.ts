@@ -13,7 +13,8 @@ import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
 import { clearImpactMarks, stampBulletMark } from './game/impacts';
 import { ITEM_CAP, addItem, createInventoryState, consumeItem, inventorySummary, itemCount, roomFor } from './game/inventory';
 import { getLevelDefinition, getLevels, getPlayableLevelCount, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
-import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
+import { callQuestOpen, missionCallId, missionLabel, missionsFor } from './game/missions';
+import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, flyPlayer, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
@@ -34,6 +35,7 @@ import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
 import { renderLevelCredits } from './story/credits';
+import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { createUnlockedAudio, getSharedAudioContext, installAudioUnlock, unlockAudio } from './game/audioUnlock';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
@@ -80,12 +82,23 @@ const closeLevelSelectBtn = document.getElementById('closeLevelSelect') as HTMLB
 const crosshair = document.getElementById('crosshair') as HTMLDivElement;
 const inventoryHud = document.getElementById('inventoryHud') as HTMLDivElement;
 const inventoryHint = document.getElementById('inventoryHint') as HTMLButtonElement | null;
+const missionsHud = document.getElementById('missionsHud') as HTMLDivElement | null;
+const missionsHint = document.getElementById('missionsHint') as HTMLButtonElement | null;
+const missionsClose = document.getElementById('missionsClose') as HTMLButtonElement | null;
+const missionsList = document.getElementById('missionsList') as HTMLDivElement | null;
+const missionsTitle = document.getElementById('missionsTitle') as HTMLElement | null;
+const missionScore = document.getElementById('missionScore') as HTMLParagraphElement | null;
 const sidearmHint = document.getElementById('sidearmHint') as HTMLButtonElement | null;
 const lightHint = document.getElementById('lightHint') as HTMLButtonElement | null;
-const shoveHint = document.getElementById('shoveHint') as HTMLButtonElement | null;
+const abilityHint = document.getElementById('abilityHint') as HTMLButtonElement | null;
+const abilityReadout = document.getElementById('abilityReadout') as HTMLDivElement | null;
+const abilityName = document.getElementById('abilityName') as HTMLElement | null;
+const possessBar = document.getElementById('possessBar') as HTMLDivElement | null;
+const possessFill = document.getElementById('possessFill') as HTMLSpanElement | null;
+const shadowRunBar = document.getElementById('shadowRunBar') as HTMLDivElement | null;
+const shadowRunFill = document.getElementById('shadowRunFill') as HTMLSpanElement | null;
 const skipCutsceneBtn = document.getElementById('skipCutscene') as HTMLButtonElement | null;
 const shadowHint = document.getElementById('shadowHint') as HTMLButtonElement | null;
-const consumeHint = document.getElementById('consumeHint') as HTMLButtonElement | null;
 const medkitHint = document.getElementById('medkitHint') as HTMLButtonElement | null;
 const inventoryItems = document.getElementById('inventoryItems') as HTMLDivElement;
 const inventoryClose = document.getElementById('inventoryClose') as HTMLButtonElement;
@@ -207,12 +220,18 @@ let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
 playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
 let storyObjectiveId = () => 'seat';
+let callQuestOpenFor = (_contactId: string) => false;
 const phone = createPhone(scene, {
   soundOn: () => audio.enabled,
   objectiveId: () => storyObjectiveId(),
+  callQuestOpen: (contactId) => callQuestOpenFor(contactId),
   onFinished: () => {
     followCamera.setCallFrame(false);
     act.onPhoneFinished();
+  },
+  onConnected: (contactId) => {
+    const quest = missionCallId(contactId);
+    if (quest) markMission(quest);
   },
   onHand: (raised) => {
     if (!raised || phone.locksBody()) {
@@ -306,6 +325,7 @@ const setObjective = (title: string, text: string, target: { x: number; z: numbe
   if (target) objectiveMarker.setTarget({ ...target, title, text });
   else objectiveMarker.setTarget(null);
   const cue = `${title}|${text}`;
+  if (missionsOpen) renderMissions();
   if (!text || cue === lastObjectiveCue || !state.running) return;
   lastObjectiveCue = cue;
   audio.play(SFX.objective, 0.55);
@@ -479,6 +499,7 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
 });
 
 const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+  dressedLevelId = 0;
   if (mode === 'boot') {
     gameReady = false;
     screenFade.to(1, 0);
@@ -531,7 +552,15 @@ const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') 
 const SAVE_COOKIE = 'ph-origins-save';
 const SAVE_STORAGE_KEY = 'ph-origins-save';
 const SAVE_MAX_AGE = 60 * 60 * 24 * 400;
-type SaveData = { unlocked: number; level: number; sound: boolean; health?: number; ammo?: number; medkits?: number };
+type SaveData = {
+  unlocked: number;
+  level: number;
+  sound: boolean;
+  health?: number;
+  ammo?: number;
+  medkits?: number;
+  missions?: Record<string, string[]>;
+};
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
 const MAX_HEALTH = 100;
 
@@ -570,6 +599,13 @@ const parseSave = (raw: string): SaveData => {
   const health = Number(parsed.health);
   const ammo = Number(parsed.ammo);
   const medkits = Number(parsed.medkits);
+  const missions: Record<string, string[]> = {};
+  if (parsed.missions && typeof parsed.missions === 'object') {
+    for (const [libraryId, ids] of Object.entries(parsed.missions)) {
+      if (!Array.isArray(ids)) continue;
+      missions[libraryId] = ids.filter((id) => typeof id === 'string');
+    }
+  }
   return {
     unlocked,
     level: Math.max(1, Number(parsed.level) || unlocked),
@@ -577,6 +613,7 @@ const parseSave = (raw: string): SaveData => {
     health: Number.isFinite(health) ? Math.max(1, Math.min(MAX_HEALTH, health)) : undefined,
     ammo: Number.isFinite(ammo) ? Math.max(0, Math.min(4, ammo)) : undefined,
     medkits: Number.isFinite(medkits) ? Math.max(0, Math.min(3, medkits)) : undefined,
+    missions,
   };
 };
 
@@ -609,6 +646,7 @@ const saveGame = (next: Partial<SaveData>) => {
     health: next.health ?? save.health,
     ammo: next.ammo ?? save.ammo,
     medkits: next.medkits ?? save.medkits,
+    missions: next.missions ?? save.missions,
   };
   writeSaveCookie(save);
   return save;
@@ -657,6 +695,7 @@ const state = {
     left: false,
     right: false,
     jump: false,
+    flyHeld: false,
     sprint: false,
   },
   movementVector: { x: 0, y: 0 },
@@ -819,24 +858,17 @@ const updateHud = () => {
   devLevel.textContent = state.level.toString();
 
   const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel();
-  const shadowHands = shadowPlay().controls() && shadowPlay().shadowMode();
+  const streetPowers = shadowPlay().controls();
+  const shadowHands = streetPowers && shadowPlay().shadowMode();
   const handsRaised = shadowHands && shadowPlay().handsOut();
-  const linked = shadowPlay().linked();
-  if (shoveHint) {
-    shoveHint.hidden = !shadowHands;
-    shoveHint.innerHTML = linked ? '<kbd>Tab</kbd> Release' : 'Click Shock';
-    shoveHint.setAttribute('aria-label', linked ? 'Release' : 'Shadow Shock');
+  if (abilityHint) abilityHint.hidden = !streetPowers;
+  if (abilityReadout) {
+    abilityReadout.hidden = !streetPowers;
+    if (abilityName) abilityName.textContent = abilityTitle();
   }
   if (shadowHint) {
     shadowHint.hidden = !shadowPlay().shadowShown();
     shadowHint.classList.toggle('lit', shadowHands);
-  }
-  if (consumeHint) {
-    const showConsume = linked || (handsRaised && !linked);
-    consumeHint.hidden = !showConsume;
-    consumeHint.innerHTML = linked ? '<kbd>V</kbd> Consume' : '<kbd>V</kbd> Possess';
-    consumeHint.setAttribute('aria-label', linked ? 'Consume' : 'Possess');
-    consumeHint.classList.toggle('lit', linked);
   }
   if (sidearmHint) {
     sidearmHint.innerHTML = shadowHands ? '<kbd>Q</kbd> Hands' : '<kbd>Q</kbd> Sidearm';
@@ -960,12 +992,14 @@ const syncPhoneHud = () => {
   } else if (callPointerFree) {
     canvas.style.cursor = '';
     root.style.cursor = '';
-    if (!inventoryOpen) lockGameplayPointer();
+    if (!panelsOpen()) lockGameplayPointer();
   }
   callPointerFree = phoneHoldsPointer;
 };
 
 let inventoryOpen = false;
+let missionsOpen = false;
+const panelsOpen = () => inventoryOpen || missionsOpen;
 let callPointerFree = false;
 let phoneRows = '';
 let weaponBusy = false;
@@ -976,7 +1010,7 @@ let reloadNote = '';
 let reloadNoteUntil = 0;
 
 const canLockGameplayPointer = () =>
-  state.running && !state.inCutscene && messageBox.classList.contains('hidden') && !inventoryOpen
+  state.running && !state.inCutscene && messageBox.classList.contains('hidden') && !panelsOpen()
   && !phone.locksBody() && !phone.isScreenOpen();
 
 const requestPlayLock = () => {
@@ -1001,12 +1035,69 @@ const lockPlayPointer = () => {
 
 const setInventoryOpen = (open: boolean) => {
   inventoryOpen = open;
+  if (open) missionsOpen = false;
   inventoryHud.classList.toggle('open', open);
+  missionsHud?.classList.toggle('open', missionsOpen);
   if (open) {
     unlockPointer();
     canvas.style.cursor = 'default';
     root.style.cursor = 'default';
-  } else {
+  } else if (!missionsOpen) {
+    canvas.style.cursor = '';
+    root.style.cursor = '';
+    if (!state.inCutscene) lockGameplayPointer();
+  }
+  updateCrosshairVisibility();
+};
+
+const doneMissionIds = (libraryId: string) => save.missions?.[libraryId] ?? [];
+
+callQuestOpenFor = (contactId) => {
+  const libraryId = getLevelDefinition(state.level).libraryId;
+  return callQuestOpen(libraryId, contactId, doneMissionIds(libraryId));
+};
+
+const markMission = (id: string) => {
+  const libraryId = getLevelDefinition(state.level).libraryId;
+  if (!missionsFor(libraryId).some((quest) => quest.id === id)) return;
+  const done = doneMissionIds(libraryId);
+  if (done.includes(id)) return;
+  saveGame({ missions: { ...(save.missions ?? {}), [libraryId]: [...done, id] } });
+  renderMissions();
+};
+
+const missionText = (value: string) => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;');
+
+const renderMissions = () => {
+  if (!missionsList) return;
+  const level = getLevelDefinition(state.level);
+  const done = new Set(doneMissionIds(level.libraryId));
+  const quests = missionsFor(level.libraryId);
+  const kicker = objectiveHud?.querySelector('.objective-kicker')?.textContent?.trim() || 'Main';
+  const detail = objectiveText?.textContent?.trim() || 'Follow the objective.';
+  if (missionsTitle) missionsTitle.textContent = `Missions ${missionLabel(level.libraryId, [...done])}`;
+  missionsList.innerHTML = quests.map((quest) => {
+    const title = quest.id === 'main' ? kicker : quest.title;
+    const note = quest.id === 'main' ? detail : quest.detail;
+    const complete = done.has(quest.id);
+    return `<div class="mission-row${complete ? ' done' : ''}"><span class="inventory-label">${quest.group === 'main' ? 'Main' : 'Side'}<span>${complete ? 'Done' : ''}</span></span><strong>${missionText(title)}</strong><span class="inventory-note">${missionText(note)}</span></div>`;
+  }).join('');
+};
+
+const setMissionsOpen = (open: boolean) => {
+  missionsOpen = open;
+  if (open) inventoryOpen = false;
+  missionsHud?.classList.toggle('open', open);
+  inventoryHud.classList.toggle('open', inventoryOpen);
+  if (open) {
+    renderMissions();
+    unlockPointer();
+    canvas.style.cursor = 'default';
+    root.style.cursor = 'default';
+  } else if (!inventoryOpen) {
     canvas.style.cursor = '';
     root.style.cursor = '';
     if (!state.inCutscene) lockGameplayPointer();
@@ -1027,6 +1118,17 @@ inventoryHint?.addEventListener('click', (event) => {
   event.preventDefault();
   setInventoryOpen(!inventoryOpen);
 });
+missionsClose?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  setMissionsOpen(false);
+});
+missionsHint?.addEventListener('click', (event) => {
+  event.stopPropagation();
+  event.preventDefault();
+  setMissionsOpen(!missionsOpen);
+});
+missionsHud?.addEventListener('pointerdown', stopInventoryPointer);
+missionsHud?.addEventListener('pointerup', stopInventoryPointer);
 inventoryHud.addEventListener('pointerdown', stopInventoryPointer);
 inventoryHud.addEventListener('pointerup', stopInventoryPointer);
 
@@ -1037,7 +1139,38 @@ const nextPlayableLevel = () => {
 };
 
 let levelPicked = false;
-let endingHeard = false;
+let pendingEnd: { title: string; text: string; levelId: number } | null = null;
+let meleeAbility: 'punch' | 'kick' = 'punch';
+let shadowPick: 'shock' | 'possess' = 'shock';
+let shadowRunLeft = SHADOW_RUN_SECONDS;
+let shadowRunLocked = false;
+let shadowFlying = false;
+
+const shadowRunActive = () => shadowPlay().controls()
+  && shadowPlay().shadowMode()
+  && state.input.sprint
+  && !shadowRunLocked
+  && shadowRunLeft > 0
+  && !shadowPlay().linked()
+  && !state.inCutscene
+  && state.running
+  && messageBox.classList.contains('hidden')
+  && !panelsOpen();
+
+const tickShadowRun = (delta: number) => {
+  if (shadowRunActive()) {
+    shadowRunLeft = Math.max(0, shadowRunLeft - delta);
+    if (shadowRunLeft <= 0) shadowRunLocked = true;
+    return;
+  }
+  if (!state.input.sprint || !shadowPlay().shadowMode()) shadowRunLocked = false;
+  if (!shadowRunLocked) shadowRunLeft = Math.min(SHADOW_RUN_SECONDS, shadowRunLeft + delta);
+};
+
+const abilityTitle = () => {
+  if (shadowPlay().shadowMode()) return shadowPick === 'possess' ? 'Possess' : 'Shadow Shock';
+  return meleeAbility === 'kick' ? 'Kick' : 'Punch';
+};
 
 const menuMode = () => {
   if (!gameReady) return 'loading' as const;
@@ -1067,13 +1200,6 @@ const syncStartButtonLabel = () => {
     const next = nextPlayableLevel();
     newGameBtn.style.display = 'none';
     resetBtn.style.display = 'none';
-    if (!endingHeard) {
-      startBtn.disabled = false;
-      startBtn.style.display = '';
-      startBtn.textContent = 'Continue';
-      loadModelBtn.style.display = 'none';
-      return;
-    }
     startBtn.disabled = !next;
     startBtn.style.display = next ? '' : 'none';
     startBtn.textContent = 'Continue';
@@ -1093,6 +1219,7 @@ const syncStartButtonLabel = () => {
   }
   newGameBtn.style.display = resume ? '' : 'none';
   resetBtn.style.display = '';
+  resetBtn.textContent = messageTitle.textContent === 'Defeat' ? 'Main Menu' : 'Reset';
   const hideLoad = messageTitle.textContent === 'Defeat' || messageTitle.textContent === 'Mission Clear';
   loadModelBtn.textContent = 'Load Level';
   loadModelBtn.style.display = hideLoad ? 'none' : '';
@@ -1111,7 +1238,7 @@ const updateCrosshairVisibility = () => {
   const aiming = state.player.weaponDrawn || (shadowPlay().controls() && shadowPlay().handsOut() && !shadowPlay().linked());
   const visible = state.running
     && aiming
-    && !inventoryOpen
+    && !panelsOpen()
     && messageBox.classList.contains('hidden');
   crosshair.style.display = visible ? 'block' : 'none';
 };
@@ -1284,7 +1411,7 @@ const toggleShadowHands = () => {
 
 const toggleWeapon = () => {
   if (shadowPlay().controls() && shadowPlay().shadowMode()) {
-    if (state.running && messageBox.classList.contains('hidden') && !inventoryOpen) toggleShadowHands();
+    if (state.running && messageBox.classList.contains('hidden') && !panelsOpen()) toggleShadowHands();
     return;
   }
   if (!state.running || state.inCutscene || weaponBusy || phone.locksBody()) return;
@@ -1315,12 +1442,10 @@ sidearmHint?.addEventListener('click', (event) => {
   event.stopPropagation();
   if (state.running && messageBox.classList.contains('hidden')) toggleWeapon();
 });
-shoveHint?.addEventListener('click', (event) => {
+abilityHint?.addEventListener('click', (event) => {
   event.preventDefault();
-  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !messageBox.classList.contains('hidden')) return;
-  if (shadowPlay().linked()) shadowPlay().release();
-  else shadowPlay().shock();
-  updateHud();
+  abilityHint?.blur();
+  switchAbility();
 });
 skipCutsceneBtn?.addEventListener('click', (event) => {
   event.preventDefault();
@@ -1338,8 +1463,8 @@ skipCutsceneBtn?.addEventListener('click', (event) => {
 });
 shadowHint?.addEventListener('click', (event) => {
   event.preventDefault();
-  if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !inventoryOpen) {
-    shadowPlay().toggleShadow();
+  if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !panelsOpen()) {
+    if (shadowPlay().toggleShadow()) markMission('power-shadow');
     if (!shadowPlay().shadowMode()) {
       playerAvatar.setArmed(false);
       syncEquippedCamera();
@@ -1347,16 +1472,6 @@ shadowHint?.addEventListener('click', (event) => {
     }
     updateHud();
   }
-});
-consumeHint?.addEventListener('click', (event) => {
-  event.preventDefault();
-  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !messageBox.classList.contains('hidden') || inventoryOpen) return;
-  if (shadowPlay().linked()) {
-    if (shadowPlay().consume()) audio.tone(64, 0.14, 'sine', 0.07);
-  } else if (shadowPlay().handsOut()) {
-    possessAimed();
-  }
-  updateHud();
 });
 lightHint?.addEventListener('click', (event) => {
   event.stopPropagation();
@@ -1437,13 +1552,20 @@ const startLevelCredits = (levelId: number) => {
 const showMessage = (title: string, text: string) => {
   messageTitle.textContent = title;
   messageText.textContent = text;
-  if (title === 'Level Complete') endingHeard = false;
   syncStartButtonLabel();
   unlockPointer();
   levelSelect.classList.add('hidden');
   messageBox.classList.remove('hidden');
-  if (title === 'Mission Clear') startLevelCredits(state.level);
+  if (title === 'Level Complete' || title === 'Mission Clear') startLevelCredits(state.level);
   else stopLevelCredits();
+  if (missionScore) {
+    const showScore = title === 'Level Complete';
+    missionScore.hidden = !showScore;
+    if (showScore) {
+      const level = getLevelDefinition(state.level);
+      missionScore.textContent = `Missions ${missionLabel(level.libraryId, doneMissionIds(level.libraryId))}`;
+    }
+  }
   updateCrosshairVisibility();
 };
 
@@ -1530,7 +1652,7 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
   if (fresh) {
-    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit') });
+    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {} });
   } else if (typeof save.health === 'number') {
     state.health = save.health;
     state.inventory.items.ammo = save.ammo ?? 0;
@@ -1592,6 +1714,7 @@ act = createAct1({
   tone: (hz, seconds, type, gain) => audio.tone(hz, seconds, type, gain),
   win: () => audio.win(),
   showMessage,
+  offerEnd: (title, text) => offerLevelEnd(title, text),
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
   unlockNext: () => unlockProgress(),
@@ -1660,6 +1783,7 @@ const home: GoingHome = createGoingHome({
   hurt: (amount) => applyHurt(amount),
   win: () => audio.win(),
   showMessage,
+  offerEnd: (title, text) => offerLevelEnd(title, text),
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
   unlockNext: () => unlockProgress(),
@@ -1683,6 +1807,7 @@ const home: GoingHome = createGoingHome({
     phone.pushText(id);
     updateHud();
   },
+  ability: () => shadowPick,
 });
 
 const desk: TheDesk = createTheDesk({
@@ -1699,6 +1824,7 @@ const desk: TheDesk = createTheDesk({
   },
   clearMarker: () => objectiveMarker.setTarget(null),
   showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
+  setObjective,
   playFile: (url, volume) => { audio.play(url, volume); },
   setWalk: (moving) => audio.setWalk(moving),
   setCarry: (items) => { storyCarry = items; },
@@ -1706,6 +1832,7 @@ const desk: TheDesk = createTheDesk({
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
   win: () => audio.win(),
   showMessage,
+  offerEnd: (title, text) => offerLevelEnd(title, text),
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
   unlockNext: () => unlockProgress(),
@@ -1728,6 +1855,7 @@ const station: TheStation = createTheStation({
   setCarry: (items) => { storyCarry = items; },
   win: () => audio.win(),
   showMessage,
+  offerEnd: (title, text) => offerLevelEnd(title, text),
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
   unlockNext: () => unlockProgress(),
@@ -1756,6 +1884,12 @@ let freshStart = false;
 
 const beginGame = () => {
   if (!gameReady) return;
+  pendingEnd = null;
+  meleeAbility = 'punch';
+  shadowPick = 'shock';
+  shadowRunLeft = SHADOW_RUN_SECONDS;
+  shadowRunLocked = false;
+  shadowFlying = false;
   stopEndingSong();
   screenFade.to(1, 0);
   audio.start();
@@ -1789,7 +1923,9 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false) =
   try {
     state.level = level.id;
     state.progression.currentLevel = level.id;
-    if (forceLoad || dressedLevelId !== level.id) {
+    const sceneTheme = (scene.metadata as { themeName?: string } | null)?.themeName;
+    // dressedLevelId can still name this level after a detour. The street scene is not the station.
+    if (forceLoad || dressedLevelId !== level.id || sceneTheme !== level.theme) {
       applyLevelConfig(level);
       await loadMissionScene(level.path);
     }
@@ -1969,6 +2105,7 @@ const clearInputState = () => {
   state.input.left = false;
   state.input.right = false;
   state.input.jump = false;
+  state.input.flyHeld = false;
   state.input.sprint = false;
   state.movementVector.x = 0;
   state.movementVector.y = 0;
@@ -2017,6 +2154,7 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
 };
 
 const updatePlayer = (delta: number) => {
+  tickShadowRun(delta);
   if (shadowPlay().linked()) {
     const yaw = followCamera.getYaw();
     const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
@@ -2074,8 +2212,7 @@ const updatePlayer = (delta: number) => {
   const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
-    const sprinting = state.input.sprint && shadowPlay().controls() && shadowPlay().shadowMode();
-    const speed = state.playerSpeed * (sprinting ? 1.75 : 1);
+    const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
     movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * delta, desiredMove.z * speed * delta);
   } else {
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
@@ -2088,9 +2225,21 @@ const updatePlayer = (delta: number) => {
     : null;
 
   clampPlayerToArena(state.player, state.arenaSize);
-  updateVerticalMotion(state.player, delta, playerCollider);
+  const runningShadow = shadowRunActive();
+  if (runningShadow && state.input.flyHeld) shadowFlying = true;
+  if (!runningShadow && shadowFlying) {
+    shadowFlying = false;
+    state.player.grounded = false;
+    state.player.velocityY = 0;
+  }
+  if (shadowFlying) {
+    state.input.jump = false;
+    flyPlayer(state.player, playerCollider, delta, state.input.flyHeld);
+  } else {
+    updateVerticalMotion(state.player, delta, playerCollider);
+  }
 
-  if (state.input.jump) {
+  if (!shadowFlying && state.input.jump) {
     if (requestJump(state.player)) {
       audio.jump();
     }
@@ -2111,16 +2260,17 @@ const updatePlayer = (delta: number) => {
   );
 
   const jumpAnim = !state.player.grounded || state.player.jumpWindup > 0;
-  const sprinting = moving && state.input.sprint && shadowPlay().controls() && shadowPlay().shadowMode();
+  const sprinting = moving && shadowRunActive();
   playerAvatar.setSprinting(sprinting);
-  playerAvatar.setLocomotion(moving, !jumpAnim);
+  playerAvatar.setLocomotion(moving, shadowFlying ? true : !jumpAnim);
   playerAvatar.setPace(1);
   audio.setWalk(
     moving
     && !jumpAnim
+    && !shadowRunActive()
     && state.running
     && !state.inCutscene
-    && !inventoryOpen
+    && !panelsOpen()
     && messageBox.classList.contains('hidden'),
   );
 
@@ -2203,9 +2353,37 @@ const useMedkit = () => {
   updateHud();
 };
 
+const offerLevelEnd = (title: string, text: string) => {
+  if (pendingEnd?.levelId === state.level) return;
+  pendingEnd = { title, text, levelId: state.level };
+  screenFade.to(0, 0.45);
+};
+
+const presentLevelEnd = () => {
+  if (!pendingEnd || pendingEnd.levelId !== state.level) {
+    pendingEnd = null;
+    return;
+  }
+  const card = pendingEnd;
+  pendingEnd = null;
+  phone.silence();
+  followCamera.setCallFrame(false);
+  state.running = false;
+  clearInputState();
+  audio.setWalk(false);
+  audio.win();
+  screenFade.to(1, 1.15);
+  markMission('main');
+  updateHud();
+  showMessage(card.title, card.text);
+};
+
 const storyAction = (): string | null => {
-  if (!state.running || state.inCutscene || inventoryOpen || home.playing() || desk.playing()) return null;
+  if (!state.running || state.inCutscene) return null;
   if (!messageBox.classList.contains('hidden')) return null;
+  if (pendingEnd?.levelId === state.level) return 'End Level';
+  pendingEnd = null;
+  if (panelsOpen() || home.playing() || desk.playing()) return null;
   if (phone.locksBody() || phone.isScreenOpen()) return null;
   if (isDeskLevel()) return desk.action();
   if (isHomeLevel() || isStationLevel()) return null;
@@ -2215,6 +2393,11 @@ const storyAction = (): string | null => {
 const confirmStoryAction = () => {
   if (!storyAction()) return false;
   unlockAudio();
+  if (pendingEnd) {
+    presentLevelEnd();
+    syncActionHint();
+    return true;
+  }
   if (isDeskLevel()) desk.confirm();
   else act.confirm();
   syncActionHint();
@@ -2231,7 +2414,7 @@ const syncActionHint = () => {
 
 const syncInteractHint = () => {
   if (!interactHint) return;
-  const pickup = state.running && !state.inCutscene && !inventoryOpen ? nearestSupply() : null;
+  const pickup = state.running && !state.inCutscene && !panelsOpen() ? nearestSupply() : null;
   if (!pickup) {
     interactHint.hidden = true;
     return;
@@ -2262,7 +2445,7 @@ const syncReloadHint = () => {
 };
 
 const reloadWeapon = () => {
-  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.locksBody() || phone.isRaised()) return;
+  if (!state.running || state.inCutscene || panelsOpen() || weaponBusy || phone.locksBody() || phone.isRaised()) return;
   if (performance.now() < reloadReadyAt) return;
   if (state.player.clip >= CLIP_SIZE) return;
   if (!consumeItem(state.inventory, 'ammo', 1)) {
@@ -2278,23 +2461,63 @@ const reloadWeapon = () => {
 };
 
 const possessAimed = () => {
-  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !shadowPlay().handsOut() || shadowPlay().linked()) return false;
-  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.isRaised() || phone.locksBody()) return false;
-  const spot = autoAim.point();
-  if (!spot || !shadowPlay().possessAt(spot.x, spot.y, spot.z)) return false;
+  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || shadowPick !== 'possess' || shadowPlay().linked()) return false;
+  if (!state.running || state.inCutscene || panelsOpen() || weaponBusy || phone.isRaised() || phone.locksBody()) return false;
+  const spot = shadowPlay().handsOut() ? autoAim.point() : null;
+  const took = (spot && shadowPlay().possessAt(spot.x, spot.y, spot.z)) || shadowPlay().possessLook();
+  if (!took) return false;
+  markMission('power-possess');
   audio.tone(78, 0.1, 'sine', 0.06);
   updateHud();
   return true;
 };
 
+const useShadowClick = () => {
+  if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !state.running || state.inCutscene || panelsOpen() || phone.isRaised() || phone.locksBody()) return;
+  if (shadowPick === 'possess') {
+    if (shadowPlay().linked()) {
+      if (shadowPlay().consume()) {
+        markMission('power-consume');
+        audio.tone(64, 0.14, 'sine', 0.07);
+      }
+      return;
+    }
+    possessAimed();
+    return;
+  }
+  if (shadowPlay().shock()) markMission('power-shock');
+};
+
+const switchAbility = () => {
+  if (!shadowPlay().controls() || !state.running || state.inCutscene || panelsOpen() || !messageBox.classList.contains('hidden')) return;
+  if (shadowPlay().shadowMode()) {
+    if (shadowPlay().linked()) shadowPlay().release();
+    shadowPick = shadowPick === 'shock' ? 'possess' : 'shock';
+  } else {
+    meleeAbility = meleeAbility === 'punch' ? 'kick' : 'punch';
+  }
+  updateHud();
+};
+
+let shadowClickEdge = false;
+
 const fireWeapon = () => {
   if (shadowPlay().controls() && shadowPlay().shadowMode()) {
-    if (!state.running || state.inCutscene || inventoryOpen || phone.isRaised() || phone.locksBody()) return;
-    shadowPlay().shock();
+    if (!shadowClickEdge) return;
+    shadowClickEdge = false;
+    useShadowClick();
     updateHud();
     return;
   }
-  if (!state.running || state.inCutscene || inventoryOpen || weaponBusy || phone.isRaised() || phone.locksBody() || !state.player.weaponDrawn || state.shootCooldown > 0) return;
+  if (shadowPlay().controls() && !state.player.weaponDrawn) {
+    if (!shadowClickEdge) return;
+    shadowClickEdge = false;
+    if (!state.running || state.inCutscene || panelsOpen() || phone.isRaised() || phone.locksBody()) return;
+    shadowPlay().strike(meleeAbility);
+    updateHud();
+    return;
+  }
+  if (!state.running || state.inCutscene || panelsOpen() || weaponBusy || phone.isRaised() || phone.locksBody() || !state.player.weaponDrawn || state.shootCooldown > 0) return;
   if (performance.now() < reloadReadyAt) return;
   if (state.player.clip <= 0) {
     state.shootCooldown = 0.35;
@@ -2328,7 +2551,7 @@ const writeAim = (index: number, x: number, y: number, z: number) => {
 
 const refreshAim = (delta: number) => {
   const shadowAim = shadowPlay().controls() && shadowPlay().handsOut() && !shadowPlay().linked();
-  if (!state.running || state.inCutscene || inventoryOpen || (!state.player.weaponDrawn && !shadowAim) || phone.isRaised()) {
+  if (!state.running || state.inCutscene || panelsOpen() || (!state.player.weaponDrawn && !shadowAim) || phone.isRaised()) {
     autoAim.clear();
     followCamera.clearAim();
     aimSuppress = 0;
@@ -2395,9 +2618,10 @@ window.addEventListener('keydown', (event) => {
   if (key === 'a' || key === 'arrowleft') state.input.left = true;
   if (key === 'd' || key === 'arrowright') state.input.right = true;
   if (key === 'shift') state.input.sprint = true;
-  if (key === ' ' && state.player.grounded) {
+  if (key === ' ') {
     event.preventDefault();
-    state.input.jump = true;
+    state.input.flyHeld = true;
+    if (state.player.grounded && !shadowRunActive()) state.input.jump = true;
   }
   if (key === 'p') {
     const menuOpen = !messageBox.classList.contains('hidden');
@@ -2407,6 +2631,10 @@ window.addEventListener('keydown', (event) => {
   if (key === 'i') {
     event.preventDefault();
     setInventoryOpen(!inventoryOpen);
+  }
+  if (key === 'o') {
+    event.preventDefault();
+    setMissionsOpen(!missionsOpen);
   }
   if (key === 'f') {
     event.preventDefault();
@@ -2423,26 +2651,15 @@ window.addEventListener('keydown', (event) => {
     if (state.running && messageBox.classList.contains('hidden')) toggleWeapon();
   }
   if (key === 'tab') {
-    if (shadowPlay().controls() && shadowPlay().linked() && messageBox.classList.contains('hidden') && !inventoryOpen) {
-      event.preventDefault();
-      shadowPlay().release();
-      updateHud();
-    }
-  }
-  if (key === 'v') {
     event.preventDefault();
-    if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !messageBox.classList.contains('hidden') || inventoryOpen) return;
-    if (shadowPlay().linked()) {
-      if (shadowPlay().consume()) audio.tone(64, 0.14, 'sine', 0.07);
-    } else {
-      possessAimed();
-    }
-    updateHud();
+    const active = document.activeElement;
+    if (active instanceof HTMLElement) active.blur();
+    switchAbility();
   }
   if (key === 'c') {
     event.preventDefault();
-    if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !inventoryOpen) {
-      shadowPlay().toggleShadow();
+    if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !panelsOpen()) {
+      if (shadowPlay().toggleShadow()) markMission('power-shadow');
       if (!shadowPlay().shadowMode()) {
         playerAvatar.setArmed(false);
         syncEquippedCamera();
@@ -2459,7 +2676,7 @@ window.addEventListener('keydown', (event) => {
     event.preventDefault();
     if (confirmStoryAction()) return;
     const pickup = nearestSupply();
-    if (pickup && state.running && !state.inCutscene && !inventoryOpen && messageBox.classList.contains('hidden')) takeSupply(pickup);
+    if (pickup && state.running && !state.inCutscene && !panelsOpen() && messageBox.classList.contains('hidden')) takeSupply(pickup);
   }
   if (key === 'h') {
     event.preventDefault();
@@ -2487,7 +2704,7 @@ interactHint?.addEventListener('pointerdown', (event) => {
   event.stopPropagation();
   unlockAudio();
   const pickup = nearestSupply();
-  if (pickup && state.running && !state.inCutscene && !inventoryOpen && messageBox.classList.contains('hidden')) takeSupply(pickup);
+  if (pickup && state.running && !state.inCutscene && !panelsOpen() && messageBox.classList.contains('hidden')) takeSupply(pickup);
 });
 
 window.addEventListener('keyup', (event) => {
@@ -2497,7 +2714,10 @@ window.addEventListener('keyup', (event) => {
   if (key === 'a' || key === 'arrowleft') state.input.left = false;
   if (key === 'd' || key === 'arrowright') state.input.right = false;
   if (key === 'shift') state.input.sprint = false;
-  if (key === ' ') state.input.jump = false;
+  if (key === ' ') {
+    state.input.jump = false;
+    state.input.flyHeld = false;
+  }
 });
 
 window.addEventListener('blur', clearInputState);
@@ -2507,16 +2727,18 @@ window.addEventListener('gesturechange', (event) => event.preventDefault(), { pa
 window.addEventListener('gestureend', (event) => event.preventDefault(), { passive: false });
 
 canvas.addEventListener('pointerdown', (event) => {
-  if (inventoryOpen || state.inCutscene) return;
+  if (panelsOpen() || state.inCutscene) return;
   if (event.pointerType === 'mouse') {
     state.mouseLookActive = true;
     requestPlayLock();
   }
+  shadowClickEdge = true;
   if (state.running) fireWeapon();
 });
 
 canvas.addEventListener('pointerup', () => {
   state.mouseLookActive = false;
+  shadowClickEdge = false;
 });
 
 canvas.addEventListener('pointerleave', () => {
@@ -2668,18 +2890,23 @@ if (rightStickZone) {
 jumpBtn.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   unlockAudio();
-  state.input.jump = true;
+  state.input.flyHeld = true;
+  if (!shadowRunActive()) state.input.jump = true;
 });
-jumpBtn.addEventListener('pointerup', () => { state.input.jump = false; });
-jumpBtn.addEventListener('pointerleave', () => { state.input.jump = false; });
-jumpBtn.addEventListener('pointercancel', () => { state.input.jump = false; });
+jumpBtn.addEventListener('pointerup', () => { state.input.jump = false; state.input.flyHeld = false; });
+jumpBtn.addEventListener('pointerleave', () => { state.input.jump = false; state.input.flyHeld = false; });
+jumpBtn.addEventListener('pointercancel', () => { state.input.jump = false; state.input.flyHeld = false; });
 
 fireBtn.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   state.fireHeld = true;
+  shadowClickEdge = true;
   if (state.running) fireWeapon();
 });
-fireBtn.addEventListener('pointerup', () => { state.fireHeld = false; });
+fireBtn.addEventListener('pointerup', () => {
+  state.fireHeld = false;
+  shadowClickEdge = false;
+});
 fireBtn.addEventListener('pointerleave', () => { state.fireHeld = false; });
 fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
@@ -2687,13 +2914,6 @@ startBtn.addEventListener('click', () => {
   unlockAudio();
   const mode = menuMode();
   if (mode === 'level-complete') {
-    if (!endingHeard) {
-      endingHeard = true;
-      audio.win();
-      startLevelCredits(state.level);
-      syncStartButtonLabel();
-      return;
-    }
     lockPlayPointer();
     const next = nextPlayableLevel();
     if (next) void startAtLevel(next.id);
@@ -2721,6 +2941,15 @@ newGameBtn.addEventListener('click', () => {
 canvas.addEventListener('pointerdown', () => unlockAudio());
 installAudioUnlock();
 resetBtn.addEventListener('click', () => {
+  if (messageTitle.textContent === 'Defeat') {
+    defeatLeft = 0;
+    levelPicked = false;
+    state.running = false;
+    menuCameraActive = true;
+    activateMenuCamera(scene, menuCamera);
+    showMessage('PH Origins', levelStartLine());
+    return;
+  }
   stopEndingSong();
   clearSave();
   save = { ...defaultSave, sound: audio.enabled };
@@ -2894,6 +3123,16 @@ const renderLoop = () => {
     state.inCutscene ? 0.18 : 1,
   );
 
+  if (possessBar && possessFill) {
+    const left = shadowPlay().linked() ? shadowPlay().possessLeft() : 0;
+    possessBar.hidden = left <= 0;
+    if (left > 0) possessFill.style.transform = `scaleX(${Math.max(0, Math.min(1, left / POSSESS_SECONDS))})`;
+  }
+  if (shadowRunBar && shadowRunFill) {
+    const showRun = shadowPlay().controls() && shadowPlay().shadowMode() && (shadowRunActive() || shadowRunLeft < SHADOW_RUN_SECONDS - 0.05);
+    shadowRunBar.hidden = !showRun;
+    if (showRun) shadowRunFill.style.transform = `scaleX(${Math.max(0, Math.min(1, shadowRunLeft / SHADOW_RUN_SECONDS))})`;
+  }
   perfMonitor.update(delta, engine.getFps());
   shadowVeil.update(
     shadowPlay().controls() && shadowPlay().shadowMode(),
@@ -2902,6 +3141,8 @@ const renderLoop = () => {
     state.player.z,
     state.characterYaw,
     delta,
+    shadowRunActive(),
+    Math.max(0, state.player.y - PLAYER_STAND_Y),
   );
   scene.render();
 };
@@ -2963,7 +3204,7 @@ const renderLevelSelect = () => {
       : `
       <div>
         <strong>Level ${level.id}: ${level.name}</strong>
-        <small>${level.reward}</small>
+        <small>${level.reward} · ${missionLabel(level.libraryId, doneMissionIds(level.libraryId))}</small>
       </div>
       <span>${unlocked ? 'Play' : 'Locked'}</span>
     `;

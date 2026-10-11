@@ -86,7 +86,7 @@ export const createShadowVeil = (scene: BABYLON.Scene) => {
     bound = null;
   };
 
-  const fadeBody = (avatar: PlayerAvatar) => {
+  const fadeBody = (avatar: PlayerAvatar, rush: boolean) => {
     const group = avatar.group;
     if (bound !== group) {
       restoreBody();
@@ -95,7 +95,7 @@ export const createShadowVeil = (scene: BABYLON.Scene) => {
     }
     for (const mesh of body) {
       if (mesh.isDisposed()) continue;
-      mesh.visibility = 0.92;
+      mesh.visibility = rush ? 0.04 : 0.92;
       const material = mesh.material;
       if (!(material instanceof BABYLON.PBRMaterial) && !(material instanceof BABYLON.StandardMaterial)) continue;
       if (!matSnap.has(material)) {
@@ -106,7 +106,7 @@ export const createShadowVeil = (scene: BABYLON.Scene) => {
         });
       }
       material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
-      material.alpha = 0.58;
+      material.alpha = rush ? 0.04 : 0.58;
       if (material instanceof BABYLON.PBRMaterial) material.useAlphaFromAlbedoTexture = false;
     }
   };
@@ -130,7 +130,7 @@ export const createShadowVeil = (scene: BABYLON.Scene) => {
       slot.left = 2.6;
       slot.age = 0;
     },
-    update: (on: boolean, avatar: PlayerAvatar, x: number, z: number, yaw: number, dt: number) => {
+    update: (on: boolean, avatar: PlayerAvatar, x: number, z: number, yaw: number, dt: number, rush = false, liftY = 0) => {
       clock += dt;
       tickSheds(dt);
       if (!on) {
@@ -140,8 +140,32 @@ export const createShadowVeil = (scene: BABYLON.Scene) => {
         for (const wisp of wisps) wisp.setEnabled(false);
         return;
       }
-      fadeBody(avatar);
-      poseWisps(wisps, x, z, yaw, clock, 1);
+      fadeBody(avatar, rush);
+      if (!rush) {
+        material.alpha = 0.16;
+        material.emissiveColor.set(0.04, 0.015, 0.07);
+        poseWisps(wisps, x, z, yaw, clock, 1);
+        return;
+      }
+      material.alpha = 0.72;
+      material.emissiveColor.set(0.01, 0.01, 0.012);
+      const ahead = Math.sin(yaw);
+      const along = Math.cos(yaw);
+      for (let i = 0; i < wisps.length; i += 1) {
+        const wisp = wisps[i];
+        const back = (i / Math.max(1, wisps.length - 1)) * 4.4;
+        const sway = Math.sin(clock * 7 + i * 0.8) * (0.12 + back * 0.08);
+        const lift = 0.45 + Math.sin(clock * 5 + i) * 0.28 + (i % 4) * 0.12;
+        wisp.setEnabled(true);
+        wisp.position.set(
+          x - ahead * back + along * sway,
+          lift + liftY,
+          z - along * back - ahead * sway,
+        );
+        const puff = 0.7 + (1 - back / 4.4) * 1.15;
+        wisp.scaling.set(puff * 1.2, puff * 0.7, puff);
+        wisp.visibility = 0.85 * (1 - back / 5.2);
+      }
     },
     dispose: () => {
       restoreBody();
