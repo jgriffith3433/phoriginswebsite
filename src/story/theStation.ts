@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { PLAYER_ASSET_ID } from '../game/modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import type { StoryCarry } from './act1';
@@ -30,6 +31,11 @@ export type TheStationHost = {
   hand: () => { x: number; y: number; z: number } | null;
   player: () => { x: number; z: number; yaw: number };
   shedShadow: (x: number, z: number) => void;
+  frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
+  releaseCamera: () => void;
+  showLine: (title: string, text: string) => void;
+  holdScene: (held: boolean) => void;
+  ringCall: (id: string) => void;
 };
 
 const DOOR = { x: 50.3, z: 1.55 };
@@ -41,6 +47,89 @@ const CARRY: StoryCarry[] = [
   { id: 'sidearm', name: 'Sidearm', note: 'Q draws it, until Shadow mode.' },
   { id: 'shadow', name: 'Shadow mode', note: 'C or the Shadow button turns it on. Powers only work while it is on.' },
 ];
+
+const MAN_ASSET = 'asset-ch28-npc';
+const SPAWN = { x: 7.2, z: -1.6, yaw: Math.PI / 2 };
+const MAN_AT = { x: 24, z: -1.15 };
+const DOUBLE_FROM = { x: 31.2, z: 0.45 };
+const DOUBLE_AT = { x: 24.12, z: 0.4 };
+const CROWD: [number, number, number, number][] = [
+  [22, -4.2, 16, 28],
+  [36, -1.1, 30, 42],
+  [58, -4.4, 52, 66],
+  [70, -1.2, 64, 76],
+];
+const MAN_PATH = [
+  { x: 24, z: -1.15 },
+  { x: 50.2, z: -0.35 },
+  { x: 50.3, z: 1.2 },
+  { x: 50.3, z: 3.15 },
+];
+const DOUBLE_PATH = [
+  { x: 24.12, z: 0.4 },
+  { x: 49.4, z: 0.15 },
+  { x: 50.1, z: 1.2 },
+  { x: 50.1, z: 3.05 },
+];
+
+const LINE_ME = { text: 'Wait. Is that me?', url: '/assets/audio/cutscenes/station-shadow/01-pierce-is-that-me.wav', hold: 2.3 };
+const LINE_HERE = { text: 'How am I talking to him if I\'m standing here?', url: '/assets/audio/cutscenes/station-shadow/02-pierce-standing-here.wav', hold: 3.6 };
+const LINE_UPTOWN = { text: 'You heading uptown?', url: '/assets/audio/cutscenes/station-shadow/03-pierce-uptown.wav', hold: 1.8 };
+const LINE_MINE = { text: 'Yeah. This one\'s mine.', url: '/assets/audio/cutscenes/station-shadow/04-man-this-one.wav', hold: 2.0 };
+const LINE_SEAT = { text: 'Save me a seat.', url: '/assets/audio/cutscenes/station-shadow/05-pierce-seat.wav', hold: 1.6 };
+const LINE_LEFT = { text: 'If there\'s one left.', url: '/assets/audio/cutscenes/station-shadow/06-man-one-left.wav', hold: 1.8 };
+
+const T_WALK = 2.4;
+const T_ARRIVE = 6.6;
+const T_ME = 6.9;
+const T_HERE = 9.3;
+const T_UPTOWN = 13.1;
+const T_MINE = 15.0;
+const T_SEAT = 17.1;
+const T_LEFT = 18.9;
+const T_STRIKE = T_LEFT + LINE_LEFT.hold + 0.4;
+const BOARD_SPEED = 2.7;
+const STRIKE_LIMIT = 8;
+
+type Figure = {
+  mesh: BABYLON.Mesh;
+  avatar: PlayerAvatar;
+  role: 'man' | 'shade' | 'double';
+  gone: boolean;
+};
+
+type PathPoint = { x: number; z: number };
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** Beside the commuter, off the line between him and the other Pierce. */
+const shadeBeside = (_yaw: number) => ({
+  x: MAN_AT.x + 0.65,
+  z: MAN_AT.z + 0.05,
+});
+
+const walkPath = (points: PathPoint[], dist: number) => {
+  let left = Math.max(0, dist);
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const a = points[i];
+    const b = points[i + 1];
+    const seg = Math.hypot(b.x - a.x, b.z - a.z);
+    if (left <= seg || i === points.length - 2 && left >= seg) {
+      const u = seg < 0.001 ? 1 : Math.min(1, left / seg);
+      const done = i === points.length - 2 && left >= seg - 0.02;
+      return {
+        x: lerp(a.x, b.x, u),
+        z: lerp(a.z, b.z, u),
+        yaw: Math.atan2(b.x - a.x, b.z - a.z),
+        done,
+      };
+    }
+    left -= seg;
+  }
+  const last = points[points.length - 1];
+  const prev = points[points.length - 2] ?? last;
+  return { x: last.x, z: last.z, yaw: Math.atan2(last.x - prev.x, last.z - prev.z), done: true };
+};
 
 type Person = {
   mesh: BABYLON.Mesh;
@@ -85,9 +174,320 @@ export const createTheStation = (host: TheStationHost) => {
   let watchZ = 0;
   const trailFrom = new BABYLON.Vector3();
   const trailTo = new BABYLON.Vector3();
+  const figures: Figure[] = [];
+  const shadeWisps: BABYLON.Mesh[] = [];
+  let shadeMat: BABYLON.StandardMaterial | null = null;
+  let playing = false;
+  let sceneTime = 0;
+  let lineUntil = 0;
+  let saidMe = false;
+  let saidHere = false;
+  let saidUptown = false;
+  let saidMine = false;
+  let saidSeat = false;
+  let saidLeft = false;
+  let boardMan = 0;
+  let boardDouble = 0;
+  let leaveAt = -1;
+  let callIn = -1;
+  let haleRang = false;
+  let crowd = false;
+  let shadeAlpha = 0.58;
+  let shadePhase: 'yell' | 'strike' | 'gone' = 'yell';
+  let yelled = false;
+  let strikeAt = -1;
+  let boardAt = -1;
+  let castWait = 0;
 
   const face = (person: Person, yaw: number) => {
     person.avatar.group.rotation.y = yaw + Math.PI;
+  };
+
+  const faceFigure = (figure: Figure, yaw: number) => {
+    figure.avatar.group.rotation.y = yaw + Math.PI;
+  };
+
+  const paintShade = (avatar: PlayerAvatar, alpha: number) => {
+    for (const mesh of avatar.group.getChildMeshes(false)) {
+      mesh.visibility = alpha < 0.04 ? 0 : 1;
+      const material = mesh.material;
+      if (material instanceof BABYLON.PBRMaterial) {
+        material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+        material.alpha = alpha;
+        material.useAlphaFromAlbedoTexture = false;
+        const tagged = material.metadata as { shade?: boolean } | null;
+        if (!tagged?.shade) {
+          material.albedoColor = new BABYLON.Color3(0.14, 0.13, 0.16);
+          material.emissiveColor = new BABYLON.Color3(0.02, 0.012, 0.04);
+          material.metadata = { ...(material.metadata ?? {}), shade: true };
+        }
+      } else if (material instanceof BABYLON.StandardMaterial) {
+        material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+        material.alpha = alpha;
+        material.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.06);
+        material.emissiveColor = new BABYLON.Color3(0.02, 0.012, 0.035);
+      }
+    }
+  };
+
+  const ensureWisps = () => {
+    if (shadeWisps.length || !shadeMat) return;
+    for (let i = 0; i < 8; i += 1) {
+      const wisp = BABYLON.MeshBuilder.CreateSphere(`station-shade-wisp-${i}`, { diameter: 0.28, segments: 5 }, host.scene);
+      wisp.material = shadeMat;
+      wisp.isPickable = false;
+      wisp.checkCollisions = false;
+      wisp.setEnabled(false);
+      shadeWisps.push(wisp);
+    }
+  };
+
+  const poseWisps = (x: number, z: number, alpha: number) => {
+    ensureWisps();
+    for (let i = 0; i < shadeWisps.length; i += 1) {
+      const wisp = shadeWisps[i];
+      if (alpha < 0.04) {
+        wisp.setEnabled(false);
+        continue;
+      }
+      const cycle = (sceneTime * 0.35 + i * 0.31) % 1;
+      const ang = sceneTime * 0.6 + (i / shadeWisps.length) * Math.PI * 2;
+      const out = 0.28 + cycle * 0.35;
+      wisp.setEnabled(true);
+      wisp.position.set(x + Math.cos(ang) * out, 0.45 + cycle * 1.15, z + Math.sin(ang) * out);
+      wisp.visibility = (1 - cycle) * alpha * 0.7;
+    }
+  };
+
+  const clearFigures = () => {
+    for (const figure of figures) {
+      figure.avatar.dispose();
+      if (!figure.mesh.isDisposed()) figure.mesh.dispose();
+    }
+    figures.length = 0;
+    for (const wisp of shadeWisps) {
+      if (!wisp.isDisposed()) wisp.dispose(false, false);
+    }
+    shadeWisps.length = 0;
+    shadeMat?.dispose();
+    shadeMat = null;
+  };
+
+  const spawnFigure = (id: string, assetId: string, x: number, z: number, yaw: number, role: Figure['role']) => {
+    const mesh = BABYLON.MeshBuilder.CreateCapsule(id, { radius: 0.34, height: 1.5 }, host.scene);
+    mesh.position.set(x, PLAYER_STAND_Y, z);
+    mesh.visibility = 0;
+    mesh.isPickable = false;
+    mesh.checkCollisions = false;
+    const avatar = createCharacterAvatar(host.scene, id, assetId);
+    avatar.group.parent = mesh;
+    avatar.group.position.y = -PLAYER_MESH_Y_OFFSET;
+    const figure: Figure = { mesh, avatar, role, gone: false };
+    faceFigure(figure, yaw);
+    avatar.whenReady(() => {
+      if (figure.gone) return;
+      if (role === 'shade') paintShade(avatar, shadeAlpha);
+      avatar.setLocomotion(false, true);
+    });
+    figures.push(figure);
+    return figure;
+  };
+
+  const putFigure = (figure: Figure, x: number, z: number, yaw: number, moving: boolean, holdClip = false) => {
+    if (figure.gone) return;
+    figure.mesh.position.x = x;
+    figure.mesh.position.z = z;
+    faceFigure(figure, yaw);
+    if (!holdClip) figure.avatar.setLocomotion(moving, true);
+  };
+
+  const hideFigure = (figure: Figure) => {
+    if (figure.gone) return;
+    figure.gone = true;
+    figure.avatar.setShown(false);
+    figure.mesh.setEnabled(false);
+  };
+
+  const say = (title: string, text: string, url: string, hold: number) => {
+    host.showLine(title, text);
+    host.playFile(url, 0.92);
+    lineUntil = sceneTime + hold;
+  };
+
+  const frameShot = () => {
+    if (sceneTime < T_UPTOWN) {
+      host.frameCamera({ x: 3.6, y: 2.35, z: -0.15 }, { x: 30, y: 1.15, z: -0.9 });
+      return;
+    }
+    if (shadePhase !== 'gone') {
+      host.frameCamera({ x: 21.5, y: 1.62, z: -0.35 }, { x: 24.7, y: 1.28, z: -0.7 });
+      return;
+    }
+    const man = figures.find((figure) => figure.role === 'man');
+    const focus = man && !man.gone
+      ? { x: man.mesh.position.x, z: man.mesh.position.z }
+      : { x: 50.2, z: 1.2 };
+    host.frameCamera(
+      { x: Math.min(focus.x - 3.2, 46.5), y: 1.68, z: Math.min(focus.z + 2.1, 0.9) },
+      { x: focus.x, y: 1.22, z: focus.z },
+    );
+  };
+
+  const spawnCrowd = () => {
+    if (crowd) return;
+    crowd = true;
+    CROWD.forEach(([x, z, x0, x1], index) => {
+      spawn(`station-walk-${index}`, ASSETS[index % ASSETS.length], x, z, x0, x1);
+    });
+  };
+
+  const handoff = () => {
+    if (!playing) return;
+    playing = false;
+    clearFigures();
+    host.showLine('', '');
+    host.setWalk(false);
+    host.releaseCamera();
+    host.holdScene(false);
+    host.placePierce(SPAWN.x, SPAWN.z, SPAWN.yaw);
+    // playClip locks cinematic. Calling it after resume leaves him sliding in idle.
+    host.resumeLocomotion();
+    showGoal();
+    host.showObjective(true);
+    spawnCrowd();
+    callIn = 0.7;
+  };
+
+  const beginEncounter = () => {
+    clearFigures();
+    playing = true;
+    sceneTime = 0;
+    lineUntil = 0;
+    saidMe = false;
+    saidHere = false;
+    saidUptown = false;
+    saidMine = false;
+    saidSeat = false;
+    saidLeft = false;
+    boardMan = 0;
+    boardDouble = 0;
+    leaveAt = -1;
+    callIn = -1;
+    shadeAlpha = 0.58;
+    shadePhase = 'yell';
+    yelled = false;
+    strikeAt = -1;
+    boardAt = -1;
+    castWait = 0;
+    shadeMat = new BABYLON.StandardMaterial('station-shade-wisp-mat', host.scene);
+    shadeMat.diffuseColor = new BABYLON.Color3(0.01, 0.01, 0.015);
+    shadeMat.emissiveColor = new BABYLON.Color3(0.04, 0.015, 0.07);
+    shadeMat.specularColor = BABYLON.Color3.Black();
+    shadeMat.alpha = 0.2;
+    shadeMat.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+    shadeMat.disableLighting = true;
+    shadeMat.backFaceCulling = false;
+    const manYaw = Math.atan2(DOUBLE_FROM.x - MAN_AT.x, DOUBLE_FROM.z - MAN_AT.z);
+    const shadeAt = shadeBeside(manYaw);
+    spawnFigure('station-man', MAN_ASSET, MAN_AT.x, MAN_AT.z, manYaw, 'man');
+    spawnFigure('station-shade', MAN_ASSET, shadeAt.x, shadeAt.z, manYaw, 'shade');
+    spawnFigure('station-double', PLAYER_ASSET_ID, DOUBLE_FROM.x, DOUBLE_FROM.z, Math.atan2(MAN_AT.x - DOUBLE_FROM.x, MAN_AT.z - DOUBLE_FROM.z), 'double');
+    host.holdScene(true);
+    host.showObjective(false);
+    host.clearMarker();
+    host.placePierce(SPAWN.x, SPAWN.z, SPAWN.yaw);
+    host.playClip('rebornidle', true);
+    frameShot();
+  };
+
+  const poofShade = () => {
+    if (!playing || shadePhase === 'gone') return;
+    const shade = figures.find((figure) => figure.role === 'shade');
+    shadePhase = 'gone';
+    if (boardAt < 0) boardAt = sceneTime;
+    if (!shade || shade.gone) return;
+    host.shedShadow(shade.mesh.position.x, shade.mesh.position.z);
+    hideFigure(shade);
+  };
+
+  const stepEncounter = (dt: number) => {
+    if (figures.some((figure) => !figure.avatar.isReady()) && castWait < 8) {
+      castWait += dt;
+      frameShot();
+      return;
+    }
+    sceneTime += dt;
+    const man = figures.find((figure) => figure.role === 'man');
+    const shade = figures.find((figure) => figure.role === 'shade');
+    const twin = figures.find((figure) => figure.role === 'double');
+    const approach = sceneTime < T_WALK ? 0 : Math.min(1, (sceneTime - T_WALK) / (T_ARRIVE - T_WALK));
+    const twinX = lerp(DOUBLE_FROM.x, DOUBLE_AT.x, approach);
+    const twinZ = lerp(DOUBLE_FROM.z, DOUBLE_AT.z, approach);
+    const walkingIn = approach > 0 && approach < 1;
+    if (twin && shadePhase !== 'gone') {
+      const yaw = walkingIn
+        ? Math.atan2(DOUBLE_AT.x - DOUBLE_FROM.x, DOUBLE_AT.z - DOUBLE_FROM.z)
+        : Math.atan2(MAN_AT.x - twinX, MAN_AT.z - twinZ);
+      putFigure(twin, twinX, twinZ, yaw, walkingIn);
+    }
+    const talkYaw = Math.atan2(twinX - MAN_AT.x, twinZ - MAN_AT.z);
+    if (man && shadePhase !== 'gone') {
+      putFigure(man, MAN_AT.x, MAN_AT.z, talkYaw, false);
+    }
+    if (shade && !shade.gone) {
+      const spot = shadeBeside(talkYaw);
+      paintShade(shade.avatar, shadeAlpha);
+      if (shadePhase === 'yell' && sceneTime >= T_STRIKE) {
+        shadePhase = 'strike';
+        strikeAt = sceneTime;
+        const played = shade.avatar.playClip('melee360', false, 1, () => poofShade());
+        if (!played) poofShade();
+      } else if (shadePhase === 'yell' && !yelled) {
+        yelled = shade.avatar.playClip('yellingout', true);
+      }
+      if (shadePhase === 'strike' && strikeAt >= 0 && sceneTime > strikeAt + STRIKE_LIMIT) poofShade();
+      if (!shade.gone) putFigure(shade, spot.x, spot.z, talkYaw, false, true);
+    }
+    if (shadePhase === 'gone' && man && twin) {
+      if (boardAt < 0) boardAt = sceneTime;
+      const walked = sceneTime - boardAt;
+      boardMan += BOARD_SPEED * dt;
+      if (walked >= 0.85) boardDouble += BOARD_SPEED * dt;
+      const manAt = walkPath(MAN_PATH, boardMan);
+      const twinAt = walkPath(DOUBLE_PATH, boardDouble);
+      if (manAt.done) hideFigure(man);
+      else putFigure(man, manAt.x, manAt.z, manAt.yaw, true);
+      if (twinAt.done) hideFigure(twin);
+      else putFigure(twin, twinAt.x, twinAt.z, twinAt.yaw, true);
+      if (manAt.done && twinAt.done && leaveAt < 0) leaveAt = sceneTime + 0.45;
+      if (leaveAt >= 0 && sceneTime >= leaveAt) {
+        handoff();
+        return;
+      }
+    }
+    frameShot();
+    if (!saidMe && sceneTime >= T_ME) {
+      saidMe = true;
+      say('Pierce', LINE_ME.text, LINE_ME.url, LINE_ME.hold);
+    } else if (!saidHere && sceneTime >= T_HERE) {
+      saidHere = true;
+      say('Pierce', LINE_HERE.text, LINE_HERE.url, LINE_HERE.hold);
+    } else if (!saidUptown && sceneTime >= T_UPTOWN) {
+      saidUptown = true;
+      say('Pierce', LINE_UPTOWN.text, LINE_UPTOWN.url, LINE_UPTOWN.hold);
+    } else if (!saidMine && sceneTime >= T_MINE) {
+      saidMine = true;
+      say('Passerby', LINE_MINE.text, LINE_MINE.url, LINE_MINE.hold);
+    } else if (!saidSeat && sceneTime >= T_SEAT) {
+      saidSeat = true;
+      say('Pierce', LINE_SEAT.text, LINE_SEAT.url, LINE_SEAT.hold);
+    } else if (!saidLeft && sceneTime >= T_LEFT) {
+      saidLeft = true;
+      say('Passerby', LINE_LEFT.text, LINE_LEFT.url, LINE_LEFT.hold);
+    } else if (lineUntil > 0 && sceneTime > lineUntil) {
+      lineUntil = 0;
+      host.showLine('', '');
+    }
   };
 
   const spawn = (id: string, assetId: string, x: number, z: number, x0: number, x1: number) => {
@@ -262,7 +662,9 @@ export const createTheStation = (host: TheStationHost) => {
     objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'station'),
     dispose: () => {
       active = false;
+      playing = false;
       releaseLink(false);
+      clearFigures();
       for (const bead of beads) bead.dispose(false, true);
       beads.length = 0;
       for (const person of people) {
@@ -279,29 +681,21 @@ export const createTheStation = (host: TheStationHost) => {
       tether = null;
       linkLeft = 0;
       people.length = 0;
-      const spots: [number, number, number, number][] = [
-        [22, -4.2, 16, 28],
-        [36, -1.1, 30, 42],
-        [58, -4.4, 52, 66],
-        [70, -1.2, 64, 76],
-      ];
-      spots.forEach(([x, z, x0, x1], index) => {
-        spawn(`station-walk-${index}`, ASSETS[index % ASSETS.length], x, z, x0, x1);
-      });
+      crowd = false;
+      haleRang = false;
+      callIn = -1;
+      playing = false;
     },
     onStart: () => {
       if (!active) return;
       shadowOn = false;
       handsOut = false;
-      host.placePierce(7.2, -1.6, Math.PI / 2);
-      host.resumeLocomotion();
       host.setCarry(CARRY);
-      showGoal();
-      host.showObjective(true);
       host.fade(0, 1.1);
+      beginEncounter();
       host.refreshHud();
     },
-    controls: () => active && !finished,
+    controls: () => active && !finished && !playing,
     shadowMode: () => shadowOn,
     handsOut: () => shadowOn && handsOut,
     setHands: (out: boolean) => {
@@ -422,7 +816,11 @@ export const createTheStation = (host: TheStationHost) => {
       tetherMove = { x: dx, z: dz };
       tetherMoving = Math.hypot(dx, dz) > 0.0008;
     },
-    shadowShown: () => active && !finished,
+    playing: () => playing,
+    skip: () => {
+      if (active && playing && !finished) handoff();
+    },
+    shadowShown: () => active && !finished && !playing,
     shock: () => {
       if (!active || finished || !shadowOn || shockLeft > 0) return false;
       const here = host.player();
@@ -486,6 +884,20 @@ export const createTheStation = (host: TheStationHost) => {
     step: (dt: number) => {
       if (!active || finished) return;
       const stepDt = Math.min(0.05, Math.max(0, dt));
+      if (playing) {
+        stepEncounter(stepDt);
+        return;
+      }
+      if (callIn >= 0) {
+        callIn -= stepDt;
+        if (callIn <= 0) {
+          callIn = -1;
+          if (!haleRang) {
+            haleRang = true;
+            host.ringCall('hale-board');
+          }
+        }
+      }
       shockLeft = Math.max(0, shockLeft - stepDt);
       meleeLeft = Math.max(0, meleeLeft - stepDt);
       watchLeft = Math.max(0, watchLeft - stepDt);

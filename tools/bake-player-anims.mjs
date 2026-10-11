@@ -55,6 +55,8 @@ const deathClip = { name: 'DeathForward', path: path.join(animationsDir, 'Standi
 const punchClip = { name: 'Punch', path: path.join(animationsDir, 'Punch.fbx') };
 const kickClip = { name: 'Kick', path: path.join(animationsDir, 'Kick.fbx') };
 const npcPunchClip = { name: 'Punch', path: path.join(animationsDir, 'NPCPunch.fbx') };
+const yellingClip = { name: 'YellingOut', path: path.join(animationsDir, 'Yelling Out.fbx') };
+const melee360Clip = { name: 'Melee360', path: path.join(animationsDir, 'Standing Melee Attack 360 High.fbx') };
 
 const npcClips = [...locomoClips.filter((clip) => clip.name !== 'Jump'), electroClip, deathClip, npcPunchClip];
 const creatureClips = [
@@ -90,7 +92,7 @@ const jobs = [
   {
     outputName: 'ch28-npc',
     fbx: 'Ch28_nonPBR.fbx',
-    animations: npcClips,
+    animations: [...npcClips, yellingClip, melee360Clip],
     tags: ['character', 'mixamo', 'npc', 'professional_npc', 'real-file'],
   },
   {
@@ -130,7 +132,7 @@ const verifyGlbSkinAndClips = (glbAbsPath) => {
   const skinNames = new Set((json.skins?.[0]?.joints || []).map((index) => nodes[index]?.name));
   const hipJoint = [...skinNames].find((name) => /hips/i.test(name || ''));
   const clips = (json.animations || []).filter((anim) =>
-    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster|WalkBack|FallingDown|RebornIdle|Attack|Run|ShadowShock|Electrocuted|DeathForward|Punch|Kick)$/i.test(anim.name || ''),
+    /^(Idle|Walk|Jump|SitIdle|SitTalk|PistolIdle|PistolWalk|PistolJump|PistolAim|Draw|Holster|WalkBack|FallingDown|RebornIdle|Attack|Run|ShadowShock|Electrocuted|DeathForward|Punch|Kick|YellingOut|Melee360)$/i.test(anim.name || ''),
   );
   const problems = [];
   if (!hipJoint) problems.push('skin.joints has no Hips');

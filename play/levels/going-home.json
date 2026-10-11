@@ -3,6 +3,7 @@
   "name": "Going Home",
   "theme": "Street",
   "ambient": 0.78,
+  "cull": 150,
   "assets": [
     {
       "id": "street-ground-w",

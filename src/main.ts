@@ -27,6 +27,7 @@ import { mountPipeDrips } from './game/drips';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
+import { levelCullMeters } from './game/levelCull';
 import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
@@ -1145,10 +1146,17 @@ let shadowPick: 'shock' | 'possess' = 'shock';
 let shadowRunLeft = SHADOW_RUN_SECONDS;
 let shadowRunLocked = false;
 let shadowFlying = false;
+/** First jump of this airtime already left the ground. The next press can enter the run. */
+let shadowHop = false;
+/** Second jump press is held. That hold is the same sustain as Shift. */
+let shadowAirJump = false;
+let spaceDown = false;
+
+const shadowRunHeld = () => state.input.sprint || shadowAirJump;
 
 const shadowRunActive = () => shadowPlay().controls()
   && shadowPlay().shadowMode()
-  && state.input.sprint
+  && shadowRunHeld()
   && !shadowRunLocked
   && shadowRunLeft > 0
   && !shadowPlay().linked()
@@ -1157,13 +1165,37 @@ const shadowRunActive = () => shadowPlay().controls()
   && messageBox.classList.contains('hidden')
   && !panelsOpen();
 
+const shadowJumpReady = () => shadowPlay().controls()
+  && shadowPlay().shadowMode()
+  && !shadowPlay().linked()
+  && state.running
+  && !state.inCutscene
+  && messageBox.classList.contains('hidden')
+  && !panelsOpen();
+
+const onJumpPress = () => {
+  const airborne = !state.player.grounded && state.player.jumpWindup <= 0;
+  if (shadowJumpReady() && airborne && shadowHop) {
+    shadowAirJump = true;
+    return;
+  }
+  if (state.player.grounded && !shadowRunActive()) {
+    state.input.jump = true;
+    if (shadowJumpReady()) shadowHop = true;
+  }
+};
+
 const tickShadowRun = (delta: number) => {
+  if (!shadowPlay().shadowMode()) {
+    shadowAirJump = false;
+    shadowHop = false;
+  }
   if (shadowRunActive()) {
     shadowRunLeft = Math.max(0, shadowRunLeft - delta);
     if (shadowRunLeft <= 0) shadowRunLocked = true;
     return;
   }
-  if (!state.input.sprint || !shadowPlay().shadowMode()) shadowRunLocked = false;
+  if (!shadowRunHeld() || !shadowPlay().shadowMode()) shadowRunLocked = false;
   if (!shadowRunLocked) shadowRunLeft = Math.min(SHADOW_RUN_SECONDS, shadowRunLeft + delta);
 };
 
@@ -1459,6 +1491,7 @@ skipCutsceneBtn?.addEventListener('click', (event) => {
   }
   if (home.playing()) home.skip();
   else if (desk.playing()) desk.skip();
+  else if (station.playing()) station.skip();
   lockGameplayPointer();
 });
 shadowHint?.addEventListener('click', (event) => {
@@ -1808,6 +1841,7 @@ const home: GoingHome = createGoingHome({
     updateHud();
   },
   ability: () => shadowPick,
+  cull: () => levelCullMeters(missionScene),
 });
 
 const desk: TheDesk = createTheDesk({
@@ -1869,6 +1903,21 @@ const station: TheStation = createTheStation({
   },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  releaseCamera: () => followCamera.clearCinematic(),
+  showLine: (title, text) => showCineHud(title, text),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) {
+      audio.setWalk(false);
+      unlockPointer();
+    }
+  },
+  ringCall: (id) => {
+    clearHands();
+    phone.ring(id);
+    updateHud();
+  },
 });
 
 storyObjectiveId = () => {
@@ -1890,6 +1939,9 @@ const beginGame = () => {
   shadowRunLeft = SHADOW_RUN_SECONDS;
   shadowRunLocked = false;
   shadowFlying = false;
+  shadowHop = false;
+  shadowAirJump = false;
+  spaceDown = false;
   stopEndingSong();
   screenFade.to(1, 0);
   audio.start();
@@ -2107,6 +2159,9 @@ const clearInputState = () => {
   state.input.jump = false;
   state.input.flyHeld = false;
   state.input.sprint = false;
+  shadowAirJump = false;
+  shadowHop = false;
+  spaceDown = false;
   state.movementVector.x = 0;
   state.movementVector.y = 0;
   leftStickKnob.style.left = '50%';
@@ -2248,6 +2303,8 @@ const updatePlayer = (delta: number) => {
     state.input.jump = false;
   }
 
+  if (state.player.grounded && state.player.jumpWindup <= 0) shadowHop = false;
+
   const handsOut = shadowPlay().controls() && shadowPlay().handsOut();
   const aimFacing = state.player.weaponDrawn || handsOut;
   const facingTarget = aimFacing
@@ -2383,7 +2440,7 @@ const storyAction = (): string | null => {
   if (!messageBox.classList.contains('hidden')) return null;
   if (pendingEnd?.levelId === state.level) return 'End Level';
   pendingEnd = null;
-  if (panelsOpen() || home.playing() || desk.playing()) return null;
+  if (panelsOpen() || home.playing() || desk.playing() || station.playing()) return null;
   if (phone.locksBody() || phone.isScreenOpen()) return null;
   if (isDeskLevel()) return desk.action();
   if (isHomeLevel() || isStationLevel()) return null;
@@ -2620,8 +2677,10 @@ window.addEventListener('keydown', (event) => {
   if (key === 'shift') state.input.sprint = true;
   if (key === ' ') {
     event.preventDefault();
+    const edge = !spaceDown;
+    spaceDown = true;
     state.input.flyHeld = true;
-    if (state.player.grounded && !shadowRunActive()) state.input.jump = true;
+    if (edge) onJumpPress();
   }
   if (key === 'p') {
     const menuOpen = !messageBox.classList.contains('hidden');
@@ -2715,8 +2774,10 @@ window.addEventListener('keyup', (event) => {
   if (key === 'd' || key === 'arrowright') state.input.right = false;
   if (key === 'shift') state.input.sprint = false;
   if (key === ' ') {
+    spaceDown = false;
     state.input.jump = false;
     state.input.flyHeld = false;
+    shadowAirJump = false;
   }
 });
 
@@ -2891,11 +2952,16 @@ jumpBtn.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   unlockAudio();
   state.input.flyHeld = true;
-  if (!shadowRunActive()) state.input.jump = true;
+  onJumpPress();
 });
-jumpBtn.addEventListener('pointerup', () => { state.input.jump = false; state.input.flyHeld = false; });
-jumpBtn.addEventListener('pointerleave', () => { state.input.jump = false; state.input.flyHeld = false; });
-jumpBtn.addEventListener('pointercancel', () => { state.input.jump = false; state.input.flyHeld = false; });
+const releaseJumpButton = () => {
+  state.input.jump = false;
+  state.input.flyHeld = false;
+  shadowAirJump = false;
+};
+jumpBtn.addEventListener('pointerup', releaseJumpButton);
+jumpBtn.addEventListener('pointerleave', releaseJumpButton);
+jumpBtn.addEventListener('pointercancel', releaseJumpButton);
 
 fireBtn.addEventListener('pointerdown', (event) => {
   event.preventDefault();
@@ -2976,11 +3042,11 @@ const renderLoop = () => {
     defeatLeft = Math.max(0, defeatLeft - delta);
     if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
   }
-  const cine = state.inCutscene || home.playing() || desk.playing();
+  const cine = state.inCutscene || home.playing() || desk.playing() || station.playing();
   if (wasInCutscene && !cine) lockGameplayPointer();
   wasInCutscene = cine;
   if (skipCutsceneBtn) {
-    const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing());
+    const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing());
     skipCutsceneBtn.hidden = !canSkip;
   }
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
@@ -3013,6 +3079,9 @@ const renderLoop = () => {
         camera.position.x += (Math.random() - 0.5) * amp;
         camera.position.y += (Math.random() - 0.5) * amp * 0.65;
       }
+    } else if (station.playing()) {
+      station.step(delta);
+      updateCamera(delta, false, null);
     } else {
     phone.update(delta, followCamera.camera, state.player);
     if (state.fireHeld) fireWeapon();

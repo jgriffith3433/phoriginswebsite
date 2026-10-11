@@ -7007,6 +7007,54 @@
       ]
     },
     {
+      "id": "b3-barrel-decon",
+      "assetId": "asset-b3-barrel",
+      "kind": "model",
+      "name": "Decon Barrel",
+      "position": {
+        "x": 3.05,
+        "y": 0,
+        "z": 22.35
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0.4,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-barrel-utility",
+      "assetId": "asset-b3-barrel",
+      "kind": "model",
+      "name": "Utility Barrel",
+      "position": {
+        "x": 44.85,
+        "y": 0,
+        "z": 61.45
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1.2,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
       "id": "b3-drum-utility",
       "assetId": "asset-b3-drum",
       "kind": "model",

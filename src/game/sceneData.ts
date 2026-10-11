@@ -79,6 +79,8 @@ export type SceneData = {
   theme: string;
   /** Hemispheric fill. Omitted levels use the theme intensity. */
   ambient?: number;
+  /** Street cull, meters. 0 draws everything. Omitted Going Home uses 70. */
+  cull?: number;
   assets: SceneAssetInstance[];
   triggers: SceneTrigger[];
 };
@@ -107,10 +109,12 @@ const cloneDefaultScene = (): SceneData => JSON.parse(JSON.stringify(DEFAULT_SCE
 const parseSceneData = (parsed: unknown): SceneData => {
   const data = (parsed && typeof parsed === 'object' ? parsed : {}) as Partial<SceneData>;
   const ambient = typeof data.ambient === 'number' && Number.isFinite(data.ambient) ? Math.max(0, data.ambient) : undefined;
+  const cull = typeof data.cull === 'number' && Number.isFinite(data.cull) ? Math.max(0, data.cull) : undefined;
   return {
     ...cloneDefaultScene(),
     ...data,
     ambient,
+    cull,
     assets: Array.isArray(data.assets) ? data.assets : DEFAULT_SCENE_DATA.assets,
     triggers: Array.isArray(data.triggers) ? data.triggers : DEFAULT_SCENE_DATA.triggers,
   };
@@ -429,30 +433,33 @@ const isJumpOnFurniture = (asset: SceneAssetInstance) => {
   return label.includes('desk') || label.includes('table');
 };
 
-const SOLID_FURNITURE = new Set([
-  'asset-office-chair',
-  'asset-board-table',
-  'asset-office-desk',
-  'asset-office-terminal',
-  'asset-lab-console',
-  'asset-water-cooler',
-  'asset-filing-cabinet',
-  'asset-office-plant',
-  'asset-office-door',
-  'asset-credenza',
-  'asset-subway-bench',
-  'asset-subway-bin',
-  'asset-subway-kiosk',
-  'asset-subway-column',
-  'asset-subway-turnstile',
-  'asset-subway-train',
-  'asset-b3-drum',
-  'asset-b3-locker',
-  'asset-b3-gurney',
+/**
+ * A placed model blocks the player. The GLB import does not.
+ * These stay walk-through: floor dressing, tabletop clutter, ceiling fixtures,
+ * open shop shells, and the street planter.
+ * Characters and the creature are skipped in blocksPlayer.
+ */
+const WALK_THROUGH = new Set([
+  'asset-carpet-runner',
+  'asset-desk-clutter',
+  'asset-directory-board',
+  'asset-ceiling-troffer',
+  'asset-whiskey-glass',
+  'asset-trophy',
+  'asset-b3-crate',
+  'asset-street-planter',
+  'asset-street-shop-market',
+  'asset-street-shop-diner',
+  'asset-street-shop-news',
 ]);
 
-/** Screens are a centimeter thick in the GLB. Thicken them so the capsule cannot step through. */
-const MIN_COLLIDER_THICKNESS = 0.2;
+const blocksPlayer = (assetId: string) => {
+  if (!assetId || WALK_THROUGH.has(assetId)) return false;
+  return !/asset-ch|parasite|hero/i.test(assetId);
+};
+
+/** Thin cards and window panes. The capsule step is larger than a 6 cm wall. */
+const MIN_COLLIDER_THICKNESS = 0.45;
 
 const bindColliderMatrix = (root: BABYLON.TransformNode, box: BABYLON.Mesh) => {
   let refreshing = false;
@@ -464,6 +471,29 @@ const bindColliderMatrix = (root: BABYLON.TransformNode, box: BABYLON.Mesh) => {
   };
   refresh();
   root.onAfterWorldMatrixUpdateObservable.add(refresh);
+  // The sphere stays at the origin until something reads it. Collision then
+  // treats the box as a point and the capsule walks through.
+  box.getBoundingInfo();
+};
+
+/** A scaled wall can be centimeters thick. Give the capsule a box it cannot skip. */
+const thickenWall = (scene: BABYLON.Scene, mesh: BABYLON.Mesh) => {
+  const sx = Math.abs(mesh.scaling.x) || 1;
+  const sy = Math.abs(mesh.scaling.y) || 1;
+  const sz = Math.abs(mesh.scaling.z) || 1;
+  if (sy < 1.2 || sy <= sx && sy <= sz) return;
+  const axis: 'x' | 'z' = sx <= sz ? 'x' : 'z';
+  const thin = axis === 'x' ? sx : sz;
+  if (thin >= MIN_COLLIDER_THICKNESS) return;
+  const box = BABYLON.MeshBuilder.CreateBox(`${mesh.name}-solid`, { width: 1, height: 1, depth: 1 }, scene);
+  box.parent = mesh;
+  box.scaling.set(axis === 'x' ? MIN_COLLIDER_THICKNESS / thin : 1, 1, axis === 'z' ? MIN_COLLIDER_THICKNESS / thin : 1);
+  box.isVisible = false;
+  box.isPickable = false;
+  box.checkCollisions = true;
+  box.metadata = { boundsCollider: true };
+  mesh.checkCollisions = false;
+  bindColliderMatrix(mesh, box);
 };
 
 const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode, meshes: BABYLON.AbstractMesh[]) => {
@@ -508,6 +538,7 @@ const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode,
   box.isVisible = false;
   box.isPickable = false;
   box.checkCollisions = true;
+  box.metadata = { boundsCollider: true };
   // Invisible meshes are not rendered, so nothing else refreshes this matrix.
   // Collision reads the cached world matrix.
   bindColliderMatrix(root, box);
@@ -820,6 +851,7 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     const isDecal = asset.id.startsWith('b3-decal-');
     const jumpOn = isJumpOnFurniture(asset);
     mesh.checkCollisions = !isChair && !isLiftButton && !jumpOn && !isDecal;
+    if (mesh.checkCollisions) thickenWall(scene, mesh);
     if (isLiftButton) {
       material.diffuseColor = new BABYLON.Color3(0.18, 0.2, 0.22);
       material.emissiveColor = new BABYLON.Color3(0.08, 0.1, 0.12);
@@ -908,7 +940,15 @@ const createModelAssetNode = (
       const idle = findClip(imported.animationGroups, 'idle');
       idle?.start(true);
     }
-    if (SOLID_FURNITURE.has(asset.assetId)) attachBoundsCollider(scene, root, imported.meshes);
+    if (blocksPlayer(asset.assetId)) attachBoundsCollider(scene, root, imported.meshes);
+    const editor = Boolean((scene.metadata as { editor?: boolean } | null)?.editor);
+    if (!editor && imported.skeletons.length === 0) {
+      for (const mesh of imported.meshes) {
+        mesh.computeWorldMatrix(true);
+        mesh.freezeWorldMatrix();
+        mesh.doNotSyncBoundingInfo = true;
+      }
+    }
     root.metadata = {
       ...root.metadata,
       animationGroups: imported.animationGroups.map((group) => group.name),

@@ -821,6 +821,54 @@
       ]
     },
     {
+      "id": "station-city-bench",
+      "assetId": "asset-street-bench",
+      "kind": "model",
+      "name": "station-city-bench",
+      "x": 20,
+      "y": 0,
+      "z": -6.78,
+      "rotation": { "x": 0, "y": 3.141592653589793, "z": 0 },
+      "scale": { "x": 1, "y": 1, "z": 1 },
+      "components": ["Transform"]
+    },
+    {
+      "id": "station-city-trash",
+      "assetId": "asset-street-trash",
+      "kind": "model",
+      "name": "station-city-trash",
+      "x": 56,
+      "y": 0,
+      "z": -6.5,
+      "rotation": { "x": 0, "y": 0.2, "z": 0 },
+      "scale": { "x": 1, "y": 1, "z": 1 },
+      "components": ["Transform"]
+    },
+    {
+      "id": "station-city-recycle",
+      "assetId": "asset-street-recycle",
+      "kind": "model",
+      "name": "station-city-recycle",
+      "x": 76,
+      "y": 0,
+      "z": -6.5,
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "scale": { "x": 1, "y": 1, "z": 1 },
+      "components": ["Transform"]
+    },
+    {
+      "id": "station-newsstand",
+      "assetId": "asset-street-newsstand",
+      "kind": "model",
+      "name": "station-newsstand",
+      "x": 8.2,
+      "y": 0,
+      "z": -5.9,
+      "rotation": { "x": 0, "y": 0, "z": 0 },
+      "scale": { "x": 1, "y": 1, "z": 1 },
+      "components": ["Transform"]
+    },
+    {
       "id": "station-bench-a",
       "assetId": "asset-subway-bench",
       "kind": "model",

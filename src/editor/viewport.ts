@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
 import { applySceneLighting, applyTheme } from '../game/scene';
+import { applyCullBands, collectCullBands, levelCullMeters, type CullBand } from '../game/levelCull';
 import {
   createSceneAssetNode,
   createSceneTriggerNode,
@@ -18,9 +19,19 @@ export type SelectionTarget = {
   id: string;
 };
 
+export type CameraPose = {
+  px: number;
+  py: number;
+  pz: number;
+  rx: number;
+  ry: number;
+  rz: number;
+};
+
 export type ViewportCallbacks = {
   onSelect: (target: SelectionTarget | null) => void;
   onTransformChange: (target: SelectionTarget) => void;
+  onCameraChange?: () => void;
 };
 
 // Wraps a live Babylon.js scene that mirrors exactly what the game renders
@@ -29,6 +40,9 @@ export type ViewportCallbacks = {
 export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: ViewportCallbacks) => {
   const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
   const scene = new BABYLON.Scene(engine);
+  // The game freezes static prop copies and turns picking off. The editor
+  // moves and clicks those same meshes, so it opts out.
+  scene.metadata = { editor: true };
 
   const camera = new BABYLON.UniversalCamera('editorCamera', new BABYLON.Vector3(0, 8, -22), scene);
   camera.setTarget(new BABYLON.Vector3(0, 0, 0));
@@ -58,10 +72,19 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     flying = false;
     heldKeys.clear();
     if (document.pointerLockElement === canvas) document.exitPointerLock();
+    callbacks.onCameraChange?.();
   });
   window.addEventListener('blur', () => {
+    if (!flying) return;
     flying = false;
     heldKeys.clear();
+    callbacks.onCameraChange?.();
+  });
+  document.addEventListener('pointerlockchange', () => {
+    if (document.pointerLockElement === canvas || !flying) return;
+    flying = false;
+    heldKeys.clear();
+    callbacks.onCameraChange?.();
   });
   window.addEventListener('mousemove', (e) => {
     if (!flying) return;
@@ -77,6 +100,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   window.addEventListener('keyup', (e) => heldKeys.delete(e.code));
 
   const baseFlySpeed = 12;
+  let lastCameraNotify = 0;
   scene.onBeforeRenderObservable.add(() => {
     if (!flying || heldKeys.size === 0) return;
     const dt = engine.getDeltaTime() / 1000;
@@ -91,7 +115,63 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     if (heldKeys.has('KeyE')) move.y += 1;
     if (heldKeys.has('KeyQ')) move.y -= 1;
     if (move.lengthSquared() > 0) camera.position.addInPlace(move.normalize().scale(speed));
+    const now = performance.now();
+    if (now - lastCameraNotify > 500) {
+      lastCameraNotify = now;
+      callbacks.onCameraChange?.();
+    }
   });
+
+  const readCameraPose = (): CameraPose => {
+    const euler = camera.rotationQuaternion ? camera.rotationQuaternion.toEulerAngles() : camera.rotation;
+    return {
+      px: camera.position.x,
+      py: camera.position.y,
+      pz: camera.position.z,
+      rx: euler.x,
+      ry: euler.y,
+      rz: euler.z,
+    };
+  };
+  const defaultCameraPose = readCameraPose();
+  const setCameraPose = (pose: CameraPose) => {
+    camera.rotationQuaternion = null as unknown as BABYLON.Quaternion;
+    camera.position.set(pose.px, pose.py, pose.pz);
+    camera.rotation.set(pose.rx, pose.ry, pose.rz);
+  };
+
+  // Editor-only brightness. Bases are the intensities the level/theme just
+  // applied. The multiplier never gets written back into the level file.
+  let editorBrightness = 1;
+  const lightBase = new Map<BABYLON.Light, number>();
+  let ambientBase: BABYLON.Color3 | null = null;
+
+  const paintEditorBrightness = () => {
+    lightBase.forEach((base, light) => {
+      if (!light.isDisposed()) light.intensity = base * editorBrightness;
+    });
+    if (ambientBase) scene.ambientColor = ambientBase.scale(editorBrightness);
+  };
+
+  const rememberLighting = () => {
+    lightBase.clear();
+    scene.lights.forEach((light) => lightBase.set(light, light.intensity));
+    ambientBase = scene.ambientColor.clone();
+    paintEditorBrightness();
+  };
+
+  const setEditorBrightness = (value: number) => {
+    editorBrightness = Math.min(6, Math.max(0.2, value));
+    paintEditorBrightness();
+  };
+
+  const noteNewLights = () => {
+    scene.lights.forEach((light) => {
+      if (lightBase.has(light)) return;
+      lightBase.set(light, light.intensity);
+      light.intensity = light.intensity * editorBrightness;
+    });
+  };
   const hemi = new BABYLON.HemisphericLight('hemi', new BABYLON.Vector3(0, 1, 0), scene);
   hemi.intensity = 0.8;
   const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
@@ -107,6 +187,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   const assetNodes = new Map<string, BABYLON.Node>();
   const triggerNodes = new Map<string, BABYLON.Node>();
   let selected: SelectionTarget | null = null;
+  let refreshCull = () => {};
 
   const metadataToTarget = (metadata: { sceneAssetId?: string; sceneTriggerId?: string } | undefined): SelectionTarget | null => {
     if (metadata?.sceneAssetId) return { kind: 'asset', id: metadata.sceneAssetId };
@@ -153,6 +234,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     selected = target;
     gizmoManager.attachToNode(owner ?? null);
     callbacks.onSelect(target);
+    refreshCull();
   };
 
   scene.onPointerObservable.add((pointerInfo) => {
@@ -175,6 +257,33 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   };
 
   let currentTheme = 'Neon Drift';
+  let cullMeters = 0;
+  let cullBands: CullBand[] = [];
+  let cullCensus = -1;
+  let cullWait = 0;
+
+  refreshCull = () => {
+    const count = scene.meshes.length + scene.transformNodes.length;
+    if (count !== cullCensus) {
+      cullBands = collectCullBands(scene, cullBands);
+      cullCensus = count;
+    }
+    const pinned = selected?.kind === 'asset' ? assetNodes.get(selected.id) ?? null : null;
+    applyCullBands(cullBands, camera.position.x, camera.position.z, cullMeters, pinned);
+  };
+
+  const setCull = (meters: number) => {
+    cullMeters = Math.max(0, meters);
+    cullCensus = -1;
+    refreshCull();
+  };
+
+  scene.onBeforeRenderObservable.add(() => {
+    cullWait -= engine.getDeltaTime() / 1000;
+    if (cullWait > 0) return;
+    cullWait = 0.28;
+    refreshCull();
+  });
 
   // Ground/walls/pillars are now regular scene assets (kind 'ground'/'wall'/
   // 'pillar'), so rebuilding just means clearing and re-loading from data —
@@ -191,6 +300,8 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
       if (metadata?.sceneAssetId) assetNodes.set(metadata.sceneAssetId, node);
       if (metadata?.sceneTriggerId) triggerNodes.set(metadata.sceneTriggerId, node);
     });
+    rememberLighting();
+    setCull(levelCullMeters(sceneData));
   };
 
   const addAssetNode = (asset: SceneAssetInstance): BABYLON.Node => {
@@ -198,6 +309,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     assetNodes.set(asset.id, node);
     const parent = asset.parentId ? assetNodes.get(asset.parentId) : undefined;
     if (parent && parent !== node) node.parent = parent;
+    noteNewLights();
     return node;
   };
 
@@ -298,6 +410,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     const dir = camera.getDirection(BABYLON.Vector3.Forward());
     camera.position = center.subtract(dir.scale(distance));
     camera.setTarget(center);
+    callbacks.onCameraChange?.();
   };
 
   engine.runRenderLoop(() => scene.render());
@@ -308,6 +421,13 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
 
   const setAmbient = (ambient: number) => {
     applySceneLighting(scene, { theme: currentTheme, ambient });
+    const hemiLight = scene.getLightByName('hemi');
+    if (hemiLight) lightBase.set(hemiLight, hemiLight.intensity);
+    if (currentTheme === 'B3 Basement') {
+      const sunLight = scene.getLightByName('sun');
+      if (sunLight) lightBase.set(sunLight, sunLight.intensity);
+    }
+    paintEditorBrightness();
   };
 
   const dispose = () => {
@@ -322,6 +442,11 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     gizmoManager,
     rebuildFromScene,
     setAmbient,
+    setCull,
+    setEditorBrightness,
+    getCameraPose: readCameraPose,
+    setCameraPose,
+    defaultCameraPose,
     addAssetNode,
     addTriggerNode,
     removeAsset,

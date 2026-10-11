@@ -1,4 +1,4 @@
-import { createEditorViewport, type SelectionTarget } from './viewport';
+import { createEditorViewport, type CameraPose, type SelectionTarget } from './viewport';
 import { fetchProjectTree, saveJsonFile, importModel, importFbxFile, importTextureFile, linkBlender, type FsTreeNode } from './fsApi';
 import { renderProjectTree, inferAssetKind, type DraggableAssetPayload } from './projectPanel';
 import { getAssetLibrary, invalidateAssetLibrary, resolveLibraryEntry, resolveModelPath } from '../game/modelLoader';
@@ -18,6 +18,7 @@ import {
   type ClipTrimsFile,
 } from '../game/clipTrims';
 import { getSceneTheme } from '../game/scene';
+import { levelCullMeters } from '../game/levelCull';
 import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneNodeMetadata, type SceneTrigger } from '../game/sceneData';
 import { MUSIC_TRIGGER_TYPE, isMusicTrigger, musicTriggerAudio } from '../game/triggers';
 import { createUnlockedAudio, installAudioUnlock, unlockAudio } from '../game/audioUnlock';
@@ -58,6 +59,74 @@ let currentLevelPath = '/levels/apex-peak.json';
 let sceneData: SceneData | null = null;
 let selection: SelectionTarget | null = null;
 let saveTimer: number | undefined;
+let sceneDirty = false;
+let autoSave = true;
+let cameraTracking = false;
+
+const EDITOR_PREFS_COOKIE = 'ph-origins-editor-prefs';
+const EDITOR_CAM_COOKIE = 'ph-origins-editor-cam';
+const EDITOR_COOKIE_AGE = 60 * 60 * 24 * 400;
+
+type EditorPrefs = { autoSave: boolean; brightness: number; level?: string; levelName?: string };
+type CameraCookie = Record<string, CameraPose>;
+
+const readCookieJson = <T>(name: string): T | null => {
+  const prefix = `${name}=`;
+  const hit = document.cookie.split('; ').find((part) => part.startsWith(prefix));
+  if (!hit) return null;
+  try {
+    return JSON.parse(decodeURIComponent(hit.slice(prefix.length))) as T;
+  } catch {
+    return null;
+  }
+};
+
+const writeCookieJson = (name: string, data: unknown) => {
+  document.cookie = `${name}=${encodeURIComponent(JSON.stringify(data))}; Path=/; Max-Age=${EDITOR_COOKIE_AGE}; SameSite=Lax`;
+};
+
+const readEditorPrefs = (): EditorPrefs => {
+  const parsed = readCookieJson<Partial<EditorPrefs>>(EDITOR_PREFS_COOKIE);
+  const brightness = Number(parsed?.brightness);
+  const level = typeof parsed?.level === 'string' && /^\/levels\/[^/]+\.json$/.test(parsed.level) ? parsed.level : undefined;
+  const levelName = typeof parsed?.levelName === 'string' && parsed.levelName.trim() ? parsed.levelName : undefined;
+  return {
+    autoSave: parsed?.autoSave !== false,
+    brightness: Number.isFinite(brightness) ? Math.min(6, Math.max(0.2, brightness)) : 1,
+    level,
+    levelName,
+  };
+};
+
+let editorPrefs = readEditorPrefs();
+
+const writeEditorPrefs = (prefs: EditorPrefs) => {
+  writeCookieJson(EDITOR_PREFS_COOKIE, prefs);
+};
+
+const roundPose = (pose: CameraPose): CameraPose => ({
+  px: Math.round(pose.px * 1000) / 1000,
+  py: Math.round(pose.py * 1000) / 1000,
+  pz: Math.round(pose.pz * 1000) / 1000,
+  rx: Math.round(pose.rx * 1000) / 1000,
+  ry: Math.round(pose.ry * 1000) / 1000,
+  rz: Math.round(pose.rz * 1000) / 1000,
+});
+
+const poseIsValid = (pose: Partial<CameraPose> | undefined): pose is CameraPose =>
+  !!pose && [pose.px, pose.py, pose.pz, pose.rx, pose.ry, pose.rz].every((n) => typeof n === 'number' && Number.isFinite(n));
+
+const persistCamera = (levelPath: string) => {
+  if (!levelPath) return;
+  const saved = readCookieJson<CameraCookie>(EDITOR_CAM_COOKIE) ?? {};
+  saved[levelPath] = roundPose(viewport.getCameraPose());
+  writeCookieJson(EDITOR_CAM_COOKIE, saved);
+};
+
+const restoreCamera = (levelPath: string) => {
+  const saved = readCookieJson<CameraCookie>(EDITOR_CAM_COOKIE)?.[levelPath];
+  viewport.setCameraPose(poseIsValid(saved) ? saved : viewport.defaultCameraPose);
+};
 let materialOptions: MaterialDef[] = [];
 let projectAudioPaths: string[] = [];
 let previewAudio: HTMLAudioElement | null = null;
@@ -73,6 +142,9 @@ const viewport = createEditorViewport(canvas, {
     commitNodeTransformToData(target);
     renderInspector();
     scheduleSave();
+  },
+  onCameraChange: () => {
+    if (cameraTracking) persistCamera(currentLevelPath);
   },
 });
 
@@ -125,30 +197,46 @@ const commitNodeTransformToData = (target: SelectionTarget) => {
   }
 };
 
+const writeScene = async () => {
+  if (!sceneData) return;
+  saveStatusEl.textContent = 'Saving…';
+  const ok = await saveJsonFile(currentLevelPath, sceneData);
+  if (ok) sceneDirty = false;
+  saveStatusEl.textContent = ok ? 'Saved' : 'Save failed (is npm run dev active?)';
+  log(ok ? `Saved ${currentLevelPath}` : `Failed to save ${currentLevelPath}`);
+};
+
 const scheduleSave = (immediate = false): Promise<void> => {
   if (!sceneData) return Promise.resolve();
+  sceneDirty = true;
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
-  const run = async () => {
-    saveStatusEl.textContent = 'Saving…';
-    const ok = await saveJsonFile(currentLevelPath, sceneData);
-    saveStatusEl.textContent = ok ? 'Saved' : 'Save failed (is npm run dev active?)';
-    log(ok ? `Saved ${currentLevelPath}` : `Failed to save ${currentLevelPath}`);
-  };
-  if (immediate) return run();
+  if (!autoSave) {
+    saveStatusEl.textContent = 'Unsaved';
+    return Promise.resolve();
+  }
+  if (immediate) return writeScene();
   return new Promise((resolve) => {
     saveTimer = window.setTimeout(() => {
       saveTimer = undefined;
-      void run().then(resolve);
+      void writeScene().then(resolve);
     }, 450);
   });
 };
 
-const flushSceneSave = async () => {
-  if (!saveTimer) return;
+const saveSceneNow = () => {
+  if (!sceneData) return Promise.resolve();
   window.clearTimeout(saveTimer);
   saveTimer = undefined;
-  await scheduleSave(true);
+  sceneDirty = true;
+  return writeScene();
+};
+
+const flushSceneSave = async () => {
+  if (!saveTimer && !sceneDirty) return;
+  window.clearTimeout(saveTimer);
+  saveTimer = undefined;
+  await writeScene();
 };
 
 const degToRad = (deg: number) => (deg * Math.PI) / 180;
@@ -240,10 +328,14 @@ const renderVectorRow = (
   const row = document.createElement('div');
   row.className = 'field-row';
   row.style.gridTemplateColumns = '1fr 1fr 1fr';
+  // Each axis must write the latest of the other two. Spreading `vec` from
+  // when the inspector opened put the previous edit back and skewed the mesh.
+  const live = { x: vec.x, y: vec.y, z: vec.z };
   (['x', 'y', 'z'] as const).forEach((axis) => {
     row.appendChild(
-      makeField(axis.toUpperCase(), convert.toUi(vec[axis]), (next) => {
-        onChange({ ...vec, [axis]: convert.fromUi(next) });
+      makeField(axis.toUpperCase(), convert.toUi(live[axis]), (next) => {
+        live[axis] = convert.fromUi(next);
+        onChange({ x: live.x, y: live.y, z: live.z });
       }),
     );
   });
@@ -656,9 +748,57 @@ const renderAmbientRow = (): HTMLElement => {
   return group;
 };
 
+const renderCullRow = (): HTMLElement => {
+  const value = levelCullMeters(sceneData);
+  const group = document.createElement('div');
+  group.className = 'inspector-row';
+  const title = document.createElement('div');
+  title.className = 'label';
+  title.innerHTML = `<span>Cull</span><span>${value.toFixed(0)} m</span>`;
+  group.appendChild(title);
+  const range = document.createElement('input');
+  range.type = 'range';
+  range.min = '0';
+  range.max = '400';
+  range.step = '1';
+  range.value = String(Math.min(400, value));
+  const number = document.createElement('input');
+  number.type = 'number';
+  number.min = '0';
+  number.step = '1';
+  number.value = String(Math.round(value));
+  const readout = title.querySelector('span:last-child');
+  const apply = (next: number) => {
+    if (!sceneData || !Number.isFinite(next)) return;
+    const meters = Math.max(0, next);
+    sceneData.cull = meters;
+    viewport.setCull(meters);
+    if (readout) readout.textContent = `${meters.toFixed(0)} m`;
+    void scheduleSave();
+  };
+  range.addEventListener('input', () => {
+    const next = Number(range.value);
+    number.value = String(next);
+    apply(next);
+  });
+  number.addEventListener('change', () => {
+    const next = Number(number.value) || 0;
+    range.value = String(Math.min(400, Math.max(0, next)));
+    apply(next);
+  });
+  group.appendChild(range);
+  group.appendChild(number);
+  const hint = document.createElement('div');
+  hint.className = 'value';
+  hint.textContent = 'Hide street blocks, facades, shops, and dressing past this distance. 0 draws everything. The fly camera previews it. Saved on this level.';
+  group.appendChild(hint);
+  return group;
+};
+
 const renderInspector = () => {
   inspectorEl.innerHTML = '';
   if (sceneData) inspectorEl.appendChild(renderAmbientRow());
+  if (sceneData) inspectorEl.appendChild(renderCullRow());
 
   if (!selection || !sceneData) {
     const empty = document.createElement('div');
@@ -1130,6 +1270,8 @@ hierarchyTreeEl.addEventListener('drop', (e) => {
 });
 const loadLevel = async (levelPath: string) => {
   try {
+    if (cameraTracking && levelPath !== currentLevelPath) persistCamera(currentLevelPath);
+    if ((saveTimer || sceneDirty) && levelPath !== currentLevelPath) await flushSceneSave();
     const response = await fetch(levelPath, { cache: 'no-store' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = (await response.json()) as SceneData;
@@ -1139,6 +1281,11 @@ const loadLevel = async (levelPath: string) => {
     currentLevelPath = levelPath;
     selection = null;
     viewport.rebuildFromScene(sceneData);
+    restoreCamera(levelPath);
+    cameraTracking = true;
+    sceneDirty = false;
+    saveStatusEl.textContent = 'Ready';
+    rememberOpenLevel(levelPath);
     renderHierarchy();
     renderInspector();
     log(`Loaded level: ${sceneData.name ?? levelPath}`);
@@ -1160,9 +1307,29 @@ const populateLevelSelect = async () => {
       levelSelectEl.appendChild(option);
     });
     levelSelectEl.value = currentLevelPath;
+    selectSavedLevel();
   } catch (error) {
     log(`Failed to load level manifest: ${error}`);
   }
+};
+
+const selectSavedLevel = () => {
+  const options = [...levelSelectEl.options];
+  const named = editorPrefs.levelName
+    ? options.find((option) => option.value === editorPrefs.level && option.textContent === editorPrefs.levelName)
+    : undefined;
+  const match = named ?? options.find((option) => option.value === editorPrefs.level);
+  if (!match) return;
+  match.selected = true;
+  currentLevelPath = match.value;
+};
+
+const rememberOpenLevel = (levelPath: string) => {
+  const selected = levelSelectEl.selectedOptions[0];
+  const levelName = selected && selected.value === levelPath ? (selected.textContent ?? '') : editorPrefs.levelName;
+  editorPrefs = { ...editorPrefs, level: levelPath, levelName: levelName || undefined };
+  writeEditorPrefs(editorPrefs);
+  selectSavedLevel();
 };
 
 const collectAssetFiles = (nodes: FsTreeNode[], acc: FsTreeNode[] = []): FsTreeNode[] => {
@@ -1387,7 +1554,7 @@ projectTreeEl.addEventListener('drop', (event) => {
 
 $('refreshAssetsBtn').addEventListener('click', () => void loadProjectTree());
 
-$('saveJsonBtn').addEventListener('click', () => scheduleSave(true));
+$('saveJsonBtn').addEventListener('click', () => void saveSceneNow());
 
 $('playSceneBtn').addEventListener('click', () => {
   void (async () => {
@@ -1634,6 +1801,12 @@ levelSelectEl.addEventListener('change', () => void loadLevel(levelSelectEl.valu
 
 const toolsMenuBtn = $('toolsMenuBtn');
 const toolsMenuDropdown = $('toolsMenuDropdown');
+const editMenuBtn = $('editMenuBtn');
+const editMenuDropdown = $('editMenuDropdown');
+const prefsOverlay = $('prefsOverlay');
+const editorBrightnessInput = $('editorBrightness') as HTMLInputElement;
+const editorBrightnessValue = $('editorBrightnessValue');
+const autoSaveToggle = $('autoSaveToggle') as HTMLInputElement;
 const textureImportInput = $('textureImportInput') as HTMLInputElement;
 const textureImportOverlay = $('textureImportOverlay');
 const textureImportList = $('textureImportList');
@@ -1645,12 +1818,82 @@ const setToolsMenuOpen = (open: boolean) => {
   toolsMenuBtn.classList.toggle('active', open);
 };
 
+const setEditMenuOpen = (open: boolean) => {
+  editMenuDropdown.hidden = !open;
+  editMenuBtn.classList.toggle('active', open);
+};
+
+const closeMenus = () => {
+  setToolsMenuOpen(false);
+  setEditMenuOpen(false);
+};
+
 toolsMenuBtn.addEventListener('click', (event) => {
   event.stopPropagation();
-  setToolsMenuOpen(toolsMenuDropdown.hidden);
+  const open = toolsMenuDropdown.hidden;
+  closeMenus();
+  setToolsMenuOpen(open);
 });
-document.addEventListener('click', () => setToolsMenuOpen(false));
+editMenuBtn.addEventListener('click', (event) => {
+  event.stopPropagation();
+  const open = editMenuDropdown.hidden;
+  closeMenus();
+  setEditMenuOpen(open);
+});
+document.addEventListener('click', () => closeMenus());
 toolsMenuDropdown.addEventListener('click', (event) => event.stopPropagation());
+editMenuDropdown.addEventListener('click', (event) => event.stopPropagation());
+
+const syncPrefsForm = () => {
+  editorBrightnessInput.value = String(editorBrightnessInput.value || '1');
+  editorBrightnessValue.textContent = Number(editorBrightnessInput.value).toFixed(2);
+  autoSaveToggle.checked = autoSave;
+};
+
+const openPreferences = () => {
+  closeMenus();
+  syncPrefsForm();
+  prefsOverlay.hidden = false;
+};
+
+const closePreferences = () => {
+  prefsOverlay.hidden = true;
+};
+
+const storePrefs = () => {
+  const brightness = Number(editorBrightnessInput.value);
+  editorPrefs = {
+    ...editorPrefs,
+    autoSave,
+    brightness: Number.isFinite(brightness) ? brightness : 1,
+  };
+  writeEditorPrefs(editorPrefs);
+};
+
+editorBrightnessInput.addEventListener('input', () => {
+  const brightness = Number(editorBrightnessInput.value);
+  editorBrightnessValue.textContent = brightness.toFixed(2);
+  viewport.setEditorBrightness(brightness);
+  storePrefs();
+});
+
+autoSaveToggle.addEventListener('change', () => {
+  autoSave = autoSaveToggle.checked;
+  storePrefs();
+  if (!autoSave) {
+    window.clearTimeout(saveTimer);
+    saveTimer = undefined;
+  }
+  if (autoSave && sceneDirty) void scheduleSave(true);
+  else if (!autoSave && sceneDirty) saveStatusEl.textContent = 'Unsaved';
+});
+
+$('preferencesBtn').addEventListener('click', () => openPreferences());
+$('prefsCloseBtn').addEventListener('click', closePreferences);
+$('prefsDoneBtn').addEventListener('click', closePreferences);
+prefsOverlay.addEventListener('click', (event) => {
+  if (event.target === prefsOverlay) closePreferences();
+});
 
 $('animTrimBtn').addEventListener('click', () => {
   setToolsMenuOpen(false);
@@ -1803,7 +2046,18 @@ textureImportOverlay.addEventListener('click', (event) => {
 
 installAudioUnlock();
 
+window.addEventListener('beforeunload', () => {
+  if (cameraTracking) persistCamera(currentLevelPath);
+});
+
 (async function init() {
+  editorPrefs = readEditorPrefs();
+  const prefs = editorPrefs;
+  autoSave = prefs.autoSave;
+  editorBrightnessInput.value = String(prefs.brightness);
+  editorBrightnessValue.textContent = prefs.brightness.toFixed(2);
+  autoSaveToggle.checked = prefs.autoSave;
+  viewport.setEditorBrightness(prefs.brightness);
   clipTrims = await loadClipTrims();
   await populateLevelSelect();
   await loadProjectTree();

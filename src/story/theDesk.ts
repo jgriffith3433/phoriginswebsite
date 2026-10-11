@@ -276,7 +276,6 @@ export const createTheDesk = (host: DeskHost) => {
     host.holdScene(false);
     host.clearInput();
     host.resumeLocomotion();
-    host.playClip('rebornidle', true);
     host.unlockNext();
     host.refreshHud();
     host.offerEnd('Level Complete', 'The work is on the floor. Continue. He is going home.');

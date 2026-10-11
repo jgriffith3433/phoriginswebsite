@@ -348,6 +348,14 @@
         {
           "name": "Punch",
           "path": "C:\\Projects\\phoriginsassets\\animations\\NPCPunch.fbx"
+        },
+        {
+          "name": "YellingOut",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Yelling Out.fbx"
+        },
+        {
+          "name": "Melee360",
+          "path": "C:\\Projects\\phoriginsassets\\animations\\Standing Melee Attack 360 High.fbx"
         }
       ]
     },
@@ -955,6 +963,17 @@
       "source": "project"
     },
     {
+      "id": "asset-b3-barrel",
+      "name": "b3-barrel.glb",
+      "path": "/assets/models/b3-barrel.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "basement"
+      ],
+      "source": "project"
+    },
+    {
       "id": "asset-b3-gurney",
       "name": "b3-gurney.glb",
       "path": "/assets/models/b3-gurney.glb",
@@ -970,7 +989,10 @@
       "name": "street-facade-brick.glb",
       "path": "/assets/models/street-facade-brick.glb",
       "type": "model",
-      "tags": ["prop", "street"],
+      "tags": [
+        "prop",
+        "street"
+      ],
       "source": "project"
     },
     {
@@ -978,7 +1000,10 @@
       "name": "street-facade-concrete.glb",
       "path": "/assets/models/street-facade-concrete.glb",
       "type": "model",
-      "tags": ["prop", "street"],
+      "tags": [
+        "prop",
+        "street"
+      ],
       "source": "project"
     },
     {
@@ -986,7 +1011,10 @@
       "name": "street-shop-market.glb",
       "path": "/assets/models/street-shop-market.glb",
       "type": "model",
-      "tags": ["prop", "street"],
+      "tags": [
+        "prop",
+        "street"
+      ],
       "source": "project"
     },
     {
@@ -994,7 +1022,10 @@
       "name": "street-shop-diner.glb",
       "path": "/assets/models/street-shop-diner.glb",
       "type": "model",
-      "tags": ["prop", "street"],
+      "tags": [
+        "prop",
+        "street"
+      ],
       "source": "project"
     },
     {
@@ -1002,7 +1033,10 @@
       "name": "street-shop-news.glb",
       "path": "/assets/models/street-shop-news.glb",
       "type": "model",
-      "tags": ["prop", "street"],
+      "tags": [
+        "prop",
+        "street"
+      ],
       "source": "project"
     },
     {
@@ -1010,7 +1044,76 @@
       "name": "street-car.glb",
       "path": "/assets/models/street-car.glb",
       "type": "model",
-      "tags": ["prop", "street"],
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-office-sofa",
+      "name": "office-sofa.glb",
+      "path": "/assets/models/office-sofa.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "office"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-bench",
+      "name": "street-bench.glb",
+      "path": "/assets/models/street-bench.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-trash",
+      "name": "street-trash.glb",
+      "path": "/assets/models/street-trash.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-recycle",
+      "name": "street-recycle.glb",
+      "path": "/assets/models/street-recycle.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-newsstand",
+      "name": "street-newsstand.glb",
+      "path": "/assets/models/street-newsstand.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
+      "source": "project"
+    },
+    {
+      "id": "asset-street-traffic-light",
+      "name": "street-traffic-light.glb",
+      "path": "/assets/models/street-traffic-light.glb",
+      "type": "model",
+      "tags": [
+        "prop",
+        "street"
+      ],
       "source": "project"
     }
   ]

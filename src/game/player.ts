@@ -131,9 +131,17 @@ export const movePlayerOnGround = (
   dx: number,
   dz: number,
 ) => {
-  collider.position.set(player.x, player.y, player.z);
-  collider.moveWithCollisions(new BABYLON.Vector3(dx, 0, dz));
-  player.x = collider.position.x;
-  player.z = collider.position.z;
+  // One long frame, or a shadow run, is longer than a wall. Split it so the
+  // capsule cannot start on one side of a box and finish on the other.
+  const dist = Math.hypot(dx, dz);
+  const steps = Math.max(1, Math.ceil(dist / 0.2));
+  const sx = dx / steps;
+  const sz = dz / steps;
+  for (let i = 0; i < steps; i += 1) {
+    collider.position.set(player.x, player.y, player.z);
+    collider.moveWithCollisions(new BABYLON.Vector3(sx, 0, sz));
+    player.x = collider.position.x;
+    player.z = collider.position.z;
+  }
   collider.position.y = player.y;
 };

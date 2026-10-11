@@ -73,7 +73,7 @@ A level is a JSON file in `levels/`. The game and Dev Tools both load that file.
 
 Apex Peak’s office kit is the starting set for the next floor: doors, a water cooler, filing cabinets, plants, a credenza, chairs, waste bins, a carpet runner, desk clutter, and a wall directory. The GLBs are in `assets/models/`. Their ids are in `assets/asset-library.json` (`asset-office-door`, `asset-water-cooler`, and the rest). Drag one from the Dev Tools project tree into the viewport, or copy an entry in the level’s `assets` list.
 
-The runner, bins, clutter, and directory are visual. Doors, the cooler, cabinets, plants, the credenza, and chairs block the player. To make a new prop solid, add its library id to `SOLID_FURNITURE` in `src/game/sceneData.ts`.
+The runner, bins, clutter, and directory are visual. Any other placed model blocks the player. To leave a new prop walk-through, add its library id to `WALK_THROUGH` in `src/game/sceneData.ts`.
 
 Prop front faces **−Z** when yaw is `0`. Turn by `π` to face the opposite way, and by `±π/2` to face along X. Sizes, the carpet scale, and the Apex Peak marks to leave clear (window stand, office chair, board seats, elevator) are in [`AGENTS.md`](./AGENTS.md) under **Props and new levels**.
 

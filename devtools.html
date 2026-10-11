@@ -6,6 +6,7 @@
     <title>PH Origins Level Editor</title>
     <style>
       :root {
+        color-scheme: dark;
         --bg: #0c1117;
         --bg-alt: #121a22;
         --panel: #151e28;
@@ -122,12 +123,19 @@
       select {
         appearance: none;
         border: 1px solid var(--border);
-        background: rgba(255,255,255,0.02);
-        color: var(--text);
+        background-color: #0c1117;
+        color: #edf7ff;
+        color-scheme: dark;
         padding: 8px 10px;
         border-radius: 8px;
         font-size: 11px;
         text-transform: none;
+      }
+
+      select option,
+      select optgroup {
+        background-color: #0c1117;
+        color: #edf7ff;
       }
 
       .menu {
@@ -242,15 +250,25 @@
         overflow: auto;
       }
 
+      .hierarchy-header {
+        justify-content: flex-start;
+        gap: 10px;
+      }
+
       .hierarchy-search {
-        width: 100%;
-        margin-bottom: 8px;
-        border: 1px solid var(--border);
+        flex: 1;
+        min-width: 0;
+        width: auto;
+        margin: 0;
+        border: 1px solid rgba(103, 210, 255, 0.45);
         border-radius: 8px;
-        background: rgba(255,255,255,0.03);
+        background: #0c1117;
         color: var(--text);
-        padding: 7px 9px;
+        padding: 5px 8px;
         font-size: 12px;
+        font-weight: 400;
+        letter-spacing: normal;
+        text-transform: none;
       }
 
       .hierarchy-search:focus {
@@ -688,7 +706,40 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 50;
+        z-index: 200;
+      }
+
+      .pref-slider {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .pref-slider input[type="range"] {
+        flex: 1;
+      }
+
+      .pref-value {
+        min-width: 3.2em;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        font-size: 12px;
+      }
+
+      .pref-hint {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      .pref-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        letter-spacing: 0.04rem;
+        text-transform: none;
       }
 
       .modal-overlay[hidden] { display: none; }
@@ -813,6 +864,12 @@
           <button id="importSceneBtn">Import</button>
           <input id="sceneImportInput" type="file" accept=".json" hidden />
           <div class="menu">
+            <button id="editMenuBtn" type="button">Edit</button>
+            <div id="editMenuDropdown" class="menu-dropdown" hidden>
+              <button id="preferencesBtn" type="button">Preferences</button>
+            </div>
+          </div>
+          <div class="menu">
             <button id="toolsMenuBtn" type="button">Tools</button>
             <div id="toolsMenuDropdown" class="menu-dropdown" hidden>
               <button id="linkBlenderBtn" type="button">Link Blender</button>
@@ -837,11 +894,11 @@
             </div>
           </div>
           <div class="panel-section" style="flex: 1;">
-            <div class="panel-header">
+            <div class="panel-header hierarchy-header">
               <span>Hierarchy</span>
+              <input id="hierarchySearch" class="hierarchy-search" type="search" placeholder="Filter" autocomplete="off" />
             </div>
             <div class="panel-body">
-              <input id="hierarchySearch" class="hierarchy-search" type="search" placeholder="Filter by name" autocomplete="off" />
               <div class="hierarchy-list" id="hierarchyTree"></div>
             </div>
           </div>
@@ -1011,6 +1068,30 @@
         <div class="modal-footer">
           <button id="fbxImportCancelBtn">Cancel</button>
           <button id="fbxImportSubmitBtn" class="primary">Convert &amp; Import</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="prefsOverlay" hidden>
+      <div class="modal" role="dialog" aria-labelledby="prefsTitle">
+        <div class="modal-header">
+          <span id="prefsTitle">Preferences</span>
+          <button id="prefsCloseBtn" class="icon-btn" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label for="editorBrightness">Level Editor Brightness</label>
+          <div class="pref-slider">
+            <input id="editorBrightness" type="range" min="0.2" max="6" step="0.05" value="1" />
+            <span id="editorBrightnessValue" class="pref-value">1.00</span>
+          </div>
+          <p class="pref-hint">Editor only. Brightens the viewport while you work. The level file and the game stay as authored.</p>
+          <label class="pref-toggle" for="autoSaveToggle">
+            <input id="autoSaveToggle" type="checkbox" checked />
+            Auto Save
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button id="prefsDoneBtn" class="primary" type="button">Done</button>
         </div>
       </div>
     </div>

@@ -97,6 +97,29 @@
           "duration": 2.09
         }
       ]
+    },
+    "hale-board": {
+      "contact": "hale",
+      "lines": [
+        {
+          "speaker": "hale",
+          "text": "Pierce. The board turned out well.",
+          "audio": "/assets/audio/phone/hale-board-well.wav",
+          "duration": 2.4
+        },
+        {
+          "speaker": "pierce",
+          "text": "Alright.",
+          "audio": "/assets/audio/phone/pierce-alright.wav",
+          "duration": 0.8
+        },
+        {
+          "speaker": "hale",
+          "text": "I'll update you soon.",
+          "audio": "/assets/audio/phone/hale-update-soon.wav",
+          "duration": 1.6
+        }
+      ]
     }
   },
   "byObjective": {

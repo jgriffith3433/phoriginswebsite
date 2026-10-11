@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { applyCullBands, collectCullBands, type CullBand } from '../game/levelCull';
 import { detachSharedProbe, loadGlbByAssetId } from '../game/modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
@@ -41,6 +42,7 @@ export type GoingHomeHost = {
   shedShadow: (x: number, z: number) => void;
   pushPhoneText: (id: string) => void;
   ability: () => 'shock' | 'possess';
+  cull: () => number;
 };
 
 const HOME = { x: 163.5, z: 21.2 };
@@ -249,7 +251,8 @@ const releaseCarSource = () => {
     }
   }
   detachSharedProbe(materials);
-  holder.dispose(false, true);
+  // Textures stay with the parsed prop container. Disposing them blanks the next copy.
+  holder.dispose(false, false);
 };
 
 const buildCar = (scene: BABYLON.Scene, name: string, x: number, z: number, speed: number, axis: 'x' | 'z' = 'x'): Car => {
@@ -344,7 +347,6 @@ export const createGoingHome = (host: GoingHomeHost) => {
     open: false,
     interior: [] as BABYLON.Node[],
   }));
-  type CullBand = { node: BABYLON.Node; x: number; z: number; near: number; far: number; on: boolean };
   const bands: CullBand[] = [];
   const painted: BABYLON.AbstractMesh[] = [];
   const paintJobs: { mesh: BABYLON.AbstractMesh; material: BABYLON.Material }[] = [];
@@ -410,15 +412,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
   };
 
   const applyBands = (x: number, z: number) => {
-    for (const band of bands) {
-      const dx = band.x - x;
-      const dz = band.z - z;
-      const dist2 = dx * dx + dz * dz;
-      const want = band.on ? dist2 < band.far * band.far : dist2 < band.near * band.near;
-      if (want === band.on) continue;
-      band.on = want;
-      band.node.setEnabled(want);
-    }
+    applyCullBands(bands, x, z, host.cull());
   };
 
   const syncShops = (x: number, z: number) => {
@@ -1052,10 +1046,6 @@ export const createGoingHome = (host: GoingHomeHost) => {
         if (node instanceof BABYLON.AbstractMesh && (id.startsWith('block-') || id.startsWith('city-') || id === 'tower')) {
           const material = matId === 'mat-hall-wall' ? hallMat : matId === 'mat-office-wall' ? officeMat : boardMat;
           assignFlat(node, material, 2.4);
-          if (id.startsWith('block-')) {
-            const at = node.getAbsolutePosition();
-            bands.push({ node, x: at.x, z: at.z, near: 52, far: 70, on: true });
-          }
           continue;
         }
         if (node instanceof BABYLON.AbstractMesh && (id.startsWith('street-ground') || id.startsWith('b3-decal-ave-') || id.startsWith('b3-decal-cross-') || id === 'b3-decal-road')) {
@@ -1073,15 +1063,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
           if (kind === 'interior') {
             spot.interior.push(node);
             node.setEnabled(false);
-          } else {
-            const at = node.getAbsolutePosition();
-            bands.push({ node, x: at.x, z: at.z, near: 56, far: 74, on: true });
           }
-        } else {
-          const at = node.getAbsolutePosition();
-          const near = kind === 'furn' ? 34 : kind === 'facade' ? 52 : kind === 'window' ? 46 : 42;
-          const far = kind === 'furn' ? 46 : kind === 'facade' ? 70 : kind === 'window' ? 60 : 56;
-          bands.push({ node, x: at.x, z: at.z, near, far, on: true });
         }
         if (!(node instanceof BABYLON.AbstractMesh) || id.includes('-in-') && !id.includes('-in-lamp')) continue;
         let material: BABYLON.Material | null = null;
@@ -1107,6 +1089,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
         }
         if (material) assignFlat(node, material, tile);
       }
+      bands.push(...collectCullBands(host.scene));
       syncShops(bootX, STREET.z);
       applyBands(bootX, STREET.z);
       for (const person of people) {

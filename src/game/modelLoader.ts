@@ -118,6 +118,91 @@ const enqueueImport = <T>(work: () => Promise<T>): Promise<T> => {
   return run;
 };
 
+/** Let a frame draw between GLB parses. A street of models otherwise parses in one turn. */
+const nextFrame = () => new Promise<void>((resolve) => {
+  requestAnimationFrame(() => resolve());
+});
+
+/**
+ * Static props share one parsed container per scene. Copies instantiate.
+ * Characters stay on a fresh container: clips must target that rig's joints.
+ */
+const propSources = new WeakMap<BABYLON.Scene, Map<string, Promise<BABYLON.AssetContainer>>>();
+
+const propSource = (scene: BABYLON.Scene, modelPath: string) => {
+  let map = propSources.get(scene);
+  if (!map) {
+    map = new Map();
+    propSources.set(scene, map);
+  }
+  const existing = map.get(modelPath);
+  if (existing) return existing;
+  const { rootUrl, fileName } = splitModelUrl(modelPath);
+  const pending = enqueueImport(async () => {
+    await nextFrame();
+    const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(rootUrl, fileName, scene);
+    capSimultaneousLights(scene);
+    return container;
+  }).catch((error: unknown) => {
+    map.delete(modelPath);
+    throw error;
+  });
+  map.set(modelPath, pending);
+  return pending;
+};
+
+const emptyImport = (): ImportedModel => ({ meshes: [], animationGroups: [], skeletons: [] });
+
+const placePropCopy = async (
+  scene: BABYLON.Scene,
+  modelPath: string,
+  parent: BABYLON.TransformNode,
+): Promise<ImportedModel> => {
+  const source = await propSource(scene, modelPath);
+  return enqueueImport(async () => {
+    if (parent.isDisposed()) return emptyImport();
+    const prefix = `${parent.name}_${++instanceSeq}_`;
+    const entries = source.instantiateModelsToScene((name) => `${prefix}${name}`, true, { doNotInstantiate: true });
+    const meshes: BABYLON.AbstractMesh[] = [];
+    for (const node of entries.rootNodes) {
+      node.parent = parent;
+      if (node instanceof BABYLON.AbstractMesh) meshes.push(node);
+      for (const child of node.getChildMeshes(false)) meshes.push(child);
+    }
+    if (parent.isDisposed()) {
+      for (const mesh of meshes) {
+        const material = mesh.material;
+        if (material) detachSharedProbe([material]);
+        mesh.dispose(false, false);
+        material?.dispose(false, false);
+      }
+      for (const group of entries.animationGroups) group.dispose();
+      for (const skeleton of entries.skeletons) skeleton.dispose();
+      return emptyImport();
+    }
+    const cube = characterProbe(scene);
+    const editor = Boolean((scene.metadata as { editor?: boolean } | null)?.editor);
+    const seen = new Set<BABYLON.Material>();
+    for (const mesh of meshes) {
+      if (!editor) mesh.isPickable = false;
+      const material = mesh.material;
+      if (!(material instanceof BABYLON.PBRMaterial) || seen.has(material)) continue;
+      seen.add(material);
+      material.reflectionTexture = cube;
+      material.environmentIntensity = 0.5;
+      material.maxSimultaneousLights = MAX_SIMULTANEOUS_LIGHTS;
+      material.metadata = { ...(material.metadata ?? {}), prop: true };
+    }
+    capSimultaneousLights(scene);
+    for (const group of entries.animationGroups) group.stop(true);
+    return {
+      meshes,
+      animationGroups: entries.animationGroups,
+      skeletons: entries.skeletons,
+    };
+  });
+};
+
 /** Graybox walls use StandardMaterial. Mixamo glTF PBR lands as metal + extra specular. */
 const CHARACTER_MIN_ROUGHNESS = 0.62;
 const CHARACTER_ENV_INTENSITY = 0.32;
@@ -241,9 +326,10 @@ export const applyMatteCharacterMaterials = (meshes: BABYLON.AbstractMesh[], ext
 };
 
 /**
- * One fresh container per instance (no instantiate, no cache). Rename, then
- * retarget every TargetedAnimation onto THIS skeleton's linked joint node.
- * Never leave a clip pointed at a previous character's node.
+ * Characters: one fresh container per instance (no instantiate, no cache).
+ * Rename, then retarget every TargetedAnimation onto THIS skeleton's linked
+ * joint node. Never leave a clip pointed at a previous character's node.
+ * Props: parse once per GLB and instantiate copies. See placePropCopy.
  */
 export const importGlbUnderParent = async (
   scene: BABYLON.Scene,
@@ -251,8 +337,10 @@ export const importGlbUnderParent = async (
   parent: BABYLON.TransformNode,
   options?: { matte?: boolean },
 ): Promise<ImportedModel> => {
+  if (options?.matte === false) return placePropCopy(scene, modelPath, parent);
   const { rootUrl, fileName } = splitModelUrl(modelPath);
   return enqueueImport(async () => {
+    await nextFrame();
     const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(rootUrl, fileName, scene);
     capSimultaneousLights(scene);
     if (parent.isDisposed()) {
