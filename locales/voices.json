@@ -1,0 +1,138 @@
+{
+  "model": "eleven_v4",
+  "performances": [
+    {
+      "id": "default",
+      "label": "Default",
+      "tag": ""
+    },
+    {
+      "id": "excited",
+      "label": "Excited",
+      "tag": "excited"
+    },
+    {
+      "id": "happy",
+      "label": "Happy",
+      "tag": "happy"
+    },
+    {
+      "id": "sad",
+      "label": "Sad",
+      "tag": "sad"
+    },
+    {
+      "id": "angry",
+      "label": "Angry",
+      "tag": "angry"
+    },
+    {
+      "id": "nervous",
+      "label": "Nervous",
+      "tag": "nervous"
+    },
+    {
+      "id": "curious",
+      "label": "Curious",
+      "tag": "curious"
+    },
+    {
+      "id": "sarcastic",
+      "label": "Sarcastic",
+      "tag": "sarcastic"
+    },
+    {
+      "id": "surprised",
+      "label": "Surprised",
+      "tag": "surprised"
+    },
+    {
+      "id": "tired",
+      "label": "Tired",
+      "tag": "tired"
+    },
+    {
+      "id": "warmly",
+      "label": "Warmly",
+      "tag": "warmly"
+    },
+    {
+      "id": "whispers",
+      "label": "Whispers",
+      "tag": "whispers"
+    },
+    {
+      "id": "shouting",
+      "label": "Shouting",
+      "tag": "shouting"
+    },
+    {
+      "id": "softly",
+      "label": "Softly",
+      "tag": "softly"
+    },
+    {
+      "id": "dramatically",
+      "label": "Dramatically",
+      "tag": "dramatically"
+    },
+    {
+      "id": "mischievously",
+      "label": "Mischievously",
+      "tag": "mischievously"
+    },
+    {
+      "id": "cautiously",
+      "label": "Cautiously",
+      "tag": "cautiously"
+    },
+    {
+      "id": "slowly",
+      "label": "Slowly",
+      "tag": "slowly"
+    }
+  ],
+  "voices": {
+    "pierce": {
+      "name": "Pierce Hawkes",
+      "voiceId": "ZthjuvLPty3kTMaNKVKb"
+    },
+    "hale": {
+      "name": "Director Hale",
+      "voiceId": "XW70ikSsadUbinwLMZ5w"
+    },
+    "voss": {
+      "name": "Voss",
+      "voiceId": "XjLkpWUlnhS8i7gGz3lZ"
+    },
+    "lang": {
+      "name": "Lang",
+      "voiceId": "2UMI2FME0FFUFMlUoRER"
+    },
+    "receptionist": {
+      "name": "Receptionist",
+      "voiceId": "cgSgspJ2msm6clMCkdW9"
+    },
+    "passerby": {
+      "name": "Passerby",
+      "voiceId": "NMilCCbfoygNnI2VZ7ME"
+    },
+    "police": {
+      "name": "Police",
+      "voiceId": "IRHApOXLvnW57QJPQH2P"
+    }
+  },
+  "speakers": {
+    "pierce": "pierce",
+    "pierce hawkes": "pierce",
+    "hale": "hale",
+    "director hale": "hale",
+    "voss": "voss",
+    "lang": "lang",
+    "receptionist": "receptionist",
+    "passerby": "passerby",
+    "pedestrian": "passerby",
+    "shopkeeper": "passerby",
+    "police": "police"
+  }
+}

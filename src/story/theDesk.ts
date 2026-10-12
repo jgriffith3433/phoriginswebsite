@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 
 export type DeskHost = {
@@ -278,7 +279,7 @@ export const createTheDesk = (host: DeskHost) => {
     host.resumeLocomotion();
     host.unlockNext();
     host.refreshHud();
-    host.offerEnd('Level Complete', 'The work is on the floor. Continue. He is going home.');
+    host.offerEnd(lineSpeaker('ui.complete.desk', 'Level Complete'), lineText('ui.complete.desk', 'The work is on the floor. Continue. He is going home.'));
   };
 
   return {
@@ -317,17 +318,17 @@ export const createTheDesk = (host: DeskHost) => {
       swept = false;
       saidGoing = false;
       shake = 0;
-      host.setCarry(CARRY);
+      host.setCarry(carryItems('desk', CARRY));
       host.holdScene(false);
-      host.setObjective('Look', 'The hall bathroom. The mirror.', { x: MIRROR.x, y: 1.5, z: MIRROR.z });
+      host.setObjective(lineSpeaker('objective.desk.look', 'Look'), lineText('objective.desk.look', 'The hall bathroom. The mirror.'), { x: MIRROR.x, y: 1.5, z: MIRROR.z });
       host.showObjective(true);
       host.scene.getMeshByName('Office Ammo')?.setEnabled(false);
       mountMirror();
       spawnWork();
       host.placePierce(MIRROR.x, MIRROR.z, MIRROR.yaw);
+      // playClip after resume locks the idle and blocks walk and jump.
       host.resumeLocomotion();
-      host.playClip('rebornidle', true);
-      clip = 'idle';
+      clip = '';
     },
     step: (delta: number) => {
       if (!active || finished || !playing) return;
@@ -350,19 +351,19 @@ export const createTheDesk = (host: DeskHost) => {
       );
       if (!saidAccept && time >= 1.1) {
         saidAccept = true;
-        say('Pierce Hawkes', 'Look at this. Nobody is going to accept me. Not looking like this.', ACCEPT, 0.92, 5.5);
+        say(lineSpeaker('dialogue.desk.accept', 'Pierce Hawkes'), lineText('dialogue.desk.accept'), lineAudio('dialogue.desk.accept', ACCEPT), 0.92, 5.5);
       } else if (!saidNature && time >= 7) {
         saidNature = true;
-        say('Pierce Hawkes', 'That is just human nature. People decide what you are before you ever speak.', NATURE, 0.92, 5.4);
+        say(lineSpeaker('dialogue.desk.nature', 'Pierce Hawkes'), lineText('dialogue.desk.nature'), lineAudio('dialogue.desk.nature', NATURE), 0.92, 5.4);
       } else if (!saidStill && time >= 36.6) {
         saidStill = true;
-        say('Pierce Hawkes', "It's all still here. I was supposed to finish this.", STILL, 0.92, 4.8);
+        say(lineSpeaker('dialogue.desk.still', 'Pierce Hawkes'), lineText('dialogue.desk.still'), lineAudio('dialogue.desk.still', STILL), 0.92, 4.8);
       } else if (!swept && time >= 42.15) {
         swept = true;
         sweep();
       } else if (!saidGoing && time >= 43.4) {
         saidGoing = true;
-        say('Pierce Hawkes', 'I am not staying here to be stared at. I am going home.', GOING, 0.92, 4.2);
+        say(lineSpeaker('dialogue.desk.going', 'Pierce Hawkes'), lineText('dialogue.desk.going'), lineAudio('dialogue.desk.going', GOING), 0.92, 4.2);
       } else if (lineUntil > 0 && time > lineUntil) {
         lineUntil = 0;
         host.showLine('', '');

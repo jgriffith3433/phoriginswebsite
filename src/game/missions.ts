@@ -1,3 +1,5 @@
+import { storyLine } from './locale';
+
 export type MissionQuest = {
   id: string;
   group: 'main' | 'side';
@@ -12,16 +14,21 @@ const mainQuest = (): MissionQuest => ({
   detail: '',
 });
 
+const sideQuest = (id: string, title: string, detail: string): MissionQuest => {
+  const row = storyLine(`ui.mission.${id}`);
+  return { id, group: 'side', title: row?.speaker || title, detail: row?.text || detail };
+};
+
 const callQuests = (): MissionQuest[] => [
-  { id: 'call-voss', group: 'side', title: 'Call Voss', detail: 'Dial Voss and get through.' },
-  { id: 'call-hale', group: 'side', title: 'Call Hale', detail: 'Dial Hale and get through.' },
+  sideQuest('call-voss', 'Call Voss', 'Dial Voss and get through.'),
+  sideQuest('call-hale', 'Call Hale', 'Dial Hale and get through.'),
 ];
 
 const powerQuests = (): MissionQuest[] => [
-  { id: 'power-shadow', group: 'side', title: 'Shadow mode', detail: 'Press C. While it is on, people lose you.' },
-  { id: 'power-shock', group: 'side', title: 'Shadow Shock', detail: 'Turn Shadow mode on. Select Shadow Shock. Click someone in front.' },
-  { id: 'power-possess', group: 'side', title: 'Possess', detail: 'Turn Shadow mode on. Select Possess. Click someone in front.' },
-  { id: 'power-consume', group: 'side', title: 'Consume', detail: 'While linked, in Shadow mode, click again.' },
+  sideQuest('power-shadow', 'Shadow mode', 'Press C. While it is on, people lose you.'),
+  sideQuest('power-shock', 'Shadow Shock', 'Turn Shadow mode on. Select Shadow Shock. Click someone in front.'),
+  sideQuest('power-possess', 'Possess', 'Turn Shadow mode on. Select Possess. Click someone in front.'),
+  sideQuest('power-consume', 'Consume', 'While linked, in Shadow mode, click again.'),
 ];
 
 /** Side work that counts toward clearing a level. The city teaches the powers. The earlier levels are the calls. */

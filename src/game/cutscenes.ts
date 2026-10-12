@@ -1,4 +1,6 @@
 import { createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
+import { storyLine } from './locale';
+import { mixVolume, startGaplessLoop, type LoopHandle } from './sfxMix';
 
 export type CutsceneVec3 = { x: number; y: number; z: number };
 
@@ -18,6 +20,8 @@ export type TimelineEvent = {
   loop?: boolean;
   actor?: string;
   speaker?: string;
+  /** Story line id in locales/en.json. Speaker, text, and audio come from there. */
+  line?: string;
   anim?: string;
   duration?: number;
   on?: boolean;
@@ -60,6 +64,9 @@ export type ActiveCutscene = {
   duration: number;
   cursor: number;
   playing: HTMLAudioElement[];
+  loops: LoopHandle[];
+  /** Bumped when the scene stops, so a hum that finishes decoding does not start. */
+  loopToken: number;
   hooks: CutsceneHooks;
   lineHold: { until: number; actor: string; restClip: string } | null;
   silent?: boolean;
@@ -103,8 +110,15 @@ export const loadCutsceneTimeline = async (id: string): Promise<CutsceneTimeline
   }
 };
 
+/** Clips we stopped on purpose. Clearing src fires error, and that must not beep. */
+const retiredClips = new WeakSet<HTMLAudioElement>();
+
 const stopAudio = (cutscene: ActiveCutscene) => {
+  cutscene.loopToken = (cutscene.loopToken ?? 0) + 1;
+  (cutscene.loops ?? []).forEach((loop) => loop.stop());
+  cutscene.loops = [];
   cutscene.playing.forEach((element) => {
+    retiredClips.add(element);
     element.pause();
     element.src = '';
   });
@@ -113,15 +127,39 @@ const stopAudio = (cutscene: ActiveCutscene) => {
 
 const playFile = (cutscene: ActiveCutscene, url: string, volume: number, loop: boolean, stubSeconds = 1.6) => {
   if (!cutscene.hooks.audioEnabled() || !url) return;
+  const level = mixVolume(url, volume);
+  if (loop) {
+    const token = cutscene.loopToken;
+    void startGaplessLoop(url, level).then((handle) => {
+      if (token !== cutscene.loopToken) {
+        handle?.stop();
+        return;
+      }
+      if (handle) {
+        cutscene.loops.push(handle);
+        return;
+      }
+      const element = createUnlockedAudio(url);
+      element.loop = true;
+      element.volume = level;
+      cutscene.playing.push(element);
+      void element.play().catch(() => {});
+    });
+    return;
+  }
   const element = createUnlockedAudio(url);
-  element.loop = loop;
-  element.volume = Math.max(0, Math.min(1, volume));
+  element.loop = false;
+  element.volume = level;
   const handleError = () => {
     element.removeEventListener('error', handleError);
+    if (retiredClips.has(element)) return;
     playVoiceStub(cutscene, stubSeconds, 168);
   };
   element.addEventListener('error', handleError);
-  void element.play().catch(() => playVoiceStub(cutscene, stubSeconds, 168));
+  void element.play().catch(() => {
+    if (retiredClips.has(element)) return;
+    playVoiceStub(cutscene, stubSeconds, 168);
+  });
   cutscene.playing.push(element);
 };
 
@@ -158,7 +196,23 @@ const resolveLineDuration = (event: TimelineEvent) => {
   return event.text ? lineDuration(event.text) : 3;
 };
 
+const withCopy = (event: TimelineEvent): TimelineEvent => {
+  if (!event.line) return event;
+  const row = storyLine(event.line);
+  if (!row) return event;
+  if (event.type === 'line') {
+    return {
+      ...event,
+      speaker: row.speaker || event.speaker,
+      text: row.text,
+      audio: row.audio || event.audio,
+    };
+  }
+  return { ...event, title: row.speaker || event.title, text: row.text || event.text };
+};
+
 const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
+  event = withCopy(event);
   if (cutscene.silent && (event.type === 'audio' || event.type === 'line' || event.type === 'hud' || event.type === 'camera')) return;
   if (cutscene.silent && event.type === 'fade' && (event.to ?? 1) > 0.2) return;
   if (event.type === 'camera' && event.position && event.lookAt) {
@@ -248,6 +302,8 @@ export const startCutscene = async (id: string, hooks: CutsceneHooks): Promise<A
     duration: Math.max(0.5, timeline.duration ?? 0),
     cursor: 0,
     playing: [],
+    loops: [],
+    loopToken: 0,
     hooks,
     lineHold: null,
   };

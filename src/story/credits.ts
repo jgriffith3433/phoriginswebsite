@@ -1,3 +1,5 @@
+import { storyLine } from '../game/locale';
+
 export type CreditBlock = {
   role: string;
   names: string[];
@@ -677,13 +679,15 @@ const escapeHtml = (value: string) => value
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;');
 
-const column = (blocks: CreditBlock[], side: 'left' | 'right') => {
-  const body = blocks.map((block) => {
+const column = (blocks: CreditBlock[], levelId: number, side: 'left' | 'right') => {
+  const body = blocks.map((block, index) => {
+    const role = storyLine(`credit.${levelId}.${side}.${index}.role`)?.text || block.role;
     const names = block.names
+      .map((name, line) => storyLine(`credit.${levelId}.${side}.${index}.${line}`)?.text || name)
       .map((name) => `<p class="credit-name">${escapeHtml(name)}</p>`)
       .join('');
 
-    return `<div class="credit-block"><p class="credit-role">${escapeHtml(block.role)}</p>${names}</div>`;
+    return `<div class="credit-block"><p class="credit-role">${escapeHtml(role)}</p>${names}</div>`;
   }).join('');
 
   return `<div class="credit-roll credit-roll-${side}">${body}</div>`;
@@ -693,5 +697,5 @@ export const renderLevelCredits = (levelId: number) => {
   const credits = LEVEL_CREDITS[levelId];
   if (!credits) return '';
 
-  return column(credits.left, 'left') + column(credits.right, 'right');
+  return column(credits.left, levelId, 'left') + column(credits.right, levelId, 'right');
 };

@@ -772,6 +772,133 @@
         gap: 14px;
       }
 
+      .story-modal {
+        width: min(1100px, calc(100vw - 32px));
+      }
+
+      .story-tools {
+        display: flex;
+        gap: 8px;
+      }
+
+      .story-tools input,
+      .story-tools select {
+        flex: 1;
+      }
+
+      .story-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: min(420px, 46vh);
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 4px;
+      }
+
+      .story-row {
+        display: grid;
+        grid-template-columns: minmax(88px, 150px) minmax(0, 1fr) auto auto;
+        gap: 8px;
+        align-items: center;
+        text-align: left;
+        padding: 6px 8px;
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        border: 1px solid transparent;
+      }
+
+      .story-row.selected {
+        border-color: var(--border-strong);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .story-id {
+        font-size: 11px;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .story-copy {
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .story-pill {
+        font-size: 10px;
+        letter-spacing: 0.04rem;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+
+      .story-pill.missing {
+        color: #ffb4a8;
+        border-color: #8a4034;
+      }
+
+      .story-pill.audio,
+      .story-pill.current {
+        color: #b7e3c0;
+        border-color: #2f6b3a;
+      }
+
+      .story-pill.stale {
+        color: #f0d090;
+        border-color: #8a6a20;
+      }
+
+      .story-inline {
+        width: 100%;
+        min-height: 52px;
+        resize: vertical;
+        font: inherit;
+        font-size: 13px;
+      }
+
+      .story-gen {
+        font-size: 11px;
+        letter-spacing: 0.04rem;
+        padding: 4px 8px;
+        white-space: nowrap;
+      }
+
+      .story-audio {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .story-audio input {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .story-edit {
+        display: grid;
+        grid-template-columns: 140px 1fr;
+        gap: 8px 12px;
+        align-items: center;
+      }
+
+      .story-edit textarea {
+        min-height: 72px;
+        resize: vertical;
+      }
+
+      .story-voice-hint {
+        grid-column: 1 / -1;
+        margin: 0;
+      }
+
       .modal-footer {
         padding: 14px 18px;
         display: flex;
@@ -874,6 +1001,8 @@
             <div id="toolsMenuDropdown" class="menu-dropdown" hidden>
               <button id="linkBlenderBtn" type="button">Link Blender</button>
               <button id="animTrimBtn" type="button">Animation trim</button>
+              <button id="storyLinesBtn" type="button">Story lines</button>
+              <button id="soundEffectsBtn" type="button">Sound effects</button>
               <button id="addTexturesBtn" type="button">Add Textures</button>
             </div>
           </div>
@@ -1092,6 +1221,103 @@
         </div>
         <div class="modal-footer">
           <button id="prefsDoneBtn" class="primary" type="button">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="storyOverlay" hidden>
+      <div class="modal story-modal" role="dialog" aria-labelledby="storyTitle">
+        <div class="modal-header">
+          <span id="storyTitle">Story lines</span>
+          <button id="storyCloseBtn" class="icon-btn" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="storySummary" class="pref-hint"></p>
+          <div class="story-tools">
+            <input id="storySearch" type="search" placeholder="Search id, speaker, line, audio" />
+            <select id="storyFilter"></select>
+          </div>
+          <div id="storyList" class="story-list"></div>
+          <div class="story-edit">
+            <label for="storyType">Type</label>
+            <select id="storyType"></select>
+            <label for="storySpeaker">Speaker</label>
+            <input id="storySpeaker" type="text" title="Name on the subtitle." />
+            <label for="storyVoice">Voice</label>
+            <select id="storyVoice" title="Eleven v4 voice this character speaks with."></select>
+            <p id="storyVoiceHint" class="pref-hint story-voice-hint"></p>
+            <label for="storyPerformance">Performance</label>
+            <select id="storyPerformance" title="Default sends the line with no audio tag. Any other choice prefixes an Eleven v4 tag."></select>
+            <label for="storyText">Line</label>
+            <textarea id="storyText"></textarea>
+            <label for="storyAudio">Audio</label>
+            <div class="story-audio">
+              <input id="storyAudio" type="text" placeholder="/assets/audio/..." />
+              <button id="storyPreviewBtn" type="button">Preview</button>
+            </div>
+            <label for="storyNote">Note</label>
+            <input id="storyNote" type="text" />
+          </div>
+          <p id="storyStatus" class="pref-hint"></p>
+        </div>
+        <div class="modal-footer">
+          <button id="storyGenerateBtn" type="button">Generate missing / out of date</button>
+          <button id="storySaveBtn" class="primary" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="sfxOverlay" hidden>
+      <div class="modal story-modal" role="dialog" aria-labelledby="sfxTitle">
+        <div class="modal-header">
+          <span id="sfxTitle">Sound effects</span>
+          <button id="sfxCloseBtn" class="icon-btn" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p id="sfxSummary" class="pref-hint"></p>
+            <p class="pref-hint">One sound per description: the object, what it is made of, and the room. Say one-shot or seamless loop. Leave duration blank on a hit so the model picks the length. Set a duration, and turn on Loop, only for a bed the game repeats. A higher influence follows the description more tightly. Volume is how loud this effect plays. Preview uses that level. A file with no record is out of date.</p>
+          <div class="story-tools">
+            <input id="sfxSearch" type="search" placeholder="Search id, description, audio" />
+            <select id="sfxFilter"></select>
+          </div>
+          <div id="sfxList" class="story-list"></div>
+          <div class="story-edit">
+            <label for="sfxGroup">Group</label>
+            <select id="sfxGroup"></select>
+            <label for="sfxText">Description</label>
+            <textarea id="sfxText"></textarea>
+            <label for="sfxLoop">Loop</label>
+            <label class="pref-toggle">
+              <input id="sfxLoop" type="checkbox" />
+              Seamless loop
+            </label>
+            <label for="sfxDuration">Duration</label>
+            <input id="sfxDuration" type="number" min="0.5" max="30" step="0.1" placeholder="Auto" title="Seconds. Blank lets the model choose. 0.5 to 30." />
+            <label for="sfxInfluence">Influence</label>
+            <div class="pref-slider">
+              <input id="sfxInfluence" type="range" min="0" max="1" step="0.05" value="0.55" title="How tightly the sound follows the description. 0.55 is the usual setting." />
+              <span id="sfxInfluenceValue" class="pref-value">0.55</span>
+            </div>
+            <label for="sfxVolume">Volume</label>
+            <div class="pref-slider">
+              <input id="sfxVolume" type="range" min="0" max="1" step="0.01" value="1" title="Playback level. Preview uses this. The game scales from the level this effect shipped at." />
+              <span id="sfxVolumeValue" class="pref-value">1.00</span>
+            </div>
+            <label for="sfxAudio">Audio</label>
+            <div class="story-audio">
+              <input id="sfxAudio" type="text" placeholder="/assets/audio/..." />
+              <button id="sfxPreviewBtn" type="button">Preview</button>
+              <button id="sfxGenerateOneBtn" type="button">Generate</button>
+            </div>
+            <label for="sfxNote">Note</label>
+            <input id="sfxNote" type="text" />
+          </div>
+          <p id="sfxStatus" class="pref-hint"></p>
+        </div>
+        <div class="modal-footer">
+          <button id="sfxGenerateBtn" type="button">Generate missing / out of date</button>
+          <button id="sfxRegenerateBtn" type="button">Regenerate all</button>
+          <button id="sfxSaveBtn" class="primary" type="button">Save</button>
         </div>
       </div>
     </div>

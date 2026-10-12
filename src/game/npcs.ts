@@ -22,11 +22,14 @@ export type Npc = {
 
 const NPC_SEAT_COMPONENT = 'NpcSeat';
 const HEAD_CHAIR_ID = 'chair-head';
-/** Mixamo Sitting Idle already drops the hips; keep only a tiny extra drop onto the chair cubes. */
-export const SIT_DROP = 0.05;
+/**
+ * SitIdle puts the hips near 0.57 m. The office chair seat tops out at 0.50 m,
+ * so the lap was inside the cushion. This raises the rig onto the seat.
+ */
+export const SIT_LIFT = 0.08;
 
 /** World Y of the avatar group while seated (capsule stays at PLAYER_STAND_Y). */
-export const seatedAvatarWorldY = () => PLAYER_STAND_Y - PLAYER_MESH_Y_OFFSET - SIT_DROP;
+export const seatedAvatarWorldY = () => PLAYER_STAND_Y - PLAYER_MESH_Y_OFFSET + SIT_LIFT;
 
 /**
  * Mixamo faces +Z; modelRoot adds PI. Gameplay/NPC yaw is the Mixamo world facing.
@@ -102,7 +105,7 @@ export const spawnProfessionalNpc = (
 
   const avatar = createCharacterAvatar(scene, `professional-npc-${seatId}`, assetId);
   avatar.group.parent = mesh;
-  avatar.group.position.y = -PLAYER_MESH_Y_OFFSET - SIT_DROP;
+  avatar.group.position.y = -PLAYER_MESH_Y_OFFSET + SIT_LIFT;
   avatar.playClip('sit', true);
 
   return {

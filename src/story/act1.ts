@@ -1,6 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
 import { createUnlockedAudio } from '../game/audioUnlock';
+import { mixVolume } from '../game/sfxMix';
 import type { CutsceneVec3 } from '../game/cutscenes';
 import { createCharacterAvatar, findClip } from '../game/playerAvatar';
 import { TRANSFORM_HERO_ASSET_ID, PLAYER_ASSET_ID } from '../game/modelLoader';
@@ -17,6 +18,7 @@ import {
 } from '../game/npcs';
 import { paintLiftGlyph, type SceneData, type SceneTrigger } from '../game/sceneData';
 import { pointInsideTrigger } from '../game/triggers';
+import { carryItems, lineAudio, lineText, storyLine } from '../game/locale';
 
 import actCopy from './act1.json';
 
@@ -35,8 +37,13 @@ const copy = actCopy as {
   complete: Record<string, Objective>;
 };
 
-const objective = (id: string): Objective => copy.objectives[id] ?? { title: 'Objective', text: '' };
-const carryOf = (id: string): StoryCarry[] => (copy.carry[id] ?? []).map((item) => ({ ...item }));
+const objective = (id: string): Objective => {
+  const fallback = copy.objectives[id] ?? { title: 'Objective', text: '' };
+  const row = storyLine(`objective.${id}`);
+  if (!row) return fallback;
+  return { title: row.speaker || fallback.title, text: row.text || fallback.text };
+};
+const carryOf = (id: string): StoryCarry[] => carryItems(id, copy.carry[id] ?? []);
 
 export type ActHost = {
   scene: BABYLON.Scene;
@@ -69,7 +76,6 @@ export type ActHost = {
   playFile: (url: string, volume: number) => void;
   audioOn: () => boolean;
   ensureAudio: () => void;
-  tone: (hz: number, seconds: number, type: OscillatorType, gain: number) => void;
   win: () => void;
   showMessage: (title: string, text: string) => void;
   offerEnd: (title: string, text: string) => void;
@@ -111,32 +117,16 @@ const RETURN_SPAWN = { x: 13.4, z: 38.15, yaw: -Math.PI / 2 };
 const HALE_HALL = { x: 44, z: 30.2 };
 const BRIGHT_HALL = { x: 44, z: 36.2 };
 
-type AsideLine = { text: string; audio: string; duration: number };
+type AsideLine = { id: string; duration: number };
 
 const RETURN_OPENING: AsideLine[] = [
-  {
-    text: 'I need to get back to the office. There is still work on the desk, and I am not leaving it overnight.',
-    audio: '/assets/audio/cutscenes/return-walk/01-pierce-office.wav',
-    duration: 6.55,
-  },
-  {
-    text: 'Finish it. Then I go home. That is the rest of the day.',
-    audio: '/assets/audio/cutscenes/return-walk/02-pierce-home.wav',
-    duration: 4.37,
-  },
+  { id: 'dialogue.return.office', duration: 6.55 },
+  { id: 'dialogue.return.home', duration: 4.37 },
 ];
 
 const RETURN_BRIGHT: AsideLine[] = [
-  {
-    text: 'Why is the hall this bright? I can see the whole length of it.',
-    audio: '/assets/audio/cutscenes/return-walk/03-pierce-bright.wav',
-    duration: 4.0,
-  },
-  {
-    text: 'I did not turn a light on. B3 does not look like this.',
-    audio: '/assets/audio/cutscenes/return-walk/04-pierce-lamps.wav',
-    duration: 4.37,
-  },
+  { id: 'dialogue.return.bright', duration: 4.0 },
+  { id: 'dialogue.return.lamps', duration: 4.37 },
 ];
 const BATH_DOOR = { x: 18, z: 30.35 };
 const MIRROR_STAND = { x: 19.05, z: 28.15, yaw: Math.PI / 2 };
@@ -177,6 +167,7 @@ const CREATURE_SFX = {
   tick: '/assets/audio/sfx/creature/tick.wav',
   knock: '/assets/audio/sfx/creature/knock.wav',
   chitter: '/assets/audio/sfx/creature/chitter.wav',
+  crack: '/assets/audio/sfx/glass-tick.ogg',
 } as const;
 
 type HuntBlock = { minX: number; maxX: number; minZ: number; maxZ: number };
@@ -282,7 +273,6 @@ export const createAct1 = (host: ActHost) => {
   const alarm = {
     active: false,
     wav: null as HTMLAudioElement | null,
-    timer: 0,
     pulse: 0,
   };
 
@@ -337,7 +327,7 @@ export const createAct1 = (host: ActHost) => {
     host.placePierce(ELEVATOR_POSE.x, ELEVATOR_POSE.z, yaw);
   };
 
-  /** Faces the call button, then turns toward the doors after the press. */
+  /** Faces the call button, then turns toward the doors after the press. The body stays on idle. */
   const elevatorFaceYaw = (time: number) => {
     const t = Math.min(1, Math.max(0, (time - 2.55) / 0.7));
     const eased = t * t * (3 - 2 * t);
@@ -719,7 +709,7 @@ export const createAct1 = (host: ActHost) => {
     host.ensureAudio();
     alarm.wav = createUnlockedAudio('/assets/audio/cutscenes/apex-window/alarm.wav');
     alarm.wav.loop = true;
-    alarm.wav.volume = 0.46;
+    alarm.wav.volume = mixVolume('/assets/audio/cutscenes/apex-window/alarm.wav', 0.46);
     alarm.wav.addEventListener('error', () => {
       alarm.wav = null;
     });
@@ -748,7 +738,8 @@ export const createAct1 = (host: ActHost) => {
     host.unlockNext();
     host.refreshHud();
     const card = copy.complete[which];
-    host.offerEnd(card.title, card.text);
+    const done = storyLine(`ui.complete.${which}`);
+    host.offerEnd(done?.speaker || card.title, done?.text || card.text);
   };
 
   const setOfficeAmmoVisible = (visible: boolean) => {
@@ -936,8 +927,8 @@ export const createAct1 = (host: ActHost) => {
     }
     asideLeft = line.duration;
     asideGap = 0;
-    host.showLine('Pierce', line.text);
-    host.playFile(line.audio, 0.92);
+    host.showLine('Pierce', lineText(line.id));
+    host.playFile(lineAudio(line.id), 0.92);
   };
 
   const queueAside = (lines: AsideLine[]) => {
@@ -1038,8 +1029,8 @@ export const createAct1 = (host: ActHost) => {
       { x: MIRROR_STAND.x - 0.72, y: 1.68, z: MIRROR_STAND.z + 0.88 },
       { x: MIRROR_GLASS.x, y: 1.46, z: MIRROR_GLASS.z },
     );
-    host.showLine('Pierce', "That's me. I'm not seeing things.");
-    host.playFile('/assets/audio/cutscenes/return-mirror/01-pierce-thats-me.wav', 0.92);
+    host.showLine('Pierce', lineText('dialogue.return.mirror', "That's me. I'm not seeing things."));
+    host.playFile(lineAudio('dialogue.return.mirror', '/assets/audio/cutscenes/return-mirror/01-pierce-thats-me.wav'), 0.92);
   };
 
   const beginLab = () => {
@@ -1537,35 +1528,56 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const followHuntPath = (node: BABYLON.TransformNode, speed: number, delta: number) => {
-    const target = huntPath[0];
-    if (!target) return false;
-    const dx = target.x - node.position.x;
-    const dz = target.z - node.position.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist < 0.48) {
-      huntPath.shift();
-      return huntPath.length > 0;
-    }
-    const step = Math.min(dist, speed * delta);
-    let nx = node.position.x + (dx / dist) * step;
-    let nz = node.position.z + (dz / dist) * step;
-    if (huntNav && pointBlocked(huntNav, nx, nz)) {
-      const next = huntPath[1];
-      if (next && segmentClear(huntNav, node.position.x, node.position.z, next.x, next.z)) {
+    const clear = (x: number, z: number) => !huntNav || !pointBlocked(huntNav, x, z);
+    for (let hop = 0; hop < 3; hop++) {
+      const target = huntPath[0];
+      if (!target) return false;
+      const dx = target.x - node.position.x;
+      const dz = target.z - node.position.z;
+      const dist = Math.hypot(dx, dz);
+      // Stand on the cell before turning so the next leg stays on the checked line.
+      if (dist < 0.2) {
         huntPath.shift();
-        return true;
+        continue;
       }
-      const half = step * 0.45;
-      nx = node.position.x + (dx / dist) * half;
-      nz = node.position.z + (dz / dist) * half;
-      if (half < 0.02 || pointBlocked(huntNav, nx, nz)) return false;
+      const step = Math.min(dist, speed * delta);
+      const ux = dx / dist;
+      const uz = dz / dist;
+      let nx = node.position.x + ux * step;
+      let nz = node.position.z + uz * step;
+      if (!clear(nx, nz)) {
+        const next = huntPath[1];
+        if (next && huntNav && segmentClear(huntNav, node.position.x, node.position.z, next.x, next.z)) {
+          huntPath.shift();
+          continue;
+        }
+        const axis = (ax: number, az: number) => {
+          if (Math.hypot(ax, az) < 1e-4) return null;
+          const px = node.position.x + ax;
+          const pz = node.position.z + az;
+          return clear(px, pz) ? { x: px, z: pz } : null;
+        };
+        const zSlide = Math.abs(uz) > 1e-4 ? axis(0, Math.sign(uz) * step) : null;
+        const xSlide = Math.abs(ux) > 1e-4 ? axis(Math.sign(ux) * step, 0) : null;
+        const slide = Math.abs(dz) >= Math.abs(dx) ? (zSlide ?? xSlide) : (xSlide ?? zSlide);
+        if (slide) {
+          nx = slide.x;
+          nz = slide.z;
+        } else {
+          const half = step * 0.45;
+          nx = node.position.x + ux * half;
+          nz = node.position.z + uz * half;
+          if (half < 0.02 || !clear(nx, nz)) return false;
+        }
+      }
+      node.position.x = nx;
+      node.position.z = nz;
+      node.position.y = 0;
+      node.rotation.y = Math.atan2(dx, dz);
+      playCreature('walk', speed > 2.2 ? 1.2 : 0.82);
+      return true;
     }
-    node.position.x = nx;
-    node.position.z = nz;
-    node.position.y = 0;
-    node.rotation.y = Math.atan2(dx, dz);
-    playCreature('walk', speed > 2.2 ? 1.2 : 0.82);
-    return true;
+    return huntPath.length > 0;
   };
 
   const markProgress = (node: BABYLON.TransformNode, moved: boolean, delta: number) => {
@@ -1777,12 +1789,26 @@ export const createAct1 = (host: ActHost) => {
       leapLeft = 0;
       node.position.y = 0;
       if (!huntPath.length && huntNav) {
-        huntPath = findHuntPath(huntNav, node.position.x, node.position.z, VAT_LUNG.x, VAT_LUNG.z);
+        huntPath = anchorPath(node.position.x, node.position.z, findHuntPath(huntNav, node.position.x, node.position.z, VAT_LUNG.x, VAT_LUNG.z));
       }
       const dx = VAT_LUNG.x - node.position.x;
       const dz = VAT_LUNG.z - node.position.z;
       const dist = Math.hypot(dx, dz);
-      followHuntPath(node, 3.4, delta);
+      const moving = followHuntPath(node, 3.4, delta);
+      if (huntNav && markProgress(node, moving, delta)) {
+        const cell = nearestHuntCell(huntNav, node.position.x, node.position.z);
+        if (cell) {
+          const spot = huntWorld(huntNav, cell.c, cell.r);
+          if (Math.hypot(spot.x - node.position.x, spot.z - node.position.z) < 1.7) {
+            node.position.x = spot.x;
+            node.position.z = spot.z;
+          }
+        }
+        huntPath = anchorPath(node.position.x, node.position.z, findHuntPath(huntNav, node.position.x, node.position.z, VAT_LUNG.x, VAT_LUNG.z));
+        stuckTime = 0;
+        stuckX = node.position.x;
+        stuckZ = node.position.z;
+      }
       if (dist < 1.6 || retreatLeft <= 0) {
         beginVat();
         return;
@@ -1945,6 +1971,9 @@ export const createAct1 = (host: ActHost) => {
     leapLeft = 0;
     node.position.y = 0;
     huntPath = [];
+    stuckTime = 0;
+    stuckX = node.position.x;
+    stuckZ = node.position.z;
     const line = objective('vat');
     host.setObjective(line.title, line.text, { x: VAT_LUNG.x, y: 1.4, z: VAT_LUNG.z });
     return true;
@@ -2144,7 +2173,7 @@ export const createAct1 = (host: ActHost) => {
       material.alpha = 0.28 + 0.5 * amount * flick;
     }
     if (amount > 0.08 && time >= vatCrackAt) {
-      host.tone(900 + amount * 1400, 0.04, 'square', 0.025 + amount * 0.02);
+      host.playFile(CREATURE_SFX.crack, 0.22 + amount * 0.28);
       if (amount > 0.4) host.playFile(CREATURE_SFX.scrape, 0.22 + amount * 0.15);
       vatCrackAt = time + (amount > 0.72 ? 0.32 : 0.75);
     }
@@ -2754,6 +2783,8 @@ export const createAct1 = (host: ActHost) => {
         host.showObjective(false);
         host.hideMarker();
         placeElevator();
+        // Drop the walk from the hallway so the stand and the turn stay on idle.
+        host.holdLocomotion();
         host.playClip(ascending ? 'rebornidle' : 'idle', true);
       }
       if (id === 'b3-door-reveal') {
@@ -3001,13 +3032,6 @@ export const createAct1 = (host: ActHost) => {
           material.emissiveColor = color;
         }
       }
-      const wavPlaying = Boolean(alarm.wav && !alarm.wav.paused && alarm.wav.readyState >= 2);
-      if (wavPlaying || !host.audioOn()) return;
-      alarm.timer += delta;
-      if (alarm.timer < 0.52) return;
-      alarm.timer = 0;
-      host.tone(880, 0.11, 'square', 0.085);
-      window.setTimeout(() => host.tone(620, 0.11, 'square', 0.07), 130);
     },
     shotAt,
     aimPoint,

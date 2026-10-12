@@ -58,6 +58,8 @@ export const findClip = (clips: BABYLON.AnimationGroup[], keyword: string): BABY
 };
 
 const WEAPON_OVERLAY = new Set(['draw', 'holster', 'shoot']);
+/** Looping stand/walk poses. They must not lock locomotion, or a level start stays on idle until punch or the pistol clears it. */
+const POSE_LOOP = new Set(['idle', 'rebornidle', 'walk', 'run', 'pistolidle', 'pistolwalk', 'sit', 'sittalk', 'walkback']);
 
 const PLAYER_CLIP_SPEEDS: Record<string, number> = {
   draw: 4,
@@ -216,7 +218,7 @@ export const createCharacterAvatar = (
   const pistolReadyIdle = () => pistolIdleGroup ?? idleGroup;
 
   const locoGroups = () => [idleGroup, walkGroup, runGroup, pistolIdleGroup, pistolWalkGroup, jumpGroup, pistolJumpGroup];
-  const isIdleName = (name: string | null) => name === 'idle' || name === 'pistolidle';
+  const isIdleName = (name: string | null) => name === 'idle' || name === 'pistolidle' || name === 'rebornidle';
 
   const clipFullyDriving = (clip: BABYLON.AnimationGroup) => {
     if (!clip.isPlaying || clip.mask) return false;
@@ -514,6 +516,7 @@ export const createCharacterAvatar = (
     onEnded?: () => void,
     lockCinematic = true,
   ) => {
+    if (loop && POSE_LOOP.has(keyword.trim().toLowerCase())) lockCinematic = false;
     if (animationGroups.length === 0) {
       cinematic = lockCinematic;
       pendingClip = { keyword, loop, speedRatio, onEnded, lockCinematic };

@@ -1,35 +1,36 @@
 {
   "contacts": {
-    "voss": { "name": "Voss", "detail": "Board" },
-    "hale": { "name": "Hale", "detail": "Director" },
-    "pierce": { "name": "Pierce", "detail": "You" }
+    "voss": {
+      "name": "Voss",
+      "detail": "Board"
+    },
+    "hale": {
+      "name": "Hale",
+      "detail": "Director"
+    },
+    "pierce": {
+      "name": "Pierce",
+      "detail": "You"
+    }
   },
   "calls": {
     "voss-late": {
       "contact": "voss",
       "lines": [
         {
-          "speaker": "voss",
-          "text": "Pierce. You're late to the board meeting.",
-          "audio": "/assets/audio/phone/voss-late.wav",
+          "line": "phone.voss-late.01",
           "duration": 2.37
         },
         {
-          "speaker": "pierce",
-          "text": "I know. I'm down the hallway as we speak.",
-          "audio": "/assets/audio/phone/pierce-hallway.wav",
+          "line": "phone.voss-late.02",
           "duration": 2.65
         },
         {
-          "speaker": "pierce",
-          "text": "We need to be prepared for what's coming.",
-          "audio": "/assets/audio/phone/pierce-prepared.wav",
+          "line": "phone.voss-late.03",
           "duration": 2.32
         },
         {
-          "speaker": "voss",
-          "text": "Just... hurry up.",
-          "audio": "/assets/audio/phone/voss-hurry.wav",
+          "line": "phone.voss-late.04",
           "duration": 1.63
         }
       ]
@@ -38,27 +39,19 @@
       "contact": "voss",
       "lines": [
         {
-          "speaker": "voss",
-          "text": "Hale is still in that room. She is furious.",
-          "audio": "/assets/audio/phone/voss-furious.wav",
+          "line": "phone.voss-meeting.01",
           "duration": 3.3
         },
         {
-          "speaker": "pierce",
-          "text": "The meeting's over.",
-          "audio": "/assets/audio/phone/pierce-over.wav",
+          "line": "phone.voss-meeting.02",
           "duration": 1.3
         },
         {
-          "speaker": "voss",
-          "text": "Not to her. You don't walk out on a board.",
-          "audio": "/assets/audio/phone/voss-board.wav",
+          "line": "phone.voss-meeting.03",
           "duration": 2.8
         },
         {
-          "speaker": "pierce",
-          "text": "I did.",
-          "audio": "/assets/audio/phone/pierce-did.wav",
+          "line": "phone.voss-meeting.04",
           "duration": 0.9
         }
       ]
@@ -67,33 +60,23 @@
       "contact": "hale",
       "lines": [
         {
-          "speaker": "hale",
-          "text": "Pierce. You walked out of my board meeting.",
-          "audio": "/assets/audio/phone/hale-walked-out.wav",
+          "line": "phone.hale-walkout.01",
           "duration": 2.6
         },
         {
-          "speaker": "hale",
-          "text": "You will reschedule. Today.",
-          "audio": "/assets/audio/phone/hale-reschedule.wav",
+          "line": "phone.hale-walkout.02",
           "duration": 2.14
         },
         {
-          "speaker": "pierce",
-          "text": "I can't right now.",
-          "audio": "/assets/audio/phone/pierce-cant.wav",
+          "line": "phone.hale-walkout.03",
           "duration": 1.16
         },
         {
-          "speaker": "hale",
-          "text": "Then I have no choice. I will speak with the other investors.",
-          "audio": "/assets/audio/phone/hale-investors.wav",
+          "line": "phone.hale-walkout.04",
           "duration": 3.95
         },
         {
-          "speaker": "hale",
-          "text": "They will hear that you walked out.",
-          "audio": "/assets/audio/phone/hale-hear.wav",
+          "line": "phone.hale-walkout.05",
           "duration": 2.09
         }
       ]
@@ -102,21 +85,15 @@
       "contact": "hale",
       "lines": [
         {
-          "speaker": "hale",
-          "text": "Pierce. The board turned out well.",
-          "audio": "/assets/audio/phone/hale-board-well.wav",
+          "line": "phone.hale-board.01",
           "duration": 2.4
         },
         {
-          "speaker": "pierce",
-          "text": "Alright.",
-          "audio": "/assets/audio/phone/pierce-alright.wav",
+          "line": "phone.hale-board.02",
           "duration": 0.8
         },
         {
-          "speaker": "hale",
-          "text": "I'll update you soon.",
-          "audio": "/assets/audio/phone/hale-update-soon.wav",
+          "line": "phone.hale-board.03",
           "duration": 1.6
         }
       ]
@@ -127,15 +104,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "The board is in the room. Keep walking.", "audio": "/assets/audio/phone/seat-voss.wav", "duration": 2.74 },
-          { "speaker": "pierce", "text": "I'm in the hall.", "duration": 1.2 }
+          {
+            "line": "phone.seat.voss.01",
+            "duration": 2.74
+          },
+          {
+            "line": "phone.seat.voss.02",
+            "duration": 1.2
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "We started without you.", "audio": "/assets/audio/phone/seat-hale.wav", "duration": 1.49 },
-          { "speaker": "pierce", "text": "I'll be in the chair.", "audio": "/assets/audio/phone/seat-pierce-hale.wav", "duration": 1.25 }
+          {
+            "line": "phone.seat.hale.01",
+            "duration": 1.49
+          },
+          {
+            "line": "phone.seat.hale.02",
+            "duration": 1.25
+          }
         ]
       }
     },
@@ -143,15 +132,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "You left them sitting there.", "audio": "/assets/audio/phone/walkout-voss.wav", "duration": 1.67 },
-          { "speaker": "pierce", "text": "They can find the door.", "duration": 1.5 }
+          {
+            "line": "phone.wait-board.voss.01",
+            "duration": 1.67
+          },
+          {
+            "line": "phone.wait-board.voss.02",
+            "duration": 1.5
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "That meeting was not over.", "audio": "/assets/audio/phone/walkout-hale.wav", "duration": 1.76 },
-          { "speaker": "pierce", "text": "It is for me.", "audio": "/assets/audio/phone/walkout-pierce-hale.wav", "duration": 1.02 }
+          {
+            "line": "phone.wait-board.hale.01",
+            "duration": 1.76
+          },
+          {
+            "line": "phone.wait-board.hale.02",
+            "duration": 1.02
+          }
         ]
       }
     },
@@ -159,15 +160,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "The terminal is live. Look at it.", "duration": 2.2 },
-          { "speaker": "pierce", "text": "I'm standing at it.", "duration": 1.3 }
+          {
+            "line": "phone.alarm.voss.01",
+            "duration": 2.2
+          },
+          {
+            "line": "phone.alarm.voss.02",
+            "duration": 1.3
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "What did you open?", "duration": 1.3 },
-          { "speaker": "pierce", "text": "A door under the building.", "duration": 1.6 }
+          {
+            "line": "phone.alarm.hale.01",
+            "duration": 1.3
+          },
+          {
+            "line": "phone.alarm.hale.02",
+            "duration": 1.6
+          }
         ]
       }
     },
@@ -175,15 +188,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "That cab goes to B3.", "duration": 1.5 },
-          { "speaker": "pierce", "text": "I know where it goes.", "duration": 1.4 }
+          {
+            "line": "phone.elevator.voss.01",
+            "duration": 1.5
+          },
+          {
+            "line": "phone.elevator.voss.02",
+            "duration": 1.4
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "You are not authorized to descend.", "duration": 2.1 },
-          { "speaker": "pierce", "text": "The terminal already cleared me.", "duration": 1.8 }
+          {
+            "line": "phone.elevator.hale.01",
+            "duration": 2.1
+          },
+          {
+            "line": "phone.elevator.hale.02",
+            "duration": 1.8
+          }
         ]
       }
     },
@@ -191,15 +216,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "The line is thin. Are you below?", "duration": 2.2 },
-          { "speaker": "pierce", "text": "I'm looking for the lab door.", "duration": 1.8 }
+          {
+            "line": "phone.lab.voss.01",
+            "duration": 2.2
+          },
+          {
+            "line": "phone.lab.voss.02",
+            "duration": 1.8
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "Turn around.", "duration": 1.1 },
-          { "speaker": "pierce", "text": "Not until I see it.", "duration": 1.4 }
+          {
+            "line": "phone.lab.hale.01",
+            "duration": 1.1
+          },
+          {
+            "line": "phone.lab.hale.02",
+            "duration": 1.4
+          }
         ]
       }
     },
@@ -207,15 +244,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Pierce. Breathe.", "duration": 1.3 },
-          { "speaker": "pierce", "text": "Something is in here with me.", "duration": 1.8 }
+          {
+            "line": "phone.lurk.voss.01",
+            "duration": 1.3
+          },
+          {
+            "line": "phone.lurk.voss.02",
+            "duration": 1.8
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "What are you looking at?", "duration": 1.4 },
-          { "speaker": "pierce", "text": "I don't know. It's moving.", "duration": 1.7 }
+          {
+            "line": "phone.lurk.hale.01",
+            "duration": 1.4
+          },
+          {
+            "line": "phone.lurk.hale.02",
+            "duration": 1.7
+          }
         ]
       }
     },
@@ -223,15 +272,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Shoot it.", "duration": 0.9 },
-          { "speaker": "pierce", "text": "I'm trying.", "duration": 1.0 }
+          {
+            "line": "phone.hunt.voss.01",
+            "duration": 0.9
+          },
+          {
+            "line": "phone.hunt.voss.02",
+            "duration": 1
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "Get out of that room.", "duration": 1.4 },
-          { "speaker": "pierce", "text": "It's between me and the door.", "duration": 1.7 }
+          {
+            "line": "phone.hunt.hale.01",
+            "duration": 1.4
+          },
+          {
+            "line": "phone.hunt.hale.02",
+            "duration": 1.7
+          }
         ]
       }
     },
@@ -239,15 +300,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Leave the glass.", "duration": 1.2 },
-          { "speaker": "pierce", "text": "It's breaking.", "duration": 1.1 }
+          {
+            "line": "phone.vat.voss.01",
+            "duration": 1.2
+          },
+          {
+            "line": "phone.vat.voss.02",
+            "duration": 1.1
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "Pierce, step back.", "duration": 1.3 },
-          { "speaker": "pierce", "text": "I am.", "duration": 0.8 }
+          {
+            "line": "phone.vat.hale.01",
+            "duration": 1.3
+          },
+          {
+            "line": "phone.vat.hale.02",
+            "duration": 0.8
+          }
         ]
       }
     },
@@ -255,15 +328,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "You don't sound like yourself.", "duration": 1.8 },
-          { "speaker": "pierce", "text": "I'm coming back to the office.", "duration": 1.7 }
+          {
+            "line": "phone.return.voss.01",
+            "duration": 1.8
+          },
+          {
+            "line": "phone.return.voss.02",
+            "duration": 1.7
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "You walked out on me.", "duration": 1.5 },
-          { "speaker": "pierce", "text": "I can't talk about that yet.", "duration": 1.6 }
+          {
+            "line": "phone.return.hale.01",
+            "duration": 1.5
+          },
+          {
+            "line": "phone.return.hale.02",
+            "duration": 1.6
+          }
         ]
       }
     },
@@ -271,15 +356,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Which floor?", "duration": 0.9 },
-          { "speaker": "pierce", "text": "The office.", "duration": 0.9 }
+          {
+            "line": "phone.return-up.voss.01",
+            "duration": 0.9
+          },
+          {
+            "line": "phone.return-up.voss.02",
+            "duration": 0.9
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "The investors will hear you left.", "duration": 2.0 },
-          { "speaker": "pierce", "text": "Then they'll hear it.", "duration": 1.3 }
+          {
+            "line": "phone.return-up.hale.01",
+            "duration": 2
+          },
+          {
+            "line": "phone.return-up.hale.02",
+            "duration": 1.3
+          }
         ]
       }
     },
@@ -287,15 +384,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "What happened down there?", "duration": 1.5 },
-          { "speaker": "pierce", "text": "I'm looking at a mirror.", "duration": 1.5 }
+          {
+            "line": "phone.mirror.voss.01",
+            "duration": 1.5
+          },
+          {
+            "line": "phone.mirror.voss.02",
+            "duration": 1.5
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "Describe it.", "duration": 1.0 },
-          { "speaker": "pierce", "text": "Not on the phone.", "duration": 1.2 }
+          {
+            "line": "phone.mirror.hale.01",
+            "duration": 1
+          },
+          {
+            "line": "phone.mirror.hale.02",
+            "duration": 1.2
+          }
         ]
       }
     },
@@ -303,15 +412,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Are you at the desk?", "duration": 1.2 },
-          { "speaker": "pierce", "text": "The work is still here. I'm not staying.", "duration": 2.2 }
+          {
+            "line": "phone.desk.voss.01",
+            "duration": 1.2
+          },
+          {
+            "line": "phone.desk.voss.02",
+            "duration": 2.2
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "Sit down and finish it.", "duration": 1.5 },
-          { "speaker": "pierce", "text": "I'm going home.", "duration": 1.1 }
+          {
+            "line": "phone.desk.hale.01",
+            "duration": 1.5
+          },
+          {
+            "line": "phone.desk.hale.02",
+            "duration": 1.1
+          }
         ]
       }
     },
@@ -319,15 +440,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Where are you?", "duration": 1.0 },
-          { "speaker": "pierce", "text": "On the street. Don't send anyone.", "duration": 2.0 }
+          {
+            "line": "phone.home.voss.01",
+            "duration": 1
+          },
+          {
+            "line": "phone.home.voss.02",
+            "duration": 2
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "Come back inside.", "duration": 1.2 },
-          { "speaker": "pierce", "text": "I'm not going back up.", "duration": 1.4 }
+          {
+            "line": "phone.home.hale.01",
+            "duration": 1.2
+          },
+          {
+            "line": "phone.home.hale.02",
+            "duration": 1.4
+          }
         ]
       }
     },
@@ -335,15 +468,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Get off the platform.", "duration": 1.3 },
-          { "speaker": "pierce", "text": "I'm taking the train.", "duration": 1.3 }
+          {
+            "line": "phone.station.voss.01",
+            "duration": 1.3
+          },
+          {
+            "line": "phone.station.voss.02",
+            "duration": 1.3
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "This is not how you leave.", "duration": 1.6 },
-          { "speaker": "pierce", "text": "It's how I'm leaving.", "duration": 1.3 }
+          {
+            "line": "phone.station.hale.01",
+            "duration": 1.6
+          },
+          {
+            "line": "phone.station.hale.02",
+            "duration": 1.3
+          }
         ]
       }
     },
@@ -351,15 +496,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Pierce, people are running.", "duration": 1.6 },
-          { "speaker": "pierce", "text": "Stay off this line.", "duration": 1.3 }
+          {
+            "line": "phone.shock.voss.01",
+            "duration": 1.6
+          },
+          {
+            "line": "phone.shock.voss.02",
+            "duration": 1.3
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "What are you doing out there?", "duration": 1.6 },
-          { "speaker": "pierce", "text": "Don't call again.", "duration": 1.2 }
+          {
+            "line": "phone.shock.hale.01",
+            "duration": 1.6
+          },
+          {
+            "line": "phone.shock.hale.02",
+            "duration": 1.2
+          }
         ]
       }
     },
@@ -367,15 +524,27 @@
       "voss": {
         "contact": "voss",
         "lines": [
-          { "speaker": "voss", "text": "Whose voice is that?", "duration": 1.3 },
-          { "speaker": "pierce", "text": "Not mine. Not for long.", "duration": 1.6 }
+          {
+            "line": "phone.link.voss.01",
+            "duration": 1.3
+          },
+          {
+            "line": "phone.link.voss.02",
+            "duration": 1.6
+          }
         ]
       },
       "hale": {
         "contact": "hale",
         "lines": [
-          { "speaker": "hale", "text": "Pierce. Answer as yourself.", "duration": 1.8 },
-          { "speaker": "pierce", "text": "I can't. Not from here.", "duration": 1.5 }
+          {
+            "line": "phone.link.hale.01",
+            "duration": 1.8
+          },
+          {
+            "line": "phone.link.hale.02",
+            "duration": 1.5
+          }
         ]
       }
     }
@@ -383,11 +552,11 @@
   "texts": {
     "voss-terminal": {
       "contact": "voss",
-      "text": "You need to call Hale."
+      "line": "text.voss-terminal"
     },
     "voss-street": {
       "contact": "voss",
-      "text": "The police are on their way to the tower, there was a report from security. Did you see anything?"
+      "line": "text.voss-street"
     }
   }
 }

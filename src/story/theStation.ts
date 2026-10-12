@@ -3,8 +3,10 @@ import * as BABYLON from '@babylonjs/core';
 import { PLAYER_ASSET_ID } from '../game/modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
+import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
+import { deathScream, STREET_SFX } from './streetAudio';
 
 export type TheStationHost = {
   scene: BABYLON.Scene;
@@ -72,12 +74,12 @@ const DOUBLE_PATH = [
   { x: 50.1, z: 3.05 },
 ];
 
-const LINE_ME = { text: 'Wait. Is that me?', url: '/assets/audio/cutscenes/station-shadow/01-pierce-is-that-me.wav', hold: 2.3 };
-const LINE_HERE = { text: 'How am I talking to him if I\'m standing here?', url: '/assets/audio/cutscenes/station-shadow/02-pierce-standing-here.wav', hold: 3.6 };
-const LINE_UPTOWN = { text: 'You heading uptown?', url: '/assets/audio/cutscenes/station-shadow/03-pierce-uptown.wav', hold: 1.8 };
-const LINE_MINE = { text: 'Yeah. This one\'s mine.', url: '/assets/audio/cutscenes/station-shadow/04-man-this-one.wav', hold: 2.0 };
-const LINE_SEAT = { text: 'Save me a seat.', url: '/assets/audio/cutscenes/station-shadow/05-pierce-seat.wav', hold: 1.6 };
-const LINE_LEFT = { text: 'If there\'s one left.', url: '/assets/audio/cutscenes/station-shadow/06-man-one-left.wav', hold: 1.8 };
+const LINE_ME = { id: 'dialogue.station.me', hold: 2.3 };
+const LINE_HERE = { id: 'dialogue.station.here', hold: 3.6 };
+const LINE_UPTOWN = { id: 'dialogue.station.uptown', hold: 1.8 };
+const LINE_MINE = { id: 'dialogue.station.mine', hold: 2.0 };
+const LINE_SEAT = { id: 'dialogue.station.seat', hold: 1.6 };
+const LINE_LEFT = { id: 'dialogue.station.left', hold: 1.8 };
 
 const T_WALK = 2.4;
 const T_ARRIVE = 6.6;
@@ -468,22 +470,22 @@ export const createTheStation = (host: TheStationHost) => {
     frameShot();
     if (!saidMe && sceneTime >= T_ME) {
       saidMe = true;
-      say('Pierce', LINE_ME.text, LINE_ME.url, LINE_ME.hold);
+      say(lineSpeaker(LINE_ME.id, 'Pierce'), lineText(LINE_ME.id), lineAudio(LINE_ME.id), LINE_ME.hold);
     } else if (!saidHere && sceneTime >= T_HERE) {
       saidHere = true;
-      say('Pierce', LINE_HERE.text, LINE_HERE.url, LINE_HERE.hold);
+      say(lineSpeaker(LINE_HERE.id, 'Pierce'), lineText(LINE_HERE.id), lineAudio(LINE_HERE.id), LINE_HERE.hold);
     } else if (!saidUptown && sceneTime >= T_UPTOWN) {
       saidUptown = true;
-      say('Pierce', LINE_UPTOWN.text, LINE_UPTOWN.url, LINE_UPTOWN.hold);
+      say(lineSpeaker(LINE_UPTOWN.id, 'Pierce'), lineText(LINE_UPTOWN.id), lineAudio(LINE_UPTOWN.id), LINE_UPTOWN.hold);
     } else if (!saidMine && sceneTime >= T_MINE) {
       saidMine = true;
-      say('Passerby', LINE_MINE.text, LINE_MINE.url, LINE_MINE.hold);
+      say(lineSpeaker(LINE_MINE.id, 'Passerby'), lineText(LINE_MINE.id), lineAudio(LINE_MINE.id), LINE_MINE.hold);
     } else if (!saidSeat && sceneTime >= T_SEAT) {
       saidSeat = true;
-      say('Pierce', LINE_SEAT.text, LINE_SEAT.url, LINE_SEAT.hold);
+      say(lineSpeaker(LINE_SEAT.id, 'Pierce'), lineText(LINE_SEAT.id), lineAudio(LINE_SEAT.id), LINE_SEAT.hold);
     } else if (!saidLeft && sceneTime >= T_LEFT) {
       saidLeft = true;
-      say('Passerby', LINE_LEFT.text, LINE_LEFT.url, LINE_LEFT.hold);
+      say(lineSpeaker(LINE_LEFT.id, 'Passerby'), lineText(LINE_LEFT.id), lineAudio(LINE_LEFT.id), LINE_LEFT.hold);
     } else if (lineUntil > 0 && sceneTime > lineUntil) {
       lineUntil = 0;
       host.showLine('', '');
@@ -527,18 +529,18 @@ export const createTheStation = (host: TheStationHost) => {
   const showGoal = () => {
     const door = { x: DOOR.x, y: 1.3, z: DOOR.z };
     if (tether) {
-      host.setObjective('Shadow Link', 'WASD walks them. Click kills. Tab switches the ability.', null);
+      host.setObjective(lineSpeaker('objective.station.link-walk', 'Shadow Link'), lineText('objective.station.link-walk'), null);
       return;
     }
     if (shadowOn && !handsOut) {
-      host.setObjective('Shadow mode', 'Tab switches the ability. Q raises the hands.', door);
+      host.setObjective(lineSpeaker('objective.station.shadow', 'Shadow mode'), lineText('objective.station.shadow'), door);
       return;
     }
     if (shadowOn) {
-      host.setObjective('Shadow Link', 'Aim at them. Click uses Possess.', door);
+      host.setObjective(lineSpeaker('objective.station.link-aim', 'Shadow Link'), lineText('objective.station.link-aim'), door);
       return;
     }
-    host.setObjective('The train', 'The open door, down the platform. Tab switches the ability.', door);
+    host.setObjective(lineSpeaker('objective.station.train', 'The train'), lineText('objective.station.train'), door);
   };
 
   const hideBeads = () => {
@@ -636,6 +638,7 @@ export const createTheStation = (host: TheStationHost) => {
     const feet = person.mesh.position.y + person.avatar.group.position.y;
     person.floorY = floorUnder(host.scene, person.mesh.position.x, person.mesh.position.z, feet, person.avatar.group);
     person.avatar.playClip(shocked ? 'electrocuted' : 'deathforward', false);
+    host.playFile(deathScream('man'), 0.72);
   };
 
   const bury = (person: Person) => {
@@ -655,7 +658,7 @@ export const createTheStation = (host: TheStationHost) => {
     host.playClip('rebornidle', true);
     host.unlockNext();
     host.refreshHud();
-    host.offerEnd('Level Complete', 'The train is waiting. There is nowhere else to go.');
+    host.offerEnd(lineSpeaker('ui.complete.station', 'Level Complete'), lineText('ui.complete.station'));
   };
 
   return {
@@ -690,7 +693,7 @@ export const createTheStation = (host: TheStationHost) => {
       if (!active) return;
       shadowOn = false;
       handsOut = false;
-      host.setCarry(CARRY);
+      host.setCarry(carryItems('station', CARRY));
       host.fade(0, 1.1);
       beginEncounter();
       host.refreshHud();
@@ -875,6 +878,7 @@ export const createTheStation = (host: TheStationHost) => {
       }
       if (best) layDown(best, false);
       meleeLeft = 0.85;
+      host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
       host.playClip(kind, false, 1, () => {
         if (active && !finished) host.resumeLocomotion();
       });
@@ -951,7 +955,7 @@ export const createTheStation = (host: TheStationHost) => {
           person.dir = dx >= 0 ? 1 : -1;
           if (!person.screamed) {
             person.screamed = true;
-            host.playFile(SHOUT, 0.55);
+            host.playFile(lineAudio('shout.street.pedestrian', SHOUT), 0.55);
           }
         }
         const speed = person.fleeing ? 3.4 : 1.15;

@@ -4,8 +4,9 @@ import { applyCullBands, collectCullBands, type CullBand } from '../game/levelCu
 import { detachSharedProbe, loadGlbByAssetId } from '../game/modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
+import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
-import { SHOP_LINE, STREET_BARKS, STREET_SFX, STREET_TALKS, type StreetLine } from './streetAudio';
+import { deathScream, SHOP_LINE, STREET_BARKS, STREET_SFX, STREET_TALKS, streetCopy as resolveStreet, type StreetLine } from './streetAudio';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
 
 export type GoingHomeHost = {
@@ -103,6 +104,7 @@ type Car = {
   axis: 'x' | 'z';
   parked: boolean;
   passed: boolean;
+  hold: number;
 };
 
 type Pose = { t: number; x: number; z: number; yaw: number };
@@ -284,7 +286,7 @@ const buildCar = (scene: BABYLON.Scene, name: string, x: number, z: number, spee
   blocker.visibility = 0;
   blocker.isPickable = false;
   blocker.checkCollisions = speed === 0;
-  return { root, speed, x, z, axis, parked: speed === 0, passed: false };
+  return { root, speed, x, z, axis, parked: speed === 0, passed: false, hold: 0 };
 };
 
 export const createGoingHome = (host: GoingHomeHost) => {
@@ -620,10 +622,23 @@ export const createGoingHome = (host: GoingHomeHost) => {
     hideBeads();
   };
 
-  const streetCopy = () => {
-    if (!shadowOn) return { title: 'The station', text: 'Stairs down, a few blocks east. Tab switches Punch and Kick. C is Shadow mode.' };
-    if (!handsOut) return { title: 'Shadow mode', text: 'Tab switches the ability. Q raises the hands.' };
-    return { title: 'Shadow Link', text: 'Aim at them. Click uses Possess.' };
+  const streetGoal = () => {
+    if (!shadowOn) {
+      return {
+        title: lineSpeaker('objective.home.station', 'The station'),
+        text: lineText('objective.home.station', 'Stairs down, a few blocks east. Tab switches Punch and Kick. C is Shadow mode.'),
+      };
+    }
+    if (!handsOut) {
+      return {
+        title: lineSpeaker('objective.home.shadow', 'Shadow mode'),
+        text: lineText('objective.home.shadow', 'Tab switches the ability. Q raises the hands.'),
+      };
+    }
+    return {
+      title: lineSpeaker('objective.home.link', 'Shadow Link'),
+      text: lineText('objective.home.link', 'Aim at them. Click uses Possess.'),
+    };
   };
 
   const abilityLabel = (id: 'shock' | 'possess') => (id === 'possess' ? 'Possess' : 'Shadow Shock');
@@ -632,13 +647,21 @@ export const createGoingHome = (host: GoingHomeHost) => {
     if (lesson === 'second' && firstAbility) {
       const other = firstAbility === 'shock' ? 'possess' : 'shock';
       const name = abilityLabel(other);
-      host.setObjective('Switch', `Switch to ${name} with Tab or Switch Ability, then use it on a passerby. Stay in Shadow mode.`, null);
+      host.setObjective(
+        lineSpeaker('objective.home.switch', 'Switch'),
+        lineText('objective.home.switch', 'Switch to {name} with Tab or Switch Ability, then use it on a passerby. Stay in Shadow mode.').split('{name}').join(name),
+        null,
+      );
       return;
     }
     const selected = host.ability();
     shownAbility = selected;
     const name = abilityLabel(selected);
-    host.setObjective(name, `Turn Shadow mode on with C or the Shadow button, then use ${name} on a passerby.`, null);
+    host.setObjective(
+      name,
+      lineText('objective.home.first', 'Turn Shadow mode on with C or the Shadow button, then use {name} on a passerby.').split('{name}').join(name),
+      null,
+    );
   };
 
   const showStreet = () => {
@@ -646,7 +669,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       showLesson();
       return;
     }
-    const copy = streetCopy();
+    const copy = streetGoal();
     host.setObjective(copy.title, copy.text, { x: HOME.x, y: 1.2, z: HOME.z });
   };
 
@@ -668,7 +691,11 @@ export const createGoingHome = (host: GoingHomeHost) => {
     }
     if (used === firstAbility) return;
     lesson = 'done';
-    host.setObjective('The station', 'Stairs down, a few blocks east. Tab switches the ability. C is Shadow mode.', { x: HOME.x, y: 1.2, z: HOME.z });
+    host.setObjective(
+      lineSpeaker('objective.home.station', 'The station'),
+      lineText('objective.home.station', 'Stairs down, a few blocks east. Tab switches Punch and Kick. C is Shadow mode.'),
+      { x: HOME.x, y: 1.2, z: HOME.z },
+    );
     if (!streetNoted) {
       streetNoted = true;
       host.pushPhoneText('voss-street');
@@ -699,6 +726,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
     const feet = person.mesh.position.y + person.avatar.group.position.y;
     person.floorY = floorUnder(host.scene, person.mesh.position.x, person.mesh.position.z, feet, person.avatar.group);
     person.fell = person.avatar.playClip(shocked ? 'electrocuted' : 'deathforward', false);
+    const kind = person.role === 'police' ? 'police' : person.role === 'desk' || person.role === 'shop' ? 'woman' : 'man';
+    host.playFile(deathScream(kind), 0.72);
   };
 
   const bury = (person: Person) => {
@@ -773,7 +802,10 @@ export const createGoingHome = (host: GoingHomeHost) => {
     host.playClip('rebornidle', true);
     host.unlockNext();
     host.refreshHud();
-    host.offerEnd('Level Complete', 'The stairs go down. Continue. The station is waiting.');
+    host.offerEnd(
+      lineSpeaker('ui.complete.going-home', 'Level Complete'),
+      lineText('ui.complete.going-home', 'The stairs go down. Continue. The station is waiting.'),
+    );
   };
 
   const spawnPolice = (x: number, z: number, index: number) => {
@@ -801,9 +833,10 @@ export const createGoingHome = (host: GoingHomeHost) => {
   };
 
   const speak = (title: string, line: StreetLine) => {
-    host.showLine(title, line.text);
-    host.playFile(line.url, 0.62);
-    chatterLeft = line.hold;
+    const copy = resolveStreet(line);
+    host.showLine(title, copy.text);
+    host.playFile(copy.url, 0.62);
+    chatterLeft = copy.hold;
   };
 
   const considerTalk = () => {
@@ -865,7 +898,11 @@ export const createGoingHome = (host: GoingHomeHost) => {
       noteUse('possess');
       return;
     }
-    host.setObjective('Shadow Link', 'WASD walks them. Click kills. Tab switches the ability.', null);
+    host.setObjective(
+      lineSpeaker('objective.home.linked', 'Shadow Link'),
+      lineText('objective.home.linked', 'WASD walks them. Click kills. Tab switches the ability.'),
+      null,
+    );
   };
 
   const armMat = new BABYLON.StandardMaterial('shadow-arm-mat', host.scene);
@@ -967,26 +1004,18 @@ export const createGoingHome = (host: GoingHomeHost) => {
       }
       const specs: [number, number, number][] = [
         [-22, 26.7, 7.2],
-        [8, 26.9, 8.4],
-        [18, 31.3, -6.6],
-        [-12, 31.1, -7.4],
         [58, 27.1, 7.6],
-        [96, 31.2, -6.4],
         [134, 26.8, 8.2],
         [-40, 86.8, 7.4],
-        [70, 87.2, -6.8],
         [160, 86.6, 8],
         [40, -29.2, -7.2],
-        [120, -28.8, 6.6],
       ];
       specs.forEach(([x, z, speed], index) => {
         cars.push(buildCar(host.scene, `street-car-${index}`, x, z, speed));
       });
       const crosses: [number, number, number][] = [
-        [80, 60, 6.4],
         [80, 150, -5.8],
         [196, 40, 7.1],
-        [196, 170, -6.2],
       ];
       crosses.forEach(([x, z, speed], index) => {
         cars.push(buildCar(host.scene, `street-car-ns-${index}`, x, z, speed, 'z'));
@@ -1143,7 +1172,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       shadowOn = false;
       handsOut = false;
       trailLeft = 0;
-      host.setCarry(CARRY);
+      host.setCarry(carryItems('home', CARRY));
       host.playClip('rebornidle', true);
       if (!active) return;
       if (skipStreet) beginStreet();
@@ -1337,6 +1366,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
         }
       }
       meleeLeft = 0.85;
+      host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
       host.playClip(kind, false, 1, () => {
         if (active && !playing && !finished) host.resumeLocomotion();
       });
@@ -1399,13 +1429,13 @@ export const createGoingHome = (host: GoingHomeHost) => {
         );
         if (!screamed && time >= 6.2) {
           screamed = true;
-          say('Receptionist', 'Ah! Oh my god!', SCREAM, 0.92, 2.4);
+          say(lineSpeaker('dialogue.home.scream', 'Receptionist'), lineText('dialogue.home.scream', 'Ah! Oh my god!'), lineAudio('dialogue.home.scream', SCREAM), 0.92, 2.4);
         } else if (!called && time >= 8.8) {
           called = true;
-          say('Receptionist', "Security! I'm calling the police!", POLICE_CALL, 0.92, 3.6);
+          say(lineSpeaker('dialogue.home.police', 'Receptionist'), lineText('dialogue.home.police', "Security! I'm calling the police!"), lineAudio('dialogue.home.police', POLICE_CALL), 0.92, 3.6);
         } else if (!pierceSaid && time >= 13.2) {
           pierceSaid = true;
-          say('Pierce Hawkes', "I'm not going back up.", NOT_UP, 0.92, 2.8);
+          say(lineSpeaker('dialogue.home.not-up', 'Pierce Hawkes'), lineText('dialogue.home.not-up', "I'm not going back up."), lineAudio('dialogue.home.not-up', NOT_UP), 0.92, 2.8);
         } else if (lineUntil > 0 && time > lineUntil) {
           lineUntil = 0;
           host.showLine('', '');
@@ -1532,7 +1562,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
           person.mood = 'flee';
           if (!person.screamed) {
             person.screamed = true;
-            host.playFile(PEDESTRIAN, 0.7);
+            host.playFile(lineAudio('shout.street.pedestrian', PEDESTRIAN), 0.7);
           }
         }
         if (!shadowOn && (person.role === 'hostile' || person.mean) && !playing && streetTime > 2.5 && person.mood === 'calm') person.mood = 'chase';
@@ -1601,6 +1631,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
             person.avatar.playClip('punch', false, 1, () => {
               if (person.mood !== 'down') person.avatar.resumeLocomotion();
             });
+            host.playFile(STREET_SFX.punch, 0.5);
             person.swing = 0.85;
             host.hurt(person.role === 'police' ? 14 : 8);
           }
@@ -1616,14 +1647,25 @@ export const createGoingHome = (host: GoingHomeHost) => {
         const wantCar = carOn ? near2 < 68 * 68 : near2 < 50 * 50;
         if (wantCar !== carOn) car.root.setEnabled(wantCar);
         if (car.parked) continue;
+        if (car.hold > 0) {
+          car.hold = Math.max(0, car.hold - dt);
+          car.root.setEnabled(false);
+          continue;
+        }
         if (car.axis === 'z') {
           car.root.position.z += car.speed * dt;
-          if (car.root.position.z > 230) car.root.position.z = -110;
-          if (car.root.position.z < -110) car.root.position.z = 230;
+          if (car.root.position.z > 230 || car.root.position.z < -110) {
+            car.root.position.z = car.speed < 0 ? 230 : -110;
+            car.hold = 18 + Math.random() * 16;
+            car.passed = false;
+          }
         } else {
           car.root.position.x += car.speed * dt;
-          if (car.root.position.x > 320) car.root.position.x = -140;
-          if (car.root.position.x < -140) car.root.position.x = 320;
+          if (car.root.position.x > 320 || car.root.position.x < -140) {
+            car.root.position.x = car.speed < 0 ? 320 : -140;
+            car.hold = 18 + Math.random() * 16;
+            car.passed = false;
+          }
         }
         if (!car.parked) {
           const alongNow = car.axis === 'z'
@@ -1660,8 +1702,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
         spawnPolice(behind - 8, 30.8, 1);
         if (!policeLine) {
           policeLine = true;
-          host.showLine('Police', 'Stop! Stay where you are!');
-          host.playFile(POLICE_SHOUT, 0.9);
+          host.showLine(lineSpeaker('shout.street.police', 'Police'), lineText('shout.street.police', 'Stop! Stay where you are!'));
+          host.playFile(lineAudio('shout.street.police', POLICE_SHOUT), 0.9);
           shoutLeft = 3.4;
         }
       }

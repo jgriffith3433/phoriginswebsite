@@ -17,6 +17,8 @@ import {
   type ClipTrim,
   type ClipTrimsFile,
 } from '../game/clipTrims';
+import { bindSoundEffects } from './soundEffects';
+import { bindStoryLines } from './storyLines';
 import { getSceneTheme } from '../game/scene';
 import { levelCullMeters } from '../game/levelCull';
 import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneNodeMetadata, type SceneTrigger } from '../game/sceneData';
@@ -1899,6 +1901,11 @@ $('animTrimBtn').addEventListener('click', () => {
   setToolsMenuOpen(false);
   void openAnimTrimPanel();
 });
+
+$('storyLinesBtn').addEventListener('click', () => setToolsMenuOpen(false));
+bindStoryLines();
+$('soundEffectsBtn').addEventListener('click', () => setToolsMenuOpen(false));
+bindSoundEffects();
 
 const linkBlenderBtn = $('linkBlenderBtn') as HTMLButtonElement;
 linkBlenderBtn.addEventListener('click', async () => {

@@ -2,19 +2,38 @@ import * as BABYLON from '@babylonjs/core';
 
 import phoneCopy from '../story/phone.json';
 import { createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
+import { mixVolume } from './sfxMix';
+import { phoneSpeakerId, storyLine } from './locale';
 import type { PlayerAvatar } from './playerAvatar';
 
 type Contact = { name: string; detail: string };
 type CallLine = { speaker: string; text: string; audio?: string; duration: number };
 type CallScript = { contact: string; dial?: boolean; lines: CallLine[] };
-type TextDef = { contact: string; text: string };
+type RawLine = { line?: string; speaker?: string; text?: string; audio?: string; duration: number };
+type RawScript = { contact: string; dial?: boolean; lines: RawLine[] };
+type TextDef = { contact: string; line?: string; text?: string };
 
 const copy = phoneCopy as {
   contacts: Record<string, Contact>;
-  calls: Record<string, CallScript>;
+  calls: Record<string, RawScript>;
   texts: Record<string, TextDef>;
-  byObjective?: Record<string, Record<string, CallScript>>;
+  byObjective?: Record<string, Record<string, RawScript>>;
 };
+
+const resolveScript = (raw: RawScript): CallScript => ({
+  contact: raw.contact,
+  dial: raw.dial,
+  lines: raw.lines.map((entry) => {
+    const row = entry.line ? storyLine(entry.line) : undefined;
+    const audio = row?.audio || entry.audio || '';
+    return {
+      speaker: phoneSpeakerId(row?.speaker || entry.speaker || ''),
+      text: row?.text || entry.text || '',
+      audio: audio || undefined,
+      duration: entry.duration,
+    };
+  }),
+});
 
 const TONE = {
   dial: '/assets/audio/sfx/phone/dial.wav',
@@ -23,6 +42,10 @@ const TONE = {
   hangup: '/assets/audio/sfx/phone/hangup.wav',
   ring: '/assets/audio/sfx/phone/ring.wav',
   connect: '/assets/audio/sfx/phone/connect.wav',
+  light: '/assets/audio/sfx/flashlight.ogg',
+  lightAway: '/assets/audio/sfx/flashlight-off.ogg',
+  phoneOut: '/assets/audio/sfx/phone-out.ogg',
+  phoneAway: '/assets/audio/sfx/phone-away.ogg',
 };
 
 const PICKUP_CHANCE = 1 / 3;
@@ -429,7 +452,7 @@ export const createPhone = (
     const key = options.objectiveId();
     const call = copy.byObjective?.[key]?.[contactId];
     if (!call?.lines.length) return null;
-    return { id: `${key}-${contactId}`, call };
+    return { id: `${key}-${contactId}`, call: resolveScript(call) };
   };
 
   /** Open call quests connect. Anyone else is answered about one time in three, or not at all when this objective has no lines. */
@@ -509,7 +532,7 @@ export const createPhone = (
     stopTones();
     if (!options.soundOn()) return;
     const clip = createUnlockedAudio(src);
-    clip.volume = volume;
+    clip.volume = mixVolume(src, volume);
     toneClip = clip;
     void clip.play().catch(() => {});
   };
@@ -625,6 +648,7 @@ export const createPhone = (
         raised = true;
         syncMesh();
         options.onHand(true);
+        playTone(TONE.phoneOut, 0.45);
         return;
       }
       syncMesh();
@@ -638,11 +662,15 @@ export const createPhone = (
     if (mode !== 'idle') return;
     if (!next) {
       const wasOut = raised;
+      const wasLight = flashlight;
       raised = false;
       uiOpen = false;
       flashlight = false;
       syncMesh();
-      if (wasOut) options.onHand(false);
+      if (wasOut) {
+        playTone(wasLight ? TONE.lightAway : TONE.phoneAway, wasLight ? 0.4 : 0.45);
+        options.onHand(false);
+      }
       return;
     }
     if (raised) return;
@@ -677,13 +705,15 @@ export const createPhone = (
     },
     setFlashlight: (on: boolean) => {
       if (!on) {
+        const was = flashlight;
         flashlight = false;
         syncMesh();
+        if (was) playTone(TONE.lightAway, 0.4);
         return;
       }
       if (!raised || mode !== 'idle') return;
       flashlight = true;
-      chirp(210, 0.04, 'square', 0.03);
+      playTone(TONE.light, 0.4);
       syncMesh();
     },
     aimBeam: (at: { x: number; y: number; z: number } | null) => {
@@ -700,7 +730,7 @@ export const createPhone = (
       const next = copy.calls[id];
       if (!next || mode !== 'idle') return;
       stopTones();
-      script = next;
+      script = resolveScript(next);
       scriptId = id;
       party = next.contact;
       notifyOnFinish = true;
@@ -789,10 +819,12 @@ export const createPhone = (
       const text = copy.texts[id];
       if (!text) return;
       if (inbox.some((message) => message.id === id)) return;
+      const row = text.line ? storyLine(text.line) : undefined;
+      const body = row?.text || text.text || '';
       const from = contactOf(text.contact).name;
-      inbox.unshift({ id, from, text: text.text, unread: !(uiOpen && mode === 'idle') });
-      toast = `${from}  ·  ${text.text}`;
-      toastLeft = Math.min(8, 3.4 + text.text.length / 28);
+      inbox.unshift({ id, from, text: body, unread: !(uiOpen && mode === 'idle') });
+      toast = `${from}  ·  ${body}`;
+      toastLeft = Math.min(8, 3.4 + body.length / 28);
       chirp(740, 0.09, 'sine', 0.05);
     },
     silence: () => {

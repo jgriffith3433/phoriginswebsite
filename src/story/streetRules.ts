@@ -14,9 +14,20 @@ export const SHADOW_RUN_SPEED = 1.75 * 3;
 /** How long a corpse stays, counted from the moment of death. */
 export const CORPSE_SECONDS = 60;
 
-const hipHeight = (avatar: PlayerAvatar) => {
-  const hips = avatar.findBone('hips');
-  return hips ? hips.getAbsolutePosition().y : null;
+const boneY = (avatar: PlayerAvatar, suffix: string) => {
+  const bone = avatar.findBone(suffix);
+  return bone ? bone.getAbsolutePosition().y : null;
+};
+
+/** Lowest posed limb. A death clip often leaves that point in the air. */
+const lowestLimb = (avatar: PlayerAvatar) => {
+  let low = Number.POSITIVE_INFINITY;
+  for (const suffix of ['leftfoot', 'rightfoot', 'lefthand', 'righthand', 'head', 'hips']) {
+    const y = boneY(avatar, suffix);
+    if (y == null || !Number.isFinite(y)) continue;
+    if (y < low) low = y;
+  }
+  return Number.isFinite(low) ? low : null;
 };
 
 /** Surface under a person. Falls back to the height their feet already use. */
@@ -46,28 +57,23 @@ export const floorUnder = (
 };
 
 /**
- * Death clips leave the hips up, so the posed mesh floats.
- * Drop the visual root (the group under PLAYER_MESH_Y_OFFSET) until the body meets the floor.
+ * Death clips hold the last frame with the hips still up, so the body floats.
+ * Drop the visual root until the lowest limb meets the sidewalk.
  */
 export const restOnFloor = (avatar: PlayerAvatar, floorY: number) => {
   const skinned = avatar.getSkinnedMesh();
   if (!skinned || skinned.isDisposed()) return false;
   skinned.skeleton?.computeAbsoluteTransforms(true);
   skinned.computeWorldMatrix(true);
-  skinned.refreshBoundingInfo(true, false);
-  const minY = skinned.getBoundingInfo().boundingBox.minimumWorld.y;
-  let gap = minY - floorY;
-  const hipY = hipHeight(avatar);
-  if (!Number.isFinite(gap) || (gap < 0.04 && hipY != null && hipY > floorY + 0.35)) {
-    if (hipY == null) return false;
-    gap = hipY - (floorY + 0.16);
-  }
-  if (!Number.isFinite(gap) || gap <= 0.02) return true;
+  const low = lowestLimb(avatar);
+  if (low == null) return false;
+  const gap = low - (floorY + 0.05);
+  if (!Number.isFinite(gap) || gap <= 0.04) return true;
   avatar.group.position.y -= gap;
   return true;
 };
 
-/** Count while the death clip plays, then snap once the held pose is the one on the ground. */
+/** Count while the death clip plays, then snap the held pose onto the ground. */
 export const settleCorpse = (
   avatar: PlayerAvatar,
   floorY: number,
@@ -79,8 +85,7 @@ export const settleCorpse = (
   if (resting || !avatar.isReady()) return { age, resting };
   const next = age + dt;
   const length = avatar.clipDuration(clip);
-  if (length == null || next < length + 0.12) return { age: next, resting: false };
-  const hipY = hipHeight(avatar);
-  if (hipY != null && hipY >= floorY + 0.82) return { age: next, resting: true };
+  const wait = length == null ? 1.2 : length + 0.08;
+  if (next < wait) return { age: next, resting: false };
   return { age: next, resting: restOnFloor(avatar, floorY) };
 };

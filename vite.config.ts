@@ -5,6 +5,8 @@ import { defineConfig } from 'vite';
 import { convertCharacterGlb, inferClipName } from './tools/blenderConvert.mjs';
 import { linkBlender } from './tools/linkBlender.mjs';
 import { importEditorTexture } from './tools/process-textures.mjs';
+import { inspectSoundFiles, synthesizeEffect } from './tools/soundEffects.mjs';
+import { inspectVoiceFiles, listVoices, synthesizeLine } from './tools/voiceLines.mjs';
 
 // Directories the editor API is allowed to read/write. Keeps file access
 // scoped to project content instead of the whole filesystem.
@@ -12,6 +14,7 @@ const EDITOR_ROOTS: Record<string, string> = {
   assets: 'assets',
   levels: 'levels',
   cutscenes: 'cutscenes',
+  locales: 'locales',
 };
 
 type FsTreeNode = {
@@ -148,6 +151,93 @@ const editorApiPlugin = (): Plugin => ({
         .catch((error) => {
           res.statusCode = 400;
           res.end(JSON.stringify({ error: String(error) }));
+        });
+    });
+
+    server.middlewares.use('/api/voice/inspect', (req, res) => {
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+      readJsonBody(req)
+        .then((body) => {
+          const paths = Array.isArray(body?.paths) ? body.paths.slice(0, 800) : [];
+          sendJson(res, 200, { clips: inspectVoiceFiles(root, paths) });
+        })
+        .catch((error) => sendJson(res, 400, { error: String(error) }));
+    });
+
+    // Story lines voice dropdown. The key stays on the server.
+    server.middlewares.use('/api/voice/list', (req, res) => {
+      if (req.method !== 'GET') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+      listVoices(root)
+        .then((voices) => sendJson(res, 200, { voices }))
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : String(error);
+          sendJson(res, 400, { error: message });
+        });
+    });
+
+    server.middlewares.use('/api/voice/generate', (req, res) => {
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+      readJsonBody(req)
+        .then((body) => synthesizeLine(root, {
+          id: body?.id,
+          speaker: body?.speaker,
+          text: body?.text,
+          audio: body?.audio,
+          performance: body?.performance,
+          voiceId: body?.voiceId,
+        }))
+        .then((result) => sendJson(res, 200, result))
+        .catch((error) => {
+          const cause = error instanceof Error ? error.cause as { code?: string; message?: string } | undefined : undefined;
+          const detail = cause ? [cause.code, cause.message].filter(Boolean).join(' ') : '';
+          const message = error instanceof Error ? error.message : String(error);
+          sendJson(res, 400, { error: detail ? `${message} (${detail})` : message });
+        });
+    });
+
+    // Sound effects catalog. The key stays on the server.
+    server.middlewares.use('/api/sfx/inspect', (req, res) => {
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+      readJsonBody(req)
+        .then((body) => {
+          const paths = Array.isArray(body?.paths) ? body.paths.slice(0, 800) : [];
+          sendJson(res, 200, { clips: inspectSoundFiles(root, paths) });
+        })
+        .catch((error) => sendJson(res, 400, { error: String(error) }));
+    });
+
+    server.middlewares.use('/api/sfx/generate', (req, res) => {
+      if (req.method !== 'POST') {
+        sendJson(res, 405, { error: 'Method not allowed' });
+        return;
+      }
+      readJsonBody(req)
+        .then((body) => synthesizeEffect(root, {
+          id: body?.id,
+          text: body?.text,
+          audio: body?.audio,
+          loop: body?.loop,
+          duration: body?.duration,
+          influence: body?.influence,
+        }))
+        .then((result) => sendJson(res, 200, result))
+        .catch((error) => {
+          const cause = error instanceof Error ? error.cause as { code?: string; message?: string } | undefined : undefined;
+          const detail = cause ? [cause.code, cause.message].filter(Boolean).join(' ') : '';
+          const message = error instanceof Error ? error.message : String(error);
+          sendJson(res, 400, { error: detail ? `${message} (${detail})` : message });
         });
     });
 
@@ -311,9 +401,21 @@ const editorApiPlugin = (): Plugin => ({
   },
 });
 
+// Dev Tools writes these while a task is still open. They are fetched or held
+// in memory, so a change must not reload the page. Code under src/ still does.
+const CONTENT_FILE = /[/\\](assets|levels|cutscenes|locales)[/\\]/;
+
+const skipContentReloadPlugin = (): Plugin => ({
+  name: 'skip-content-reload',
+  handleHotUpdate(context) {
+    if (CONTENT_FILE.test(context.file)) return [];
+  },
+});
+
 export default defineConfig({
   base: './',
   plugins: [
+    skipContentReloadPlugin(),
     editorApiPlugin(),
     {
       name: 'copy-cutscenes',

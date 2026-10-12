@@ -1,0 +1,4721 @@
+{
+  "locale": "en",
+  "lines": [
+    {
+      "id": "phone.voss-late.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Pierce. You're late to the board meeting.",
+      "audio": "/assets/audio/phone/voss-late.ogg",
+      "audioText": "Pierce. You're late to the board meeting.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Incoming call voss-late"
+    },
+    {
+      "id": "phone.voss-late.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I know. I'm down the hallway as we speak.",
+      "audio": "/assets/audio/phone/pierce-hallway.ogg",
+      "audioText": "I know. I'm down the hallway as we speak.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call voss-late"
+    },
+    {
+      "id": "phone.voss-late.03",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "We need to be prepared for what's coming.",
+      "audio": "/assets/audio/phone/pierce-prepared.ogg",
+      "audioText": "We need to be prepared for what's coming.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call voss-late"
+    },
+    {
+      "id": "phone.voss-late.04",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Just... hurry up.",
+      "audio": "/assets/audio/phone/voss-hurry.ogg",
+      "audioText": "Just... hurry up.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Incoming call voss-late"
+    },
+    {
+      "id": "phone.voss-meeting.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Hale is still in that room. She is furious.",
+      "audio": "/assets/audio/phone/voss-furious.ogg",
+      "audioText": "Hale is still in that room. She is furious.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Incoming call voss-meeting"
+    },
+    {
+      "id": "phone.voss-meeting.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "The meeting's over.",
+      "audio": "/assets/audio/phone/pierce-over.ogg",
+      "audioText": "The meeting's over.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call voss-meeting"
+    },
+    {
+      "id": "phone.voss-meeting.03",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Not to her. You don't walk out on a board.",
+      "audio": "/assets/audio/phone/voss-board.ogg",
+      "audioText": "Not to her. You don't walk out on a board.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Incoming call voss-meeting"
+    },
+    {
+      "id": "phone.voss-meeting.04",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I did.",
+      "audio": "/assets/audio/phone/pierce-did.ogg",
+      "audioText": "I did.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call voss-meeting"
+    },
+    {
+      "id": "phone.hale-walkout.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Pierce. You walked out of my board meeting.",
+      "audio": "/assets/audio/phone/hale-walked-out.ogg",
+      "audioText": "Pierce. You walked out of my board meeting.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-walkout"
+    },
+    {
+      "id": "phone.hale-walkout.02",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "You will reschedule. Today.",
+      "audio": "/assets/audio/phone/hale-reschedule.ogg",
+      "audioText": "You will reschedule. Today.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-walkout"
+    },
+    {
+      "id": "phone.hale-walkout.03",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I can't right now.",
+      "audio": "/assets/audio/phone/pierce-cant.ogg",
+      "audioText": "I can't right now.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call hale-walkout"
+    },
+    {
+      "id": "phone.hale-walkout.04",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Then I have no choice. I will speak with the other investors.",
+      "audio": "/assets/audio/phone/hale-investors.ogg",
+      "audioText": "Then I have no choice. I will speak with the other investors.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-walkout"
+    },
+    {
+      "id": "phone.hale-walkout.05",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "They will hear that you walked out.",
+      "audio": "/assets/audio/phone/hale-hear.ogg",
+      "audioText": "They will hear that you walked out.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-walkout"
+    },
+    {
+      "id": "phone.hale-board.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Pierce. The board turned out well.",
+      "audio": "/assets/audio/phone/hale-board-well.ogg",
+      "audioText": "Pierce. The board turned out well.",
+      "performance": "warmly",
+      "audioPerformance": "warmly",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-board"
+    },
+    {
+      "id": "phone.hale-board.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Alright.",
+      "audio": "/assets/audio/phone/pierce-alright.ogg",
+      "audioText": "Alright.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call hale-board"
+    },
+    {
+      "id": "phone.hale-board.03",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "I'll update you soon.",
+      "audio": "/assets/audio/phone/hale-update-soon.ogg",
+      "audioText": "I'll update you soon.",
+      "performance": "warmly",
+      "audioPerformance": "warmly",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-board"
+    },
+    {
+      "id": "phone.seat.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "The board is in the room. Keep walking.",
+      "audio": "/assets/audio/phone/seat-voss.ogg",
+      "audioText": "The board is in the room. Keep walking.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective seat, Voss"
+    },
+    {
+      "id": "phone.seat.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm in the hall.",
+      "audio": "/assets/audio/vo/phone.seat.voss.02.ogg",
+      "audioText": "I'm in the hall.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective seat, Voss"
+    },
+    {
+      "id": "phone.seat.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "We started without you.",
+      "audio": "/assets/audio/phone/seat-hale.ogg",
+      "audioText": "We started without you.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective seat, Hale"
+    },
+    {
+      "id": "phone.seat.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'll be in the chair.",
+      "audio": "/assets/audio/phone/seat-pierce-hale.ogg",
+      "audioText": "I'll be in the chair.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective seat, Hale"
+    },
+    {
+      "id": "phone.wait-board.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You left them sitting there.",
+      "audio": "/assets/audio/phone/walkout-voss.ogg",
+      "audioText": "You left them sitting there.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective wait-board, Voss"
+    },
+    {
+      "id": "phone.wait-board.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "They can find the door.",
+      "audio": "/assets/audio/vo/phone.wait-board.voss.02.ogg",
+      "audioText": "They can find the door.",
+      "performance": "sarcastic",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective wait-board, Voss"
+    },
+    {
+      "id": "phone.wait-board.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "That meeting was not over.",
+      "audio": "/assets/audio/phone/walkout-hale.ogg",
+      "audioText": "That meeting was not over.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective wait-board, Hale"
+    },
+    {
+      "id": "phone.wait-board.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "It is for me.",
+      "audio": "/assets/audio/phone/walkout-pierce-hale.ogg",
+      "audioText": "It is for me.",
+      "performance": "sarcastic",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective wait-board, Hale"
+    },
+    {
+      "id": "phone.alarm.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "The terminal is live. Look at it.",
+      "audio": "/assets/audio/vo/phone.alarm.voss.01.ogg",
+      "audioText": "The terminal is live. Look at it.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective alarm, Voss"
+    },
+    {
+      "id": "phone.alarm.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm standing at it.",
+      "audio": "/assets/audio/vo/phone.alarm.voss.02.ogg",
+      "audioText": "I'm standing at it.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective alarm, Voss"
+    },
+    {
+      "id": "phone.alarm.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "What did you open?",
+      "audio": "/assets/audio/vo/phone.alarm.hale.01.ogg",
+      "audioText": "What did you open?",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective alarm, Hale"
+    },
+    {
+      "id": "phone.alarm.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "A door under the building.",
+      "audio": "/assets/audio/vo/phone.alarm.hale.02.ogg",
+      "audioText": "A door under the building.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective alarm, Hale"
+    },
+    {
+      "id": "phone.elevator.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "That cab goes to B3.",
+      "audio": "/assets/audio/vo/phone.elevator.voss.01.ogg",
+      "audioText": "That cab goes to B3.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective elevator, Voss"
+    },
+    {
+      "id": "phone.elevator.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I know where it goes.",
+      "audio": "/assets/audio/vo/phone.elevator.voss.02.ogg",
+      "audioText": "I know where it goes.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective elevator, Voss"
+    },
+    {
+      "id": "phone.elevator.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "You are not authorized to descend.",
+      "audio": "/assets/audio/vo/phone.elevator.hale.01.ogg",
+      "audioText": "You are not authorized to descend.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective elevator, Hale"
+    },
+    {
+      "id": "phone.elevator.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "The terminal already cleared me.",
+      "audio": "/assets/audio/vo/phone.elevator.hale.02.ogg",
+      "audioText": "The terminal already cleared me.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective elevator, Hale"
+    },
+    {
+      "id": "phone.lab.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "The line is thin. Are you below?",
+      "audio": "/assets/audio/vo/phone.lab.voss.01.ogg",
+      "audioText": "The line is thin. Are you below?",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective lab, Voss"
+    },
+    {
+      "id": "phone.lab.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm looking for the lab door.",
+      "audio": "/assets/audio/vo/phone.lab.voss.02.ogg",
+      "audioText": "I'm looking for the lab door.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective lab, Voss"
+    },
+    {
+      "id": "phone.lab.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Turn around.",
+      "audio": "/assets/audio/vo/phone.lab.hale.01.ogg",
+      "audioText": "Turn around.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective lab, Hale"
+    },
+    {
+      "id": "phone.lab.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Not until I see it.",
+      "audio": "/assets/audio/vo/phone.lab.hale.02.ogg",
+      "audioText": "Not until I see it.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective lab, Hale"
+    },
+    {
+      "id": "phone.lurk.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Pierce. Breathe.",
+      "audio": "/assets/audio/vo/phone.lurk.voss.01.ogg",
+      "audioText": "Pierce. Breathe.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective lurk, Voss"
+    },
+    {
+      "id": "phone.lurk.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Something is in here with me.",
+      "audio": "/assets/audio/vo/phone.lurk.voss.02.ogg",
+      "audioText": "Something is in here with me.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective lurk, Voss"
+    },
+    {
+      "id": "phone.lurk.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "What are you looking at?",
+      "audio": "/assets/audio/vo/phone.lurk.hale.01.ogg",
+      "audioText": "What are you looking at?",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective lurk, Hale"
+    },
+    {
+      "id": "phone.lurk.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I don't know. It's moving.",
+      "audio": "/assets/audio/vo/phone.lurk.hale.02.ogg",
+      "audioText": "I don't know. It's moving.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective lurk, Hale"
+    },
+    {
+      "id": "phone.hunt.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Shoot it.",
+      "audio": "/assets/audio/vo/phone.hunt.voss.01.ogg",
+      "audioText": "Shoot it.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective hunt, Voss"
+    },
+    {
+      "id": "phone.hunt.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm trying.",
+      "audio": "/assets/audio/vo/phone.hunt.voss.02.ogg",
+      "audioText": "I'm trying.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective hunt, Voss"
+    },
+    {
+      "id": "phone.hunt.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Get out of that room.",
+      "audio": "/assets/audio/vo/phone.hunt.hale.01.ogg",
+      "audioText": "Get out of that room.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective hunt, Hale"
+    },
+    {
+      "id": "phone.hunt.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "It's between me and the door.",
+      "audio": "/assets/audio/vo/phone.hunt.hale.02.ogg",
+      "audioText": "It's between me and the door.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective hunt, Hale"
+    },
+    {
+      "id": "phone.vat.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Leave the glass.",
+      "audio": "/assets/audio/vo/phone.vat.voss.01.ogg",
+      "audioText": "Leave the glass.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective vat, Voss"
+    },
+    {
+      "id": "phone.vat.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "It's breaking.",
+      "audio": "/assets/audio/vo/phone.vat.voss.02.ogg",
+      "audioText": "It's breaking.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective vat, Voss"
+    },
+    {
+      "id": "phone.vat.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Pierce, step back.",
+      "audio": "/assets/audio/vo/phone.vat.hale.01.ogg",
+      "audioText": "Pierce, step back.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective vat, Hale"
+    },
+    {
+      "id": "phone.vat.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I am.",
+      "audio": "/assets/audio/vo/phone.vat.hale.02.ogg",
+      "audioText": "I am.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective vat, Hale"
+    },
+    {
+      "id": "phone.return.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You don't sound like yourself.",
+      "audio": "/assets/audio/vo/phone.return.voss.01.ogg",
+      "audioText": "You don't sound like yourself.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective return, Voss"
+    },
+    {
+      "id": "phone.return.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm coming back to the office.",
+      "audio": "/assets/audio/vo/phone.return.voss.02.ogg",
+      "audioText": "I'm coming back to the office.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective return, Voss"
+    },
+    {
+      "id": "phone.return.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "You walked out on me.",
+      "audio": "/assets/audio/vo/phone.return.hale.01.ogg",
+      "audioText": "You walked out on me.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective return, Hale"
+    },
+    {
+      "id": "phone.return.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I can't talk about that yet.",
+      "audio": "/assets/audio/vo/phone.return.hale.02.ogg",
+      "audioText": "I can't talk about that yet.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective return, Hale"
+    },
+    {
+      "id": "phone.return-up.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Which floor?",
+      "audio": "/assets/audio/vo/phone.return-up.voss.01.ogg",
+      "audioText": "Which floor?",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective return-up, Voss"
+    },
+    {
+      "id": "phone.return-up.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "The office.",
+      "audio": "/assets/audio/vo/phone.return-up.voss.02.ogg",
+      "audioText": "The office.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective return-up, Voss"
+    },
+    {
+      "id": "phone.return-up.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "The investors will hear you left.",
+      "audio": "/assets/audio/vo/phone.return-up.hale.01.ogg",
+      "audioText": "The investors will hear you left.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective return-up, Hale"
+    },
+    {
+      "id": "phone.return-up.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Then they'll hear it.",
+      "audio": "/assets/audio/vo/phone.return-up.hale.02.ogg",
+      "audioText": "Then they'll hear it.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective return-up, Hale"
+    },
+    {
+      "id": "phone.mirror.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "What happened down there?",
+      "audio": "/assets/audio/vo/phone.mirror.voss.01.ogg",
+      "audioText": "What happened down there?",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective mirror, Voss"
+    },
+    {
+      "id": "phone.mirror.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm looking at a mirror.",
+      "audio": "/assets/audio/vo/phone.mirror.voss.02.ogg",
+      "audioText": "I'm looking at a mirror.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective mirror, Voss"
+    },
+    {
+      "id": "phone.mirror.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Describe it.",
+      "audio": "/assets/audio/vo/phone.mirror.hale.01.ogg",
+      "audioText": "Describe it.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective mirror, Hale"
+    },
+    {
+      "id": "phone.mirror.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Not on the phone.",
+      "audio": "/assets/audio/vo/phone.mirror.hale.02.ogg",
+      "audioText": "Not on the phone.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective mirror, Hale"
+    },
+    {
+      "id": "phone.desk.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Are you at the desk?",
+      "audio": "/assets/audio/vo/phone.desk.voss.01.ogg",
+      "audioText": "Are you at the desk?",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective desk, Voss"
+    },
+    {
+      "id": "phone.desk.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "The work is still here. I'm not staying.",
+      "audio": "/assets/audio/vo/phone.desk.voss.02.ogg",
+      "audioText": "The work is still here. I'm not staying.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective desk, Voss"
+    },
+    {
+      "id": "phone.desk.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Sit down and finish it.",
+      "audio": "/assets/audio/vo/phone.desk.hale.01.ogg",
+      "audioText": "Sit down and finish it.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective desk, Hale"
+    },
+    {
+      "id": "phone.desk.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm going home.",
+      "audio": "/assets/audio/vo/phone.desk.hale.02.ogg",
+      "audioText": "I'm going home.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective desk, Hale"
+    },
+    {
+      "id": "phone.home.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Where are you?",
+      "audio": "/assets/audio/vo/phone.home.voss.01.ogg",
+      "audioText": "Where are you?",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective home, Voss"
+    },
+    {
+      "id": "phone.home.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "On the street. Don't send anyone.",
+      "audio": "/assets/audio/vo/phone.home.voss.02.ogg",
+      "audioText": "On the street. Don't send anyone.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective home, Voss"
+    },
+    {
+      "id": "phone.home.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Come back inside.",
+      "audio": "/assets/audio/vo/phone.home.hale.01.ogg",
+      "audioText": "Come back inside.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective home, Hale"
+    },
+    {
+      "id": "phone.home.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm not going back up.",
+      "audio": "/assets/audio/vo/phone.home.hale.02.ogg",
+      "audioText": "I'm not going back up.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective home, Hale"
+    },
+    {
+      "id": "phone.station.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Get off the platform.",
+      "audio": "/assets/audio/vo/phone.station.voss.01.ogg",
+      "audioText": "Get off the platform.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective station, Voss"
+    },
+    {
+      "id": "phone.station.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm taking the train.",
+      "audio": "/assets/audio/vo/phone.station.voss.02.ogg",
+      "audioText": "I'm taking the train.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective station, Voss"
+    },
+    {
+      "id": "phone.station.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "This is not how you leave.",
+      "audio": "/assets/audio/vo/phone.station.hale.01.ogg",
+      "audioText": "This is not how you leave.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective station, Hale"
+    },
+    {
+      "id": "phone.station.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "It's how I'm leaving.",
+      "audio": "/assets/audio/vo/phone.station.hale.02.ogg",
+      "audioText": "It's how I'm leaving.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective station, Hale"
+    },
+    {
+      "id": "phone.shock.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Pierce, people are running.",
+      "audio": "/assets/audio/vo/phone.shock.voss.01.ogg",
+      "audioText": "Pierce, people are running.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective shock, Voss"
+    },
+    {
+      "id": "phone.shock.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Stay off this line.",
+      "audio": "/assets/audio/vo/phone.shock.voss.02.ogg",
+      "audioText": "Stay off this line.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective shock, Voss"
+    },
+    {
+      "id": "phone.shock.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "What are you doing out there?",
+      "audio": "/assets/audio/vo/phone.shock.hale.01.ogg",
+      "audioText": "What are you doing out there?",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective shock, Hale"
+    },
+    {
+      "id": "phone.shock.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Don't call again.",
+      "audio": "/assets/audio/vo/phone.shock.hale.02.ogg",
+      "audioText": "Don't call again.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective shock, Hale"
+    },
+    {
+      "id": "phone.link.voss.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Whose voice is that?",
+      "audio": "/assets/audio/vo/phone.link.voss.01.ogg",
+      "audioText": "Whose voice is that?",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Outbound call, objective link, Voss"
+    },
+    {
+      "id": "phone.link.voss.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Not mine. Not for long.",
+      "audio": "/assets/audio/vo/phone.link.voss.02.ogg",
+      "audioText": "Not mine. Not for long.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective link, Voss"
+    },
+    {
+      "id": "phone.link.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Pierce. Answer as yourself.",
+      "audio": "/assets/audio/vo/phone.link.hale.01.ogg",
+      "audioText": "Pierce. Answer as yourself.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Outbound call, objective link, Hale"
+    },
+    {
+      "id": "phone.link.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I can't. Not from here.",
+      "audio": "/assets/audio/vo/phone.link.hale.02.ogg",
+      "audioText": "I can't. Not from here.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Outbound call, objective link, Hale"
+    },
+    {
+      "id": "text.voss-terminal",
+      "type": "text",
+      "speaker": "Voss",
+      "text": "You need to call Hale.",
+      "audio": "",
+      "note": "Phone text voss-terminal"
+    },
+    {
+      "id": "text.voss-street",
+      "type": "text",
+      "speaker": "Voss",
+      "text": "The police are on their way to the tower, there was a report from security. Did you see anything?",
+      "audio": "",
+      "note": "Phone text voss-street"
+    },
+    {
+      "id": "dialogue.apex-terminal.01",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "What is that? What is that thing doing on B3?",
+      "audio": "/assets/audio/cutscenes/apex-terminal/01-pierce-b3-screen.ogg",
+      "audioText": "What is that? What is that thing doing on B3?",
+      "performance": "surprised",
+      "audioPerformance": "surprised",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Monitor at 0.25s"
+    },
+    {
+      "id": "item.scene.apex-terminal.01",
+      "type": "item",
+      "speaker": "B3 clearance",
+      "text": "The terminal authorized the descent.",
+      "audio": "",
+      "note": "The Monitor inventory"
+    },
+    {
+      "id": "hud.apex-terminal.01",
+      "type": "hud",
+      "speaker": "Objective",
+      "text": "Get to the elevator",
+      "audio": "",
+      "note": "The Monitor card at 4.7s"
+    },
+    {
+      "id": "hud.apex-window.01",
+      "type": "hud",
+      "speaker": "Hawkes Tower",
+      "text": "58th floor — Pierce's office",
+      "audio": "",
+      "note": "The Glass card at 0s"
+    },
+    {
+      "id": "dialogue.apex-window.01",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Let them file out. Let them tell themselves the quarter is clean.",
+      "audio": "/assets/audio/cutscenes/apex-window/01-pierce-file-out.ogg",
+      "audioText": "Let them file out. Let them tell themselves the quarter is clean.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Glass at 1.2s"
+    },
+    {
+      "id": "dialogue.apex-window.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Hawkes Biomedical. Category owner. A valuation that makes Zurich sit up straight and ask how high.",
+      "audio": "/assets/audio/cutscenes/apex-window/02-pierce-valuation.ogg",
+      "audioText": "Hawkes Biomedical. Category owner. A valuation that makes Zurich sit up straight and ask how high.",
+      "performance": "dramatically",
+      "audioPerformance": "dramatically",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Glass at 6.2s"
+    },
+    {
+      "id": "dialogue.apex-window.03",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I told Hale B3 stays dark. I told Voss patients are the product. And I meant every word.",
+      "audio": "/assets/audio/cutscenes/apex-window/03-pierce-meant-it.ogg",
+      "audioText": "I told Hale B3 stays dark. I told Voss patients are the product. And I meant every word.",
+      "performance": "dramatically",
+      "audioPerformance": "dramatically",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Glass at 14.2s"
+    },
+    {
+      "id": "dialogue.apex-window.04",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Dominance isn't a slide. It's this city looking up at fifty-eight and knowing the ceiling is mine.",
+      "audio": "/assets/audio/cutscenes/apex-window/04-pierce-ceiling.ogg",
+      "audioText": "Dominance isn't a slide. It's this city looking up at fifty-eight and knowing the ceiling is mine.",
+      "performance": "dramatically",
+      "audioPerformance": "dramatically",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Glass at 22.2s"
+    },
+    {
+      "id": "dialogue.apex-window.05",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "So why does the glass still look like it's keeping something in.",
+      "audio": "/assets/audio/cutscenes/apex-window/05-pierce-glass.ogg",
+      "audioText": "So why does the glass still look like it's keeping something in.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Glass at 30.2s"
+    },
+    {
+      "id": "dialogue.apex-window.06",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "There's a smell under the multiples. Something rotten in the basement I keep calling a rounding error.",
+      "audio": "/assets/audio/cutscenes/apex-window/06-pierce-rotten.ogg",
+      "audioText": "There's a smell under the multiples. Something rotten in the basement I keep calling a rounding error.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Glass at 35.4s"
+    },
+    {
+      "id": "hud.b3-door-reveal.01",
+      "type": "hud",
+      "speaker": "B3",
+      "text": "Restricted lab",
+      "audio": "",
+      "note": "The Vat Room card at 0s"
+    },
+    {
+      "id": "dialogue.b3-door-reveal.01",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Oh my god! What is that thing?!",
+      "audio": "/assets/audio/cutscenes/b3-door-reveal/02-pierce-what-is-that.ogg",
+      "audioText": "Oh my god! What is that thing?!",
+      "performance": "shouting",
+      "audioPerformance": "shouting",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Vat Room at 5.8s"
+    },
+    {
+      "id": "dialogue.b3-vat-break.01",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "It ran. The vat went with it.",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/01-pierce-it-ran.ogg",
+      "audioText": "It ran. The vat went with it.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Acid at 6.6s"
+    },
+    {
+      "id": "hud.b3-vat-break.01",
+      "type": "hud",
+      "speaker": "Containment",
+      "text": "The glass is cracking",
+      "audio": "",
+      "note": "Acid card at 7.4s"
+    },
+    {
+      "id": "dialogue.b3-vat-break.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "AAAAH— it's burning! Get it off me!",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg",
+      "audioText": "AAAAH— it's burning! Get it off me!",
+      "performance": "shouting",
+      "audioPerformance": "shouting",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Acid at 14.7s"
+    },
+    {
+      "id": "item.scene.b3-vat-break.01",
+      "type": "item",
+      "speaker": "Still thinking",
+      "text": "The vat took the body. The voice stayed.",
+      "audio": "",
+      "note": "Acid inventory"
+    },
+    {
+      "id": "hud.b3-vat-break.02",
+      "type": "hud",
+      "speaker": "Metamorphosis",
+      "text": "The acid writes him into something else",
+      "audio": "",
+      "note": "Acid card at 18.6s"
+    },
+    {
+      "id": "dialogue.b3-vat-break.03",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "What happened to me? I can still hear myself. I can still think. But these are not my hands. That thing ran into the glass, and I am looking down, and it is me. I am still in here. And I am that now.",
+      "audio": "/assets/audio/cutscenes/b3-vat-break/05-pierce-what-happened.ogg",
+      "audioText": "What happened to me? I can still hear myself. I can still think. But these are not my hands. That thing ran into the glass, and I am looking down, and it is me. I am still in here. And I am that now.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Acid at 19.4s"
+    },
+    {
+      "id": "hud.b3-vat-break.03",
+      "type": "hud",
+      "speaker": "Level Complete",
+      "text": "B3 incident",
+      "audio": "",
+      "note": "Acid card at 38.6s"
+    },
+    {
+      "id": "dialogue.elevator-b3.01",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Doors shut. Good. The board can sit up there and pretend the numbers still mean something.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/02-pierce-doors.ogg",
+      "audioText": "Doors shut. Good. The board can sit up there and pretend the numbers still mean something.",
+      "performance": "sarcastic",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "B3 at 8.4s"
+    },
+    {
+      "id": "dialogue.elevator-b3.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "That alarm was not a drill. I saw the monitor. After the klaxon. After they left me the office like a gift.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/03-pierce-monitor.ogg",
+      "audioText": "That alarm was not a drill. I saw the monitor. After the klaxon. After they left me the office like a gift.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "B3 at 15.4s"
+    },
+    {
+      "id": "dialogue.elevator-b3.03",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "It looked like a creature. Not a chart. Not a leak. Something with a shape it should not have, sitting on a terminal in my tower.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/04-pierce-creature.ogg",
+      "audioText": "It looked like a creature. Not a chart. Not a leak. Something with a shape it should not have, sitting on a terminal in my tower.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "B3 at 24.2s"
+    },
+    {
+      "id": "dialogue.elevator-b3.04",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Hawkes sells dominance. Clean floors. Locked basements. We do not put animals on a fifty-eighth-floor screen and call it operations.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/05-pierce-dominance.ogg",
+      "audioText": "Hawkes sells dominance. Clean floors. Locked basements. We do not put animals on a fifty-eighth-floor screen and call it operations.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "B3 at 34.9s"
+    },
+    {
+      "id": "dialogue.elevator-b3.05",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Unless it was not an animal. Unless B3 has been writing back. That is not a valuation problem. That is a thing in the building.",
+      "audio": "/assets/audio/cutscenes/elevator-b3/06-pierce-writing.ogg",
+      "audioText": "Unless it was not an animal. Unless B3 has been writing back. That is not a valuation problem. That is a thing in the building.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "B3 at 45.9s"
+    },
+    {
+      "id": "dialogue.elevator-b3.06",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I am going down there. If it is a glitch, I will bury the tape. If it is not—",
+      "audio": "/assets/audio/cutscenes/elevator-b3/07-pierce-tape.ogg",
+      "audioText": "I am going down there. If it is a glitch, I will bury the tape. If it is not—",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "B3 at 58s"
+    },
+    {
+      "id": "hud.elevator-b3.01",
+      "type": "hud",
+      "speaker": "Level Complete",
+      "text": "Apex Peak Act I — the ride down",
+      "audio": "",
+      "note": "B3 card at 66.2s"
+    },
+    {
+      "id": "dialogue.elevator-up.01",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "The elevator is going up. I am still in it. That is the only part I trust.",
+      "audio": "/assets/audio/cutscenes/elevator-up/01-pierce-trust.ogg",
+      "audioText": "The elevator is going up. I am still in it. That is the only part I trust.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Up at 8.6s"
+    },
+    {
+      "id": "dialogue.elevator-up.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "There was a thing in the lab. It ran at the glass. The vat broke, and it burned, and I went down.",
+      "audio": "/assets/audio/cutscenes/elevator-up/02-pierce-lab.ogg",
+      "audioText": "There was a thing in the lab. It ran at the glass. The vat broke, and it burned, and I went down.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Up at 16.4s"
+    },
+    {
+      "id": "dialogue.elevator-up.03",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "After that I am reconstructing. These are not the hands I took into that room. I keep waiting for them to change back.",
+      "audio": "/assets/audio/cutscenes/elevator-up/03-pierce-hands.ogg",
+      "audioText": "After that I am reconstructing. These are not the hands I took into that room. I keep waiting for them to change back.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Up at 25.1s"
+    },
+    {
+      "id": "dialogue.elevator-up.04",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Hale thinks I walked out of a meeting. She is going to the other investors. She has not seen what is riding this elevator.",
+      "audio": "/assets/audio/cutscenes/elevator-up/04-pierce-investors.ogg",
+      "audioText": "Hale thinks I walked out of a meeting. She is going to the other investors. She has not seen what is riding this elevator.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Up at 33.6s"
+    },
+    {
+      "id": "dialogue.elevator-up.05",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "If this is my mind failing, the doors will open on a man I recognize. If it is not, then I found the thing. I am wearing it.",
+      "audio": "/assets/audio/cutscenes/elevator-up/05-pierce-wearing.ogg",
+      "audioText": "If this is my mind failing, the doors will open on a man I recognize. If it is not, then I found the thing. I am wearing it.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Up at 42.4s"
+    },
+    {
+      "id": "dialogue.elevator-up.06",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I need a mirror. I need a face I already know. If I am inventing this, the glass will say so.",
+      "audio": "/assets/audio/cutscenes/elevator-up/06-pierce-mirror.ogg",
+      "audioText": "I need a mirror. I need a face I already know. If I am inventing this, the glass will say so.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Up at 53.6s"
+    },
+    {
+      "id": "hud.room-for-grace.01",
+      "type": "hud",
+      "speaker": "The Apex Peak",
+      "text": "Hawkes Tower — 58th floor boardroom",
+      "audio": "",
+      "note": "Room for Grace card at 0s"
+    },
+    {
+      "id": "dialogue.room-for-grace.01",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I appreciate you all taking the time. I know calendars at this altitude fill themselves with golf and liability.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/01-pierce-appreciate.ogg",
+      "audioText": "I appreciate you all taking the time. I know calendars at this altitude fill themselves with golf and liability.",
+      "performance": "sarcastic",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 2s"
+    },
+    {
+      "id": "dialogue.room-for-grace.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "We are not just building a product here. This is about absolute market dominance. Anyone still talking share is already losing.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/02-pierce-dominance.ogg",
+      "audioText": "We are not just building a product here. This is about absolute market dominance. Anyone still talking share is already losing.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 9.6s"
+    },
+    {
+      "id": "hud.room-for-grace.02",
+      "type": "hud",
+      "speaker": "The Pitch",
+      "text": "Hawkes Biomedical — category ownership",
+      "audio": "",
+      "note": "Room for Grace card at 18.4s"
+    },
+    {
+      "id": "dialogue.room-for-grace.03",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Some of you have gotten comfortable. Comfortable is how empires get carved up by people hungrier than you. That ends in this room.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/03-pierce-comfortable.ogg",
+      "audioText": "Some of you have gotten comfortable. Comfortable is how empires get carved up by people hungrier than you. That ends in this room.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 18.6s"
+    },
+    {
+      "id": "dialogue.room-for-grace.04",
+      "type": "dialogue",
+      "speaker": "Director Hale",
+      "text": "The street is watching B3, Pierce. If that basement leaks, the valuation does not survive the quarter.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/04-hale-b3.ogg",
+      "audioText": "The street is watching B3, Pierce. If that basement leaks, the valuation does not survive the quarter.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Room for Grace at 27.8s"
+    },
+    {
+      "id": "dialogue.room-for-grace.05",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "B3 stays dark because I told it to stay dark. Compliance does not set the ceiling. I do.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/05-pierce-ceiling.ogg",
+      "audioText": "B3 stays dark because I told it to stay dark. Compliance does not set the ceiling. I do.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 35.4s"
+    },
+    {
+      "id": "dialogue.room-for-grace.06",
+      "type": "dialogue",
+      "speaker": "Voss",
+      "text": "Ethics and the charter say we seal it. Those are patients down there, Pierce. Not prototypes.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/06-voss-ethics.ogg",
+      "audioText": "Ethics and the charter say we seal it. Those are patients down there, Pierce. Not prototypes.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Room for Grace at 42.6s"
+    },
+    {
+      "id": "dialogue.room-for-grace.07",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Patients are the product. The ones who walk out of here will write our next decade. The ones who don't were never going to.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/07-pierce-patients.ogg",
+      "audioText": "Patients are the product. The ones who walk out of here will write our next decade. The ones who don't were never going to.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 50s"
+    },
+    {
+      "id": "dialogue.room-for-grace.08",
+      "type": "dialogue",
+      "speaker": "Lang",
+      "text": "Investors want a date they can take to Zurich. You keep moving the timeline like the market will wait.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/08-lang-timeline.ogg",
+      "audioText": "Investors want a date they can take to Zurich. You keep moving the timeline like the market will wait.",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "2UMI2FME0FFUFMlUoRER",
+      "note": "Room for Grace at 58.8s"
+    },
+    {
+      "id": "dialogue.room-for-grace.09",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Zurich can wait. When we own the category, they will thank me for making them rich slower than they wanted.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/09-pierce-zurich.ogg",
+      "audioText": "Zurich can wait. When we own the category, they will thank me for making them rich slower than they wanted.",
+      "performance": "sarcastic",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 66.2s"
+    },
+    {
+      "id": "hud.room-for-grace.03",
+      "type": "hud",
+      "speaker": "Adjourned",
+      "text": "Get back to work.",
+      "audio": "",
+      "note": "Room for Grace card at 74s"
+    },
+    {
+      "id": "dialogue.room-for-grace.10",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "That's all. This meeting is over. Get back to work.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/10-pierce-dismiss.ogg",
+      "audioText": "That's all. This meeting is over. Get back to work.",
+      "performance": "angry",
+      "audioPerformance": "angry",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 74.2s"
+    },
+    {
+      "id": "dialogue.room-for-grace.11",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "There's always room for grace.",
+      "audio": "/assets/audio/cutscenes/room-for-grace/11-pierce-grace.ogg",
+      "audioText": "There's always room for grace.",
+      "audioPerformance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Room for Grace at 79.4s"
+    },
+    {
+      "id": "objective.seat",
+      "type": "objective",
+      "speaker": "Take your seat",
+      "text": "Join the board",
+      "audio": "",
+      "note": "Objective seat. speaker is the short title."
+    },
+    {
+      "id": "objective.wait-board",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "Wait for the board to leave",
+      "audio": "",
+      "note": "Objective wait-board. speaker is the short title."
+    },
+    {
+      "id": "objective.window",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "Walk to the window",
+      "audio": "",
+      "note": "Objective window. speaker is the short title."
+    },
+    {
+      "id": "objective.alarm",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "Investigate the terminal",
+      "audio": "",
+      "note": "Objective alarm. speaker is the short title."
+    },
+    {
+      "id": "objective.elevator",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "Get to the elevator",
+      "audio": "",
+      "note": "Objective elevator. speaker is the short title."
+    },
+    {
+      "id": "objective.lab",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "The halls are black past the lamps. G is the light. F opens the phone. Find the lab door.",
+      "audio": "",
+      "note": "Objective lab. speaker is the short title."
+    },
+    {
+      "id": "objective.lurk",
+      "type": "objective",
+      "speaker": "It is loose",
+      "text": "It is moving in the dark. Keep the light up.",
+      "audio": "",
+      "note": "Objective lurk. speaker is the short title."
+    },
+    {
+      "id": "objective.hunt",
+      "type": "objective",
+      "speaker": "Shoot it",
+      "text": "It is coming. Do not let it reach you.",
+      "audio": "",
+      "note": "Objective hunt. speaker is the short title."
+    },
+    {
+      "id": "objective.vat",
+      "type": "objective",
+      "speaker": "It breaks",
+      "text": "It is running for the vat.",
+      "audio": "",
+      "note": "Objective vat. speaker is the short title."
+    },
+    {
+      "id": "objective.return",
+      "type": "objective",
+      "speaker": "Get upstairs",
+      "text": "The elevator is the way back.",
+      "audio": "",
+      "note": "Objective return. speaker is the short title."
+    },
+    {
+      "id": "objective.return-up",
+      "type": "objective",
+      "speaker": "Elevator",
+      "text": "Walk in. It goes up.",
+      "audio": "",
+      "note": "Objective return-up. speaker is the short title."
+    },
+    {
+      "id": "objective.mirror",
+      "type": "objective",
+      "speaker": "Look",
+      "text": "The hall bathroom. Find the mirror.",
+      "audio": "",
+      "note": "Objective mirror. speaker is the short title."
+    },
+    {
+      "id": "objective.home",
+      "type": "objective",
+      "speaker": "Get home",
+      "text": "East on the sidewalk. Do not go back inside.",
+      "audio": "",
+      "note": "Objective home. speaker is the short title."
+    },
+    {
+      "id": "objective.shove",
+      "type": "objective",
+      "speaker": "Shove",
+      "text": "They will not move. V knocks them back.",
+      "audio": "",
+      "note": "Objective shove. speaker is the short title."
+    },
+    {
+      "id": "item.sidearm.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "Company line. F opens the screen. The sidearm has to be holstered.",
+      "audio": "",
+      "note": "Inventory while carry is sidearm. speaker is the item name."
+    },
+    {
+      "id": "item.sidearm.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "Company issue. Draw it from the weapon slot.",
+      "audio": "",
+      "note": "Inventory while carry is sidearm. speaker is the item name."
+    },
+    {
+      "id": "item.clearance.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "Company line. F opens the screen. The sidearm has to be holstered.",
+      "audio": "",
+      "note": "Inventory while carry is clearance. speaker is the item name."
+    },
+    {
+      "id": "item.clearance.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "Company issue. Draw it from the weapon slot.",
+      "audio": "",
+      "note": "Inventory while carry is clearance. speaker is the item name."
+    },
+    {
+      "id": "item.clearance.clearance",
+      "type": "item",
+      "speaker": "B3 clearance",
+      "text": "The terminal authorized the descent.",
+      "audio": "",
+      "note": "Inventory while carry is clearance. speaker is the item name."
+    },
+    {
+      "id": "item.b3.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "Still in the pocket.",
+      "audio": "",
+      "note": "Inventory while carry is b3. speaker is the item name."
+    },
+    {
+      "id": "item.b3.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "Still holstered.",
+      "audio": "",
+      "note": "Inventory while carry is b3. speaker is the item name."
+    },
+    {
+      "id": "item.b3.clearance",
+      "type": "item",
+      "speaker": "B3 clearance",
+      "text": "The cab stopped on its own.",
+      "audio": "",
+      "note": "Inventory while carry is b3. speaker is the item name."
+    },
+    {
+      "id": "item.changed.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "It still rings.",
+      "audio": "",
+      "note": "Inventory while carry is changed. speaker is the item name."
+    },
+    {
+      "id": "item.changed.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "The hand still closes around it.",
+      "audio": "",
+      "note": "Inventory while carry is changed. speaker is the item name."
+    },
+    {
+      "id": "item.changed.voice",
+      "type": "item",
+      "speaker": "Still thinking",
+      "text": "The vat took the body. The voice stayed.",
+      "audio": "",
+      "note": "Inventory while carry is changed. speaker is the item name."
+    },
+    {
+      "id": "ui.complete.apex",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "Apex Peak is done. Continue into B3.",
+      "audio": "",
+      "note": "Level complete card for apex"
+    },
+    {
+      "id": "ui.complete.b3",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "B3 incident is done. Pierce is not the man who walked in.",
+      "audio": "",
+      "note": "Level complete card for b3"
+    },
+    {
+      "id": "ui.complete.return",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "The mirror is sure. Whatever this is, it is him. Continue. The desk is still waiting.",
+      "audio": "",
+      "note": "Level complete card for return"
+    },
+    {
+      "id": "ui.complete.home",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "The tower is behind him. The street already knows.",
+      "audio": "",
+      "note": "Level complete card for home"
+    },
+    {
+      "id": "dialogue.return.office",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I need to get back to the office. There is still work on the desk, and I am not leaving it overnight.",
+      "audio": "/assets/audio/cutscenes/return-walk/01-pierce-office.ogg",
+      "audioText": "I need to get back to the office. There is still work on the desk, and I am not leaving it overnight.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Return, walking out of the vat room"
+    },
+    {
+      "id": "dialogue.return.home",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Finish it. Then I go home. That is the rest of the day.",
+      "audio": "/assets/audio/cutscenes/return-walk/02-pierce-home.ogg",
+      "audioText": "Finish it. Then I go home. That is the rest of the day.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Return, second line in the vat room"
+    },
+    {
+      "id": "dialogue.return.bright",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Why is the hall this bright? I can see the whole length of it.",
+      "audio": "/assets/audio/cutscenes/return-walk/03-pierce-bright.ogg",
+      "audioText": "Why is the hall this bright? I can see the whole length of it.",
+      "performance": "surprised",
+      "audioPerformance": "surprised",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Return, north end of the pipe hall"
+    },
+    {
+      "id": "dialogue.return.lamps",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I did not turn a light on. B3 does not look like this.",
+      "audio": "/assets/audio/cutscenes/return-walk/04-pierce-lamps.ogg",
+      "audioText": "I did not turn a light on. B3 does not look like this.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Return, after the bright line"
+    },
+    {
+      "id": "dialogue.return.mirror",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "That's me. I'm not seeing things.",
+      "audio": "/assets/audio/cutscenes/return-mirror/01-pierce-thats-me.ogg",
+      "audioText": "That's me. I'm not seeing things.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Return, look in the mirror"
+    },
+    {
+      "id": "objective.desk.look",
+      "type": "objective",
+      "speaker": "Look",
+      "text": "The hall bathroom. The mirror.",
+      "audio": "",
+      "note": "The Desk, opening objective"
+    },
+    {
+      "id": "dialogue.desk.accept",
+      "type": "dialogue",
+      "speaker": "Pierce Hawkes",
+      "text": "Look at this. Nobody is going to accept me. Not looking like this.",
+      "audio": "/assets/audio/cutscenes/going-home/04-pierce-accept.ogg",
+      "audioText": "Look at this. Nobody is going to accept me. Not looking like this.",
+      "performance": "sad",
+      "audioPerformance": "sad",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Desk, at the mirror"
+    },
+    {
+      "id": "dialogue.desk.nature",
+      "type": "dialogue",
+      "speaker": "Pierce Hawkes",
+      "text": "That is just human nature. People decide what you are before you ever speak.",
+      "audio": "/assets/audio/cutscenes/going-home/05-pierce-nature.ogg",
+      "audioText": "That is just human nature. People decide what you are before you ever speak.",
+      "performance": "sad",
+      "audioPerformance": "sad",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Desk, after the mirror"
+    },
+    {
+      "id": "dialogue.desk.still",
+      "type": "dialogue",
+      "speaker": "Pierce Hawkes",
+      "text": "It's all still here. I was supposed to finish this.",
+      "audio": "/assets/audio/cutscenes/the-desk/01-pierce-still-here.ogg",
+      "audioText": "It's all still here. I was supposed to finish this.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Desk, at the desk"
+    },
+    {
+      "id": "dialogue.desk.going",
+      "type": "dialogue",
+      "speaker": "Pierce Hawkes",
+      "text": "I am not staying here to be stared at. I am going home.",
+      "audio": "/assets/audio/cutscenes/going-home/06-pierce-home.ogg",
+      "audioText": "I am not staying here to be stared at. I am going home.",
+      "performance": "sad",
+      "audioPerformance": "sad",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Desk, leaving"
+    },
+    {
+      "id": "dialogue.home.scream",
+      "type": "dialogue",
+      "speaker": "Receptionist",
+      "text": "Oh my god!",
+      "audio": "/assets/audio/cutscenes/going-home/01-receptionist-scream.ogg",
+      "audioText": "Oh my god!",
+      "performance": "dramatically",
+      "audioPerformance": "dramatically",
+      "audioVoice": "cgSgspJ2msm6clMCkdW9",
+      "note": "Going Home lobby"
+    },
+    {
+      "id": "dialogue.home.police",
+      "type": "dialogue",
+      "speaker": "Receptionist",
+      "text": "I'm calling the police!",
+      "audio": "/assets/audio/cutscenes/going-home/02-receptionist-police.ogg",
+      "audioText": "I'm calling the police!",
+      "performance": "dramatically",
+      "audioPerformance": "dramatically",
+      "audioVoice": "cgSgspJ2msm6clMCkdW9",
+      "note": "Going Home lobby"
+    },
+    {
+      "id": "dialogue.home.not-up",
+      "type": "dialogue",
+      "speaker": "Pierce Hawkes",
+      "text": "I'm not going back up.",
+      "audio": "/assets/audio/cutscenes/going-home/03-pierce-not-going-up.ogg",
+      "audioText": "I'm not going back up.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Going Home lobby"
+    },
+    {
+      "id": "shout.street.police",
+      "type": "shout",
+      "speaker": "Police",
+      "text": "Stop! Stay where you are!",
+      "audio": "/assets/audio/street/police-stop.ogg",
+      "audioText": "Stop! Stay where you are!",
+      "performance": "shouting",
+      "audioPerformance": "shouting",
+      "audioVoice": "IRHApOXLvnW57QJPQH2P",
+      "note": "Going Home, the police pair"
+    },
+    {
+      "id": "shout.street.pedestrian",
+      "type": "shout",
+      "speaker": "Passerby",
+      "text": "Get away from me.",
+      "audio": "/assets/audio/street/pedestrian-away.ogg",
+      "audioText": "Get away from me.",
+      "performance": "shouting",
+      "audioPerformance": "shouting",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "Street scream. Subtitle uses Passerby. The clip has no separate sentence."
+    },
+    {
+      "id": "dialogue.station.me",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Wait. Is that me?",
+      "audio": "/assets/audio/cutscenes/station-shadow/01-pierce-is-that-me.ogg",
+      "audioText": "Wait. Is that me?",
+      "performance": "surprised",
+      "audioPerformance": "surprised",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Station opening"
+    },
+    {
+      "id": "dialogue.station.here",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "How am I talking to him if I'm standing here?",
+      "audio": "/assets/audio/cutscenes/station-shadow/02-pierce-standing-here.ogg",
+      "audioText": "How am I talking to him if I'm standing here?",
+      "performance": "nervous",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Station opening"
+    },
+    {
+      "id": "dialogue.station.uptown",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "You heading uptown?",
+      "audio": "/assets/audio/cutscenes/station-shadow/03-pierce-uptown.ogg",
+      "audioText": "You heading uptown?",
+      "performance": "warmly",
+      "audioPerformance": "warmly",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Station, shadow Pierce"
+    },
+    {
+      "id": "dialogue.station.mine",
+      "type": "dialogue",
+      "speaker": "Passerby",
+      "text": "Yeah. This one's mine.",
+      "audio": "/assets/audio/cutscenes/station-shadow/04-man-this-one.ogg",
+      "audioText": "Yeah. This one's mine.",
+      "audioPerformance": "default",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "The Station, the commuter"
+    },
+    {
+      "id": "dialogue.station.seat",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Save me a seat.",
+      "audio": "/assets/audio/cutscenes/station-shadow/05-pierce-seat.ogg",
+      "audioText": "Save me a seat.",
+      "performance": "warmly",
+      "audioPerformance": "warmly",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Station, shadow Pierce"
+    },
+    {
+      "id": "dialogue.station.left",
+      "type": "dialogue",
+      "speaker": "Passerby",
+      "text": "If there's one left.",
+      "audio": "/assets/audio/cutscenes/station-shadow/06-man-one-left.ogg",
+      "audioText": "If there's one left.",
+      "performance": "sarcastic",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "The Station, the commuter"
+    },
+    {
+      "id": "bark.street.cold",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Cold out here.",
+      "audio": "/assets/audio/street/bark-cold.ogg",
+      "audioText": "Cold out here.",
+      "performance": "tired",
+      "audioPerformance": "tired",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "Street bark"
+    },
+    {
+      "id": "bark.street.walk",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Keep walking.",
+      "audio": "/assets/audio/street/bark-walk.ogg",
+      "audioText": "Keep walking.",
+      "performance": "cautiously",
+      "audioPerformance": "cautiously",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "Street bark"
+    },
+    {
+      "id": "bark.street.tower",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "You see that tower?",
+      "audio": "/assets/audio/street/bark-tower.ogg",
+      "audioText": "You see that tower?",
+      "performance": "curious",
+      "audioPerformance": "curious",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "Street bark"
+    },
+    {
+      "id": "bark.street.hear",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "You hear about the tower?",
+      "audio": "/assets/audio/street/bark-hear.ogg",
+      "audioText": "You hear about the tower?",
+      "performance": "curious",
+      "audioPerformance": "curious",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "Two people talking"
+    },
+    {
+      "id": "bark.street.open",
+      "type": "bark",
+      "speaker": "Shopkeeper",
+      "text": "We're still open.",
+      "audio": "/assets/audio/street/bark-open.ogg",
+      "audioText": "We're still open.",
+      "performance": "warmly",
+      "audioPerformance": "warmly",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "Shopkeeper"
+    },
+    {
+      "id": "bark.street.talk-tower",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "You hear about the tower?",
+      "audio": "/assets/audio/street/talk-tower-a.ogg",
+      "audioText": "You hear about the tower?",
+      "performance": "curious",
+      "audioPerformance": "curious",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "Two people talking"
+    },
+    {
+      "id": "objective.home.station",
+      "type": "objective",
+      "speaker": "The station",
+      "text": "Stairs down, a few blocks east. Tab switches Punch and Kick. C is Shadow mode.",
+      "audio": "",
+      "note": "Going Home, after the tutorial"
+    },
+    {
+      "id": "objective.home.linked",
+      "type": "objective",
+      "speaker": "Shadow Link",
+      "text": "WASD walks them. Click kills. Tab switches the ability.",
+      "audio": "",
+      "note": "Going Home, while linked"
+    },
+    {
+      "id": "objective.home.shadow",
+      "type": "objective",
+      "speaker": "Shadow mode",
+      "text": "Tab switches the ability. Q raises the hands.",
+      "audio": "",
+      "note": "Going Home, Shadow mode on, hands down"
+    },
+    {
+      "id": "objective.home.link",
+      "type": "objective",
+      "speaker": "Shadow Link",
+      "text": "Aim at them. Click uses Possess.",
+      "audio": "",
+      "note": "Going Home, hands raised"
+    },
+    {
+      "id": "objective.home.switch",
+      "type": "objective",
+      "speaker": "Switch",
+      "text": "Switch to {name} with Tab or Switch Ability, then use it on a passerby. Stay in Shadow mode.",
+      "audio": "",
+      "note": "Going Home tutorial, second ability. {name} is the other ability."
+    },
+    {
+      "id": "objective.home.first",
+      "type": "objective",
+      "speaker": "Shadow mode",
+      "text": "Turn Shadow mode on with C or the Shadow button, then use {name} on a passerby.",
+      "audio": "",
+      "note": "Going Home tutorial, first step. {name} is the selected ability."
+    },
+    {
+      "id": "objective.station.link-walk",
+      "type": "objective",
+      "speaker": "Shadow Link",
+      "text": "WASD walks them. Click kills. Tab switches the ability.",
+      "audio": "",
+      "note": "The Station, while linked"
+    },
+    {
+      "id": "objective.station.shadow",
+      "type": "objective",
+      "speaker": "Shadow mode",
+      "text": "Tab switches the ability. Q raises the hands.",
+      "audio": "",
+      "note": "The Station, Shadow mode on"
+    },
+    {
+      "id": "objective.station.link-aim",
+      "type": "objective",
+      "speaker": "Shadow Link",
+      "text": "Aim at them. Click uses Possess.",
+      "audio": "",
+      "note": "The Station, hands raised"
+    },
+    {
+      "id": "objective.station.train",
+      "type": "objective",
+      "speaker": "The train",
+      "text": "The open door, down the platform. Tab switches the ability.",
+      "audio": "",
+      "note": "The Station, main objective"
+    },
+    {
+      "id": "ui.complete.desk",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "The work is on the floor. Continue. He is going home.",
+      "audio": "",
+      "note": "The Desk complete card"
+    },
+    {
+      "id": "ui.complete.going-home",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "The stairs go down. Continue. The station is waiting.",
+      "audio": "",
+      "note": "Going Home complete card"
+    },
+    {
+      "id": "ui.complete.station",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "The train is waiting. There is nowhere else to go.",
+      "audio": "",
+      "note": "The Station complete card"
+    },
+    {
+      "id": "ui.mission.call-voss",
+      "type": "ui",
+      "speaker": "Call Voss",
+      "text": "Dial Voss and get through.",
+      "audio": "",
+      "note": "Side quest"
+    },
+    {
+      "id": "ui.mission.call-hale",
+      "type": "ui",
+      "speaker": "Call Hale",
+      "text": "Dial Hale and get through.",
+      "audio": "",
+      "note": "Side quest"
+    },
+    {
+      "id": "ui.mission.power-shadow",
+      "type": "ui",
+      "speaker": "Shadow mode",
+      "text": "Press C. While it is on, people lose you.",
+      "audio": "",
+      "note": "Going Home side quest"
+    },
+    {
+      "id": "ui.mission.power-shock",
+      "type": "ui",
+      "speaker": "Shadow Shock",
+      "text": "Turn Shadow mode on. Select Shadow Shock. Click someone in front.",
+      "audio": "",
+      "note": "Going Home side quest"
+    },
+    {
+      "id": "ui.mission.power-possess",
+      "type": "ui",
+      "speaker": "Possess",
+      "text": "Turn Shadow mode on. Select Possess. Click someone in front.",
+      "audio": "",
+      "note": "Going Home side quest"
+    },
+    {
+      "id": "ui.mission.power-consume",
+      "type": "ui",
+      "speaker": "Consume",
+      "text": "While linked, in Shadow mode, click again.",
+      "audio": "",
+      "note": "Going Home side quest"
+    },
+    {
+      "id": "item.home.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "It still rings. He is not picking it up.",
+      "audio": "",
+      "note": "Going Home inventory"
+    },
+    {
+      "id": "item.home.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "Q draws it, until Shadow mode.",
+      "audio": "",
+      "note": "Going Home inventory"
+    },
+    {
+      "id": "item.home.shove",
+      "type": "item",
+      "speaker": "Shove",
+      "text": "In Shadow mode, select Shadow Shock, then click someone in front.",
+      "audio": "",
+      "note": "Going Home inventory"
+    },
+    {
+      "id": "item.home.shadow",
+      "type": "item",
+      "speaker": "Shadow mode",
+      "text": "C or the Shadow button turns it on. Powers only work while it is on.",
+      "audio": "",
+      "note": "Going Home inventory"
+    },
+    {
+      "id": "item.desk.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "He is not picking it up.",
+      "audio": "",
+      "note": "The Desk inventory"
+    },
+    {
+      "id": "item.desk.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "Still holstered. The work is what he came for.",
+      "audio": "",
+      "note": "The Desk inventory"
+    },
+    {
+      "id": "item.station.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "No signal this far down.",
+      "audio": "",
+      "note": "The Station inventory"
+    },
+    {
+      "id": "item.station.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "Q draws it, until Shadow mode.",
+      "audio": "",
+      "note": "The Station inventory"
+    },
+    {
+      "id": "item.station.shadow",
+      "type": "item",
+      "speaker": "Shadow mode",
+      "text": "C or the Shadow button turns it on. Powers only work while it is on.",
+      "audio": "",
+      "note": "The Station inventory"
+    },
+    {
+      "id": "credit.1.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.0.0",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "Had Built A Company",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.0.1",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "That Promised Control",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.0.2",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "Over What Once Seemed",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.0.3",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "Impossible To Change",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Zurich",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.1.0",
+      "type": "credit",
+      "speaker": "Zurich",
+      "text": "Was Promised A Future",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.1.1",
+      "type": "credit",
+      "speaker": "Zurich",
+      "text": "But Never Shown",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.1.2",
+      "type": "credit",
+      "speaker": "Zurich",
+      "text": "What It Had Cost",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.1.3",
+      "type": "credit",
+      "speaker": "Zurich",
+      "text": "To Build It",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Patients",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.2.0",
+      "type": "credit",
+      "speaker": "The Patients",
+      "text": "Were The Work",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.2.1",
+      "type": "credit",
+      "speaker": "The Patients",
+      "text": "Behind Every Promise",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.2.2",
+      "type": "credit",
+      "speaker": "The Patients",
+      "text": "The Company Made",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Those Who Leave",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.3.0",
+      "type": "credit",
+      "speaker": "Those Who Leave",
+      "text": "Would Write The Decade",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.3.1",
+      "type": "credit",
+      "speaker": "Those Who Leave",
+      "text": "Pierce Promised Zurich",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Grace",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.4.0",
+      "type": "credit",
+      "speaker": "Grace",
+      "text": "Was Always An Option",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.4.1",
+      "type": "credit",
+      "speaker": "Grace",
+      "text": "For Someone Else",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Glass",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.5.0",
+      "type": "credit",
+      "speaker": "The Glass",
+      "text": "Was Built To Keep",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.5.1",
+      "type": "credit",
+      "speaker": "The Glass",
+      "text": "Something Inside",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.6.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "His Promise",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.6.0",
+      "type": "credit",
+      "speaker": "His Promise",
+      "text": "Was That B3",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.6.1",
+      "type": "credit",
+      "speaker": "His Promise",
+      "text": "Would Stay Dark",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.7.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Dark",
+      "audio": "",
+      "note": "Level 1 left column title"
+    },
+    {
+      "id": "credit.1.left.7.0",
+      "type": "credit",
+      "speaker": "The Dark",
+      "text": "Was Never His",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.left.7.1",
+      "type": "credit",
+      "speaker": "The Dark",
+      "text": "To Promise",
+      "audio": "",
+      "note": "Level 1 left column"
+    },
+    {
+      "id": "credit.1.right.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Voss",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.0.0",
+      "type": "credit",
+      "speaker": "Voss",
+      "text": "Still Called Them Patients",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.0.1",
+      "type": "credit",
+      "speaker": "Voss",
+      "text": "Not Prototypes",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Hale",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.1.0",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Had Feared What",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.1.1",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Would Happen",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.1.2",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "If The Basement",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.1.3",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Ever Came",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.1.4",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "To Light",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Board",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.2.0",
+      "type": "credit",
+      "speaker": "The Board",
+      "text": "Could Debate The Future",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.2.1",
+      "type": "credit",
+      "speaker": "The Board",
+      "text": "Without Looking Down",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Lang",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.3.0",
+      "type": "credit",
+      "speaker": "Lang",
+      "text": "Only Needed A Date",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.3.1",
+      "type": "credit",
+      "speaker": "Lang",
+      "text": "Zurich Needed A Promise",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Charter",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.4.0",
+      "type": "credit",
+      "speaker": "The Charter",
+      "text": "Asked For A Seal",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.4.1",
+      "type": "credit",
+      "speaker": "The Charter",
+      "text": "And An End To B3",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Voss",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.5.0",
+      "type": "credit",
+      "speaker": "Voss",
+      "text": "Called Pierce First",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.5.1",
+      "type": "credit",
+      "speaker": "Voss",
+      "text": "Then Sent One Message",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.5.2",
+      "type": "credit",
+      "speaker": "Voss",
+      "text": "Pick Up The Terminal",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.6.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Terminal",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.6.0",
+      "type": "credit",
+      "speaker": "The Terminal",
+      "text": "Showed Something Moving",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.6.1",
+      "type": "credit",
+      "speaker": "The Terminal",
+      "text": "Deep Inside B3",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.6.2",
+      "type": "credit",
+      "speaker": "The Terminal",
+      "text": "Something No Report",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.6.3",
+      "type": "credit",
+      "speaker": "The Terminal",
+      "text": "Had Prepared Them For",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.7.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce",
+      "audio": "",
+      "note": "Level 1 right column title"
+    },
+    {
+      "id": "credit.1.right.7.0",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "Could Have Stayed Upstairs",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.7.1",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "Instead He Took",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.1.right.7.2",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "The Ride Down",
+      "audio": "",
+      "note": "Level 1 right column"
+    },
+    {
+      "id": "credit.2.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Creature",
+      "audio": "",
+      "note": "Level 2 left column title"
+    },
+    {
+      "id": "credit.2.left.0.0",
+      "type": "credit",
+      "speaker": "The Creature",
+      "text": "Was Not Lost",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.0.1",
+      "type": "credit",
+      "speaker": "The Creature",
+      "text": "It Knew Where",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.0.2",
+      "type": "credit",
+      "speaker": "The Creature",
+      "text": "It Was Going",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Halls",
+      "audio": "",
+      "note": "Level 2 left column title"
+    },
+    {
+      "id": "credit.2.left.1.0",
+      "type": "credit",
+      "speaker": "The Halls",
+      "text": "Were The Long Way",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.1.1",
+      "type": "credit",
+      "speaker": "The Halls",
+      "text": "Back To The Vat",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Vat",
+      "audio": "",
+      "note": "Level 2 left column title"
+    },
+    {
+      "id": "credit.2.left.2.0",
+      "type": "credit",
+      "speaker": "The Vat",
+      "text": "Was Home",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.2.1",
+      "type": "credit",
+      "speaker": "The Vat",
+      "text": "And The Creature",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.2.2",
+      "type": "credit",
+      "speaker": "The Vat",
+      "text": "Was Trying To Return",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Containment Team",
+      "audio": "",
+      "note": "Level 2 left column title"
+    },
+    {
+      "id": "credit.2.left.3.0",
+      "type": "credit",
+      "speaker": "The Containment Team",
+      "text": "Saw A Threat",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.3.1",
+      "type": "credit",
+      "speaker": "The Containment Team",
+      "text": "They Could Not Control",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.3.2",
+      "type": "credit",
+      "speaker": "The Containment Team",
+      "text": "Not Something Trying",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.3.3",
+      "type": "credit",
+      "speaker": "The Containment Team",
+      "text": "To Get Home",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Glass",
+      "audio": "",
+      "note": "Level 2 left column title"
+    },
+    {
+      "id": "credit.2.left.4.0",
+      "type": "credit",
+      "speaker": "The Glass",
+      "text": "Was The Door",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.4.1",
+      "type": "credit",
+      "speaker": "The Glass",
+      "text": "That Stood Between",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.4.2",
+      "type": "credit",
+      "speaker": "The Glass",
+      "text": "The Creature And Home",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce",
+      "audio": "",
+      "note": "Level 2 left column title"
+    },
+    {
+      "id": "credit.2.left.5.0",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "Went Down To Close",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.5.1",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "A File",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.5.2",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "He Never Expected",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.left.5.3",
+      "type": "credit",
+      "speaker": "Pierce",
+      "text": "To Become Part Of",
+      "audio": "",
+      "note": "Level 2 left column"
+    },
+    {
+      "id": "credit.2.right.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Hale",
+      "audio": "",
+      "note": "Level 2 right column title"
+    },
+    {
+      "id": "credit.2.right.0.0",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Had Feared What",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.0.1",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Would Happen",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.0.2",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "If The Basement",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.0.3",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Ever Came",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.0.4",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "To Light",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Acid",
+      "audio": "",
+      "note": "Level 2 right column title"
+    },
+    {
+      "id": "credit.2.right.1.0",
+      "type": "credit",
+      "speaker": "The Acid",
+      "text": "Changed Pierce",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.1.1",
+      "type": "credit",
+      "speaker": "The Acid",
+      "text": "Beyond Recognition",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.1.2",
+      "type": "credit",
+      "speaker": "The Acid",
+      "text": "But Left Him",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.1.3",
+      "type": "credit",
+      "speaker": "The Acid",
+      "text": "With Every Memory",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Voice",
+      "audio": "",
+      "note": "Level 2 right column title"
+    },
+    {
+      "id": "credit.2.right.2.0",
+      "type": "credit",
+      "speaker": "The Voice",
+      "text": "Stayed His Own",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.2.1",
+      "type": "credit",
+      "speaker": "The Voice",
+      "text": "Even When His Body",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.2.2",
+      "type": "credit",
+      "speaker": "The Voice",
+      "text": "No Longer Was",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Basement",
+      "audio": "",
+      "note": "Level 2 right column title"
+    },
+    {
+      "id": "credit.2.right.3.0",
+      "type": "credit",
+      "speaker": "The Basement",
+      "text": "Would Remain Sealed",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.3.1",
+      "type": "credit",
+      "speaker": "The Basement",
+      "text": "But Pierce Would",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.3.2",
+      "type": "credit",
+      "speaker": "The Basement",
+      "text": "Never Leave It",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.3.3",
+      "type": "credit",
+      "speaker": "The Basement",
+      "text": "Behind",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Company",
+      "audio": "",
+      "note": "Level 2 right column title"
+    },
+    {
+      "id": "credit.2.right.4.0",
+      "type": "credit",
+      "speaker": "The Company",
+      "text": "Could Seal The Doors",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.4.1",
+      "type": "credit",
+      "speaker": "The Company",
+      "text": "And Hide The Records",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.4.2",
+      "type": "credit",
+      "speaker": "The Company",
+      "text": "But Could Not Undo",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.4.3",
+      "type": "credit",
+      "speaker": "The Company",
+      "text": "What Had Happened",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Tape",
+      "audio": "",
+      "note": "Level 2 right column title"
+    },
+    {
+      "id": "credit.2.right.5.0",
+      "type": "credit",
+      "speaker": "The Tape",
+      "text": "Would Keep The Record",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.5.1",
+      "type": "credit",
+      "speaker": "The Tape",
+      "text": "Of What Happened",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.5.2",
+      "type": "credit",
+      "speaker": "The Tape",
+      "text": "That Night",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.6.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce Hawkes",
+      "audio": "",
+      "note": "Level 2 right column title"
+    },
+    {
+      "id": "credit.2.right.6.0",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Could Still Remember",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.6.1",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "The Man He Was",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.6.2",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "He Would Have To Live",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.2.right.6.3",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "With What Remained",
+      "audio": "",
+      "note": "Level 2 right column"
+    },
+    {
+      "id": "credit.3.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Desk",
+      "audio": "",
+      "note": "Level 3 left column title"
+    },
+    {
+      "id": "credit.3.left.0.0",
+      "type": "credit",
+      "speaker": "The Desk",
+      "text": "Still Had The Work",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.0.1",
+      "type": "credit",
+      "speaker": "The Desk",
+      "text": "He Had Meant To Finish",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.0.2",
+      "type": "credit",
+      "speaker": "The Desk",
+      "text": "Before Going Home",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Hall",
+      "audio": "",
+      "note": "Level 3 left column title"
+    },
+    {
+      "id": "credit.3.left.1.0",
+      "type": "credit",
+      "speaker": "The Hall",
+      "text": "Was Brighter Than",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.1.1",
+      "type": "credit",
+      "speaker": "The Hall",
+      "text": "Any Lamp He Remembered",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Hale",
+      "audio": "",
+      "note": "Level 3 left column title"
+    },
+    {
+      "id": "credit.3.left.2.0",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Was Already Speaking",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.2.1",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "With The Other Investors",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Elevator",
+      "audio": "",
+      "note": "Level 3 left column title"
+    },
+    {
+      "id": "credit.3.left.3.0",
+      "type": "credit",
+      "speaker": "The Elevator",
+      "text": "Only Proved",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.3.1",
+      "type": "credit",
+      "speaker": "The Elevator",
+      "text": "That It Was Climbing",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Hands",
+      "audio": "",
+      "note": "Level 3 left column title"
+    },
+    {
+      "id": "credit.3.left.4.0",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "Were Not The Ones",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.4.1",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "He Took Downstairs",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Home",
+      "audio": "",
+      "note": "Level 3 left column title"
+    },
+    {
+      "id": "credit.3.left.5.0",
+      "type": "credit",
+      "speaker": "Home",
+      "text": "Was Still The Plan",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.5.1",
+      "type": "credit",
+      "speaker": "Home",
+      "text": "The Plan Had Not",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.left.5.2",
+      "type": "credit",
+      "speaker": "Home",
+      "text": "Seen The Glass",
+      "audio": "",
+      "note": "Level 3 left column"
+    },
+    {
+      "id": "credit.3.right.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Investors",
+      "audio": "",
+      "note": "Level 3 right column title"
+    },
+    {
+      "id": "credit.3.right.0.0",
+      "type": "credit",
+      "speaker": "The Investors",
+      "text": "Would Hear He Walked Out",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.0.1",
+      "type": "credit",
+      "speaker": "The Investors",
+      "text": "They Would Not Hear",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.0.2",
+      "type": "credit",
+      "speaker": "The Investors",
+      "text": "What Rode The Elevator",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Meeting",
+      "audio": "",
+      "note": "Level 3 right column title"
+    },
+    {
+      "id": "credit.3.right.1.0",
+      "type": "credit",
+      "speaker": "The Meeting",
+      "text": "Stayed On The Books",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.1.1",
+      "type": "credit",
+      "speaker": "The Meeting",
+      "text": "The Man Who Left It",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.1.2",
+      "type": "credit",
+      "speaker": "The Meeting",
+      "text": "Did Not",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Mirror",
+      "audio": "",
+      "note": "Level 3 right column title"
+    },
+    {
+      "id": "credit.3.right.2.0",
+      "type": "credit",
+      "speaker": "The Mirror",
+      "text": "Agreed With Him",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.2.1",
+      "type": "credit",
+      "speaker": "The Mirror",
+      "text": "And Offered",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.2.2",
+      "type": "credit",
+      "speaker": "The Mirror",
+      "text": "No Explanation",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Office",
+      "audio": "",
+      "note": "Level 3 right column title"
+    },
+    {
+      "id": "credit.3.right.3.0",
+      "type": "credit",
+      "speaker": "The Office",
+      "text": "Remembered A Man",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.3.1",
+      "type": "credit",
+      "speaker": "The Office",
+      "text": "It Would Have To Learn",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.3.2",
+      "type": "credit",
+      "speaker": "The Office",
+      "text": "The Rest",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Light",
+      "audio": "",
+      "note": "Level 3 right column title"
+    },
+    {
+      "id": "credit.3.right.4.0",
+      "type": "credit",
+      "speaker": "The Light",
+      "text": "Had Been Left Off",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.4.1",
+      "type": "credit",
+      "speaker": "The Light",
+      "text": "The Room Was Not",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce Hawkes",
+      "audio": "",
+      "note": "Level 3 right column title"
+    },
+    {
+      "id": "credit.3.right.5.0",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Still Knew The Way",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.3.right.5.1",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "To His Own Floor",
+      "audio": "",
+      "note": "Level 3 right column"
+    },
+    {
+      "id": "credit.4.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Bathroom",
+      "audio": "",
+      "note": "Level 4 left column title"
+    },
+    {
+      "id": "credit.4.left.0.0",
+      "type": "credit",
+      "speaker": "The Bathroom",
+      "text": "Had A Door",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.0.1",
+      "type": "credit",
+      "speaker": "The Bathroom",
+      "text": "The Rest Of The Floor",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.0.2",
+      "type": "credit",
+      "speaker": "The Bathroom",
+      "text": "Did Not Need One",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Mirror",
+      "audio": "",
+      "note": "Level 4 left column title"
+    },
+    {
+      "id": "credit.4.left.1.0",
+      "type": "credit",
+      "speaker": "The Mirror",
+      "text": "Kept Its Answer",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.1.1",
+      "type": "credit",
+      "speaker": "The Mirror",
+      "text": "And Would Not",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.1.2",
+      "type": "credit",
+      "speaker": "The Mirror",
+      "text": "Soften It",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Work",
+      "audio": "",
+      "note": "Level 4 left column title"
+    },
+    {
+      "id": "credit.4.left.2.0",
+      "type": "credit",
+      "speaker": "The Work",
+      "text": "Waited Where",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.2.1",
+      "type": "credit",
+      "speaker": "The Work",
+      "text": "He Had Left It",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.2.2",
+      "type": "credit",
+      "speaker": "The Work",
+      "text": "The Night Before",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Papers",
+      "audio": "",
+      "note": "Level 4 left column title"
+    },
+    {
+      "id": "credit.4.left.3.0",
+      "type": "credit",
+      "speaker": "The Papers",
+      "text": "Were Finished",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.3.1",
+      "type": "credit",
+      "speaker": "The Papers",
+      "text": "The Moment",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.3.2",
+      "type": "credit",
+      "speaker": "The Papers",
+      "text": "They Left The Desk",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Hall",
+      "audio": "",
+      "note": "Level 4 left column title"
+    },
+    {
+      "id": "credit.4.left.4.0",
+      "type": "credit",
+      "speaker": "The Hall",
+      "text": "Was Already Looking",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.4.1",
+      "type": "credit",
+      "speaker": "The Hall",
+      "text": "Before Anyone",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.4.2",
+      "type": "credit",
+      "speaker": "The Hall",
+      "text": "Was In It",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce Hawkes",
+      "audio": "",
+      "note": "Level 4 left column title"
+    },
+    {
+      "id": "credit.4.left.5.0",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Left The Floor",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.5.1",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Whatever It Still",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.left.5.2",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Wanted From Him",
+      "audio": "",
+      "note": "Level 4 left column"
+    },
+    {
+      "id": "credit.4.right.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Hale",
+      "audio": "",
+      "note": "Level 4 right column title"
+    },
+    {
+      "id": "credit.4.right.0.0",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "Would Tell The Investors",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.0.1",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "A Man Had Walked Out",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.0.2",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "She Would Leave",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.0.3",
+      "type": "credit",
+      "speaker": "Hale",
+      "text": "The Rest Unsaid",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Investors",
+      "audio": "",
+      "note": "Level 4 right column title"
+    },
+    {
+      "id": "credit.4.right.1.0",
+      "type": "credit",
+      "speaker": "The Investors",
+      "text": "Still Had A Meeting",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.1.1",
+      "type": "credit",
+      "speaker": "The Investors",
+      "text": "On A Floor",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.1.2",
+      "type": "credit",
+      "speaker": "The Investors",
+      "text": "He Was Leaving",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Brightness",
+      "audio": "",
+      "note": "Level 4 right column title"
+    },
+    {
+      "id": "credit.4.right.2.0",
+      "type": "credit",
+      "speaker": "The Brightness",
+      "text": "Belonged To The Building",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.2.1",
+      "type": "credit",
+      "speaker": "The Brightness",
+      "text": "He Had Stopped",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.2.2",
+      "type": "credit",
+      "speaker": "The Brightness",
+      "text": "Belonging To It",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Elevator",
+      "audio": "",
+      "note": "Level 4 right column title"
+    },
+    {
+      "id": "credit.4.right.3.0",
+      "type": "credit",
+      "speaker": "The Elevator",
+      "text": "Knew The Way Down",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.3.1",
+      "type": "credit",
+      "speaker": "The Elevator",
+      "text": "He Only Had",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.3.2",
+      "type": "credit",
+      "speaker": "The Elevator",
+      "text": "To Stand In It",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Home",
+      "audio": "",
+      "note": "Level 4 right column title"
+    },
+    {
+      "id": "credit.4.right.4.0",
+      "type": "credit",
+      "speaker": "Home",
+      "text": "Was A Word",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.4.1",
+      "type": "credit",
+      "speaker": "Home",
+      "text": "He Still Used",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.4.2",
+      "type": "credit",
+      "speaker": "Home",
+      "text": "For A Place",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.4.3",
+      "type": "credit",
+      "speaker": "Home",
+      "text": "That Had Not Seen Him",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Hands",
+      "audio": "",
+      "note": "Level 4 right column title"
+    },
+    {
+      "id": "credit.4.right.5.0",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "Were The First Thing",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.5.1",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "The Mirror",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.4.right.5.2",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "Had Been Honest About",
+      "audio": "",
+      "note": "Level 4 right column"
+    },
+    {
+      "id": "credit.5.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Lobby",
+      "audio": "",
+      "note": "Level 5 left column title"
+    },
+    {
+      "id": "credit.5.left.0.0",
+      "type": "credit",
+      "speaker": "The Lobby",
+      "text": "Still Had A Shift",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.0.1",
+      "type": "credit",
+      "speaker": "The Lobby",
+      "text": "And A Phone",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.0.2",
+      "type": "credit",
+      "speaker": "The Lobby",
+      "text": "Within Reach",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Receptionist",
+      "audio": "",
+      "note": "Level 5 left column title"
+    },
+    {
+      "id": "credit.5.left.1.0",
+      "type": "credit",
+      "speaker": "The Receptionist",
+      "text": "Said His Name",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.1.1",
+      "type": "credit",
+      "speaker": "The Receptionist",
+      "text": "To Someone",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.1.2",
+      "type": "credit",
+      "speaker": "The Receptionist",
+      "text": "Who Was Not There",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Police",
+      "audio": "",
+      "note": "Level 5 left column title"
+    },
+    {
+      "id": "credit.5.left.2.0",
+      "type": "credit",
+      "speaker": "The Police",
+      "text": "Were Given A Floor",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.2.1",
+      "type": "credit",
+      "speaker": "The Police",
+      "text": "And A Description",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.2.2",
+      "type": "credit",
+      "speaker": "The Police",
+      "text": "The Directory",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.2.3",
+      "type": "credit",
+      "speaker": "The Police",
+      "text": "Could Not Match",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Street",
+      "audio": "",
+      "note": "Level 5 left column title"
+    },
+    {
+      "id": "credit.5.left.3.0",
+      "type": "credit",
+      "speaker": "The Street",
+      "text": "Took Him In",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.3.1",
+      "type": "credit",
+      "speaker": "The Street",
+      "text": "Without Asking",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.3.2",
+      "type": "credit",
+      "speaker": "The Street",
+      "text": "For Identification",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Crowd",
+      "audio": "",
+      "note": "Level 5 left column title"
+    },
+    {
+      "id": "credit.5.left.4.0",
+      "type": "credit",
+      "speaker": "The Crowd",
+      "text": "Mostly Kept",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.4.1",
+      "type": "credit",
+      "speaker": "The Crowd",
+      "text": "Their Errands",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Few",
+      "audio": "",
+      "note": "Level 5 left column title"
+    },
+    {
+      "id": "credit.5.left.5.0",
+      "type": "credit",
+      "speaker": "The Few",
+      "text": "Who Ran",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.5.1",
+      "type": "credit",
+      "speaker": "The Few",
+      "text": "Had To Be",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.left.5.2",
+      "type": "credit",
+      "speaker": "The Few",
+      "text": "Close Enough To See",
+      "audio": "",
+      "note": "Level 5 left column"
+    },
+    {
+      "id": "credit.5.right.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Cars",
+      "audio": "",
+      "note": "Level 5 right column title"
+    },
+    {
+      "id": "credit.5.right.0.0",
+      "type": "credit",
+      "speaker": "The Cars",
+      "text": "Kept The Lane",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.0.1",
+      "type": "credit",
+      "speaker": "The Cars",
+      "text": "And The Right",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.0.2",
+      "type": "credit",
+      "speaker": "The Cars",
+      "text": "Of Way",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Hands",
+      "audio": "",
+      "note": "Level 5 right column title"
+    },
+    {
+      "id": "credit.5.right.1.0",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "Found People",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.1.1",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "The Way A Gaze Finds",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.1.2",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "A Face In A Crowd",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Tower",
+      "audio": "",
+      "note": "Level 5 right column title"
+    },
+    {
+      "id": "credit.5.right.2.0",
+      "type": "credit",
+      "speaker": "The Tower",
+      "text": "Stayed Lit",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.2.1",
+      "type": "credit",
+      "speaker": "The Tower",
+      "text": "Behind Him",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.2.2",
+      "type": "credit",
+      "speaker": "The Tower",
+      "text": "On A Floor",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.2.3",
+      "type": "credit",
+      "speaker": "The Tower",
+      "text": "He Was Done With",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Sidewalk",
+      "audio": "",
+      "note": "Level 5 right column title"
+    },
+    {
+      "id": "credit.5.right.3.0",
+      "type": "credit",
+      "speaker": "The Sidewalk",
+      "text": "Ran For Blocks",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.3.1",
+      "type": "credit",
+      "speaker": "The Sidewalk",
+      "text": "And Ended",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.3.2",
+      "type": "credit",
+      "speaker": "The Sidewalk",
+      "text": "At A Stair",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Sign",
+      "audio": "",
+      "note": "Level 5 right column title"
+    },
+    {
+      "id": "credit.5.right.4.0",
+      "type": "credit",
+      "speaker": "The Sign",
+      "text": "Promised A Train",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.4.1",
+      "type": "credit",
+      "speaker": "The Sign",
+      "text": "Where A Door",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.4.2",
+      "type": "credit",
+      "speaker": "The Sign",
+      "text": "Would Have Promised",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.4.3",
+      "type": "credit",
+      "speaker": "The Sign",
+      "text": "A Room",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce Hawkes",
+      "audio": "",
+      "note": "Level 5 right column title"
+    },
+    {
+      "id": "credit.5.right.5.0",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Went Down",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.5.right.5.1",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Instead Of In",
+      "audio": "",
+      "note": "Level 5 right column"
+    },
+    {
+      "id": "credit.6.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Stairs",
+      "audio": "",
+      "note": "Level 6 left column title"
+    },
+    {
+      "id": "credit.6.left.0.0",
+      "type": "credit",
+      "speaker": "The Stairs",
+      "text": "Took The Street",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.0.1",
+      "type": "credit",
+      "speaker": "The Stairs",
+      "text": "Off His Shoulders",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.0.2",
+      "type": "credit",
+      "speaker": "The Stairs",
+      "text": "One Flight",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.0.3",
+      "type": "credit",
+      "speaker": "The Stairs",
+      "text": "At A Time",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Lights",
+      "audio": "",
+      "note": "Level 6 left column title"
+    },
+    {
+      "id": "credit.6.left.1.0",
+      "type": "credit",
+      "speaker": "The Lights",
+      "text": "Had Been On",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.1.1",
+      "type": "credit",
+      "speaker": "The Lights",
+      "text": "Longer Than",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.1.2",
+      "type": "credit",
+      "speaker": "The Lights",
+      "text": "The City Above",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Turnstiles",
+      "audio": "",
+      "note": "Level 6 left column title"
+    },
+    {
+      "id": "credit.6.left.2.0",
+      "type": "credit",
+      "speaker": "The Turnstiles",
+      "text": "Counted No One",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.2.1",
+      "type": "credit",
+      "speaker": "The Turnstiles",
+      "text": "Who Mattered",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Platform",
+      "audio": "",
+      "note": "Level 6 left column title"
+    },
+    {
+      "id": "credit.6.left.3.0",
+      "type": "credit",
+      "speaker": "The Platform",
+      "text": "Held Its Line",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.3.1",
+      "type": "credit",
+      "speaker": "The Platform",
+      "text": "In Yellow",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.3.2",
+      "type": "credit",
+      "speaker": "The Platform",
+      "text": "And Waited",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Commuters",
+      "audio": "",
+      "note": "Level 6 left column title"
+    },
+    {
+      "id": "credit.6.left.4.0",
+      "type": "credit",
+      "speaker": "The Commuters",
+      "text": "Had Somewhere",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.4.1",
+      "type": "credit",
+      "speaker": "The Commuters",
+      "text": "They Still Believed",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.4.2",
+      "type": "credit",
+      "speaker": "The Commuters",
+      "text": "They Were Going",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Quiet",
+      "audio": "",
+      "note": "Level 6 left column title"
+    },
+    {
+      "id": "credit.6.left.5.0",
+      "type": "credit",
+      "speaker": "The Quiet",
+      "text": "Was The Street",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.5.1",
+      "type": "credit",
+      "speaker": "The Quiet",
+      "text": "With The Sky",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.left.5.2",
+      "type": "credit",
+      "speaker": "The Quiet",
+      "text": "Taken Off It",
+      "audio": "",
+      "note": "Level 6 left column"
+    },
+    {
+      "id": "credit.6.right.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Train",
+      "audio": "",
+      "note": "Level 6 right column title"
+    },
+    {
+      "id": "credit.6.right.0.0",
+      "type": "credit",
+      "speaker": "The Train",
+      "text": "Sat With A Door",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.0.1",
+      "type": "credit",
+      "speaker": "The Train",
+      "text": "Open On Nothing",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.0.2",
+      "type": "credit",
+      "speaker": "The Train",
+      "text": "He Could Name",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.1.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Tracks",
+      "audio": "",
+      "note": "Level 6 right column title"
+    },
+    {
+      "id": "credit.6.right.1.0",
+      "type": "credit",
+      "speaker": "The Tracks",
+      "text": "Went On",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.1.1",
+      "type": "credit",
+      "speaker": "The Tracks",
+      "text": "Past The Light",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.1.2",
+      "type": "credit",
+      "speaker": "The Tracks",
+      "text": "He Was Standing In",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.2.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Hands",
+      "audio": "",
+      "note": "Level 6 right column title"
+    },
+    {
+      "id": "credit.6.right.2.0",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "Still Knew",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.2.1",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "How To Close",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.2.2",
+      "type": "credit",
+      "speaker": "The Hands",
+      "text": "A Distance",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.3.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Above",
+      "audio": "",
+      "note": "Level 6 right column title"
+    },
+    {
+      "id": "credit.6.right.3.0",
+      "type": "credit",
+      "speaker": "Above",
+      "text": "The Tower Kept",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.3.1",
+      "type": "credit",
+      "speaker": "Above",
+      "text": "Its Meeting",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.3.2",
+      "type": "credit",
+      "speaker": "Above",
+      "text": "And Its Name",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.3.3",
+      "type": "credit",
+      "speaker": "Above",
+      "text": "On The Directory",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.4.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Phone",
+      "audio": "",
+      "note": "Level 6 right column title"
+    },
+    {
+      "id": "credit.6.right.4.0",
+      "type": "credit",
+      "speaker": "The Phone",
+      "text": "Had Nothing",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.4.1",
+      "type": "credit",
+      "speaker": "The Phone",
+      "text": "Left To Ring For",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.5.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "Pierce Hawkes",
+      "audio": "",
+      "note": "Level 6 right column title"
+    },
+    {
+      "id": "credit.6.right.5.0",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Stepped Toward",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.5.1",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "A Door",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.5.2",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "That Did Not Ask",
+      "audio": "",
+      "note": "Level 6 right column"
+    },
+    {
+      "id": "credit.6.right.5.3",
+      "type": "credit",
+      "speaker": "Pierce Hawkes",
+      "text": "Him To Explain",
+      "audio": "",
+      "note": "Level 6 right column"
+    }
+  ]
+}

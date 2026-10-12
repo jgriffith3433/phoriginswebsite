@@ -38,6 +38,7 @@ import { createTheStation, type TheStation } from './story/theStation';
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { createUnlockedAudio, getSharedAudioContext, installAudioUnlock, unlockAudio } from './game/audioUnlock';
+import { mixVolume, startGaplessLoop, type LoopHandle } from './game/sfxMix';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
@@ -744,10 +745,14 @@ const SFX = {
   shot: '/assets/audio/sfx/pistol-shot.ogg',
   jump: '/assets/audio/sfx/jump.ogg',
   walk: '/assets/audio/sfx/walk.ogg',
+  hurt: '/assets/audio/sfx/hurt.ogg',
+  reload: '/assets/audio/sfx/reload.ogg',
   draw: '/assets/audio/sfx/pistol-draw.ogg',
   holster: '/assets/audio/sfx/pistol-holster.ogg',
   start: '/assets/audio/sfx/start.ogg',
   objective: '/assets/audio/sfx/objective.ogg',
+  levelComplete: '/assets/audio/sfx/level-complete.ogg',
+  shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
 } as const;
 const endingTrack = (level: number) => `/assets/audio/ending-${Math.max(1, level)}.mp3`;
 const oneShotTemplates = new Map<string, HTMLAudioElement>();
@@ -794,7 +799,7 @@ const audio = {
       oneShotTemplates.set(url, template);
     }
     const element = template.cloneNode(true) as HTMLAudioElement;
-    element.volume = volume;
+    element.volume = mixVolume(url, volume);
     element.currentTime = 0;
     void element.play().catch(() => {});
   },
@@ -813,11 +818,11 @@ const audio = {
       walkLoop = createUnlockedAudio(SFX.walk);
       walkLoop.loop = true;
       walkLoop.muted = false;
-      walkLoop.volume = 0.28;
+      walkLoop.volume = mixVolume(SFX.walk, 0.28);
     }
     if (!walkLoop.paused || walkStartPending) return;
     walkLoop.muted = false;
-    walkLoop.volume = 0.28;
+    walkLoop.volume = mixVolume(SFX.walk, 0.28);
     walkStartPending = true;
     const loop = walkLoop;
     void loop.play().then(() => {
@@ -829,7 +834,7 @@ const audio = {
       walkStartPending = false;
     });
   },
-  hit() { this.tone(170, 0.18, 'square', 0.08); },
+  hit() { this.play(SFX.hurt, 0.45); },
   shoot() { this.play(SFX.shot, 0.78); },
   jump() { this.play(SFX.jump, 0.42); },
   draw() { this.play(SFX.draw, 0.55); },
@@ -1151,6 +1156,31 @@ let shadowHop = false;
 /** Second jump press is held. That hold is the same sustain as Shift. */
 let shadowAirJump = false;
 let spaceDown = false;
+let shadowBed: LoopHandle | null = null;
+let shadowBedOn = false;
+
+const syncShadowBed = (active: boolean, moving: boolean) => {
+  if (!active || !audio.enabled) {
+    if (!shadowBedOn) return;
+    shadowBedOn = false;
+    shadowBed?.stop();
+    shadowBed = null;
+    return;
+  }
+  const level = mixVolume(SFX.shadowRun, moving ? 0.4 : 0.12);
+  if (!shadowBedOn) {
+    shadowBedOn = true;
+    void startGaplessLoop(SFX.shadowRun, level).then((handle) => {
+      if (!shadowBedOn || !handle) {
+        handle?.stop();
+        return;
+      }
+      shadowBed = handle;
+    });
+    return;
+  }
+  shadowBed?.setVolume(level);
+};
 
 const shadowRunHeld = () => state.input.sprint || shadowAirJump;
 
@@ -1744,7 +1774,6 @@ act = createAct1({
   playFile: (url, volume) => audio.play(url, volume),
   audioOn: () => audio.enabled,
   ensureAudio: () => audio.ensure(),
-  tone: (hz, seconds, type, gain) => audio.tone(hz, seconds, type, gain),
   win: () => audio.win(),
   showMessage,
   offerEnd: (title, text) => offerLevelEnd(title, text),
@@ -2208,7 +2237,35 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
   playerAvatar.group.position = new BABYLON.Vector3(state.player.x, playerMeshY(state.player.y), state.player.z);
 };
 
+const levelSealed = () => pendingEnd?.levelId === state.level;
+
+const holdSealedPlayer = (delta: number) => {
+  state.input.forward = false;
+  state.input.backward = false;
+  state.input.left = false;
+  state.input.right = false;
+  state.input.jump = false;
+  state.input.flyHeld = false;
+  state.input.sprint = false;
+  state.movementVector.x = 0;
+  state.movementVector.y = 0;
+  shadowAirJump = false;
+  shadowHop = false;
+  spaceDown = false;
+  shadowFlying = false;
+  state.player.jumpWindup = 0;
+  if (state.player.velocityY > 0) state.player.velocityY = 0;
+  updateVerticalMotion(state.player, delta, playerCollider);
+  playerAvatar.setSprinting(false);
+  playerAvatar.setLocomotion(false, true);
+  audio.setWalk(false);
+};
+
 const updatePlayer = (delta: number) => {
+  if (levelSealed()) {
+    holdSealedPlayer(delta);
+    return { moving: false, moveHeading: null };
+  }
   tickShadowRun(delta);
   if (shadowPlay().linked()) {
     const yaw = followCamera.getYaw();
@@ -2330,6 +2387,7 @@ const updatePlayer = (delta: number) => {
     && !panelsOpen()
     && messageBox.classList.contains('hidden'),
   );
+  syncShadowBed(runningShadow, moving);
 
   const forwardDot = moveHeading === null ? 0 : Math.sin(yaw) * Math.sin(moveHeading) + Math.cos(yaw) * Math.cos(moveHeading);
   return { moving, moveHeading: moving && forwardDot > 0.45 ? moveHeading : null };
@@ -2413,6 +2471,7 @@ const useMedkit = () => {
 const offerLevelEnd = (title: string, text: string) => {
   if (pendingEnd?.levelId === state.level) return;
   pendingEnd = { title, text, levelId: state.level };
+  audio.play(SFX.levelComplete, 0.55);
   screenFade.to(0, 0.45);
 };
 
@@ -2512,8 +2571,7 @@ const reloadWeapon = () => {
   }
   state.player.clip = CLIP_SIZE;
   reloadReadyAt = performance.now() + 700;
-  audio.tone(210, 0.07, 'square', 0.04);
-  window.setTimeout(() => audio.tone(320, 0.05, 'square', 0.03), 160);
+  audio.play(SFX.reload, 0.5);
   updateHud();
 };
 
