@@ -7,8 +7,8 @@
       "text": "One-shot close-mic 9mm pistol gunshot, sharp crack and a short indoor office slap, dry foley, no voices, no music.",
       "audio": "/assets/audio/sfx/pistol-shot.ogg",
       "influence": 0.7,
-      "note": "Sidearm fire.",
-      "volume": 0.78
+      "volume": 0.78,
+      "note": "Sidearm fire."
     },
     {
       "id": "sfx.player.draw",
@@ -16,8 +16,8 @@
       "text": "One-shot pistol drawn from a leather shoulder holster, cloth rustle and a metal slide, close foley, no voices, no music.",
       "audio": "/assets/audio/sfx/pistol-draw.ogg",
       "influence": 0.65,
-      "note": "Draw.",
-      "volume": 0.55
+      "volume": 0.55,
+      "note": "Draw."
     },
     {
       "id": "sfx.player.holster",
@@ -25,8 +25,8 @@
       "text": "One-shot pistol slid back into a leather holster, soft thud and fabric, close foley, no voices, no music.",
       "audio": "/assets/audio/sfx/pistol-holster.ogg",
       "influence": 0.65,
-      "note": "Holster.",
-      "volume": 0.55
+      "volume": 0.55,
+      "note": "Holster."
     },
     {
       "id": "sfx.player.jump",
@@ -34,8 +34,8 @@
       "text": "One-shot dress shoes jump",
       "audio": "/assets/audio/sfx/jump.ogg",
       "influence": 0.6,
-      "note": "Jump.",
-      "volume": 0.42
+      "volume": 0.42,
+      "note": "Jump."
     },
     {
       "id": "sfx.player.hurt",
@@ -44,8 +44,8 @@
       "audio": "/assets/audio/sfx/hurt.ogg",
       "duration": 0.5,
       "influence": 0.65,
-      "note": "Pierce takes damage, an empty click, or a pickup that will not fit.",
-      "volume": 0.45
+      "volume": 0.45,
+      "note": "Pierce takes damage, an empty click, or a pickup that will not fit."
     },
     {
       "id": "sfx.player.reload",
@@ -54,8 +54,8 @@
       "audio": "/assets/audio/sfx/reload.ogg",
       "duration": 0.6,
       "influence": 0.7,
-      "note": "A successful reload.",
-      "volume": 0.5
+      "volume": 0.5,
+      "note": "A successful reload."
     },
     {
       "id": "sfx.player.walk",
@@ -65,8 +65,8 @@
       "loop": true,
       "duration": 2.4,
       "influence": 0.65,
-      "note": "The game loops this file. Play it once.",
-      "volume": 0.28
+      "volume": 0.28,
+      "note": "The game loops this file. Play it once."
     },
     {
       "id": "sfx.ui.start",
@@ -75,8 +75,8 @@
       "audio": "/assets/audio/sfx/start.ogg",
       "duration": 0.5,
       "influence": 0.75,
-      "note": "The game loads this ogg. start.wav is beside it and is not what plays.",
-      "volume": 0.7
+      "volume": 0.7,
+      "note": "The game loads this ogg. start.wav is beside it and is not what plays."
     },
     {
       "id": "sfx.ui.objective",
@@ -85,8 +85,8 @@
       "audio": "/assets/audio/sfx/objective.ogg",
       "duration": 0.7,
       "influence": 0.75,
-      "note": "The game loads this ogg. objective.wav is beside it and is not what plays.",
-      "volume": 0.55
+      "volume": 0.55,
+      "note": "The game loads this ogg. objective.wav is beside it and is not what plays."
     },
     {
       "id": "sfx.ui.level-complete",
@@ -95,8 +95,8 @@
       "audio": "/assets/audio/sfx/level-complete.ogg",
       "duration": 1.2,
       "influence": 0.7,
-      "note": "Plays when End Level is offered, before that press. The press plays the ending song.",
-      "volume": 0.55
+      "volume": 0.55,
+      "note": "Plays when End Level is offered, before that press. The press plays the ending song."
     },
     {
       "id": "sfx.phone.dial",
@@ -105,8 +105,8 @@
       "audio": "/assets/audio/sfx/phone/dial.wav",
       "duration": 0.5,
       "influence": 0.8,
-      "note": "Each digit.",
-      "volume": 0.42
+      "volume": 0.42,
+      "note": "Each digit."
     },
     {
       "id": "sfx.phone.ringback",
@@ -115,8 +115,8 @@
       "audio": "/assets/audio/sfx/phone/ringback.wav",
       "duration": 2,
       "influence": 0.75,
-      "note": "Played again every 4.2 seconds while the call rings out.",
-      "volume": 0.4
+      "volume": 0.4,
+      "note": "Played again every 4.2 seconds while the call rings out."
     },
     {
       "id": "sfx.phone.busy",
@@ -125,8 +125,8 @@
       "audio": "/assets/audio/sfx/phone/busy.wav",
       "duration": 1,
       "influence": 0.8,
-      "note": "No answer.",
-      "volume": 0.42
+      "volume": 0.42,
+      "note": "No answer."
     },
     {
       "id": "sfx.phone.hangup",
@@ -135,8 +135,8 @@
       "audio": "/assets/audio/sfx/phone/hangup.wav",
       "duration": 0.5,
       "influence": 0.7,
-      "note": "Hang up.",
-      "volume": 0.45
+      "volume": 0.45,
+      "note": "Hang up."
     },
     {
       "id": "sfx.phone.ring",
@@ -145,8 +145,8 @@
       "audio": "/assets/audio/sfx/phone/ring.wav",
       "duration": 2.2,
       "influence": 0.5,
-      "note": "Restarted every 2.8 seconds while a call is coming in.",
-      "volume": 0.5
+      "volume": 0.5,
+      "note": "Restarted every 2.8 seconds while a call is coming in."
     },
     {
       "id": "sfx.phone.connect",
@@ -155,8 +155,8 @@
       "audio": "/assets/audio/sfx/phone/connect.wav",
       "duration": 0.5,
       "influence": 0.75,
-      "note": "The moment a call connects.",
-      "volume": 0.4
+      "volume": 0.4,
+      "note": "The moment a call connects."
     },
     {
       "id": "sfx.phone.light",
@@ -165,8 +165,8 @@
       "audio": "/assets/audio/sfx/flashlight.ogg",
       "duration": 0.5,
       "influence": 0.75,
-      "note": "The beam turns on.",
-      "volume": 0.4
+      "volume": 0.4,
+      "note": "The beam turns on."
     },
     {
       "id": "sfx.creature.skitter",
@@ -174,8 +174,8 @@
       "text": "One-shot small wet claws skittering on concrete, a short burst, underground lab, no voices, no music.",
       "audio": "/assets/audio/sfx/creature/skitter.wav",
       "influence": 0.5,
-      "note": "Hunt footsteps.",
-      "volume": 0.3
+      "volume": 0.3,
+      "note": "Hunt footsteps."
     },
     {
       "id": "sfx.creature.scrape",
@@ -183,8 +183,8 @@
       "text": "One-shot claws scraping a concrete wall, short and wet, underground lab, no voices, no music.",
       "audio": "/assets/audio/sfx/creature/scrape.wav",
       "influence": 0.5,
-      "note": "Against a wall.",
-      "volume": 0.37
+      "volume": 0.37,
+      "note": "Against a wall."
     },
     {
       "id": "sfx.creature.hiss",
@@ -192,8 +192,8 @@
       "text": "One-shot wet inhuman hiss, close, no words, underground lab, no music.",
       "audio": "/assets/audio/sfx/creature/hiss.wav",
       "influence": 0.45,
-      "note": "Close, or after a hit.",
-      "volume": 0.58
+      "volume": 0.58,
+      "note": "Close, or after a hit."
     },
     {
       "id": "sfx.creature.shriek",
@@ -201,8 +201,8 @@
       "text": "One-shot short inhuman growl, concrete room, no words, no music.",
       "audio": "/assets/audio/sfx/creature/shriek.wav",
       "influence": 0.5,
-      "note": "The rush, the reveal, and the vat glass.",
-      "volume": 0.78
+      "volume": 0.78,
+      "note": "The rush, the reveal, and the vat glass."
     },
     {
       "id": "sfx.creature.cry",
@@ -210,8 +210,8 @@
       "text": "One-shot distant inhuman cry down a concrete hall, muffled, no words, no music.",
       "audio": "/assets/audio/sfx/creature/cry.wav",
       "influence": 0.45,
-      "note": "Far down the hall.",
-      "volume": 0.2
+      "volume": 0.2,
+      "note": "Far down the hall."
     },
     {
       "id": "sfx.creature.heartbeat",
@@ -220,8 +220,8 @@
       "audio": "/assets/audio/sfx/creature/heartbeat.wav",
       "duration": 1.2,
       "influence": 0.6,
-      "note": "During a rush. Louder when it is close.",
-      "volume": 0.55
+      "volume": 0.55,
+      "note": "During a rush. Louder when it is close."
     },
     {
       "id": "sfx.creature.snarl",
@@ -229,8 +229,8 @@
       "text": "One-shot wet inhuman snarl, a short bite warning, close, no words, no music.",
       "audio": "/assets/audio/sfx/creature/snarl.wav",
       "influence": 0.5,
-      "note": "The bite.",
-      "volume": 0.7
+      "volume": 0.7,
+      "note": "The bite."
     },
     {
       "id": "sfx.creature.wound",
@@ -238,8 +238,8 @@
       "text": "One-shot wet flesh impact, short, close foley, no voices, no music.",
       "audio": "/assets/audio/sfx/creature/wound.wav",
       "influence": 0.6,
-      "note": "A hit on Pierce, or a hit on the creature.",
-      "volume": 0.62
+      "volume": 0.62,
+      "note": "A hit on Pierce, or a hit on the creature."
     },
     {
       "id": "sfx.creature.tick",
@@ -248,8 +248,8 @@
       "audio": "/assets/audio/sfx/creature/tick.wav",
       "duration": 0.5,
       "influence": 0.7,
-      "note": "The game loads this wav. tick.mp3 is beside it and is not what plays. Under the rush.",
-      "volume": 0.24
+      "volume": 0.24,
+      "note": "The game loads this wav. tick.mp3 is beside it and is not what plays. Under the rush."
     },
     {
       "id": "sfx.creature.knock",
@@ -257,8 +257,8 @@
       "text": "One-shot metal pipe knock, distant and short, underground lab, no music.",
       "audio": "/assets/audio/sfx/creature/knock.wav",
       "influence": 0.65,
-      "note": "A pipe, somewhere offscreen.",
-      "volume": 0.16
+      "volume": 0.16,
+      "note": "A pipe, somewhere offscreen."
     },
     {
       "id": "sfx.creature.chitter",
@@ -266,8 +266,8 @@
       "text": "One-shot insect-like chitter, short and wet, close, no voices, no music.",
       "audio": "/assets/audio/sfx/creature/chitter.wav",
       "influence": 0.45,
-      "note": "While it waits.",
-      "volume": 0.26
+      "volume": 0.26,
+      "note": "While it waits."
     },
     {
       "id": "sfx.creature.breath",
@@ -276,8 +276,8 @@
       "audio": "/assets/audio/cutscenes/b3-door-reveal/creature-breath.wav",
       "duration": 3,
       "influence": 0.45,
-      "note": "The reveal, and again while it is near during the hunt.",
-      "volume": 0.38
+      "volume": 0.38,
+      "note": "The reveal, and again while it is near during the hunt."
     },
     {
       "id": "sfx.creature.run",
@@ -286,8 +286,8 @@
       "audio": "/assets/audio/cutscenes/b3-door-reveal/creature-run.wav",
       "duration": 2,
       "influence": 0.5,
-      "note": "The flee, and under the shriek when it rushes.",
-      "volume": 0.55
+      "volume": 0.55,
+      "note": "The flee, and under the shriek when it rushes."
     },
     {
       "id": "sfx.creature.glass",
@@ -295,6 +295,7 @@
       "text": "One-shot thick laboratory glass shattering, sharp cracks and falling shards, close, no voices, no music.",
       "audio": "/assets/audio/cutscenes/b3-vat-break/vat-glass.wav",
       "influence": 0.6,
+      "volume": 1,
       "note": "The vat glass gives way."
     },
     {
@@ -304,8 +305,8 @@
       "audio": "/assets/audio/sfx/glass-tick.ogg",
       "duration": 0.5,
       "influence": 0.65,
-      "note": "Repeats while the vat glass is cracking, under the scrape.",
-      "volume": 0.5
+      "volume": 0.5,
+      "note": "Repeats while the vat glass is cracking, under the scrape."
     },
     {
       "id": "sfx.creature.splash",
@@ -313,6 +314,7 @@
       "text": "One-shot thick liquid splashing onto a body, close and wet, no voices, no music.",
       "audio": "/assets/audio/cutscenes/b3-vat-break/vat-splash.wav",
       "influence": 0.55,
+      "volume": 1,
       "note": "The acid hits Pierce."
     },
     {
@@ -321,8 +323,8 @@
       "text": "One-shot low whoosh of black smoke wrapping a body, short, dry, no voices, no music.",
       "audio": "/assets/audio/sfx/street/shadow-on.wav",
       "influence": 0.5,
-      "note": "Shadow mode on.",
-      "volume": 0.4
+      "volume": 0.4,
+      "note": "Shadow mode on."
     },
     {
       "id": "sfx.street.shadow-off",
@@ -330,8 +332,8 @@
       "text": "One-shot black smoke peeling off a body, a short fade whoosh, dry, no voices, no music.",
       "audio": "/assets/audio/sfx/street/shadow-off.wav",
       "influence": 0.5,
-      "note": "Shadow mode off.",
-      "volume": 0.4
+      "volume": 0.4,
+      "note": "Shadow mode off."
     },
     {
       "id": "sfx.street.shock",
@@ -339,8 +341,8 @@
       "text": "One-shot electrical shock burst, dark and sharp, short, no voices, no music.",
       "audio": "/assets/audio/sfx/street/shock.wav",
       "influence": 0.65,
-      "note": "Shadow Shock.",
-      "volume": 0.5
+      "volume": 0.5,
+      "note": "Shadow Shock."
     },
     {
       "id": "sfx.street.possess",
@@ -348,8 +350,8 @@
       "text": "One-shot low resonant whoosh of a body being taken over, short, dry, no voices, no music.",
       "audio": "/assets/audio/sfx/street/possess.wav",
       "influence": 0.5,
-      "note": "Possess.",
-      "volume": 0.4
+      "volume": 0.4,
+      "note": "Possess."
     },
     {
       "id": "sfx.street.consume",
@@ -357,8 +359,8 @@
       "text": "One-shot wet consuming impact, short, close, no voices, no music.",
       "audio": "/assets/audio/sfx/street/consume.wav",
       "influence": 0.5,
-      "note": "The kill at the end of a possess.",
-      "volume": 0.46
+      "volume": 0.46,
+      "note": "The kill at the end of a possess."
     },
     {
       "id": "sfx.street.death",
@@ -366,8 +368,8 @@
       "text": "One-shot a body falling onto concrete, a short thud, no voices, no music.",
       "audio": "/assets/audio/sfx/street/death.wav",
       "influence": 0.6,
-      "note": "Someone drops.",
-      "volume": 0.42
+      "volume": 0.42,
+      "note": "Someone drops."
     },
     {
       "id": "sfx.street.car",
@@ -376,8 +378,8 @@
       "audio": "/assets/audio/sfx/street/car-pass.wav",
       "duration": 2.5,
       "influence": 0.5,
-      "note": "Quiet, as a car goes by.",
-      "volume": 0.2
+      "volume": 0.2,
+      "note": "Quiet, as a car goes by."
     },
     {
       "id": "sfx.street.bell",
@@ -386,8 +388,8 @@
       "audio": "/assets/audio/sfx/street/shop-bell.wav",
       "duration": 0.8,
       "influence": 0.75,
-      "note": "Walking into a shop.",
-      "volume": 0.32
+      "volume": 0.32,
+      "note": "Walking into a shop."
     },
     {
       "id": "sfx.elevator.hum",
@@ -397,8 +399,8 @@
       "loop": true,
       "duration": 8,
       "influence": 0.55,
-      "note": "Both elevator rides. Looped without a gap for the whole cab ride.",
-      "volume": 0.5
+      "volume": 0.5,
+      "note": "Both elevator rides. Looped without a gap for the whole cab ride."
     },
     {
       "id": "sfx.elevator.beep",
@@ -407,8 +409,8 @@
       "audio": "/assets/audio/cutscenes/elevator-b3/beep.wav",
       "duration": 0.5,
       "influence": 0.8,
-      "note": "Each floor, and once on arrival.",
-      "volume": 0.7
+      "volume": 0.7,
+      "note": "Each floor, and once on arrival."
     },
     {
       "id": "sfx.elevator.doors",
@@ -417,8 +419,8 @@
       "audio": "/assets/audio/cutscenes/elevator-b3/doors.wav",
       "duration": 1.8,
       "influence": 0.65,
-      "note": "The cab, and the lab door.",
-      "volume": 0.65
+      "volume": 0.65,
+      "note": "The cab, and the lab door."
     },
     {
       "id": "sfx.elevator.rumble",
@@ -428,8 +430,8 @@
       "loop": true,
       "duration": 8,
       "influence": 0.5,
-      "note": "Both rides loop this under the cab.",
-      "volume": 0.38
+      "volume": 0.38,
+      "note": "Both rides loop this under the cab."
     },
     {
       "id": "sfx.room.window",
@@ -439,6 +441,7 @@
       "loop": true,
       "duration": 10,
       "influence": 0.4,
+      "volume": 1,
       "note": "Under the window monologue. The cutscene asks for this wav, and the file is not on disk."
     },
     {
@@ -449,6 +452,7 @@
       "loop": true,
       "duration": 10,
       "influence": 0.4,
+      "volume": 1,
       "note": "Under the board meeting. The cutscene asks for this wav, and the file is not on disk."
     },
     {
@@ -459,8 +463,8 @@
       "loop": true,
       "duration": 4,
       "influence": 0.75,
-      "note": "After the Voss call, until the terminal. The game loops this wav. alarm.mp3 is beside it and is not what plays.",
-      "volume": 0.46
+      "volume": 0.46,
+      "note": "After the Voss call, until the terminal. The game loops this wav. alarm.mp3 is beside it and is not what plays."
     },
     {
       "id": "sfx.phone.light-away",
@@ -530,7 +534,7 @@
       "audio": "/assets/audio/sfx/street/scream-woman.ogg",
       "duration": 1.4,
       "influence": 0.6,
-      "volume": 0.72,
+      "volume": 0.32,
       "note": "Shopkeepers and the receptionist."
     },
     {
@@ -540,7 +544,7 @@
       "audio": "/assets/audio/sfx/street/scream-man.ogg",
       "duration": 1.4,
       "influence": 0.6,
-      "volume": 0.72,
+      "volume": 0.2,
       "note": "Pedestrians and commuters."
     },
     {
@@ -550,7 +554,7 @@
       "audio": "/assets/audio/sfx/street/scream-man-b.ogg",
       "duration": 1.3,
       "influence": 0.6,
-      "volume": 0.72,
+      "volume": 0.39,
       "note": "The other male scream, so deaths do not all match."
     },
     {
@@ -560,7 +564,7 @@
       "audio": "/assets/audio/sfx/street/scream-police.ogg",
       "duration": 1.2,
       "influence": 0.65,
-      "volume": 0.72,
+      "volume": 0.31,
       "note": "Police."
     }
   ]

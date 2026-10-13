@@ -118,9 +118,19 @@ const enqueueImport = <T>(work: () => Promise<T>): Promise<T> => {
   return run;
 };
 
-/** Let a frame draw between GLB parses. A street of models otherwise parses in one turn. */
+/**
+ * Let a frame draw between GLB parses. A street of models otherwise parses in one turn.
+ * A hidden tab gets no animation frames, so a timer keeps the load moving.
+ */
 const nextFrame = () => new Promise<void>((resolve) => {
-  requestAnimationFrame(() => resolve());
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    resolve();
+  };
+  requestAnimationFrame(finish);
+  setTimeout(finish, 120);
 });
 
 /**

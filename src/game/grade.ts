@@ -120,9 +120,9 @@ export const createSceneGrade = (
       image.colorCurvesEnabled = true;
       liftFill(1.15, 0.36);
       paintHemiGround(0.24, 0.25, 0.28);
-      scene.fogColor = new BABYLON.Color3(0.075, 0.08, 0.095);
-      scene.fogStart = 46;
-      scene.fogEnd = 150;
+      scene.fogColor = new BABYLON.Color3(0.032, 0.036, 0.05);
+      scene.fogStart = 50;
+      scene.fogEnd = 320;
     } else if (powers) {
       image.exposure = apex ? 1.48 : 1.65;
       image.contrast = 1.16;

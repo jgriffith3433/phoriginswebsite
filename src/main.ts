@@ -42,6 +42,7 @@ import { mixVolume, startGaplessLoop, type LoopHandle } from './game/sfxMix';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
+import { createMinimap } from './game/minimap';
 import { createScreenFade } from './game/fade';
 import { createPerfMonitor } from './game/perfMonitor';
 import { createAutoAim } from './game/autoAim';
@@ -144,6 +145,7 @@ root.appendChild(canvas);
 
 const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
 const scene = new BABYLON.Scene(engine);
+if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) (window as unknown as { __phScene?: BABYLON.Scene }).__phScene = scene;
 const shadowVeil = createShadowVeil(scene);
 scene.collisionsEnabled = true;
 scene.gravity = BABYLON.Vector3.Zero();
@@ -218,6 +220,7 @@ let act: Act1;
 let officeSwap = false;
 let playerHeroId = PLAYER_ASSET_ID;
 const objectiveMarker = createObjectiveMarker(scene);
+const minimap = createMinimap(root);
 let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
 playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
@@ -315,6 +318,16 @@ const placePierce = (x: number, z: number, yaw: number) => {
   playerAvatar.group.rotation.y = yaw + Math.PI;
   followCamera.face(yaw);
 };
+
+if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
+  Object.assign(window as unknown as Record<string, unknown>, {
+    __phPlace: (x: number, z: number, yaw = 0) => placePierce(x, z, yaw),
+    __phFrame: (p: { x: number; y: number; z: number } | null, l?: { x: number; y: number; z: number }) => {
+      if (p && l) followCamera.setCinematic(p, l);
+      else followCamera.clearCinematic();
+    },
+  });
+}
 
 let lastObjectiveCue = '';
 
@@ -2226,15 +2239,39 @@ const gatherCameraIgnoreMeshes = () => {
   return ignored;
 };
 
+let playerLift = 0;
+
+const updateMinimap = (delta: number) => {
+  const source = isHomeLevel() && !home.playing() && state.running ? home.map() : null;
+  if (!source) {
+    minimap.update(delta, null);
+    return;
+  }
+  const look = camera.getForwardRay(1).direction;
+  const len = Math.hypot(look.x, look.z) || 1;
+  const target = objectiveMarker.getTarget();
+  minimap.update(delta, {
+    x: state.player.x,
+    z: state.player.z,
+    yaw: state.characterYaw,
+    fx: look.x / len,
+    fz: look.z / len,
+    target: target ? { x: target.x, z: target.z } : null,
+    source,
+  });
+};
+
 const updateCamera = (delta: number, moving = false, moveHeading: number | null = null) => {
   const focus = shadowPlay().linkFocus();
   if (focus) state.characterYaw = Math.atan2(focus.x - state.player.x, focus.z - state.player.z);
   const subject = focus ? { ...state.player, x: focus.x, z: focus.z } : state.player;
   followCamera.update(delta, subject, moving, moveHeading, gatherCameraIgnoreMeshes());
 
+  const liftWant = isHomeLevel() ? home.lift(state.player.x, state.player.z) : 0;
+  playerLift += (liftWant - playerLift) * Math.min(1, delta * 14);
   if (state.inCutscene) return;
   playerAvatar.group.rotation.y = state.characterYaw + Math.PI;
-  playerAvatar.group.position = new BABYLON.Vector3(state.player.x, playerMeshY(state.player.y), state.player.z);
+  playerAvatar.group.position = new BABYLON.Vector3(state.player.x, playerMeshY(state.player.y) + playerLift, state.player.z);
 };
 
 const levelSealed = () => pendingEnd?.levelId === state.level;
@@ -3101,6 +3138,7 @@ const renderLoop = () => {
     if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
   }
   const cine = state.inCutscene || home.playing() || desk.playing() || station.playing();
+  updateMinimap(delta);
   if (wasInCutscene && !cine) lockGameplayPointer();
   wasInCutscene = cine;
   if (skipCutsceneBtn) {
