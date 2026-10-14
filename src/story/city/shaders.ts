@@ -19,6 +19,7 @@ uniform vec3 skyTop;
 uniform vec3 skyHorizon;
 uniform float time;
 uniform vec4 sig;
+uniform float boost;
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -49,6 +50,7 @@ vec3 skyColor(vec3 dir) {
   return mix(skyHorizon, skyTop, sqrt(t));
 }
 vec3 finish(vec3 color, vec3 world, float glow) {
+  color *= 1.0 + clamp(glow, 0.0, 1.0) * (boost - 1.0);
   float f = fogAmount(world);
   f *= 1.0 - clamp(glow, 0.0, 1.0) * 0.55;
   return mix(color, fogColor, f);
@@ -242,6 +244,26 @@ void main(void) {
     float fres = 0.08 + 0.92 * pow(1.0 - max(V.y, 0.0), 4.0);
     vec3 water = mix(vec3(0.01, 0.02, 0.025), refl, fres) * (0.85 + ripple * 0.3);
     gl_FragColor = vec4(finish(water, vWorld, 0.2), 1.0);
+    return;
+  } else if (surf > 9.5) {
+    // Horizon: the city past the streamed chunks, as a carpet of lights.
+    vec2 cellP = wp / 74.0;
+    vec2 cell = floor(cellP);
+    vec2 f = fract(cellP);
+    float bend = h21(cell * 0.37);
+    float road = max(smoothstep(0.07, 0.0, f.x), smoothstep(0.07, 0.0, f.y));
+    float lampRow = smoothstep(0.45, 0.0, length(fract(wp / 14.0) - 0.5));
+    float lamps = road * lampRow;
+    vec2 win = floor(wp / 5.0);
+    float glitter = step(0.86, h21(win + 3.1)) * (1.0 - road) * step(0.25, bend);
+    float twinkle = 0.75 + 0.25 * sin(time * 1.3 + h21(win) * 40.0);
+    vec3 sodium = vec3(1.0, 0.62, 0.3);
+    vec3 winC = mix(vec3(1.0, 0.75, 0.45), vec3(0.7, 0.85, 1.0), step(0.6, h21(win * 1.7)));
+    float dist = length(vWorld - cameraPos);
+    float fade = clamp(dist / 900.0, 0.0, 1.0);
+    vec3 col = vec3(0.02, 0.021, 0.026) + sodium * lamps * 0.9 + winC * glitter * twinkle * 0.6;
+    col *= mix(1.0, 0.55, fade);
+    gl_FragColor = vec4(finish(col, vWorld, 0.85 * max(lamps, glitter)), 1.0);
     return;
   } else if (surf < 9.5) {
     // Store floor tiles.
@@ -850,6 +872,7 @@ uniform mat4 world;
 uniform vec3 cameraPos;
 uniform float time;
 uniform vec4 sig;
+uniform float flareScale;
 varying vec2 vCorner;
 varying vec4 vColor;
 varying float vFade;
@@ -858,8 +881,8 @@ void main(void) {
   vec3 right = vec3(view[0][0], view[1][0], view[2][0]);
   vec3 up = vec3(view[0][1], view[1][1], view[2][1]);
   vec3 center = (world * vec4(position, 1.0)).xyz;
-  float d = length(center - cameraPos);
-  float size = uv2.x * (1.0 + d * 0.012);
+  float d = length(position - cameraPos);
+  float size = uv2.x * (1.0 + d * 0.012) * flareScale;
   float mode = floor(uv2.y / 64.0 + 0.001);
   float param = uv2.y - mode * 64.0;
   float on = 1.0;
@@ -868,7 +891,7 @@ void main(void) {
   vec3 p = center + (right * uv.x + up * uv.y) * size * on;
   vCorner = uv;
   vColor = color;
-  vFade = clamp(1.0 - d / 420.0, 0.0, 1.0) * on * clamp((d - 0.8) / 2.0, 0.0, 1.0);
+  vFade = clamp(1.0 - d / (420.0 * flareScale), 0.0, 1.0) * on * clamp((d - 0.8) / 2.0, 0.0, 1.0);
   gl_Position = viewProjection * vec4(p, 1.0);
 }
 `;
@@ -909,5 +932,5 @@ export const CITY_SHADERS = {
 };
 
 export const SHARED_UNIFORMS = [
-  'worldViewProjection', 'cameraPos', 'fogColor', 'fogDensity', 'lmInfo', 'ambient', 'skyTop', 'skyHorizon', 'time', 'sig',
+  'worldViewProjection', 'cameraPos', 'fogColor', 'fogDensity', 'lmInfo', 'ambient', 'skyTop', 'skyHorizon', 'time', 'sig', 'boost',
 ];

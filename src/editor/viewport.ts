@@ -3,6 +3,7 @@ import '@babylonjs/loaders';
 
 import { applySceneLighting, applyTheme } from '../game/scene';
 import { createCityWorld, type CityWorld } from '../story/city/world';
+import { createLevelDressing } from '../game/levelDressing';
 import {
   createSceneAssetNode,
   createSceneTriggerNode,
@@ -184,9 +185,15 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     cityAmbient = null;
     camera.maxZ = 600;
   };
+  const dressing = createLevelDressing(scene, camera);
   const mountCity = () => {
     disposeCity();
-    if (!showCity || citySource?.id !== 'going-home') return;
+    dressing.dispose();
+    if (!showCity || !citySource) return;
+    if (citySource.id !== 'going-home') {
+      dressing.mount({ levelId: citySource.id });
+      return;
+    }
     city = createCityWorld(scene, { mobile: false });
     city.mount(camera.position.x, camera.position.z);
     cityAmbient = city.env.ambient.clone();
@@ -198,7 +205,9 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     mountCity();
   };
   scene.onBeforeRenderObservable.add(() => {
-    city?.step(camera.position.x, camera.position.z, engine.getDeltaTime() / 1000);
+    const dt = engine.getDeltaTime() / 1000;
+    city?.step(camera.position.x, camera.position.z, dt);
+    dressing.step(dt);
   });
 
   const noteNewLights = () => {
@@ -439,6 +448,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
 
   const dispose = () => {
     disposeCity();
+    dressing.dispose();
     resizeObserver.disconnect();
     engine.dispose();
   };

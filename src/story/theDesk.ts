@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
+import { mountBathroomMirror, type BathroomMirror } from './bathroomMirror';
 
 export type DeskHost = {
   scene: BABYLON.Scene;
@@ -30,7 +31,6 @@ export type DeskHost = {
 };
 
 const MIRROR = { x: 19.05, z: 28.15, yaw: Math.PI / 2 };
-const GLASS = { x: 20.22, y: 1.5, z: 28.15 };
 const DESK = { x: 48.05, z: 41.22, yaw: 0 };
 const CAB = { x: 44.15, z: 25.55, yaw: Math.PI };
 
@@ -110,8 +110,7 @@ export const createTheDesk = (host: DeskHost) => {
   let swept = false;
   let saidGoing = false;
   let shake = 0;
-  let mirrorTex: BABYLON.MirrorTexture | null = null;
-  const mirrorNodes: BABYLON.AbstractMesh[] = [];
+  let bathroomMirror: BathroomMirror | null = null;
   const sheets: Sheet[] = [];
 
   const say = (title: string, text: string, url: string, volume: number, hold: number) => {
@@ -128,51 +127,13 @@ export const createTheDesk = (host: DeskHost) => {
   };
 
   const clearMirror = () => {
-    mirrorTex?.dispose();
-    mirrorTex = null;
-    for (const mesh of mirrorNodes) {
-      if (!mesh.isDisposed()) mesh.dispose(false, true);
-    }
-    mirrorNodes.length = 0;
+    bathroomMirror?.dispose();
+    bathroomMirror = null;
   };
 
   const mountMirror = () => {
     clearMirror();
-    const frame = BABYLON.MeshBuilder.CreateBox('desk-mirror-frame', { width: 0.04, height: 0.98, depth: 1.4 }, host.scene);
-    frame.position.set(GLASS.x + 0.025, GLASS.y, GLASS.z);
-    frame.isPickable = false;
-    frame.checkCollisions = false;
-    const frameMat = new BABYLON.StandardMaterial('desk-mirror-frame-mat', host.scene);
-    frameMat.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.055);
-    frameMat.specularColor = new BABYLON.Color3(0.55, 0.56, 0.58);
-    frame.material = frameMat;
-    const glass = BABYLON.MeshBuilder.CreatePlane('desk-mirror', {
-      width: 1.24,
-      height: 0.84,
-      sideOrientation: BABYLON.Mesh.DOUBLESIDE,
-    }, host.scene);
-    glass.position.set(GLASS.x, GLASS.y, GLASS.z);
-    glass.rotation.y = -Math.PI / 2;
-    glass.isPickable = false;
-    glass.checkCollisions = false;
-    const glassMat = new BABYLON.StandardMaterial('desk-mirror-mat', host.scene);
-    glassMat.disableLighting = true;
-    glassMat.diffuseColor = BABYLON.Color3.Black();
-    glassMat.specularColor = new BABYLON.Color3(0.22, 0.22, 0.24);
-    glassMat.specularPower = 64;
-    const caps = host.scene.getEngine().getCaps();
-    const texType = caps.textureHalfFloatRender
-      ? BABYLON.Constants.TEXTURETYPE_HALF_FLOAT
-      : BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE;
-    const tex = new BABYLON.MirrorTexture('desk-mirror-tex', { width: 1024, height: 1024 }, host.scene, false, texType);
-    tex.mirrorPlane = BABYLON.Plane.FromPositionAndNormal(glass.position, new BABYLON.Vector3(1, 0, 0));
-    tex.level = 0.45;
-    glassMat.reflectionTexture = tex;
-    glass.material = glassMat;
-    mirrorTex = tex;
-    mirrorNodes.push(frame, glass);
-    const skip = new Set<BABYLON.AbstractMesh>(mirrorNodes);
-    tex.renderList = host.scene.meshes.filter((mesh) => !skip.has(mesh));
+    bathroomMirror = mountBathroomMirror(host.scene, 'desk-mirror');
   };
 
   const paperMat = (name: string, color: BABYLON.Color3) => {

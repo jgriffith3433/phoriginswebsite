@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { mountBathroomMirror, type BathroomMirror } from './bathroomMirror';
 import { createUnlockedAudio } from '../game/audioUnlock';
 import { mixVolume } from '../game/sfxMix';
 import type { CutsceneVec3 } from '../game/cutscenes';
@@ -216,8 +217,7 @@ export const createAct1 = (host: ActHost) => {
   let brightQueued = false;
   let mirrorLeft = 0;
   let mirrorMarked = false;
-  let mirrorNodes: BABYLON.AbstractMesh[] = [];
-  let mirrorTex: BABYLON.MirrorTexture | null = null;
+  let bathroomMirror: BathroomMirror | null = null;
   let vatPath: { x: number; z: number }[] = [];
   let vatPathLen = 0;
   let vatArrive = VAT_ARRIVE;
@@ -853,57 +853,14 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const clearMirror = () => {
-    mirrorTex?.dispose();
-    mirrorTex = null;
-    for (const mesh of mirrorNodes) mesh.dispose(false, true);
-    mirrorNodes = [];
+    bathroomMirror?.dispose();
+    bathroomMirror = null;
     mirrorLeft = 0;
-  };
-
-  const refreshMirror = () => {
-    if (!mirrorTex) return;
-    const skip = new Set(mirrorNodes);
-    mirrorTex.renderList = host.scene.meshes.filter((mesh) => !skip.has(mesh));
   };
 
   const mountMirror = () => {
     clearMirror();
-    const frame = BABYLON.MeshBuilder.CreateBox('return-mirror-frame', { width: 0.04, height: 0.98, depth: 1.4 }, host.scene);
-    frame.position.set(MIRROR_GLASS.x + 0.025, MIRROR_GLASS.y, MIRROR_GLASS.z);
-    frame.isPickable = false;
-    frame.checkCollisions = false;
-    const frameMat = new BABYLON.StandardMaterial('return-mirror-frame-mat', host.scene);
-    frameMat.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.055);
-    frameMat.specularColor = new BABYLON.Color3(0.55, 0.56, 0.58);
-    frame.material = frameMat;
-
-    const glass = BABYLON.MeshBuilder.CreatePlane('return-mirror', {
-      width: 1.24,
-      height: 0.84,
-      sideOrientation: BABYLON.Mesh.DOUBLESIDE,
-    }, host.scene);
-    glass.position.set(MIRROR_GLASS.x, MIRROR_GLASS.y, MIRROR_GLASS.z);
-    glass.rotation.y = -Math.PI / 2;
-    glass.isPickable = false;
-    glass.checkCollisions = false;
-    const glassMat = new BABYLON.StandardMaterial('return-mirror-mat', host.scene);
-    glassMat.disableLighting = true;
-    glassMat.diffuseColor = BABYLON.Color3.Black();
-    glassMat.specularColor = new BABYLON.Color3(0.22, 0.22, 0.24);
-    glassMat.specularPower = 64;
-    glassMat.emissiveColor = BABYLON.Color3.Black();
-    const caps = host.scene.getEngine().getCaps();
-    const texType = caps.textureHalfFloatRender
-      ? BABYLON.Constants.TEXTURETYPE_HALF_FLOAT
-      : BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE;
-    const tex = new BABYLON.MirrorTexture('return-mirror-tex', { width: 1024, height: 1024 }, host.scene, false, texType);
-    tex.mirrorPlane = BABYLON.Plane.FromPositionAndNormal(glass.position, new BABYLON.Vector3(1, 0, 0));
-    tex.level = 0.45;
-    glassMat.reflectionTexture = tex;
-    glass.material = glassMat;
-    mirrorTex = tex;
-    mirrorNodes = [frame, glass];
-    refreshMirror();
+    bathroomMirror = mountBathroomMirror(host.scene, 'return-mirror');
   };
 
   const placeReturnSpawn = () => {
@@ -2955,7 +2912,6 @@ export const createAct1 = (host: ActHost) => {
     fearLevel: () => dread,
     stepWorld: (delta: number) => {
       if (!host.isApex() && !host.isB3() && !host.isReturn()) return;
-      refreshMirror();
       if (phase === 'return-walk' && host.running() && !host.inCutscene()) {
         stepAside(delta);
         const here = host.playerXZ();

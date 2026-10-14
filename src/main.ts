@@ -24,6 +24,7 @@ import { createSceneGrade } from './game/grade';
 import { createShadowVeil } from './game/shadowVeil';
 import { createPhone } from './game/phone';
 import { mountPipeDrips } from './game/drips';
+import { createLevelDressing } from './game/levelDressing';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
@@ -220,6 +221,7 @@ let officeSwap = false;
 let playerHeroId = PLAYER_ASSET_ID;
 const objectiveMarker = createObjectiveMarker(scene);
 const minimap = createMinimap(root);
+const dressing = createLevelDressing(scene, camera);
 let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
 playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
@@ -541,6 +543,8 @@ const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') 
     ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
     if (isHomeLevel()) await home.mount();
     if (isStationLevel()) await station.mount();
+    // Runtime dressing that is not in the level file (city under the office, basement air, station kit).
+    dressing.mount({ levelId: loaded?.data.id ?? '', powers: isReturnLevel() });
     await Promise.all([
       waitAvatarReady(playerAvatar),
       whenSkyboxReady(scene),
@@ -3137,6 +3141,7 @@ const renderLoop = () => {
   }
   const cine = state.inCutscene || home.playing() || desk.playing() || station.playing();
   updateMinimap(delta);
+  dressing.step(delta);
   if (wasInCutscene && !cine) lockGameplayPointer();
   wasInCutscene = cine;
   if (skipCutsceneBtn) {

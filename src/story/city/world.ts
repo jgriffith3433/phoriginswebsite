@@ -26,13 +26,25 @@ const ADS: Vec3[] = [[1.0, 0.75, 0.3], [0.3, 0.75, 1.0], [1.0, 0.3, 0.5], [0.5, 
 
 export type SignalState = { x: number; z: number; walkX: number; walkZ: number };
 
-export type CityWorldOptions = { mobile: boolean };
+export type CityWorldOptions = {
+  mobile: boolean;
+  /** Scene position of city (0, 0, 0). The city draws in its own frame under this root. */
+  offset?: { x: number; y: number; z: number };
+  /** View only: no collision, no Apex tower (the viewer is in it), no lamp light, longer reach. */
+  view?: boolean;
+  /** Load radius override, meters. */
+  load?: number;
+  /** Buildings over this rect (city coords) are cut to `cap` meters. Keeps towers out of the office. */
+  cap?: { minX: number; maxX: number; minZ: number; maxZ: number; height: number };
+};
 
 const chunkKey = (ix: number, iz: number) => ix * 4096 + iz;
 
 export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) => {
   const city: City = buildCity();
-  const LOAD = opts.mobile ? 280 : 400;
+  const offset = new BABYLON.Vector3(opts.offset?.x ?? 0, opts.offset?.y ?? 0, opts.offset?.z ?? 0);
+  const viewOnly = !!opts.view;
+  const LOAD = opts.load ?? (opts.mobile ? 280 : 400);
   const UNLOAD = LOAD + 90;
 
   // ---------- Buckets ----------
@@ -126,7 +138,7 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   const propMat = shaderMat('city-props', CITY_SHADERS.propVert, CITY_SHADERS.propFrag, { attributes: stdAttrs });
   const glowMat = new BABYLON.ShaderMaterial('city-glow', scene, { vertexSource: CITY_SHADERS.glowVert, fragmentSource: CITY_SHADERS.glowFrag }, {
     attributes: ['position', 'uv', 'uv2', 'color'],
-    uniforms: ['viewProjection', 'view', 'world', 'cameraPos', 'time', 'sig'],
+    uniforms: ['viewProjection', 'view', 'world', 'cameraPos', 'time', 'sig', 'flareScale'],
     needAlphaBlending: true,
   });
   glowMat.backFaceCulling = false;
@@ -193,6 +205,9 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
     ambient: new BABYLON.Color3(0.12, 0.13, 0.17),
     skyTop: new BABYLON.Color3(0.01, 0.015, 0.035),
     skyHorizon: new BABYLON.Color3(0.1, 0.09, 0.11),
+    /** Emissive lift (lit windows, neon). The tower view raises it so the street reads from 200 m. */
+    boost: 1,
+    flareScale: 1,
   };
   let clock = 0;
   const signals = (t: number): SignalState => {
@@ -216,7 +231,7 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   const lmInfo = new BABYLON.Vector3();
   const pushUniforms = () => {
     const camera = scene.activeCamera;
-    if (camera) camPos.copyFrom(camera.globalPosition);
+    if (camera) camPos.copyFrom(camera.globalPosition).subtractInPlace(offset);
     const s = signals(clock);
     sigVec.set(s.x, s.z, s.walkX, s.walkZ);
     lmInfo.set(lmOrigin.x, lmOrigin.z, LM_WORLD);
@@ -230,11 +245,13 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
       m.setColor3('skyHorizon', env.skyHorizon);
       m.setFloat('time', clock);
       m.setVector4('sig', sigVec);
+      m.setFloat('boost', env.boost);
       m.setTexture('lightMap', lmTex);
     }
     glowMat.setVector3('cameraPos', camPos);
     glowMat.setFloat('time', clock);
     glowMat.setVector4('sig', sigVec);
+    glowMat.setFloat('flareScale', env.flareScale);
   };
 
   // ---------- Queries ----------
@@ -625,8 +642,20 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
     }
   };
 
+  const capFor = (b: Building) => {
+    const c = opts.cap;
+    if (!c) return Infinity;
+    const r = Math.hypot(b.obb.hw, b.obb.hd);
+    if (b.obb.x + r < c.minX || b.obb.x - r > c.maxX || b.obb.z + r < c.minZ || b.obb.z - r > c.maxZ) return Infinity;
+    return c.height;
+  };
+
   const emitBuilding = (g: Geo, b: Building) => {
-    for (const m of b.masses) emitMass(g, b, m);
+    const cap = capFor(b);
+    for (const m of b.masses) {
+      if (m.y0 >= cap) continue;
+      emitMass(g, b, m.y1 > cap ? { ...m, y1: cap, roof: 0 } : m);
+    }
   };
 
   const emitFar = (g: Geo, b: Building) => {
@@ -641,7 +670,7 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
       { a: corner(-1, -1), c: corner(-1, 1), n: [-ax.x, 0, -ax.z], w: o.hd * 2 },
       { a: corner(1, -1), c: corner(-1, -1), n: [-bz.x, 0, -bz.z], w: o.hw * 2 },
     ];
-    const top = b.masses.reduce((h, m) => Math.max(h, m.y1), 0);
+    const top = Math.min(capFor(b), b.masses.reduce((h, m) => Math.max(h, m.y1), 0));
     for (const f of faces) emitWall(g, b, f.a, f.c, 0, top * 0.97, f.n, f.w, 0, 0);
     g.a.c = [b.floorH, b.bay, 0, 1];
     g.quad([corner(-1, -1)[0], top * 0.97, corner(-1, -1)[2]], [corner(1, -1)[0], top * 0.97, corner(1, -1)[2]], [corner(1, 1)[0], top * 0.97, corner(1, 1)[2]], [corner(-1, 1)[0], top * 0.97, corner(-1, 1)[2]], [0, 1, 0]);
@@ -1216,6 +1245,15 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   const built = new Map<number, Chunk>();
   const farMeshes = new Map<number, BABYLON.Mesh>();
   let root: BABYLON.TransformNode | null = null;
+  /** Parent a mesh under the offset root and re-freeze its world matrix. */
+  const adopt = <T extends BABYLON.AbstractMesh | null>(mesh: T): T => {
+    if (!mesh || !root) return mesh;
+    mesh.unfreezeWorldMatrix();
+    mesh.parent = root;
+    mesh.computeWorldMatrix(true);
+    mesh.freezeWorldMatrix();
+    return mesh;
+  };
 
   const buildChunk = (ix: number, iz: number) => {
     const key = chunkKey(ix, iz);
@@ -1236,7 +1274,7 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
         ground.a.c = [SURF.PAVERS, 0, 0, 0];
         ground.flat(pave.pts, earcut(pave.pts), pave.y, (p) => [p.x, p.z]);
       }
-      for (const b of bucket.buildings) emitBuilding(facade, b);
+      for (const b of bucket.buildings) if (!(viewOnly && b.style === STYLE.APEX)) emitBuilding(facade, b);
       for (const p of bucket.props) emitProp(p.kind === 'grate' ? decal : props, glow, p);
       for (const store of bucket.stores) emitStore(props, ground, glow, coll, store, extras);
       // Colliders grouped by 32 m cells for broad phase.
@@ -1266,9 +1304,10 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
       facade.toMesh(`city-facade-${ix}-${iz}`, scene, facadeMat),
       props.toMesh(`city-props-${ix}-${iz}`, scene, propMat),
       glow.toMesh(`city-glow-${ix}-${iz}`, scene, glowMat),
-      coll.toMesh(`city-collide-${ix}-${iz}`, scene),
+      viewOnly ? null : coll.toMesh(`city-collide-${ix}-${iz}`, scene),
       ...extras,
     ].filter((m): m is BABYLON.Mesh => !!m);
+    for (const m of meshes) adopt(m);
     const chunk: Chunk = { key, ix, iz, meshes, far: farMeshes.get(key) ?? null };
     if (chunk.far) chunk.far.setEnabled(false);
     built.set(key, chunk);
@@ -1289,8 +1328,8 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
     for (const [key, bucket] of buckets) {
       if (!bucket.tall.length) continue;
       const g = new Geo();
-      for (const b of bucket.tall) emitFar(g, b);
-      const mesh = g.toMesh(`city-far-${key}`, scene, farMat);
+      for (const b of bucket.tall) if (!(viewOnly && b.style === STYLE.APEX)) emitFar(g, b);
+      const mesh = adopt(g.toMesh(`city-far-${key}`, scene, farMat));
       if (mesh) farMeshes.set(key, mesh);
     }
   };
@@ -1326,11 +1365,11 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   let horizon: BABYLON.Mesh | null = null;
   const buildHorizon = () => {
     const g = new Geo(true);
-    g.a.c = [SURF.BASE, 0.7, 0.2, 0];
+    g.a.c = [10, 0, 0, 0];
     const R = 3200;
     const c = { x: 84, z: 32 };
     g.flat([{ x: c.x - R, z: c.z - R }, { x: c.x + R, z: c.z - R }, { x: c.x + R, z: c.z + R }, { x: c.x - R, z: c.z + R }], [0, 1, 2, 0, 2, 3], -0.35, (p) => [p.x, p.z]);
-    horizon = g.toMesh('city-horizon', scene, baseMat);
+    horizon = adopt(g.toMesh('city-horizon', scene, baseMat));
   };
 
   // A real light that follows the nearest lamp so characters pick up the pools.
@@ -1343,6 +1382,8 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
 
   return {
     city,
+    root: () => root,
+    offset,
     lift,
     resolve,
     walkSpot,
@@ -1351,6 +1392,8 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
     mount: (x: number, z: number) => {
       disposed = false;
       root = new BABYLON.TransformNode('city-world', scene);
+      root.position.copyFrom(offset);
+      root.computeWorldMatrix(true);
       buildFar();
       buildHorizon();
       paintLightMap(x, z);
@@ -1358,11 +1401,13 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
       plan(x, z);
       for (const item of queue) buildChunk(item.ix, item.iz);
       queue = [];
-      lampLight = new BABYLON.PointLight('city-lamp-light', new BABYLON.Vector3(x, 7, z), scene);
-      lampLight.diffuse = new BABYLON.Color3(1.0, 0.86, 0.66);
-      lampLight.specular = new BABYLON.Color3(0.2, 0.18, 0.15);
-      lampLight.intensity = 0;
-      lampLight.range = 16;
+      if (!viewOnly) {
+        lampLight = new BABYLON.PointLight('city-lamp-light', new BABYLON.Vector3(x, 7, z), scene);
+        lampLight.diffuse = new BABYLON.Color3(1.0, 0.86, 0.66);
+        lampLight.specular = new BABYLON.Color3(0.2, 0.18, 0.15);
+        lampLight.intensity = 0;
+        lampLight.range = 16;
+      }
       pushUniforms();
     },
     step: (x: number, z: number, dt: number) => {

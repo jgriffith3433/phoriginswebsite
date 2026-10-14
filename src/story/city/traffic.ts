@@ -206,6 +206,8 @@ export const createTraffic = (scene: BABYLON.Scene, world: CityWorld, count: num
 
   const makeCar = (index: number) => {
     const root = new BABYLON.TransformNode(`street-car-${index}`, scene);
+    const frame = world.root();
+    if (frame) root.parent = frame;
     const mount = new BABYLON.TransformNode(`street-car-${index}-body`, scene);
     mount.parent = root;
     mount.rotation.y = -Math.PI / 2;
