@@ -1,5 +1,5 @@
 import type { InteriorPlan, Kit } from './dress';
-import { artFrame, bench, bookshelf, exitSign, extinguisher, floorLamp, pendantBar, plant, plaque, rug, sconce, screen, sideTable } from './furniture';
+import { artFrame, elevatorCab, bench, bookshelf, exitSign, extinguisher, floorLamp, pendantBar, plant, plaque, rug, sconce, screen, sideTable } from './furniture';
 import { IS } from './shader';
 
 /**
@@ -36,7 +36,7 @@ export const apexPlan: InteriorPlan = {
     { id: 'bath', minX: 15.6, maxX: 20.4, minZ: 25.5, maxZ: 29.56, wall: IS.BATH_TILE, floor: IS.SMALL_TILE, ceil: IS.ACOUSTIC },
   ],
   skip: /^(lift-|floor-lift|office-wall-n|board-glass|office-glass|bath-stall|bath-door|bath-jamb|trim-|ceil-lift)/,
-  hide: /^trim-/,
+  hide: /^(trim-|carpet-|fixture-light-lift)/,
   keepClear: [
     { x: 0, z: 4.1, r: 1.5 },
     { x: 48, z: 46.2, r: 1.2 },
@@ -44,6 +44,7 @@ export const apexPlan: InteriorPlan = {
     { x: 44, z: 24.5, r: 2 },
   ],
   build: (k) => {
+    elevatorCab(k);
     // ---------- Hall 1 (west wall x = -2.2 faces east, east wall x = 2.2 faces west) ----------
     const doorsH1W = [8, 18, 26];
     const doorsH1E = [6, 14, 22];
@@ -60,6 +61,9 @@ export const apexPlan: InteriorPlan = {
     extinguisher(k, 2.2, 1.0, E);
     bench(k, -2.2, 2.4, 1.3, W);
 
+    // Runner rugs where the authored runners lie (those GLBs are hidden). Above the carpet overlay.
+    rug(k, -0.8, 0.8, 0.99, 31.01, 0.32, 0.1, 0.09, 0.022);
+
     // ---------- Hall 2 (south wall z = 29.8 faces north, north wall z = 34.26 faces south) ----------
     for (const x of [6, 14, 22, 30]) casing(k, x, 29.8, S);
     for (const x of [8, 16, 24]) casing(k, x, 34.26, N);
@@ -70,6 +74,7 @@ export const apexPlan: InteriorPlan = {
     artFrame(k, 'art-4', 33.4, 1.25, 29.8, 1.1, 0.95, S);
     for (const x of [4.6, 12, 20, 28, 34]) sconce(k, x, 2.05, 34.26, N);
     for (const x of [10, 26.2]) sconce(k, x, 2.05, 29.8, S);
+    rug(k, 2.99, 29.01, 31.2, 32.8, 0.32, 0.1, 0.09, 0.022);
     plaque(k, 'restroom', 17.95, 2.42, 29.8, 0.7, 0.2, N);
     plaque(k, 'restroom', 17.95, 2.42, 29.8, 0.7, 0.2, S);
     extinguisher(k, 34.6, 29.8, S);

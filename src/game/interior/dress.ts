@@ -439,14 +439,25 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
 
   // ---------- Hidden authored pieces ----------
   const hidden: BABYLON.AbstractMesh[] = [];
-  if (plan.hide) {
+  // Model meshes arrive after their GLB loads, so this runs again from step().
+  const hideNow = () => {
+    if (!plan.hide) return;
+    const assetIdOf = (node: BABYLON.Node | null): string => {
+      for (let n = node; n; n = n.parent) {
+        const id = (n.metadata as { sceneAssetId?: string } | null)?.sceneAssetId;
+        if (id) return id;
+      }
+      return '';
+    };
     for (const m of scene.meshes) {
-      const id = (m.metadata as { sceneAssetId?: string } | null)?.sceneAssetId ?? '';
+      const id = assetIdOf(m);
       if (!id || !plan.hide.test(id) || !m.isVisible) continue;
       m.isVisible = false;
       hidden.push(m);
     }
-  }
+  };
+  hideNow();
+  let hideWait = 1;
 
   // ---------- Props ----------
   const kit = makeKit(scene, g, plan, colliders, atlas.rects);
@@ -476,6 +487,11 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
   return {
     step: (dt: number) => {
       clock += dt;
+      hideWait -= dt;
+      if (hideWait <= 0) {
+        hideWait = 1;
+        hideNow();
+      }
       const camera = scene.activeCamera;
       if (!camera) return;
       const cam = camera.globalPosition;

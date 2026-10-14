@@ -3,6 +3,9 @@ import * as BABYLON from '@babylonjs/core';
 import { createCityView, type CityView } from '../story/city/cityView';
 import { createStationDress, type StationDress } from '../story/stationDress';
 import { createAtmosphere, type Atmosphere } from './atmosphere';
+import { apexPlan } from './interior/apexPlan';
+import { b3Plan } from './interior/b3Plan';
+import { createInteriorDress, type InteriorDress } from './interior/dress';
 
 /**
  * Runtime dressing that is not in the level files. The game and Dev Tools both
@@ -24,6 +27,7 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
   let cityView: CityView | null = null;
   let atmosphere: Atmosphere | null = null;
   let station: StationDress | null = null;
+  let interior: InteriorDress | null = null;
   let current = '';
 
   const clear = () => {
@@ -33,6 +37,8 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     atmosphere = null;
     station?.dispose();
     station = null;
+    interior?.dispose();
+    interior = null;
     current = '';
   };
 
@@ -40,15 +46,17 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
 
   return {
     mount: (ctx: DressingContext) => {
+      // Always rebuild: a reload of the same level file replaces the meshes this dressing reads.
       const key = `${ctx.levelId}|${ctx.powers ? 1 : 0}`;
-      if (key === current) return;
       clear();
       current = key;
       if (ctx.levelId === 'apex-peak') {
+        interior = createInteriorDress(scene, apexPlan);
         cityView = createCityView(scene, camera);
         cityView.mount();
       } else if (ctx.levelId === 'b3-basement') {
         const powers = !!ctx.powers;
+        interior = createInteriorDress(scene, b3Plan);
         const steam: { x: number; y: number; z: number; up?: number }[] = [];
         for (const mesh of scene.meshes) {
           const id = (mesh.metadata as { sceneAssetId?: string } | null)?.sceneAssetId ?? '';
@@ -82,6 +90,7 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
       cityView?.step(dt);
       atmosphere?.step(dt);
       station?.step(dt);
+      interior?.step(dt);
     },
     dispose: clear,
   };

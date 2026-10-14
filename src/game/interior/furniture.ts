@@ -478,3 +478,115 @@ export const papers = (k: Kit, x: number, z: number, count: number, seed = 0, y 
     k.box(px, y + i * 0.0006, pz, 0.105, 0.002, 0.15, { x: Math.cos(a), z: Math.sin(a) }, 0b010000);
   }
 };
+
+// ---------------- Elevator cab ----------------
+
+/**
+ * Executive cab inside the authored lift box (inner faces x 42.42..45.58,
+ * back z 19.22, doors z 23.96, ceiling 3.2). The authored doors, the floor
+ * indicator over them, and the B3 button on the east wall stay in front of this.
+ */
+export const elevatorCab = (k: Kit) => {
+  const x0 = 42.42;
+  const x1 = 45.58;
+  const zb = 19.22;
+  const zf = 23.92;
+  const cx = (x0 + x1) / 2;
+  const cz = (zb + zf) / 2;
+  const X = { x: 1, z: 0 };
+  const Zd = { x: 0, z: 1 };
+
+  // Floor: marble field inside a brushed steel border.
+  k.set(IS.MARBLE_FLOOR, 1, 1, 1);
+  k.g.quad([x0 + 0.12, 0.007, zb + 0.12], [x1 - 0.12, 0.007, zb + 0.12], [x1 - 0.12, 0.007, zf - 0.12], [x0 + 0.12, 0.007, zf - 0.12], [0, 1, 0],
+    [[x0, zb], [x1, zb], [x1, zf], [x0, zf]]);
+  k.set(IS.METAL, 0.42, 0.43, 0.44);
+  for (const [a0, a1, b0, b1] of [[x0, x1, zb, zb + 0.12], [x0, x1, zf - 0.12, zf], [x0, x0 + 0.12, zb, zf], [x1 - 0.12, x1, zb, zf]]) {
+    k.g.quad([a0, 0.008, b0], [a1, 0.008, b0], [a1, 0.008, b1], [a0, 0.008, b1], [0, 1, 0], [[a0, b0], [a1, b0], [a1, b1], [a0, b1]]);
+  }
+
+  // Kick plates.
+  k.set(IS.METAL, 0.2, 0.21, 0.22);
+  k.box(cx, 0, zb + 0.012, (x1 - x0) / 2, 0.16, 0.012, X);
+  k.box(x0 + 0.012, 0, cz, 0.012, 0.16, (zf - zb) / 2, X);
+  k.box(x1 - 0.012, 0, cz, 0.012, 0.16, (zf - zb) / 2, X);
+
+  // Back wall: steel frame, bronze mirror, walnut below.
+  k.set(IS.METAL, 0.5, 0.5, 0.5);
+  k.box(cx, 0.16, zb + 0.015, (x1 - x0) / 2 - 0.04, 2.84, 0.006, X);
+  k.set(IS.WOOD, 0.24, 0.14, 0.08);
+  k.box(cx, 0.22, zb + 0.022, (x1 - x0) / 2 - 0.12, 0.68, 0.006, X);
+  k.set(IS.GLASS, 0.2, 0.15, 0.1);
+  k.box(cx, 0.98, zb + 0.022, (x1 - x0) / 2 - 0.12, 1.84, 0.006, X);
+
+  // Side walls: walnut panels separated by steel reveals.
+  const sidePanels = (x: number, n: number) => {
+    const len = zf - zb - 0.5;
+    const count = 3;
+    for (let i = 0; i < count; i += 1) {
+      const z = zb + 0.15 + (len / count) * (i + 0.5);
+      k.set(IS.WOOD, 0.26, 0.15, 0.09);
+      k.box(x + n * 0.018, 0.22, z, 0.006, 2.62, len / count / 2 - 0.03, X);
+    }
+  };
+  sidePanels(x0, 1);
+  sidePanels(x1, -1);
+
+  // Handrails on standoffs.
+  k.set(IS.METAL, 0.62, 0.52, 0.32);
+  k.hcyl(cx, 0.92, zb + 0.09, X, 0.022, x1 - x0 - 0.3, 10);
+  k.hcyl(x0 + 0.09, 0.92, cz - 0.4, Zd, 0.022, zf - zb - 1.4, 10);
+  k.hcyl(x1 - 0.09, 0.92, cz - 0.9, Zd, 0.022, zf - zb - 2.2, 10);
+  for (const s of [-1, 1]) k.box(cx + s * ((x1 - x0) / 2 - 0.3), 0.91, zb + 0.05, 0.012, 0.02, 0.04, X);
+  for (const z of [zb + 0.6, zf - 1.2]) k.box(x0 + 0.05, 0.91, z, 0.04, 0.02, 0.012, X);
+  for (const z of [zb + 0.6, zf - 2.1]) k.box(x1 - 0.05, 0.91, z, 0.04, 0.02, 0.012, X);
+
+  // Drop ceiling with a light cove and downlights.
+  const yc = 3.1;
+  // Soft lit diffuser: it faces away from the cab light, so it carries its own glow.
+  k.set(IS.SOLID, 0.42, 0.4, 0.37, 0.35);
+  k.g.quad([x0 + 0.25, yc, zb + 0.25], [x1 - 0.25, yc, zb + 0.25], [x1 - 0.25, yc, zf - 0.25], [x0 + 0.25, yc, zf - 0.25], [0, -1, 0],
+    [[0, 0], [1, 0], [1, 1], [0, 1]]);
+  k.set(IS.SOLID, 1.0, 0.9, 0.74, 1.3);
+  for (const [a0, a1, b0, b1] of [[x0, x1, zb, zb + 0.25], [x0, x1, zf - 0.25, zf], [x0, x0 + 0.25, zb + 0.25, zf - 0.25], [x1 - 0.25, x1, zb + 0.25, zf - 0.25]]) {
+    k.g.quad([a0, 3.18, b0], [a1, 3.18, b0], [a1, 3.18, b1], [a0, 3.18, b1], [0, -1, 0], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+  }
+  k.set(IS.METAL, 0.5, 0.5, 0.5);
+  for (const [dx, dz] of [[-0.75, -1.2], [0.75, -1.2], [-0.75, 1.0], [0.75, 1.0]]) {
+    k.cyl(cx + dx, yc - 0.012, cz + dz, 0.1, 0.1, 0.012, 14, false);
+  }
+  k.set(IS.SOLID, 1.0, 0.95, 0.85, 2.2);
+  for (const [dx, dz] of [[-0.75, -1.2], [0.75, -1.2], [-0.75, 1.0], [0.75, 1.0]]) {
+    k.g.quad([cx + dx - 0.07, yc - 0.013, cz + dz - 0.07], [cx + dx + 0.07, yc - 0.013, cz + dz - 0.07], [cx + dx + 0.07, yc - 0.013, cz + dz + 0.07], [cx + dx - 0.07, yc - 0.013, cz + dz + 0.07], [0, -1, 0],
+      [[0, 0], [1, 0], [1, 1], [0, 1]]);
+  }
+
+  // Front: jambs beside the doors and a header above them.
+  k.set(IS.METAL, 0.36, 0.37, 0.38);
+  k.box(x0 + 0.17, 0, zf, 0.17, 3.2, 0.02, X);
+  k.box(x1 - 0.17, 0, zf, 0.17, 3.2, 0.02, X);
+  k.box(cx, 2.36, zf, (x1 - x0) / 2, 0.84, 0.02, X);
+
+  // Control column on the east wall, around the B3 button (z 21.06..21.34, y 1.17..1.59).
+  const px = x1 - 0.02;
+  k.set(IS.METAL, 0.55, 0.56, 0.57);
+  k.box(px, 0.85, 21.2, 0.012, 1.25, 0.3, X);
+  k.set(IS.METAL, 0.2, 0.2, 0.22);
+  k.box(px - 0.013, 1.9, 21.2, 0.002, 0.14, 0.22, X);
+  k.set(IS.SOLID, 1.0, 0.55, 0.12, 1.6);
+  k.box(px - 0.015, 1.94, 21.2, 0.001, 0.06, 0.12, X);
+  const floors = [[1.75, 21.08], [1.75, 21.32], [1.62, 21.08], [1.62, 21.32]];
+  for (const [y, z] of floors) {
+    k.set(IS.METAL, 0.65, 0.65, 0.66);
+    k.box(px - 0.012, y, z, 0.006, 0.07, 0.035, X);
+    k.set(IS.SOLID, 0.9, 0.95, 1.0, 0.9);
+    k.box(px - 0.019, y + 0.025, z, 0.001, 0.02, 0.02, X);
+  }
+  for (const [y, z, r, g, b] of [[1.08, 21.08, 0.9, 0.12, 0.08], [1.08, 21.32, 0.85, 0.85, 0.85], [0.95, 21.2, 0.2, 0.2, 0.2]] as const) {
+    k.set(IS.SOLID, r, g, b, r > 0.8 && g < 0.3 ? 0.8 : 0);
+    k.box(px - 0.012, y, z, 0.006, 0.07, 0.035, X);
+  }
+  // Speaker grille for the emergency phone.
+  k.set(IS.METAL, 0.12, 0.12, 0.13);
+  for (let i = 0; i < 5; i += 1) k.box(px - 0.013, 1.98 + i * 0.022 + 0.08, 21.2, 0.002, 0.008, 0.1, X);
+};

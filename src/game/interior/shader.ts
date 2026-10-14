@@ -149,7 +149,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     vec3 wood = mix(vec3(0.24, 0.14, 0.08), vec3(0.36, 0.22, 0.13), vnoise(vec2(floor(p.x / 0.11) * 3.1, y * 6.0)));
     albedo = mix(vec3(0.03, 0.03, 0.032), wood, gap);
     bump = 1.0 - gap;
-    gloss = 0.22 * gap;
+    gloss = 0.06 * gap;
     if (y < 0.12) albedo = vec3(0.06, 0.05, 0.05);
     return;
   }
@@ -164,7 +164,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
       vec2 q = vec2(p.x / 0.32, (y - 1.1) / 0.42);
       vec2 f = fract(q) - 0.5;
       float motif = smoothstep(0.24, 0.18, length(f * vec2(1.0, 1.6))) - smoothstep(0.16, 0.1, length(f * vec2(1.0, 1.6)));
-      albedo = mix(vec3(0.3, 0.33, 0.31), vec3(0.36, 0.39, 0.36), motif) * (0.95 + fbm(p * 3.0) * 0.08);
+      albedo = mix(vec3(0.3, 0.33, 0.31), vec3(0.325, 0.355, 0.33), motif) * (0.95 + fbm(p * 3.0) * 0.08);
     }
     if (abs(y - 1.12) < 0.03) albedo = vec3(0.14, 0.08, 0.05);
     if (y < 0.15) albedo = vec3(0.08, 0.05, 0.03);
@@ -280,8 +280,9 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     vec2 cell = floor(q);
     vec2 f = fract(q);
     float seam = 1.0 - smoothstep(0.0, 0.01, min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)));
-    float vein = smoothstep(0.025, 0.0, abs(fbm(p * 1.1 + cell * 5.0) - 0.5));
-    albedo = mix(vec3(0.78, 0.76, 0.72), vec3(0.3, 0.29, 0.28), vein * 0.6) * (1.0 - seam * 0.6);
+    float vein = smoothstep(0.009, 0.0, abs(fbm(p * 0.8 + cell * 5.0) - 0.5)) + smoothstep(0.005, 0.0, abs(fbm(p * 2.3 + cell * 3.0) - 0.5)) * 0.5;
+    float cloud = fbm(p * 0.6 + cell * 2.0);
+    albedo = mix(vec3(0.8, 0.78, 0.74), vec3(0.42, 0.4, 0.38), clamp(vein, 0.0, 1.0) * 0.45) * (0.94 + cloud * 0.08) * (1.0 - seam * 0.6);
     gloss = 0.85;
     return;
   }
@@ -421,7 +422,7 @@ void main(void) {
   vec3 emis;
   float bump;
   surface(floor(vStyle.x + 0.5), vStyle.y, vUV, n, albedo, gloss, emis, bump);
-  vec3 diffuse = mix(hemiGround, hemiSky, n.y * 0.5 + 0.5);
+  vec3 diffuse = mix(hemiGround, hemiSky, n.y * 0.5 + 0.5) + (hemiSky + hemiGround) * 0.22;
   vec3 spec = vec3(0.0);
   for (int i = 0; i < ${MAX_INTERIOR_LIGHTS}; i++) {
     vec4 lp = lPos[i];
