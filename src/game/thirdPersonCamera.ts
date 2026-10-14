@@ -109,6 +109,7 @@ export const createThirdPersonCamera = (
   const offsetDir = new BABYLON.Vector3();
   const probeOrigin = new BABYLON.Vector3();
   const upDir = BABYLON.Vector3.Up();
+  const downDir = BABYLON.Vector3.Down();
   const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward(), 1);
   const ceilingClearance = Math.max(cfg.minZ + 0.08, 0.2);
 
@@ -168,7 +169,9 @@ export const createThirdPersonCamera = (
   const isCameraObstacle = (mesh: BABYLON.AbstractMesh | undefined, ignore: Set<BABYLON.AbstractMesh>) => {
     if (!mesh || !mesh.isEnabled() || !mesh.isVisible || mesh.visibility <= 0) return false;
     if (ignore.has(mesh)) return false;
-    if ((mesh.metadata as { sceneTriggerId?: string } | undefined)?.sceneTriggerId) return false;
+    const meta = mesh.metadata as { sceneTriggerId?: string; cameraClip?: boolean } | undefined;
+    if (meta?.sceneTriggerId) return false;
+    if (meta?.cameraClip) return true;
     return mesh.checkCollisions || mesh.isPickable;
   };
 
@@ -205,6 +208,14 @@ export const createThirdPersonCamera = (
     const hit = pickAlong(probeOrigin, upDir, 12, ignore);
     if (hit?.hit && hit.pickedPoint) return hit.pickedPoint.y;
     return Number.POSITIVE_INFINITY;
+  };
+
+  /** World Y of the ground under a point. The look-up boom sinks through a thin plane the ray only grazes. */
+  const floorWorldY = (x: number, y: number, z: number, ignore: Set<BABYLON.AbstractMesh>) => {
+    probeOrigin.set(x, y, z);
+    const hit = pickAlong(probeOrigin, downDir, Math.max(0.4, y + 2), ignore);
+    if (hit?.hit && hit.pickedPoint) return hit.pickedPoint.y;
+    return Number.NEGATIVE_INFINITY;
   };
 
   const update = (
@@ -340,6 +351,10 @@ export const createThirdPersonCamera = (
       const capY = Math.min(maxCamY, overhead - ceilingClearance);
       if (Number.isFinite(capY) && smoothedPos.y > capY) smoothedPos.y = capY;
     }
+
+    const floorY = floorWorldY(smoothedPos.x, pivot.y + 0.25, smoothedPos.z, ignore);
+    const minCamY = floorY + ceilingClearance;
+    if (smoothedPos.y < minCamY) smoothedPos.y = minCamY;
 
     camera.position.copyFrom(smoothedPos);
     camera.setTarget(lookAt);

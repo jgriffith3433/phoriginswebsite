@@ -323,6 +323,7 @@ const placePierce = (x: number, z: number, yaw: number) => {
 if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
   Object.assign(window as unknown as Record<string, unknown>, {
     __phPlace: (x: number, z: number, yaw = 0) => placePierce(x, z, yaw),
+    __phLook: (dx: number, dy: number) => followCamera.addLook(dx, dy),
     __phFrame: (p: { x: number; y: number; z: number } | null, l?: { x: number; y: number; z: number }) => {
       if (p && l) followCamera.setCinematic(p, l);
       else followCamera.clearCinematic();

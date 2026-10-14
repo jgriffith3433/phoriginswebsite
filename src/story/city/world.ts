@@ -1307,7 +1307,16 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
       viewOnly ? null : coll.toMesh(`city-collide-${ix}-${iz}`, scene),
       ...extras,
     ].filter((m): m is BABYLON.Mesh => !!m);
-    for (const m of meshes) adopt(m);
+    for (const m of meshes) {
+      adopt(m);
+      if (!m.name.startsWith('city-ground-') && !m.name.startsWith('city-base-')) continue;
+      m.metadata = { cameraClip: true };
+      m.doNotSyncBoundingInfo = false;
+      m.computeWorldMatrix(true);
+      m.refreshBoundingInfo();
+      m.doNotSyncBoundingInfo = true;
+      m.freezeWorldMatrix();
+    }
     const chunk: Chunk = { key, ix, iz, meshes, far: farMeshes.get(key) ?? null };
     if (chunk.far) chunk.far.setEnabled(false);
     built.set(key, chunk);
