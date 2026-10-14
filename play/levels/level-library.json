@@ -58,7 +58,7 @@
       "enemyCount": 0,
       "combat": false,
       "playerSpeed": 3.05,
-      "arenaSize": 800,
+      "arenaSize": 4200,
       "reward": "The street"
     },
     {
