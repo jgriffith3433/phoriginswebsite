@@ -5,7 +5,7 @@ import {
   type Building, type City, type Junction, type Light, type Mass, type Piece, type Prop, type Store, type WalkPath,
   CHUNK, CURB, DOWNTOWN, LIGHT_COLORS, LOBBY, STATION_PIT, STYLE, buildCity,
 } from './layout';
-import { type V2, Grid, ccw, clamp, earcut, obbPush, pointAt, segDist, tangentAt } from './math2';
+import { type V2, Grid, ccw, clamp, earcut, obbPush, pointAt, segDist } from './math2';
 import { CITY_SHADERS, SHARED_UNIFORMS } from './shaders';
 
 type Vec3 = [number, number, number];
@@ -121,8 +121,6 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   const groundMat = shaderMat('city-ground', CITY_SHADERS.groundVert, CITY_SHADERS.groundFrag, { attributes: groundAttrs });
   const baseMat = shaderMat('city-base', CITY_SHADERS.groundVert, CITY_SHADERS.groundFrag, { attributes: groundAttrs });
   baseMat.zOffset = 3;
-  const decalMat = shaderMat('city-decal', CITY_SHADERS.groundVert, CITY_SHADERS.groundFrag, { attributes: groundAttrs });
-  decalMat.zOffset = -2;
   const facadeMat = shaderMat('city-facade', CITY_SHADERS.facadeVert, CITY_SHADERS.facadeFrag, { attributes: stdAttrs });
   const farMat = shaderMat('city-far', CITY_SHADERS.facadeVert, CITY_SHADERS.facadeFarFrag, { attributes: stdAttrs });
   const propMat = shaderMat('city-props', CITY_SHADERS.propVert, CITY_SHADERS.propFrag, { attributes: stdAttrs });
@@ -140,7 +138,7 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   glassMat.specularColor = new BABYLON.Color3(0.5, 0.5, 0.5);
   glassMat.alpha = 0.16;
   glassMat.backFaceCulling = false;
-  const shaders = [groundMat, baseMat, decalMat, facadeMat, farMat, propMat];
+  const shaders = [groundMat, baseMat, facadeMat, farMat, propMat];
 
   // ---------- Light map ----------
   const LM_SIZE = opts.mobile ? 512 : 1024;
@@ -1482,4 +1480,3 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
 
 export type CityWorld = ReturnType<typeof createCityWorld>;
 
-void tangentAt;

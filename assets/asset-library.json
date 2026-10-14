@@ -886,50 +886,6 @@
       "source": "project"
     },
     {
-      "id": "asset-street-hydrant",
-      "name": "street-hydrant.glb",
-      "path": "/assets/models/street-hydrant.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-can",
-      "name": "street-can.glb",
-      "path": "/assets/models/street-can.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-paperbox",
-      "name": "street-paperbox.glb",
-      "path": "/assets/models/street-paperbox.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-planter",
-      "name": "street-planter.glb",
-      "path": "/assets/models/street-planter.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
       "id": "asset-b3-drum",
       "name": "b3-drum.glb",
       "path": "/assets/models/b3-drum.glb",
@@ -981,61 +937,6 @@
       "tags": [
         "prop",
         "basement"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-facade-brick",
-      "name": "street-facade-brick.glb",
-      "path": "/assets/models/street-facade-brick.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-facade-concrete",
-      "name": "street-facade-concrete.glb",
-      "path": "/assets/models/street-facade-concrete.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-shop-market",
-      "name": "street-shop-market.glb",
-      "path": "/assets/models/street-shop-market.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-shop-diner",
-      "name": "street-shop-diner.glb",
-      "path": "/assets/models/street-shop-diner.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-shop-news",
-      "name": "street-shop-news.glb",
-      "path": "/assets/models/street-shop-news.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
       ],
       "source": "project"
     },
@@ -1098,17 +999,6 @@
       "id": "asset-street-newsstand",
       "name": "street-newsstand.glb",
       "path": "/assets/models/street-newsstand.glb",
-      "type": "model",
-      "tags": [
-        "prop",
-        "street"
-      ],
-      "source": "project"
-    },
-    {
-      "id": "asset-street-traffic-light",
-      "name": "street-traffic-light.glb",
-      "path": "/assets/models/street-traffic-light.glb",
       "type": "model",
       "tags": [
         "prop",

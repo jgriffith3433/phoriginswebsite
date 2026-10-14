@@ -2,7 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
 import { applySceneLighting, applyTheme } from '../game/scene';
-import { applyCullBands, collectCullBands, levelCullMeters, type CullBand } from '../game/levelCull';
+import { createCityWorld, type CityWorld } from '../story/city/world';
 import {
   createSceneAssetNode,
   createSceneTriggerNode,
@@ -163,7 +163,43 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   const setEditorBrightness = (value: number) => {
     editorBrightness = Math.min(6, Math.max(0.2, value));
     paintEditorBrightness();
+    paintCityBrightness();
   };
+
+  // Going Home's city is generated at runtime, not stored in the level file.
+  // The editor mounts the same generator so the level reads as it plays.
+  // City meshes are not pickable, so selection and the gizmo stay on authored objects.
+  let city: CityWorld | null = null;
+  let cityAmbient: BABYLON.Color3 | null = null;
+  let showCity = true;
+  let citySource: SceneData | null = null;
+  const paintCityBrightness = () => {
+    if (!city || !cityAmbient) return;
+    city.setEnv({ ambient: cityAmbient.scale(Math.min(editorBrightness, 4)) });
+  };
+  const disposeCity = () => {
+    if (!city) return;
+    city.dispose();
+    city = null;
+    cityAmbient = null;
+    camera.maxZ = 600;
+  };
+  const mountCity = () => {
+    disposeCity();
+    if (!showCity || citySource?.id !== 'going-home') return;
+    city = createCityWorld(scene, { mobile: false });
+    city.mount(camera.position.x, camera.position.z);
+    cityAmbient = city.env.ambient.clone();
+    camera.maxZ = 1800;
+    paintCityBrightness();
+  };
+  const setShowCity = (on: boolean) => {
+    showCity = on;
+    mountCity();
+  };
+  scene.onBeforeRenderObservable.add(() => {
+    city?.step(camera.position.x, camera.position.z, engine.getDeltaTime() / 1000);
+  });
 
   const noteNewLights = () => {
     scene.lights.forEach((light) => {
@@ -187,7 +223,6 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   const assetNodes = new Map<string, BABYLON.Node>();
   const triggerNodes = new Map<string, BABYLON.Node>();
   let selected: SelectionTarget | null = null;
-  let refreshCull = () => {};
 
   const metadataToTarget = (metadata: { sceneAssetId?: string; sceneTriggerId?: string } | undefined): SelectionTarget | null => {
     if (metadata?.sceneAssetId) return { kind: 'asset', id: metadata.sceneAssetId };
@@ -234,7 +269,6 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     selected = target;
     gizmoManager.attachToNode(owner ?? null);
     callbacks.onSelect(target);
-    refreshCull();
   };
 
   scene.onPointerObservable.add((pointerInfo) => {
@@ -257,34 +291,6 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   };
 
   let currentTheme = 'Neon Drift';
-  let cullMeters = 0;
-  let cullBands: CullBand[] = [];
-  let cullCensus = -1;
-  let cullWait = 0;
-
-  refreshCull = () => {
-    const count = scene.meshes.length + scene.transformNodes.length;
-    if (count !== cullCensus) {
-      cullBands = collectCullBands(scene, cullBands);
-      cullCensus = count;
-    }
-    const pinned = selected?.kind === 'asset' ? assetNodes.get(selected.id) ?? null : null;
-    applyCullBands(cullBands, camera.position.x, camera.position.z, cullMeters, pinned);
-  };
-
-  const setCull = (meters: number) => {
-    cullMeters = Math.max(0, meters);
-    cullCensus = -1;
-    refreshCull();
-  };
-
-  scene.onBeforeRenderObservable.add(() => {
-    cullWait -= engine.getDeltaTime() / 1000;
-    if (cullWait > 0) return;
-    cullWait = 0.28;
-    refreshCull();
-  });
-
   // Ground/walls/pillars are now regular scene assets (kind 'ground'/'wall'/
   // 'pillar'), so rebuilding just means clearing and re-loading from data —
   // no separate procedural arena step is needed anymore.
@@ -301,7 +307,8 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
       if (metadata?.sceneTriggerId) triggerNodes.set(metadata.sceneTriggerId, node);
     });
     rememberLighting();
-    setCull(levelCullMeters(sceneData));
+    citySource = sceneData;
+    mountCity();
   };
 
   const addAssetNode = (asset: SceneAssetInstance): BABYLON.Node => {
@@ -431,6 +438,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
   };
 
   const dispose = () => {
+    disposeCity();
     resizeObserver.disconnect();
     engine.dispose();
   };
@@ -442,7 +450,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
     gizmoManager,
     rebuildFromScene,
     setAmbient,
-    setCull,
+    setShowCity,
     setEditorBrightness,
     getCameraPose: readCameraPose,
     setCameraPose,

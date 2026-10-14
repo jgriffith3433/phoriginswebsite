@@ -27,7 +27,6 @@ import { mountPipeDrips } from './game/drips';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
-import { levelCullMeters } from './game/levelCull';
 import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
@@ -1883,7 +1882,6 @@ const home: GoingHome = createGoingHome({
     updateHud();
   },
   ability: () => shadowPick,
-  cull: () => levelCullMeters(missionScene),
 });
 
 const desk: TheDesk = createTheDesk({

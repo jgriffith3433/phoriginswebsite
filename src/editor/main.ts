@@ -20,7 +20,6 @@ import {
 import { bindSoundEffects } from './soundEffects';
 import { bindStoryLines } from './storyLines';
 import { getSceneTheme } from '../game/scene';
-import { levelCullMeters } from '../game/levelCull';
 import { toSceneAssetKind, type SceneAssetInstance, type SceneData, type SceneNodeMetadata, type SceneTrigger } from '../game/sceneData';
 import { MUSIC_TRIGGER_TYPE, isMusicTrigger, musicTriggerAudio } from '../game/triggers';
 import { createUnlockedAudio, installAudioUnlock, unlockAudio } from '../game/audioUnlock';
@@ -69,7 +68,7 @@ const EDITOR_PREFS_COOKIE = 'ph-origins-editor-prefs';
 const EDITOR_CAM_COOKIE = 'ph-origins-editor-cam';
 const EDITOR_COOKIE_AGE = 60 * 60 * 24 * 400;
 
-type EditorPrefs = { autoSave: boolean; brightness: number; level?: string; levelName?: string };
+type EditorPrefs = { autoSave: boolean; brightness: number; showCity: boolean; level?: string; levelName?: string };
 type CameraCookie = Record<string, CameraPose>;
 
 const readCookieJson = <T>(name: string): T | null => {
@@ -94,6 +93,7 @@ const readEditorPrefs = (): EditorPrefs => {
   const levelName = typeof parsed?.levelName === 'string' && parsed.levelName.trim() ? parsed.levelName : undefined;
   return {
     autoSave: parsed?.autoSave !== false,
+    showCity: parsed?.showCity !== false,
     brightness: Number.isFinite(brightness) ? Math.min(6, Math.max(0.2, brightness)) : 1,
     level,
     levelName,
@@ -750,57 +750,9 @@ const renderAmbientRow = (): HTMLElement => {
   return group;
 };
 
-const renderCullRow = (): HTMLElement => {
-  const value = levelCullMeters(sceneData);
-  const group = document.createElement('div');
-  group.className = 'inspector-row';
-  const title = document.createElement('div');
-  title.className = 'label';
-  title.innerHTML = `<span>Cull</span><span>${value.toFixed(0)} m</span>`;
-  group.appendChild(title);
-  const range = document.createElement('input');
-  range.type = 'range';
-  range.min = '0';
-  range.max = '400';
-  range.step = '1';
-  range.value = String(Math.min(400, value));
-  const number = document.createElement('input');
-  number.type = 'number';
-  number.min = '0';
-  number.step = '1';
-  number.value = String(Math.round(value));
-  const readout = title.querySelector('span:last-child');
-  const apply = (next: number) => {
-    if (!sceneData || !Number.isFinite(next)) return;
-    const meters = Math.max(0, next);
-    sceneData.cull = meters;
-    viewport.setCull(meters);
-    if (readout) readout.textContent = `${meters.toFixed(0)} m`;
-    void scheduleSave();
-  };
-  range.addEventListener('input', () => {
-    const next = Number(range.value);
-    number.value = String(next);
-    apply(next);
-  });
-  number.addEventListener('change', () => {
-    const next = Number(number.value) || 0;
-    range.value = String(Math.min(400, Math.max(0, next)));
-    apply(next);
-  });
-  group.appendChild(range);
-  group.appendChild(number);
-  const hint = document.createElement('div');
-  hint.className = 'value';
-  hint.textContent = 'Hide street blocks, facades, shops, and dressing past this distance. 0 draws everything. The fly camera previews it. Saved on this level.';
-  group.appendChild(hint);
-  return group;
-};
-
 const renderInspector = () => {
   inspectorEl.innerHTML = '';
   if (sceneData) inspectorEl.appendChild(renderAmbientRow());
-  if (sceneData) inspectorEl.appendChild(renderCullRow());
 
   if (!selection || !sceneData) {
     const empty = document.createElement('div');
@@ -1809,6 +1761,7 @@ const prefsOverlay = $('prefsOverlay');
 const editorBrightnessInput = $('editorBrightness') as HTMLInputElement;
 const editorBrightnessValue = $('editorBrightnessValue');
 const autoSaveToggle = $('autoSaveToggle') as HTMLInputElement;
+const showCityToggle = $('showCityToggle') as HTMLInputElement;
 const textureImportInput = $('textureImportInput') as HTMLInputElement;
 const textureImportOverlay = $('textureImportOverlay');
 const textureImportList = $('textureImportList');
@@ -1850,6 +1803,7 @@ const syncPrefsForm = () => {
   editorBrightnessInput.value = String(editorBrightnessInput.value || '1');
   editorBrightnessValue.textContent = Number(editorBrightnessInput.value).toFixed(2);
   autoSaveToggle.checked = autoSave;
+  showCityToggle.checked = editorPrefs.showCity;
 };
 
 const openPreferences = () => {
@@ -1877,6 +1831,12 @@ editorBrightnessInput.addEventListener('input', () => {
   editorBrightnessValue.textContent = brightness.toFixed(2);
   viewport.setEditorBrightness(brightness);
   storePrefs();
+});
+
+showCityToggle.addEventListener('change', () => {
+  editorPrefs = { ...editorPrefs, showCity: showCityToggle.checked };
+  writeEditorPrefs(editorPrefs);
+  viewport.setShowCity(showCityToggle.checked);
 });
 
 autoSaveToggle.addEventListener('change', () => {
@@ -2064,6 +2024,8 @@ window.addEventListener('beforeunload', () => {
   editorBrightnessInput.value = String(prefs.brightness);
   editorBrightnessValue.textContent = prefs.brightness.toFixed(2);
   autoSaveToggle.checked = prefs.autoSave;
+  showCityToggle.checked = prefs.showCity;
+  viewport.setShowCity(prefs.showCity);
   viewport.setEditorBrightness(prefs.brightness);
   clipTrims = await loadClipTrims();
   await populateLevelSelect();

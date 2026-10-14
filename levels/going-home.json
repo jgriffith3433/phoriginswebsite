@@ -3,7 +3,6 @@
   "name": "Going Home",
   "theme": "Street",
   "ambient": 0.78,
-  "cull": 0,
   "assets": [
     {
       "id": "lobby-floor",

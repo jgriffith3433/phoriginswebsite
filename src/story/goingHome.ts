@@ -45,7 +45,6 @@ export type GoingHomeHost = {
   shedShadow: (x: number, z: number) => void;
   pushPhoneText: (id: string) => void;
   ability: () => 'shock' | 'possess';
-  cull: () => number;
 };
 
 const HOME = { x: 163.5, z: 21.2 };

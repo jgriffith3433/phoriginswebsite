@@ -230,7 +230,7 @@ export const createTraffic = (scene: BABYLON.Scene, world: CityWorld, count: num
     return car;
   };
 
-  const buildTurn = (car: Car, from: Lane, next: Lane): Turn => {
+  const buildTurn = (from: Lane, next: Lane): Turn => {
     const a = from.pts[from.pts.length - 1];
     const a0 = from.pts[from.pts.length - 2] ?? a;
     const b = next.pts[0];
@@ -252,7 +252,6 @@ export const createTraffic = (scene: BABYLON.Scene, world: CityWorld, count: num
       pts = quadBezier(a, ctrl, b, 10);
     }
     const cum = cumulative(pts);
-    void car;
     return { pts, cum, len: cum[cum.length - 1], next, from: from.to };
   };
 
@@ -340,7 +339,7 @@ export const createTraffic = (scene: BABYLON.Scene, world: CityWorld, count: num
               continue;
             }
             const next = options[Math.floor(Math.random() * options.length)];
-            car.turn = buildTurn(car, lane, next);
+            car.turn = buildTurn(lane, next);
             car.ts = car.s - lane.len;
             if (!lane.signal) junctionBusy.set(lane.to, car);
           }

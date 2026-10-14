@@ -10,7 +10,7 @@
  * asphalt patch, rounded curbs, and sidewalk corners, so nothing overlaps.
  */
 import {
-  type OBB, type Rand, type V2, Grid, add, ccw, clamp, cross, cumulative, dist, dot, earcut, hash2, hermite,
+  type OBB, type Rand, type V2, Grid, add, ccw, clamp, cumulative, dist, dot, hash2, hermite,
   lineHit, noise1, norm, obbCorners, obbOverlap, obbPush, offsetLine, pick, pointAt, quadBezier, range, resample,
   rightOf, rng, scale, segDist, segHit, slice, sub, tangentAt,
 } from './math2';
@@ -538,7 +538,7 @@ export const buildCity = (): City => {
       for (const [t, side] of [[0.3, 1], [0.7, -1]] as const) {
         const s = crescent.len * t;
         const base = pointAt(crescent.pts, crescent.cum, s);
-        const idx = crescent.pts.findIndex((q, i) => crescent.cum[i] >= s);
+        const idx = crescent.pts.findIndex((_, i) => crescent.cum[i] >= s);
         const root = crescent.pts[Math.max(0, idx)];
         const tan = tangentAt(crescent.pts, crescent.cum, s);
         const out = scale(ccw(tan), side);
@@ -1240,8 +1240,6 @@ export const buildCity = (): City => {
           prop('bollard', x, 19.2, { x: 0, z: 1 });
           addCollider({ x, z: 19.2, hw: 0.14, hd: 0.14, ax }, 1);
         }
-        prop('planter', -10, 15.2, { x: 0, z: 1 }, 2.6);
-        prop('planter', 10, 15.2, { x: 0, z: 1 }, 2.6);
         lots.push(
           ...splitLots({ minX: block.minX, maxX: -14, minZ: block.minZ, maxZ: block.maxZ }, br),
           ...splitLots({ minX: 14, maxX: block.maxX, minZ: block.minZ, maxZ: block.maxZ }, br),
@@ -1317,7 +1315,6 @@ export const buildCity = (): City => {
       }
       for (const lot of lots) {
         const roll = br();
-        const isCorner = streetMask(lot, block);
         if (roll < 0.06 && !(cross === -42 && ave === -56)) {
           open.push(lot);
           plaza(lot, br);
@@ -1325,7 +1322,6 @@ export const buildCity = (): City => {
         }
         downtownLot(lot, block, br);
         solids.push(lot);
-        void isCorner;
       }
       // Paving: block minus buildings and holes.
       for (const r of rectsMinus([block], [...solids, ...holes])) paves.push({ pts: rectPts(r), kind: 4, y: CURB });
@@ -1403,7 +1399,7 @@ export const buildCity = (): City => {
         }
         const style = styleFor(dist0, height, br);
         const storefront = br() < P.shop;
-        const b = finishBuilding(o, height, style, storefront ? 2 : 0, storefront ? range(br, 4, 4.8) : 0, dist0, br);
+        finishBuilding(o, height, style, storefront ? 2 : 0, storefront ? range(br, 4, 4.8) : 0, dist0, br);
         if (dist0 === 'houses' || dist0 === 'apartments') {
           // Front walk and a yard tree.
           const yard = add({ x: o.x, z: o.z }, scale(toRoad, d / 2 + setback * 0.5));
@@ -1429,7 +1425,6 @@ export const buildCity = (): City => {
           addCollider({ x: dx, z: dz, hw: 1, hd: 0.7, ax }, 1.3);
           light(o.x + toRoad.x * (d / 2 + 1), o.z + toRoad.z * (d / 2 + 1), 7, 1, 0.6, 5);
         }
-        void b;
         s += w + range(frontRand, P.gap[0], P.gap[1]);
       }
     }
@@ -1769,8 +1764,6 @@ export const buildCity = (): City => {
     }
   }
 
-  void cross;
-  void obbPush;
   return {
     roads, pieces, junctions, buildings, props, lights, walks, lanes, colliders, paves, parks, parkPaths, stores, blocks, holes,
     grids: { pieces: pieceGrid, junctions: junctionGrid, buildings: buildingGrid, colliders: colliderGrid, walks: walkGrid, lanes: laneGrid },

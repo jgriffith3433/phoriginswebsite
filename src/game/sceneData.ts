@@ -79,8 +79,6 @@ export type SceneData = {
   theme: string;
   /** Hemispheric fill. Omitted levels use the theme intensity. */
   ambient?: number;
-  /** Street cull, meters. 0 draws everything. Omitted Going Home uses 70. */
-  cull?: number;
   assets: SceneAssetInstance[];
   triggers: SceneTrigger[];
 };
@@ -109,12 +107,10 @@ const cloneDefaultScene = (): SceneData => JSON.parse(JSON.stringify(DEFAULT_SCE
 const parseSceneData = (parsed: unknown): SceneData => {
   const data = (parsed && typeof parsed === 'object' ? parsed : {}) as Partial<SceneData>;
   const ambient = typeof data.ambient === 'number' && Number.isFinite(data.ambient) ? Math.max(0, data.ambient) : undefined;
-  const cull = typeof data.cull === 'number' && Number.isFinite(data.cull) ? Math.max(0, data.cull) : undefined;
   return {
     ...cloneDefaultScene(),
     ...data,
     ambient,
-    cull,
     assets: Array.isArray(data.assets) ? data.assets : DEFAULT_SCENE_DATA.assets,
     triggers: Array.isArray(data.triggers) ? data.triggers : DEFAULT_SCENE_DATA.triggers,
   };
@@ -447,10 +443,6 @@ const WALK_THROUGH = new Set([
   'asset-whiskey-glass',
   'asset-trophy',
   'asset-b3-crate',
-  'asset-street-planter',
-  'asset-street-shop-market',
-  'asset-street-shop-diner',
-  'asset-street-shop-news',
 ]);
 
 const blocksPlayer = (assetId: string) => {
