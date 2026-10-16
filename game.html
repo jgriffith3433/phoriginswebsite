@@ -1183,6 +1183,13 @@
 
       .inventory-hud.open .inventory-panel {
         display: flex;
+        /* never grow up into the health bar or objective card: scroll instead */
+        max-height: calc(100dvh - var(--safe-bottom) - 118px - var(--safe-top) - 72px);
+        overflow-y: auto;
+      }
+
+      body:has(.inventory-hud.open) .objective-hud {
+        opacity: 0;
       }
 
       .missions-hud.open #missionsHint {
@@ -1691,6 +1698,11 @@
         bottom: calc(var(--safe-bottom) + 236px);
       }
 
+      body[data-device='mobile'] .inventory-hud.open .inventory-panel,
+      body[data-device='tablet'] .inventory-hud.open .inventory-panel {
+        max-height: calc(100dvh - var(--safe-bottom) - 236px - var(--safe-top) - 72px);
+      }
+
       @media (orientation: landscape) and (max-height: 520px) {
         .hud {
           top: calc(var(--safe-top) + 8px);
@@ -1727,6 +1739,11 @@
         body[data-device='tablet'] .inventory-hud {
           bottom: calc(var(--safe-bottom) + 148px);
           gap: 4px;
+        }
+
+        body[data-device='mobile'] .inventory-hud.open .inventory-panel,
+        body[data-device='tablet'] .inventory-hud.open .inventory-panel {
+          max-height: calc(100dvh - var(--safe-bottom) - 148px - var(--safe-top) - 60px);
         }
       }
 
