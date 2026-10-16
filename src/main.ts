@@ -1630,6 +1630,14 @@ const startLevelCredits = (levelId: number) => {
   levelCredits.innerHTML = markup;
 };
 
+const showLoadError = (error: unknown) => {
+  console.error('Level load failed', error);
+  state.running = false;
+  gameReady = true;
+  showMessage('Could not load', 'The level failed to load. Check your connection and press Start to try again.');
+  screenFade.to(0, 0);
+};
+
 const showMessage = (title: string, text: string) => {
   messageTitle.textContent = title;
   messageText.textContent = text;
@@ -2028,9 +2036,9 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false) =
       await loadMissionScene(level.path);
     }
     beginGame();
-  } catch {
-    state.running = false;
-    showMessage('PH Origins', levelStartLine());
+  } catch (error) {
+    dressedLevelId = 0;
+    showLoadError(error);
   } finally {
     startingLevel = false;
   }
@@ -2116,7 +2124,10 @@ void (async () => {
     beginGame();
     act.startCall();
   }
-})().catch(() => applyLoadedScene(null));
+})().catch((error) => {
+  applyLoadedScene(null);
+  showLoadError(error);
+});
 
 const spawnPickup = (position: BABYLON.Vector3, item: InventoryItemType, amount = 1) => {
   const colorMap: Record<InventoryItemType, BABYLON.Color3> = {

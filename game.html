@@ -1713,7 +1713,7 @@
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" src="./src/main.ts"></script>
+    <script type="module" src="./src/main.ts" onerror="document.getElementById('messageText').textContent='The game failed to load. Reload the page to try again.';var b=document.getElementById('startBtn');b.textContent='Failed';b.removeAttribute('aria-busy')"></script>
   </head>
   <body>
     <div id="game-root">
