@@ -1,9 +1,10 @@
 const isLocalHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 const isLocalDev = isLocalHost && location.port !== '4173' && location.port !== '';
 
-document.querySelectorAll('[data-play]').forEach((link) => {
-  link.setAttribute('href', isLocalDev ? '/game.html' : '/play/index.html');
-});
+// The static href is the live build (/play/game.html). Vite dev serves the game from source at /game.html.
+if (isLocalDev) {
+  document.querySelectorAll('[data-play]').forEach((link) => link.setAttribute('href', '/game.html'));
+}
 
 const page = document.body.dataset.page;
 document.querySelectorAll('[data-nav]').forEach((link) => {

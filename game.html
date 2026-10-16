@@ -8,6 +8,52 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>PH Origins 3D</title>
+    <script>
+      // Vite substitutes the MODE placeholder below in dev and build. Served raw (GitHub Pages publishes the repo root, so
+      // https://phorigins.com/game.html is this source page), the module below is TypeScript that Pages
+      // sends as video/mp2t. Go to the build in play/ instead.
+      if ('%MODE%'.charAt(0) === '%') {
+        window.__phRedirecting = true;
+        location.replace('./play/game.html' + location.search + location.hash);
+      }
+      // If the game module fails to load or throws before it starts, say so instead of "Loading" forever.
+      // main.ts calls window.__phBoot.ok() once it is running.
+      (function () {
+        var started = false;
+        var fail = function (reason) {
+          if (started || window.__phRedirecting) return;
+          started = true;
+          var show = function () {
+            var title = document.getElementById('messageTitle');
+            var text = document.getElementById('messageText');
+            var btn = document.getElementById('startBtn');
+            if (title) title.textContent = 'Could not load the game';
+            if (text) text.textContent = reason + ' Check your connection and reload. If it keeps happening, try another browser.';
+            if (btn) {
+              btn.disabled = false;
+              btn.removeAttribute('aria-busy');
+              btn.textContent = 'Reload';
+              btn.onclick = function () { location.reload(); };
+            }
+            document.documentElement.setAttribute('data-load-error', reason);
+          };
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show);
+          else show();
+        };
+        window.__phBoot = { ok: function () { started = true; } };
+        window.addEventListener('error', function (event) {
+          var el = event.target;
+          if (el && el.tagName === 'SCRIPT' && el.type === 'module') fail('The game files did not load.');
+          else if (event instanceof ErrorEvent) fail('The game hit an error while starting.');
+        }, true);
+        window.addEventListener('unhandledrejection', function () { fail('The game hit an error while starting.'); });
+        setTimeout(function () {
+          if (started || window.__phRedirecting) return;
+          var text = document.getElementById('messageText');
+          if (text) text.textContent = 'Still loading. This is taking longer than usual; reload if it does not finish.';
+        }, 45000);
+      })();
+    </script>
     <style>
       :root {
         --bg: #05080c;

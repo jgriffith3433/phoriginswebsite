@@ -49,6 +49,7 @@ import { createAutoAim } from './game/autoAim';
 import { installPhPlaytest } from './playtest/phPlaytest';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
+(window as { __phBoot?: { ok(): void } }).__phBoot?.ok();
 const root = document.getElementById('game-root') as HTMLDivElement;
 const screenFade = createScreenFade(document.getElementById('screenFade') as HTMLElement);
 const healthBar = document.getElementById('healthBar') as HTMLDivElement;
