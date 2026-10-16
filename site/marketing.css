@@ -825,3 +825,13 @@ a {
     transition: none;
   }
 }
+
+/* What's new (releases.json, filled by hawkes-release.js) and the version in the footer. */
+.releases .hawkes-release { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 26px; }
+.releases .hawkes-release:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+.releases h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 0 0 8px; }
+.hawkes-release-version { color: var(--gold); letter-spacing: 0.12em; }
+.hawkes-release-date { margin-left: auto; color: var(--muted); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; }
+.releases ul { margin: 0; padding-left: 1.2em; }
+.releases li { margin: 0.35em 0; }
+.site-footer .footer-version { flex-basis: 100%; letter-spacing: 0.18em; }

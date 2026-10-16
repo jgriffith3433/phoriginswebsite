@@ -343,3 +343,12 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would beat `PistolAim` fallback. Lab consoles also sit in chem, decon, containment, and the transformation wing. The rest of the basement is still boxes. Landing stills are placeholders. Arena combat code still exists and stays off on story levels. Opaque level materials are PBR (albedo, normal, roughness). Do not assign `scene.environmentTexture`; characters and props use the flat probe in `assets/textures/probe/`.
 
 When you change IDs, clip names, sequence phases, or these constraints, **update this file**.
+
+## Versions and What's new
+
+Every go live is a release, made by Hawkes Studio (`hawkesstudio/src/releases.ts`): a semver version bumped at
+go live (minor when players get something new, patch for fixes) plus the build (the commit), shown as
+"1.4.0 (build ...)" and tagged `v<version>` in git. Studio adds the release to `releases.json` at the repo root (newest first) with the
+player-facing notes J approved in the go-live plan. `whatsnew.html`, the footer version and the game's start panel (`game.html`, built into `play/` by Studio's pre-deploy build) read it through `hawkes-release.js` (a copy of
+`hawkesstudio/clients/web/hawkes-release.js`: `[data-hawkes-version]`, `[data-hawkes-releases]`). Don't bump versions
+by hand; a typo in old notes can be fixed in the file on beta.

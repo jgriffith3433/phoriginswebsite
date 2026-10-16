@@ -1,0 +1,18 @@
+{
+  "product": "phorigins",
+  "name": "PH Origins",
+  "current": "1.0.0",
+  "releases": [
+    {
+      "version": "1.0.0",
+      "date": "2026-10-16",
+      "build": "e553b5f",
+      "title": "One night in Hawkes Tower",
+      "notes": [
+        "Six levels of a single night, from the boardroom on 58 down to what the tower keeps below.",
+        "Voiced dialogue and cutscenes carry you between floors.",
+        "If the game cannot load, it now says so instead of waiting in the dark."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#05080c" />
+    <meta
+      name="description"
+      content="Every update to PH Origins, newest first."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>What&rsquo;s new — PH Origins</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./site/marketing.css" />
+    <script
+      data-goatcounter="https://phorigins.goatcounter.com/count"
+      async
+      src="//gc.zgo.at/count.js"
+    ></script>
+  </head>
+  <body data-page="whatsnew">
+    <a class="skip" href="#content">Skip to content</a>
+
+    <header class="nav is-solid">
+      <div class="nav-inner">
+        <a class="brand" href="./index.html">
+          <svg viewBox="0 0 256 256" aria-hidden="true">
+            <path d="M72 176L128 52l56 124H72zm28-18h60L128 94l-28 64z" fill="#67d2ff" />
+            <circle cx="128" cy="86" r="20" fill="#7af0c9" />
+          </svg>
+          PH Origins
+        </a>
+        <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="nav-links">
+          Menu
+        </button>
+        <nav class="nav-links" id="nav-links" aria-label="Primary">
+          <a href="./index.html" data-nav="home">Home</a>
+          <a href="./about.html" data-nav="about">About</a>
+          <a href="./characters.html" data-nav="characters">Characters</a>
+        </nav>
+        <div class="nav-tools">
+          <button type="button" class="music-btn" id="musicBtn" aria-pressed="false" aria-label="Play music">
+            <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 10v4h3l4 3V7L7 10H4z" />
+              <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+              <path d="M18 6a8.5 8.5 0 0 1 0 12" />
+            </svg>
+            <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 10v4h3l4 3V7L7 10H4z" />
+              <path d="M16 9l5 6M21 9l-5 6" />
+            </svg>
+          </button>
+          <a class="nav-play" data-play href="/play/game.html">Play</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="content">
+      <section
+        class="page-hero"
+        style="background-image: url('./assets/landing/bg-1.jpg')"
+      >
+        <div class="wrap">
+          <p class="eyebrow">Building log</p>
+          <h1 class="page-title">What&rsquo;s new</h1>
+        </div>
+      </section>
+
+      <section class="band band-tight">
+        <div class="wrap prose releases" data-hawkes-releases>
+          <p>Reading the log&hellip;</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap-wide site-footer">
+        <span>Hawkes Tower — 58th floor</span>
+        <nav aria-label="Footer">
+          <a href="./index.html">Home</a>
+          <a href="./characters.html">Characters</a>
+          <a href="./whatsnew.html">What&rsquo;s new</a>
+          <a data-play href="/play/game.html">Play</a>
+        </nav>
+        <a class="footer-version" href="./whatsnew.html" data-hawkes-version data-prefix="Version " hidden></a>
+      </div>
+    </footer>
+
+    <audio id="landingAudio" src="./assets/audio/landing-page-song.mp3" loop preload="metadata" playsinline></audio>
+    <script src="./site/marketing.js" defer></script>
+    <script src="./site/hawkes-release.js" data-releases="./releases.json" defer></script>
+  </body>
+</html>
