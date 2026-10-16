@@ -895,8 +895,29 @@ export const installPhPlaytest = (probe: PhProbe) => {
           await sleep(500);
           await tap('o', 'Missions');
           await tap('i', 'Inventory');
-          await sleep(500);
+          await sleep(600);
+          // hold it open so the footage shows the panel, and check it is clear of the HUD around it
+          t.event('inventory open');
+          const rect = (sel: string) => {
+            const el = document.querySelector(sel) as HTMLElement | null;
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            const cs = getComputedStyle(el);
+            return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && +cs.opacity > 0.05 ? r : null;
+          };
+          const panel = rect('#inventoryPanel');
+          if (!panel) t.problem('bug', 'Inventory did not open: the panel is not visible after pressing I');
+          else {
+            const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+            for (const [name, sel] of [['objective card', '#objectiveHud'], ['health bar', '#healthBar']] as const) {
+              const other = rect(sel);
+              if (other && hit(panel, other)) t.problem('bug', `the open Inventory panel overlaps the ${name} (panel ${Math.round(panel.left)},${Math.round(panel.top)}-${Math.round(panel.right)},${Math.round(panel.bottom)}; ${name} ${Math.round(other.left)},${Math.round(other.top)}-${Math.round(other.right)},${Math.round(other.bottom)})`);
+            }
+          }
+          await sleep(2500);
           await tap('i', 'Inventory');
+          t.event('inventory closed');
+          await sleep(300);
           continue;
         }
         const label = probe.action();
