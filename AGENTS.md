@@ -352,3 +352,10 @@ go live (minor when players get something new, patch for fixes) plus the build (
 player-facing notes J approved in the go-live plan. `whatsnew.html`, the footer version and the game's start panel (`game.html`, built into `play/` by Studio's pre-deploy build) read it through `hawkes-release.js` (a copy of
 `hawkesstudio/clients/web/hawkes-release.js`: `[data-hawkes-version]`, `[data-hawkes-releases]`). Don't bump versions
 by hand; a typo in old notes can be fixed in the file on beta.
+
+## Making content (agents)
+
+Levels, beats, lines and generated assets are made end to end with the `phorigins-level` skill (`.claude/skills/`,
+loaded by Claude Code): canon from `phoriginsassets/Lore.txt` first, the scene + level library + story script +
+cutscenes + lines, generated materials/props/skies/voice through Hawkes Gen (GPU priced first, J's OK), then the
+level's `level-<n>` playtest. New story beyond The Station is a proposal for J until approved.
