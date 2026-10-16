@@ -6,6 +6,8 @@
     "alarm": { "title": "Objective", "text": "Investigate the terminal" },
     "elevator": { "title": "Objective", "text": "Get to the elevator" },
     "lab": { "title": "Objective", "text": "The halls are black past the lamps. G is the light. F opens the phone. Find the lab door." },
+    "lab-lost": { "title": "Objective", "text": "Up the pipe hall, then west down the long hall. The lab door is under the ACID VAT sign." },
+    "den": { "title": "It went south", "text": "Through the lab's south door. It is waiting in decon." },
     "lurk": { "title": "It is loose", "text": "It is moving in the dark. Keep the light up." },
     "hunt": { "title": "Shoot it", "text": "It is coming. Do not let it reach you." },
     "vat": { "title": "It breaks", "text": "It is running for the vat." },

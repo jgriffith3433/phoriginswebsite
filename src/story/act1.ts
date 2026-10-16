@@ -234,6 +234,10 @@ export const createAct1 = (host: ActHost) => {
   let retreatLeft = 0;
   let huntMood: 'lurk' | 'strike' = 'lurk';
   let huntWaiting = false;
+  let stallKey: 'lab-lost' | 'den' | null = null;
+  let stallFor = 0;
+  let stallBest = Infinity;
+  let stallHinted = false;
   let huntPosted: 'lurk' | 'strike' | null = null;
   let nextStrike = 5;
   let lurkIdle = 0;
@@ -1720,11 +1724,43 @@ export const createAct1 = (host: ActHost) => {
     syncObjective();
   };
 
+  /** No progress toward the lab door, or into decon while it waits there: point the way once. */
+  const STALL_SECONDS = 20;
+  const stepStall = (delta: number) => {
+    const den = CREATURE_FLEE_PATH[CREATURE_FLEE_PATH.length - 1];
+    let key: typeof stallKey = null;
+    let target = den;
+    if (host.isB3() && phase === 'to-lab') {
+      key = 'lab-lost';
+      target = B3_LAB_DOOR;
+    } else if (host.isB3() && phase === 'hunt' && huntWaiting && retreatLeft <= 0) key = 'den';
+    if (key !== stallKey) {
+      stallKey = key;
+      stallFor = 0;
+      stallBest = Infinity;
+      stallHinted = false;
+    }
+    if (!key || stallHinted || !host.running() || host.inCutscene()) return;
+    const here = host.playerXZ();
+    const dist = Math.hypot(here.x - target.x, here.z - target.z);
+    if (dist < stallBest - 1.5) {
+      stallBest = dist;
+      stallFor = 0;
+      return;
+    }
+    stallFor += delta;
+    if (stallFor < STALL_SECONDS) return;
+    stallHinted = true;
+    const line = objective(key);
+    host.setObjective(line.title, line.text, { x: target.x, y: key === 'den' ? 1.4 : 2.05, z: target.z });
+    syncObjective();
+  };
+
   const stepHunt = (delta: number) => {
     if (phase !== 'hunt' || host.inCutscene()) return;
     const node = creatureRoot();
     if (!node) return;
-    if (huntWaiting) {
+    if (huntWaiting && retreatLeft <= 0) {
       node.setEnabled(true);
       node.position.y = 0;
       playCreature('idle', 1);
@@ -1736,6 +1772,11 @@ export const createAct1 = (host: ActHost) => {
         nextStrike = 3.2 + Math.random() * 2.4;
         lurkIdle = 0.8;
         huntPath = [];
+        if (stallHinted) {
+          const line = objective('lurk');
+          host.setObjective(line.title, line.text, null);
+          syncObjective();
+        }
       }
       stepDread(node, Math.hypot(here.x - node.position.x, here.z - node.position.z), delta);
       return;
@@ -1924,6 +1965,8 @@ export const createAct1 = (host: ActHost) => {
       }
       return true;
     }
+    // Downed before Pierce walked into decon: it still runs for the vat.
+    huntWaiting = false;
     retreatLeft = 10;
     leapLeft = 0;
     node.position.y = 0;
@@ -2512,6 +2555,10 @@ export const createAct1 = (host: ActHost) => {
     host.clearObjectiveCue();
     phase = 'idle';
     huntWaiting = false;
+    stallKey = null;
+    stallFor = 0;
+    stallBest = Infinity;
+    stallHinted = false;
     stopAlarm();
     disposeSecurityFeed();
     elevatorDoorOpen = 0;
@@ -2974,6 +3021,7 @@ export const createAct1 = (host: ActHost) => {
           restorePracticals();
         }
       }
+      stepStall(delta);
       stepHunt(delta);
     },
     alarmTick: (delta: number) => {
