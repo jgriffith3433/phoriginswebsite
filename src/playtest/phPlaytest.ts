@@ -41,6 +41,8 @@ export type PhProbe = {
   skipButton: HTMLButtonElement | null;
   /** Test shortcut for setup: start a level directly, as Continue does. */
   setupLevel: (id: number) => Promise<void>;
+  /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
+  phoneFrame: (on: boolean) => void;
 };
 
 const LEVELS = [
@@ -347,6 +349,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
       { id: 'full', title: 'Levels 1–6 in order, cutscenes included (long rides skipped after 16 s)', seconds: 760, tags: ['full'] },
+      {
+        id: 'phone-b3',
+        title: 'Phone title card and buttons, About beat 01, then B3 with the creature downed before decon',
+        description: 'On a desktop viewport the page is laid out as a 390x844 phone for the title and button checks. Then the About page shows in an overlay, then level 2: stand still for the way hints, shoot it from the lab before entering decon, and finish the level.',
+        seconds: 260,
+        tags: ['menus'],
+      },
     ],
     isReady: () => probe.ready(),
     stallSeconds: 75,
@@ -856,6 +865,218 @@ export const installPhPlaytest = (probe: PhProbe) => {
       return 'won';
     };
 
+    // ---- phone-b3: the phone title card and buttons, About beat 01, B3 with the creature downed early
+    const shown = (el: Element | null) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      const cs = getComputedStyle(el);
+      return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > 0.05 ? r : null;
+    };
+    const box = (r: DOMRect) => `${Math.round(r.left)},${Math.round(r.top)}-${Math.round(r.right)},${Math.round(r.bottom)}`;
+    const overlaps = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const HUD_PARTS: [string, string][] = [['touch controls', '.controls .stick-ring'], ['action buttons', '#jumpBtn'], ['health bar', '#healthBar'], ['objective card', '#objectiveHud']];
+    const hudShowing = () => HUD_PARTS.filter(([, sel]) => shown(document.querySelector(sel))).map(([name]) => name);
+    const cardOpacity = () => {
+      const el = document.getElementById('messageBox');
+      return el && !el.classList.contains('hidden') ? +getComputedStyle(el).opacity : 0;
+    };
+
+    const phoneChecks = async () => {
+      const framed = window.innerWidth > 600;
+      if (framed) {
+        t.event('setup', `phone layout 390x844 (the viewport is ${window.innerWidth}x${window.innerHeight})`);
+        probe.phoneFrame(true);
+      }
+      t.scene('Phone title card');
+      t.progress(0.05);
+      await sleep(1200);
+      const early = hudShowing();
+      t.event('title-card', `card up, level running: ${probe.running()}, HUD showing: ${early.join(', ') || 'none'}`);
+      if (early.length) t.problem('bug', `phone: ${early.join(', ')} show around the title card before Start`);
+      await sleep(2500);
+      if (probe.running()) t.problem('bug', 'phone: the level is running behind the title card before Start was tapped');
+      else t.event('check', 'level waits for Start: not running after 3.7 s on the title card');
+
+      const menu = probe.menu();
+      press(probe.startButton, menu.start ?? 'Start');
+      const t0 = performance.now();
+      let goneAt = 0;
+      let runAt = 0;
+      let hudAt = 0;
+      let reported = false;
+      while (performance.now() - t0 < 20000 && !(goneAt && runAt && hudAt)) {
+        await tick();
+        const opacity = cardOpacity();
+        const hud = hudShowing();
+        const ms = Math.round(performance.now() - t0);
+        if (!goneAt && opacity === 0) { goneAt = ms; t.event('card-gone', `${ms} ms after Start`); }
+        if (!runAt && probe.running()) { runAt = ms; t.event('level-running', `${ms} ms after Start`); }
+        if (!hudAt && hud.length) { hudAt = ms; t.event('hud-shown', `${ms} ms after Start: ${hud.join(', ')}`); }
+        if (!reported && opacity > 0 && (hud.length || probe.running())) {
+          reported = true;
+          t.problem('bug', `phone: ${probe.running() ? 'the level runs' : `${hud.join(', ')} show`} while the title card is still on screen (opacity ${opacity.toFixed(2)})`);
+        }
+      }
+      if (!reported && goneAt) t.event('check', `title card gone first (${goneAt} ms), then the level (${runAt} ms) and HUD (${hudAt} ms)`);
+      t.progress(0.15);
+      await waitControl('level 1 after Start');
+      await sleep(3000);
+
+      t.scene('Phone action buttons');
+      t.progress(0.2);
+      const frame = document.getElementById('game-root')!.getBoundingClientRect();
+      const screen = framed ? frame : new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+      const scale = framed ? frame.width / 390 : 1;
+      const buttons = ['#phoneBtn', '#fireBtn', '#jumpBtn'].map((sel) => [sel, shown(document.querySelector(sel))] as const);
+      const stick = shown(document.querySelector('#rightStickZone .stick-ring'));
+      const badge = shown(document.getElementById('perfMonitor'));
+      for (const [sel, r] of buttons) {
+        if (!r) { t.problem('bug', `phone: action button ${sel} is not visible`); continue; }
+        const inside = r.left >= screen.left - 0.5 && r.right <= screen.right + 0.5 && r.top >= screen.top - 0.5 && r.bottom <= screen.bottom + 0.5;
+        const size = Math.round(r.width / scale);
+        t.event('phone-button', `${sel} ${size} px, ${inside ? 'inside' : 'OUTSIDE'} the screen (${box(r)}; screen ${box(screen)})`);
+        if (!inside) t.problem('bug', `phone: action button ${sel} is clipped by the screen edge (${box(r)}; screen ${box(screen)})`);
+        if (size > 64 || size < 56) t.problem('warning', `phone: action button ${sel} is ${size} px (asked for 56-64)`);
+        if (badge && overlaps(r, badge)) t.problem('bug', `phone: the FPS badge covers ${sel} (badge ${box(badge)}; button ${box(r)})`);
+      }
+      t.event('fps-badge', badge ? `shown at ${box(badge)} (debug build)` : 'hidden');
+      const top = Math.min(...buttons.map(([, r]) => r?.top ?? Infinity));
+      if (stick && Number.isFinite(top)) {
+        const gap = Math.round((top - stick.bottom) / scale);
+        t.event('look-stick-gap', `${gap} px between the look stick and the buttons`);
+        if (gap < 12) t.problem('bug', `phone: only ${gap} px between the look joystick and the action buttons`);
+      }
+      await sleep(3000);
+      if (framed) {
+        probe.phoneFrame(false);
+        t.event('setup', 'phone layout off');
+      }
+    };
+
+    const aboutCheck = async () => {
+      t.scene('About page');
+      const url = new URL(location.pathname.includes('/play/') ? '../about.html' : './about.html', location.href);
+      const frame = document.createElement('iframe');
+      frame.src = url.href;
+      Object.assign(frame.style, { position: 'fixed', inset: '4%', width: '92%', height: '92%', zIndex: '9999', border: '2px solid #d4b483', background: '#05080c' });
+      document.body.appendChild(frame);
+      try {
+        const until = performance.now() + 20000;
+        while (!frame.contentDocument?.querySelector('#basement') && performance.now() < until) await sleep(200);
+        await sleep(600);
+        const doc = frame.contentDocument;
+        if (!doc) { t.problem('warning', `About page did not load in the overlay (${url.href})`); return; }
+        const beat = doc.getElementById('board');
+        beat?.scrollIntoView({ block: 'center' });
+        await sleep(600);
+        const read = (id: string) => {
+          const lede = doc.querySelector(`#${id} .lede`);
+          const r = lede?.getBoundingClientRect();
+          const cs = lede ? frame.contentWindow!.getComputedStyle(lede) : null;
+          const visible = !!(r && r.height > 0 && cs && cs.visibility !== 'hidden' && +cs.opacity > 0.05);
+          return { visible, text: (lede?.textContent ?? '').trim().replace(/\s+/g, ' ') };
+        };
+        for (const [n, id] of [['01', 'board'], ['02', 'glass'], ['03', 'basement']] as const) {
+          const got = read(id);
+          t.event('about-beat', `${n} ${got.visible ? 'shows' : 'NO'} paragraph${got.text ? `: ${got.text.slice(0, 80)}…` : ''}`);
+          if (!got.visible || got.text.length < 40) t.problem('bug', `About: beat ${n} shows its heading but no paragraph`);
+        }
+        await sleep(3500);
+      } finally {
+        frame.remove();
+      }
+    };
+
+    /** Stand still until the objective changes to a hint that matches. */
+    const waitHint = async (what: string, test: RegExp, ms: number) => {
+      releaseAll();
+      const t0 = performance.now();
+      t.event('stand-still', `${what}: waiting for a way hint`);
+      while (performance.now() - t0 < ms) {
+        await tick();
+        const obj = probe.objective();
+        if (test.test(obj.text)) {
+          const secs = ((performance.now() - t0) / 1000).toFixed(0);
+          t.event('way-hint', `${what} after ${secs} s: ${obj.title} - ${obj.text}${obj.target ? ` (marker at ${obj.target.x.toFixed(1)}, ${obj.target.z.toFixed(1)})` : ''}`);
+          levelSteps += 1;
+          mark();
+          return true;
+        }
+        if (Math.round(performance.now() - t0) % 5000 < 70) { levelSteps += 0.05; mark(); }
+      }
+      t.problem('bug', `B3: no way hint ${what} after ${Math.round(ms / 1000)} s without progress (objective still "${probe.objective().text}")`);
+      return false;
+    };
+
+    const SHOOT_FROM = { x: 7.2, z: 32.6 }; // inside the lab, by the south door; decon starts at z 30.6
+    const earlyDownB3 = async (): Promise<Outcome> => {
+      levelIndex = 1;
+      await enterLevel(2);
+      mark();
+      t.scene(LEVELS[1].name);
+      t.event('level-start', `${LEVELS[1].name} (creature downed before decon)`);
+      await measureLook();
+      await waitControl('B3 arrival');
+      while (probe.phase() === 'arrive') await tick();
+      await waitHint('toward the lab door', /ACID VAT/i, 32000);
+
+      // To the lab door and the reveal, like a player.
+      for (;;) {
+        await tick();
+        if (probe.cutscene()) { releaseAll(); continue; }
+        if (probe.phase() === 'hunt') break;
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); continue; }
+        if (phone.busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) { releaseAll(); if (await once('e', 1200, label)) t.event('action', label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'lab door', 0.45);
+      }
+      while (probe.cutscene()) await tick();
+      await waitHint('after it fled into decon', /decon/i, 32000);
+
+      // Shoot it from the lab without stepping into decon.
+      t.scene('B3: down before decon');
+      const t0 = performance.now();
+      let downAt: { x: number; z: number } | null = null;
+      let placed = false;
+      let warned = false;
+      while (performance.now() - t0 < 60000) {
+        await tick();
+        const p = probe.player();
+        if (!warned && p.z < 30.6 && p.x < 16) { warned = true; t.problem('warning', 'bot stepped into decon before the creature went down'); }
+        const beast = probe.creature();
+        if (!beast) { downAt = { x: p.x, z: p.z }; break; }
+        // Walk toward the south door, stopping short of decon (or where the route ends).
+        if (!placed && (dist(p, SHOOT_FROM) < 1.2 || p.z < 31.6 || performance.now() - t0 > 20000)) {
+          placed = true;
+          t.event('shoot-from', `(${p.x.toFixed(1)}, ${p.z.toFixed(1)}), ${dist(p, beast).toFixed(1)} m from it`);
+        }
+        if (!placed) { await walkTo(SHOOT_FROM, 'lab, by the south door', 0.45); continue; }
+        releaseAll();
+        if (!p.weaponDrawn) { await once('q', 1800, 'draw sidearm'); continue; }
+        if (p.clip <= 0) { if (p.ammo > 0) await once('r', 2200, 'reload'); continue; }
+        const err = face(Math.atan2(beast.x - p.x, beast.z - p.z));
+        if ((probe.aimLocked() || Math.abs(err) < 0.12) && performance.now() - lastShot > 420) {
+          lastShot = performance.now();
+          clickCanvas();
+          t.add('shots');
+          t.add('interactions');
+        }
+      }
+      if (!downAt) { t.problem('warning', 'bot could not down the creature from the lab in 60 s'); return 'stuck'; }
+      t.event('creature-down-early', `Pierce at (${downAt.x.toFixed(1)}, ${downAt.z.toFixed(1)}), outside decon`);
+      levelSteps += 2;
+      mark();
+      const runT0 = performance.now();
+      while (!probe.cutscene() && performance.now() - runT0 < 16000) await tick();
+      const cut = probe.cutscene();
+      if (cut?.id === 'b3-vat-break') t.event('vat-run', `it ran for the vat; vat scene after ${((performance.now() - runT0) / 1000).toFixed(1)} s`);
+      else t.problem('bug', 'B3 softlock: the creature went down before Pierce entered decon and never ran for the vat');
+      return playLevel(2);
+    };
+
     // ---- scenarios
     await t.until(() => probe.ready(), 90000, 'game ready');
     t.scene('Title');
@@ -953,6 +1174,19 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
       t.progress(1);
       t.finish('won');
+      return;
+    }
+
+    if (id === 'phone-b3') {
+      // Progress: phone checks, About, then B3 as the second half.
+      levelsTotal = 2;
+      await phoneChecks();
+      t.progress(0.3);
+      await aboutCheck();
+      t.progress(0.45);
+      const outcome = await earlyDownB3();
+      t.progress(1);
+      t.finish(outcome);
       return;
     }
 

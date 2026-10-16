@@ -1632,6 +1632,7 @@ const startLevelCredits = (levelId: number) => {
 };
 
 const showMessage = (title: string, text: string) => {
+  messageBox.classList.remove('leaving');
   messageTitle.textContent = title;
   messageText.textContent = text;
   syncStartButtonLabel();
@@ -1654,8 +1655,26 @@ const showMessage = (title: string, text: string) => {
 const hideMessage = () => {
   stopLevelCredits();
   messageBox.classList.add('hidden');
+  messageBox.classList.remove('leaving');
   updateCrosshairVisibility();
 };
+
+/** Start fades the card out over the black veil. The level, HUD and touch controls only come after it is gone. */
+const CARD_FADE_MS = 400;
+let cardLeaving = false;
+const fadeOutCard = () => new Promise<void>((resolve) => {
+  if (messageBox.classList.contains('hidden')) {
+    resolve();
+    return;
+  }
+  cardLeaving = true;
+  screenFade.to(1, CARD_FADE_MS / 1000);
+  messageBox.classList.add('leaving');
+  window.setTimeout(() => {
+    cardLeaving = false;
+    resolve();
+  }, CARD_FADE_MS);
+});
 
 const clearDynamicObjects = () => {
   clearEnemies(enemies);
@@ -2028,6 +2047,7 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false) =
       applyLevelConfig(level);
       await loadMissionScene(level.path);
     }
+    await fadeOutCard();
     beginGame();
   } catch {
     state.running = false;
@@ -3077,6 +3097,7 @@ fireBtn.addEventListener('pointerleave', () => { state.fireHeld = false; });
 fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
 startBtn.addEventListener('click', () => {
+  if (cardLeaving) return;
   unlockAudio();
   const mode = menuMode();
   if (mode === 'level-complete') {
@@ -3097,7 +3118,8 @@ startBtn.addEventListener('click', () => {
     void startAtLevel(state.level, false, true);
     return;
   }
-  beginGame();
+  if (!gameReady) return;
+  void fadeOutCard().then(beginGame);
 });
 newGameBtn.addEventListener('click', () => {
   unlockAudio();
@@ -3351,6 +3373,8 @@ const cycleTheme = () => {
 const isLocalPlay = () => (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
 
 if (isLocalPlay()) devToggle.hidden = false;
+// The FPS / MEM readout shows on phones and tablets only in debug (dev server or ?debug).
+if (isLocalPlay() || new URLSearchParams(location.search).has('debug')) document.body.dataset.debug = 'true';
 
 const renderLevelSelect = () => {
   levelList.innerHTML = '';
@@ -3487,10 +3511,29 @@ updateHud();
 updateCrosshairVisibility();
 configureResponsiveUI(root);
 engine.runRenderLoop(renderLoop);
+let phoneFramed = false;
 window.addEventListener('resize', () => {
-  configureResponsiveUI(root);
+  if (!phoneFramed) configureResponsiveUI(root);
   engine.resize();
 });
+
+/** Playtest setup: lay the page out as a 390x844 phone, centred and scaled to fit a desktop viewport. */
+const setPhoneFrame = (on: boolean) => {
+  phoneFramed = on;
+  if (on) {
+    const scale = Math.min(1, window.innerHeight / 844, window.innerWidth / 390);
+    Object.assign(root.style, { width: '390px', height: '844px', margin: '0 auto', transform: `scale(${scale})`, transformOrigin: 'center center' });
+    document.body.dataset.device = 'mobile';
+    document.body.dataset.orientation = 'portrait';
+    document.body.dataset.touch = 'true';
+    root.classList.add('is-mobile');
+    root.style.setProperty('--ui-scale', '0.96');
+  } else {
+    Object.assign(root.style, { width: '', height: '', margin: '', transform: '', transformOrigin: '' });
+    configureResponsiveUI(root);
+  }
+  engine.resize();
+};
 
 // Hawkes playtest contract (src/playtest/phPlaytest.ts). Read-only probe; the bot plays through real input.
 installPhPlaytest({
@@ -3569,4 +3612,5 @@ installPhPlaytest({
   newGameButton: newGameBtn,
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
+  phoneFrame: setPhoneFrame,
 });

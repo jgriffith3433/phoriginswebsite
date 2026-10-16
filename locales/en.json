@@ -1519,6 +1519,22 @@
       "note": "Objective lab. speaker is the short title."
     },
     {
+      "id": "objective.lab-lost",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "Up the pipe hall, then west down the long hall. The lab door is under the ACID VAT sign.",
+      "audio": "",
+      "note": "Objective lab, after no progress toward the lab door. speaker is the short title."
+    },
+    {
+      "id": "objective.den",
+      "type": "objective",
+      "speaker": "It went south",
+      "text": "Through the lab's south door. It is waiting in decon.",
+      "audio": "",
+      "note": "Objective lurk, while it waits in decon and Pierce has not followed. speaker is the short title."
+    },
+    {
       "id": "objective.lurk",
       "type": "objective",
       "speaker": "It is loose",

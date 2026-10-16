@@ -8,6 +8,7 @@ export interface Scenario {
   title: string;
   seconds: number;
   tags?: string[];
+  description?: string;
 }
 
 export interface RunOptions {
