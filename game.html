@@ -8,6 +8,13 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>PH Origins 3D</title>
+    <script>
+      // Vite fills in %MODE% for dev and build. Served raw (the deployed repo root),
+      // the module below is TypeScript the host sends as video/mp2t, so go to the build.
+      if ('%MODE%'.charAt(0) === '%') {
+        location.replace('./play/game.html' + location.search + location.hash);
+      }
+    </script>
     <style>
       :root {
         --bg: #05080c;

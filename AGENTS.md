@@ -115,7 +115,7 @@ tools/                      Blender convert, bake anims, texture pipeline
 
 ### Marketing site
 
-Home, About, and Characters share `site/marketing.css` and `site/marketing.js`. Play goes to `/game.html` on a local dev host (any port except the preview server on 4173) and `/play/index.html` elsewhere. Landing music key stays `ph-origins-landing-music`, volume **0.42**.
+Home, About, and Characters share `site/marketing.css` and `site/marketing.js`. Play goes to `/game.html` on a local dev host (any port except the preview server on 4173) and `/play/index.html` elsewhere. Landing music key stays `ph-origins-landing-music`, volume **0.42**. Deploy pushes the repo root, so `/game.html` on the live site is the unbuilt source page (Pages serves `src/main.ts` as `video/mp2t`). An inline script at the top of `game.html` redirects to `./play/game.html` when `%MODE%` was not filled in by Vite; keep it.
 
 Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman), **Voss** (man), **Lang** (man). Do not invent first names. The post-vat figure on Characters is concept art; Ch44 is still reserved and not swapped in.
 
