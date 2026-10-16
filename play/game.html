@@ -419,6 +419,18 @@
         margin-right: 4px;
       }
 
+      /* Phones and tablets: the readout sat on the action buttons. Debug only, at the top. */
+      body[data-device='mobile']:not([data-debug]) .perf-monitor,
+      body[data-device='tablet']:not([data-debug]) .perf-monitor {
+        display: none;
+      }
+
+      body[data-device='mobile'] .perf-monitor,
+      body[data-device='tablet'] .perf-monitor {
+        top: calc(var(--safe-top) + 14px);
+        bottom: auto;
+      }
+
       #perfFps[data-band='high'] { color: var(--good); }
       #perfFps[data-band='mid'] { color: var(--warning); }
       #perfFps[data-band='low'] { color: #ff5d6c; }
@@ -1399,15 +1411,31 @@
         justify-content: center;
         background: rgba(3, 8, 14, 0.4);
         z-index: 10;
+        transition: opacity 0.4s ease;
       }
 
       .message.hidden {
         display: none;
       }
 
+      /* Start fades the card out; the level begins once it is gone. */
+      .message.leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* Nothing of the level's HUD or touch controls shows while a card is up. */
       body:has(.message:not(.hidden)) .inventory-hud,
       body:has(.message:not(.hidden)) .missions-hud,
-      body:has(.message:not(.hidden)) .ability-readout {
+      body:has(.message:not(.hidden)) .ability-readout,
+      body:has(.message:not(.hidden)) .hud,
+      body:has(.message:not(.hidden)) .controls,
+      body:has(.message:not(.hidden)) .objective-hud,
+      body:has(.message:not(.hidden)) .action-hint,
+      body:has(.message:not(.hidden)) .interact-hint,
+      body:has(.message:not(.hidden)) .reload-hint,
+      body:has(.message:not(.hidden)) .phone-panel,
+      body:has(.message:not(.hidden)) .phone-toast {
         visibility: hidden;
       }
 
@@ -1682,11 +1710,32 @@
         font-size: 22px;
       }
 
+      /* Three 60 px buttons and the move stick fit a 360 px wide phone inside the safe area. */
       body[data-device='mobile'] .action-btn,
       body[data-device='tablet'] .action-btn {
-        width: 80px;
-        height: 80px;
-        font-size: 22px;
+        width: 60px;
+        height: 60px;
+        font-size: 20px;
+      }
+
+      body[data-device='mobile'] .controls,
+      body[data-device='tablet'] .controls {
+        padding: 0 max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+      }
+
+      body[data-device='mobile'] .left-stick-zone {
+        width: 136px;
+        height: 136px;
+      }
+
+      body[data-device='mobile'] .right-controls,
+      body[data-device='tablet'] .right-controls {
+        gap: 18px;
+      }
+
+      body[data-device='mobile'] .right-action-zone,
+      body[data-device='tablet'] .right-action-zone {
+        gap: 10px;
       }
 
       body[data-device='mobile'] kbd {
@@ -1764,15 +1813,15 @@
         }
 
         .action-btn {
-          width: 80px;
-          height: 80px;
-          font-size: 22px;
+          width: 60px;
+          height: 60px;
+          font-size: 20px;
         }
       }
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" crossorigin src="./assets/index-BLT4upM9.js"></script>
+    <script type="module" crossorigin src="./assets/index-C8D22L6e.js"></script>
   </head>
   <body>
     <div id="game-root">
