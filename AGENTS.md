@@ -43,9 +43,9 @@ Writes under `assets/`, `levels/`, `cutscenes/`, and `locales/` do not hot-reloa
 
 Levels 1 through 6 are playable: Apex Peak, B3, The Return, The Desk, Going Home, The Station. Combat stays off on all of them.
 
-**Story copy** lives in `locales/en.json`. English is the default. Each line has a stable `id`, a `type`, a `speaker`, the `text`, an `audio` path, an optional `audioText`, and an editor-only `note`. Spoken types are `phone`, `dialogue`, `bark`, and `shout`. An empty `audio` on those is a missing clip. `text`, `objective`, `hud`, `item`, `credit`, and `ui` stay silent. Phone scripts and cutscene events keep timing and point at a line id. Dev Tools → **Story lines** lists them. Double-click a line to edit it. **Speaker** is the name on the subtitle. **Voice** is the Eleven v4 voice that character uses, saved in `locales/voices.json`, and the dropdown is the account's voice library. **Preview** plays the clip on that line. **Generate** on a row, or **Generate missing / out of date**, calls ElevenLabs and writes an ogg. The ogg stores the sentence, voice id, and performance in a `PHMETA` comment (`audioText`). Older wavs still read their `phln` chunk. A spoken line with a file and no matching record is out of date, which is every clip made before that record existed. Changing a character's voice marks their lines out of date. Takes use **eleven_v4**. Performance defaults to Default, which sends the sentence with no audio tag. Any other choice prefixes that tag, and the ogg records which one was used. The key is `ELEVENLABS_API_KEY` in `.env`. Reload the game after a save. `node tools/extract_locale.mjs` rebuilds ids from the timelines without wiping lines that are already in the catalog. Change a sentence there, not in a cutscene or in `phone.json`.
+**Story copy** lives in `locales/en.json`. English is the default. Each line has a stable `id`, a `type`, a `speaker`, the `text`, an `audio` path, an optional `audioText`, and an editor-only `note`. Spoken types are `phone`, `dialogue`, `bark`, and `shout`. An empty `audio` on those is a missing clip. `text`, `objective`, `hud`, `item`, `credit`, and `ui` stay silent. Phone scripts and cutscene events keep timing and point at a line id. Dev Tools → **Story lines** lists them. Double-click a line to edit it. **Speaker** is the name on the subtitle. **Voice** is the Eleven v4 voice that character uses, saved in `locales/voices.json`, and the dropdown is the account's voice library. **Preview** plays the clip on that line. **Generate** on a row, or **Generate missing / out of date**, calls ElevenLabs and writes an ogg. The ogg stores the sentence, voice id, and performance in a `PHMETA` comment (`audioText`). Older wavs still read their `phln` chunk. A spoken line with a file and no matching record is out of date, which is every clip made before that record existed. Changing a character's voice marks their lines out of date. Takes use **eleven_v4**. Performance defaults to Default, which sends the sentence with no audio tag. Any other choice prefixes that tag, and the ogg records which one was used. ElevenLabs runs through Hawkes Gen (`tools/hawkesgen.mjs` → `C:\Projects\hawkesgen`), which holds the key: start `hawkesgen\auto-start.bat` first. Reload the game after a save. `node tools/extract_locale.mjs` rebuilds ids from the timelines without wiping lines that are already in the catalog. Change a sentence there, not in a cutscene or in `phone.json`.
 
-**Sound effects** live in `locales/sfx.json`. Dev Tools → **Sound effects** lists them. Each effect has an `id`, a `group`, the `text` (the prompt), an `audio` path, an optional `loop`, an optional `duration` in seconds, an `influence`, a `volume`, and an editor-only `note`. Volume is the playback level. Preview plays at that level. The game scales its existing level by volume against the level that effect shipped at, so leaving the slider alone does not change the mix. Volume is not part of the out-of-date check. The game still plays the path in code. The catalog points at that file, and Generate overwrites it. A missing file is **Needs clip**. A file with no record, or a description, loop, duration, or influence that does not match the record, is **Out of date**. **Generate** on a row, **Generate missing / out of date**, and **Regenerate all** call ElevenLabs sound generation (`eleven_text_to_sound_v2`). One description is one sound. Duration is left blank on a hit so the model picks the length. Loop and a duration are set only on a bed the game repeats. Influence is how tightly the sound follows the description. The take is 44.1 kHz, written as the file the game already plays. A wav stores the record in an `sfxm` chunk. An ogg stores it in an `SFXMETA` comment. The key is `ELEVENLABS_API_KEY` in `.env`. Do not generate the whole list unless that is the job. The long beds cost more because their duration is set.
+**Sound effects** live in `locales/sfx.json`. Dev Tools → **Sound effects** lists them. Each effect has an `id`, a `group`, the `text` (the prompt), an `audio` path, an optional `loop`, an optional `duration` in seconds, an `influence`, a `volume`, and an editor-only `note`. Volume is the playback level. Preview plays at that level. The game scales its existing level by volume against the level that effect shipped at, so leaving the slider alone does not change the mix. Volume is not part of the out-of-date check. The game still plays the path in code. The catalog points at that file, and Generate overwrites it. A missing file is **Needs clip**. A file with no record, or a description, loop, duration, or influence that does not match the record, is **Out of date**. **Generate** on a row, **Generate missing / out of date**, and **Regenerate all** call ElevenLabs sound generation (`eleven_text_to_sound_v2`). One description is one sound. Duration is left blank on a hit so the model picks the length. Loop and a duration are set only on a bed the game repeats. Influence is how tightly the sound follows the description. The take is 44.1 kHz, written as the file the game already plays. A wav stores the record in an `sfxm` chunk. An ogg stores it in an `SFXMETA` comment. ElevenLabs runs through Hawkes Gen (`tools/hawkesgen.mjs` → `C:\Projects\hawkesgen`), which holds the key: start `hawkesgen\auto-start.bat` first. Do not generate the whole list unless that is the job. The long beds cost more because their duration is set.
 
 **Missions** live in `src/game/missions.ts`. **O** opens the panel on the bottom left and closes inventory, the same way **I** closes Missions. The list is the live main objective plus the side quests, titled `Missions n/m`. Completion is the `missions` field on the `ph-origins-save` cookie: `Record<libraryId, questId[]>`. New Game sets that to `{}`. Reset on the title clears the cookie. The death screen offers Start (retry this level) and Main Menu (title, progress kept). A quest id that is not in `missionsFor` for the current library id is ignored.
 
@@ -65,6 +65,29 @@ Levels 1 through 6 are playable: Apex Peak, B3, The Return, The Desk, Going Home
 **Window and feed.** After the board leaves, the phase is `to-window` and **Look outside** starts `apex-window`. The security feed mounts when that monologue ends, then the Voss call. Do not show the feed during the monologue.
 
 Do not click **New Game** while checking the running game. It rewrites health, ammo, medkits, and missions. `?beat=` and **Continue** are the safe entries. Do not regenerate ElevenLabs lines that the free tier already blocked.
+
+## Generative AI (Hawkes Gen)
+
+Every generator goes through **Hawkes Gen** (`C:\Projects\hawkesgen`, http://127.0.0.1:8790), the service all
+Hawkes projects share. It holds the ElevenLabs, Claude and AWS keys and runs the GPU fleet. The client is
+`tools/hawkesgen.mjs`, a copy of `hawkesgen/clients/js/hawkesgen.mjs`; copy it again when that one changes.
+The project's art direction is `hawkesgen/presets/phorigins.json`:
+
+| Preset | What it makes |
+|---|---|
+| `material` | A seamless material (wall, floor, trim) |
+| `sign` | Posters, ads and documents (Hawkes Biomedical, Voss Capital, Liberty Square, Midnight Diner) |
+| `sky` | 360° panoramas for skyboxes |
+| `screen-loop` | Loops for screens |
+| `prop` | Textured GLB props |
+| `bark` | Pierce's inner-voice barks (Claude) |
+
+- **Materials:** `node tools/genMaterial.mjs <name> "<description>"` paints the albedo, derives `_normal` and
+  `_roughness` maps, and writes them to `phoriginsassets/textures/generated/`. Then run the usual texture
+  pipeline. GLB-only still holds: a generated prop is a source asset until it is converted and compressed.
+- **Anything else:** `hawkesgen.cmd run - --project phorigins --preset sky --param prompt="..."`, or the
+  Hawkes Gen dashboard. Results are in its library.
+- Public Hawkes signage never shows B3, the vat or the creature.
 
 ## Layout
 
@@ -155,6 +178,39 @@ After the desk. Pierce is `asset-ch44-hero`. Combat waves stay off. `?beat=home`
 **Level 6 — The Station** (`levels/the-station.json`, theme `Station`)
 
 After the street. Pierce is `asset-ch44-hero`. Combat stays off. `?beat=station` starts him at the bottom of the stairs he just came down. Before he can walk, a scripted scene plays (Skip ends it the same way as the other story scenes). A commuter (`asset-ch28-npc`) waits on the platform by the west car, about x 24, z −1.15. A shadow duplicate of that same mesh stands beside him, darkened and partly see-through, facing the same way. While they talk that shadow loops `YellingOut`. When the lines end it plays `Melee360`, the black smoke shed plays, and the shadow is gone. The opening shot stays wide through Pierce’s two lines so shadow Pierce and the shadow commuter are both in frame. The pre-transform body (`asset-ch33-hero`, not the player) walks up from the train and talks to the commuter: uptown, this car, save a seat. Pierce, Jackson at **0.92**, says “Wait. Is that me?” and “How am I talking to him if I'm standing here?” (`station-shadow/01-pierce-is-that-me.wav`, `02-pierce-standing-here.wav`). The commuter boards through the open door and the other Pierce follows him in, so no second Pierce is left on the platform. Control returns on the stairs. About **0.7s** later Hale calls (`hale-board` in `src/story/phone.json`). She is pleased the board turned out well and says she will update him soon. Pierce answers “Alright.” Hale is Annie, Pierce is Jackson, volume **0.92** (`phone/hale-board-well.wav`, `pierce-alright.wav`, `hale-update-soon.wav`). Then the open door is still the ending. The concourse has six turnstiles (`asset-subway-turnstile`), then a platform, a track trench with two rails and ties, and two train cars (`asset-subway-train`, 18 m) with the open door in the gap. Steel columns (`asset-subway-column`) stand along the south side. The south wall has a ticket machine before the turnstiles (`asset-subway-kiosk`, 1.75 m), two steel benches (`asset-subway-bench`, 2.23 m), and three mesh bins (`asset-subway-bin`, 0.85 m). Yaw π turns the benches toward the platform. The kiosk faces the hall at yaw 0. Those props block the player. The city kit also sits on that wall and blocks the player: a bench at x 20, a trash can at x 56, a recycle bin at x 76, and a newsstand at x 8.2 just west of the turnstiles. Textures on this set are 512 JPEG with the normal maps removed so the phone build stays small. Objective is that door. A few commuters walk the platform. The same rule as the street: only about one in five runs, and only from right beside him. They turn around if they walk into him, and in Shadow mode he passes through them. Shadow mode stays on. **C** toggles it and **Q** raises the hands. The current ability shows at the bottom. **Tab** switches Punch and Kick, or Shadow Shock and Possess while Shadow mode is on. Click uses it only while Shadow mode is on, and a second click kills. With Shadow mode off, click is Punch or Kick unless the sidearm is drawn. Turning Shadow mode off releases a link. Switching ability lets go. Possess lasts **30s**, then the link releases. **Shift** in Shadow mode is the same shadow run as the street. Bodies rest on the platform and are removed **60s** after death. Fluorescent grade, no city skybox, flashlight stays off. Station bed is `room-tone.mp3` at **0.10**. Shadow mode, Shock, possess, consume, and a death use the same clips as the street. Level complete plays `ending-6`. After The Station there is no next level, so that card is Exit only. The station scene and `hale-board` are the new lines. Runtime station kit (`src/story/stationDress.ts`), overlay geometry in front of the authored shell (collision stays authored): subway tile walls with a mosaic band, HAWKES ST tablets and a 6 line bullet, platform concrete with a yellow tactile edge, ballast and a third rail in the trench, girder ceiling with two rows of fluorescent tubes (one fails), four lit ads (Hawkes Biomedical, Voss Capital, Liberty Square, Midnight Diner), a departure board that counts down every second, and raymarched tunnel mouths at both ends of the track (portal lateral uv must run along `cross(up, n)` or the rails bend). Dust and faint shafts from the atmosphere kit.
+
+## Playtests
+
+The game implements the Hawkes playtest contract v1 (`C:\Projects\hawkesstudio\docs\playtest.md`), product id
+`phorigins`. Hawkes Gen's `playtest.run` (Playwright) drives it daily from Hawkes Studio.
+
+- `src/hawkes-playtest.js` is a copy of `hawkesstudio/clients/web/hawkes-playtest.js`. Copy it again when that one
+  changes; do not edit it here. `src/hawkes-playtest.d.ts` types it.
+- `src/playtest/phPlaytest.ts` is the bot. `main.ts` calls `installPhPlaytest` at the end with a **read-only probe**
+  (player, camera yaw, objective marker, action label, phase, cutscene, phone, title card, creature aim point,
+  shadow state, street people, pickups). Nothing runs until `window.hawkesPlaytest.start(id)` or `?playtest=<id>`.
+- The bot plays through real input: key events (WASD, E, F, Q, R, H, C, Tab, Space, O, I), canvas clicks (fire,
+  Shadow Shock, Possess), a touch drag for the camera, and the Start / Continue / New Game / Skip buttons. It routes
+  with A* on a 0.2 m grid built from the loaded scene (ground slabs, minus padded colliders, plus the B3 doorway
+  links), and walks to the objective marker. On the street it follows the south sidewalk (z 22.6) to the stairs.
+  The one shortcut is `setupLevel(n)` (`startAtLevel(n, true, true)`), used to begin `level-2` … `level-6`.
+- The save cookie and its localStorage copy are put back when a run ends, so a run does not change progress.
+- Scenarios: `smoke` (Start, answer Voss, open Missions and Inventory, walk to the head chair, Join meeting, Skip;
+  about 55 s), `level-1` … `level-6` (each to the Level Complete card), `full` (1–6 with Continue; the two elevator
+  rides are skipped after 16 s to fit about 10 minutes). `options.speed` > 1 skips each timeline after
+  duration / speed.
+- Metrics: `levelNSeconds`, `interactions`, `dialogueLines`, `cutscenes`, `cutscene:<id>` seconds, `shots`,
+  `respawns` (Defeat → Start), `falls`, `knockbacks` (cars), `stuckRecoveries`, plus `fpsAverage` / `fpsWorst`.
+  Events: `level-start` / `level-end`, `cutscene-start` / `cutscene-end` / `cutscene-skip`, `dialogue`, `call`,
+  `action`, `defeat`, `fall`, `knockback`.
+- Problems it reports: raw locale ids or `{name}` placeholders on screen, an objective with no text, spoken lines
+  with no clip (from `locales/en.json`), any 4xx GLB / texture / audio request, a cutscene running past 1.25× its
+  timeline (+8 s, or 150 s for the scripted lobby / desk / station scenes), no walkable path to an objective, and
+  no movement toward the goal for 30 s (the run ends `stuck` at 45 s).
+- Check it by hand: `npm run dev`, then `/game.html?playtest=smoke` and `window.hawkesPlaytest.report()` in the
+  console. A hidden or background tab does not render, so watch it in a visible window or headless Playwright.
+- When you change walk-up radii, phase names, objective targets, the street route, or the hunt, check the matching
+  branch in `phPlaytest.ts`.
 
 ## Props and new levels
 

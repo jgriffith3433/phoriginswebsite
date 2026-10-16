@@ -1,0 +1,1015 @@
+import type * as BABYLON from '@babylonjs/core';
+import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
+import { missingClip, storyLines } from '../game/locale';
+
+/**
+ * Hawkes playtest contract v1 (spec: C:\Projects\hawkesstudio\docs\playtest.md).
+ *
+ * The bot plays through the same input a player uses: key events on the page (WASD, E, F, Q, R, H, C, Tab,
+ * Space), clicks on the canvas, touch drags for the camera, and the title / card / Skip buttons. It reads the
+ * game through a read-only probe from main.ts and never moves Pierce or edits story state. The one shortcut is
+ * `setupLevel`, which starts a level directly (the same call as Continue) so `level-2` … `level-6` can begin
+ * there. The save cookie is put back when a run ends, so a run never changes a player's progress.
+ */
+
+export type PhProbe = {
+  ready: () => boolean;
+  running: () => boolean;
+  level: () => { id: number; libraryId: string; name: string };
+  player: () => {
+    x: number; y: number; z: number; yaw: number;
+    health: number; clip: number; ammo: number; medkits: number; weaponDrawn: boolean;
+  };
+  cameraYaw: () => number;
+  objective: () => { target: { x: number; z: number } | null; title: string; text: string; visible: boolean };
+  action: () => string | null;
+  phase: () => string;
+  cutscene: () => { id: string; time: number; duration: number } | null;
+  scripted: () => string | null;
+  phone: () => { incoming: boolean; busy: boolean; speaker: string; line: string };
+  menu: () => { open: boolean; title: string; text: string; start: string | null; startEnabled: boolean; newGame: boolean };
+  subtitle: () => { speaker: string; text: string };
+  creature: () => { x: number; y: number; z: number } | null;
+  aimLocked: () => boolean;
+  shadow: () => { controls: boolean; on: boolean; handsOut: boolean; linked: boolean; ability: string; lessonStarted: boolean };
+  people: () => { x: number; z: number; kind: string }[];
+  pickups: () => { x: number; z: number; item: string }[];
+  scene: BABYLON.Scene;
+  canvas: HTMLCanvasElement;
+  startButton: HTMLButtonElement;
+  newGameButton: HTMLButtonElement;
+  skipButton: HTMLButtonElement | null;
+  /** Test shortcut for setup: start a level directly, as Continue does. */
+  setupLevel: (id: number) => Promise<void>;
+};
+
+const LEVELS = [
+  { n: 1, lib: 'apex-peak', name: 'Level 1: The Apex Peak' },
+  { n: 2, lib: 'b3-basement', name: 'Level 2: B3' },
+  { n: 3, lib: 'the-return', name: 'Level 3: The Return' },
+  { n: 4, lib: 'the-desk', name: 'Level 4: The Desk' },
+  { n: 5, lib: 'going-home', name: 'Level 5: Going Home' },
+  { n: 6, lib: 'the-station', name: 'Level 6: The Station' },
+];
+
+/** Usual timeline lengths, seconds. A scripted scene (lobby, desk, station opening) has no timeline file. */
+const SCRIPTED_LIMIT = 150;
+/** In `full`, these long rides are skipped after this many seconds so the whole story fits in about ten minutes. */
+const FULL_SKIP_AFTER: Record<string, number> = { 'elevator-b3': 16, 'elevator-up': 16 };
+
+const B3_DEN = { x: 7.5, z: 25 };
+const HOME_STAIRS = { x: 163.5, z: 21.2 };
+const STREET_LANE_Z = 22.6;
+
+// Same doorway links the hunt grid adds in act1.ts, where B3 floor slabs do not meet.
+const B3_LINKS: Rect[] = [
+  { minX: 15.6, maxX: 18.6, minZ: 36.2, maxZ: 39.8 },
+  { minX: 20, maxX: 40, minZ: 39.6, maxZ: 41.4 },
+  { minX: 45.4, maxX: 47.8, minZ: 36.2, maxZ: 40.8 },
+  { minX: 41.2, maxX: 46.8, minZ: 36.1, maxZ: 37.4 },
+];
+
+type Rect = { minX: number; maxX: number; minZ: number; maxZ: number };
+type Grid = { step: number; ox: number; oz: number; cols: number; rows: number; open: Uint8Array };
+type Point = { x: number; z: number };
+
+const STEP = 0.2;
+const PAD = 0.4; // player ellipsoid radius
+const TAU = Math.PI * 2;
+const wrap = (a: number) => {
+  let v = (a + Math.PI) % TAU;
+  if (v < 0) v += TAU;
+  return v - Math.PI;
+};
+const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.z - b.z);
+const RAW_KEY = /\b[a-z][a-z0-9]*(?:\.[a-z0-9-]+){2,}\b|\{[a-z]+\}|\bundefined\b|\bNaN\b/;
+
+// ---------------------------------------------------------------- walk grid
+
+const buildGrid = (scene: BABYLON.Scene, libraryId: string): Grid | null => {
+  const floors: Rect[] = [];
+  const blocks: Rect[] = [];
+  for (const mesh of scene.meshes) {
+    if (!mesh.isEnabled()) continue;
+    const meta = mesh.metadata as { assetKind?: string; pickup?: unknown } | null;
+    const box = mesh.getBoundingInfo().boundingBox;
+    const r = { minX: box.minimumWorld.x, maxX: box.maximumWorld.x, minZ: box.minimumWorld.z, maxZ: box.maximumWorld.z };
+    const sx = r.maxX - r.minX;
+    const sz = r.maxZ - r.minZ;
+    if (!Number.isFinite(sx) || !Number.isFinite(sz)) continue;
+    if (meta?.assetKind === 'ground') {
+      // Low slabs are trenches and pits, not floor to walk on.
+      if (sx >= 1 && sz >= 1 && box.maximumWorld.y > -0.2 && box.maximumWorld.y < 0.6) floors.push(r);
+      continue;
+    }
+    if (!mesh.checkCollisions || meta?.pickup) continue;
+    if (/trigger|ceil|creature|skybox|playerCollider|impact|decal|floor|ground/i.test(mesh.name)) continue;
+    if (box.maximumWorld.y < 0.35 || box.minimumWorld.y > 1.7) continue;
+    if (sx > 24 && sz > 24) continue;
+    if (sx < 0.02 && sz < 0.02) continue;
+    blocks.push(r);
+  }
+  if (libraryId === 'b3-basement' || libraryId === 'the-return') floors.push(...B3_LINKS);
+  if (!floors.length) return null;
+  let minX = Infinity; let maxX = -Infinity; let minZ = Infinity; let maxZ = -Infinity;
+  for (const f of floors) {
+    minX = Math.min(minX, f.minX); maxX = Math.max(maxX, f.maxX);
+    minZ = Math.min(minZ, f.minZ); maxZ = Math.max(maxZ, f.maxZ);
+  }
+  if ((maxX - minX) * (maxZ - minZ) > 400 * 400) return null;
+  const cols = Math.ceil((maxX - minX) / STEP) + 1;
+  const rows = Math.ceil((maxZ - minZ) / STEP) + 1;
+  const open = new Uint8Array(cols * rows);
+  for (const f of floors) {
+    // Inclusive edges, so a cell on the seam between two slabs stays open.
+    const c0 = Math.max(0, Math.ceil((f.minX - 0.02 - minX) / STEP));
+    const c1 = Math.min(cols - 1, Math.floor((f.maxX + 0.02 - minX) / STEP));
+    const r0 = Math.max(0, Math.ceil((f.minZ - 0.02 - minZ) / STEP));
+    const r1 = Math.min(rows - 1, Math.floor((f.maxZ + 0.02 - minZ) / STEP));
+    for (let r = r0; r <= r1; r++) open.fill(1, r * cols + c0, r * cols + c1 + 1);
+  }
+  for (const b of blocks) {
+    const c0 = Math.max(0, Math.ceil((b.minX - PAD - minX) / STEP));
+    const c1 = Math.min(cols - 1, Math.floor((b.maxX + PAD - minX) / STEP));
+    const r0 = Math.max(0, Math.ceil((b.minZ - PAD - minZ) / STEP));
+    const r1 = Math.min(rows - 1, Math.floor((b.maxZ + PAD - minZ) / STEP));
+    if (c1 < c0 || r1 < r0) continue;
+    for (let r = r0; r <= r1; r++) open.fill(0, r * cols + c0, r * cols + c1 + 1);
+  }
+  return { step: STEP, ox: minX, oz: minZ, cols, rows, open };
+};
+
+const cellOf = (g: Grid, p: Point) => ({ c: Math.round((p.x - g.ox) / g.step), r: Math.round((p.z - g.oz) / g.step) });
+const isOpen = (g: Grid, c: number, r: number) => c >= 0 && r >= 0 && c < g.cols && r < g.rows && g.open[r * g.cols + c] === 1;
+const worldOf = (g: Grid, c: number, r: number): Point => ({ x: g.ox + c * g.step, z: g.oz + r * g.step });
+
+const nearestOpen = (g: Grid, p: Point, maxMeters: number) => {
+  const { c, r } = cellOf(g, p);
+  if (isOpen(g, c, r)) return { c, r };
+  const maxR = Math.ceil(maxMeters / g.step);
+  for (let rad = 1; rad <= maxR; rad++) {
+    let best: { c: number; r: number } | null = null;
+    let bestD = Infinity;
+    for (let dc = -rad; dc <= rad; dc++) {
+      for (let dr = -rad; dr <= rad; dr++) {
+        if (Math.max(Math.abs(dc), Math.abs(dr)) !== rad || !isOpen(g, c + dc, r + dr)) continue;
+        const d = dc * dc + dr * dr;
+        if (d < bestD) { bestD = d; best = { c: c + dc, r: r + dr }; }
+      }
+    }
+    if (best) return best;
+  }
+  return null;
+};
+
+const lineOpen = (g: Grid, a: Point, b: Point) => {
+  const n = Math.max(1, Math.ceil(dist(a, b) / (g.step * 0.5)));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const { c, r } = cellOf(g, { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
+    if (!isOpen(g, c, r)) return false;
+  }
+  return true;
+};
+
+/** A* over the grid, 8 neighbours, no corner cutting. Returns smoothed waypoints, or null when unreachable. */
+const findPath = (g: Grid, from: Point, to: Point): Point[] | null => {
+  const s = nearestOpen(g, from, 2.5);
+  const e = nearestOpen(g, to, 4);
+  if (!s || !e) return null;
+  const n = g.cols * g.rows;
+  const start = s.r * g.cols + s.c;
+  const goal = e.r * g.cols + e.c;
+  const gScore = new Float32Array(n).fill(Infinity);
+  const came = new Int32Array(n).fill(-1);
+  const closed = new Uint8Array(n);
+  const heap: [number, number][] = [];
+  const push = (f: number, i: number) => {
+    heap.push([f, i]);
+    let k = heap.length - 1;
+    while (k > 0) {
+      const p = (k - 1) >> 1;
+      if (heap[p][0] <= heap[k][0]) break;
+      [heap[p], heap[k]] = [heap[k], heap[p]];
+      k = p;
+    }
+  };
+  const pop = () => {
+    const top = heap[0];
+    const last = heap.pop()!;
+    if (heap.length) {
+      heap[0] = last;
+      let k = 0;
+      for (;;) {
+        const l = k * 2 + 1;
+        const r = l + 1;
+        let m = k;
+        if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+        if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+        if (m === k) break;
+        [heap[m], heap[k]] = [heap[k], heap[m]];
+        k = m;
+      }
+    }
+    return top;
+  };
+  const h = (i: number) => {
+    const c = i % g.cols;
+    const r = (i - c) / g.cols;
+    const dc = Math.abs(c - e.c);
+    const dr = Math.abs(r - e.r);
+    return Math.max(dc, dr) + 0.414 * Math.min(dc, dr);
+  };
+  gScore[start] = 0;
+  push(h(start), start);
+  let found = false;
+  let guard = 0;
+  while (heap.length && guard++ < 400000) {
+    const [, i] = pop();
+    if (closed[i]) continue;
+    if (i === goal) { found = true; break; }
+    closed[i] = 1;
+    const c = i % g.cols;
+    const r = (i - c) / g.cols;
+    for (let dc = -1; dc <= 1; dc++) {
+      for (let dr = -1; dr <= 1; dr++) {
+        if (!dc && !dr) continue;
+        const nc = c + dc;
+        const nr = r + dr;
+        if (!isOpen(g, nc, nr)) continue;
+        if (dc && dr && (!isOpen(g, c + dc, r) || !isOpen(g, c, r + dr))) continue;
+        const j = nr * g.cols + nc;
+        if (closed[j]) continue;
+        const cost = gScore[i] + (dc && dr ? 1.414 : 1);
+        if (cost >= gScore[j]) continue;
+        gScore[j] = cost;
+        came[j] = i;
+        push(cost + h(j), j);
+      }
+    }
+  }
+  if (!found) return null;
+  const cells: Point[] = [];
+  for (let i = goal; i !== -1; i = came[i]) {
+    const c = i % g.cols;
+    cells.push(worldOf(g, c, (i - c) / g.cols));
+  }
+  cells.reverse();
+  const out: Point[] = [];
+  let anchor = 0;
+  for (let i = 2; i < cells.length; i++) {
+    if (!lineOpen(g, cells[anchor], cells[i])) {
+      out.push(cells[i - 1]);
+      anchor = i - 1;
+    }
+  }
+  out.push(cells[cells.length - 1]);
+  return out;
+};
+
+// ---------------------------------------------------------------- the bot
+
+export const installPhPlaytest = (probe: PhProbe) => {
+  if ((import.meta as { env?: { DEV?: boolean } }).env?.DEV) {
+    // Dev only: an ASCII map of the walk grid ('#' blocked, '.' open, '@' Pierce) for debugging routes.
+    (window as unknown as Record<string, unknown>).__phWalkGrid = (x0: number, z0: number, x1: number, z1: number, step = 0.4) => {
+      const g = buildGrid(probe.scene, probe.level().libraryId);
+      if (!g) return 'no grid';
+      const p = probe.player();
+      const rows: string[] = [];
+      for (let z = z1; z >= z0; z -= step) {
+        let row = `${z.toFixed(1).padStart(6)} `;
+        for (let x = x0; x <= x1; x += step) {
+          const { c, r } = cellOf(g, { x, z });
+          row += Math.hypot(p.x - x, p.z - z) < step * 0.7 ? '@' : isOpen(g, c, r) ? '.' : '#';
+        }
+        rows.push(row);
+      }
+      return rows.join('\n');
+    };
+    (window as unknown as Record<string, unknown>).__phProbe = probe;
+    (window as unknown as Record<string, unknown>).__phBlocks = (x: number, z: number) => probe.scene.meshes
+      .filter((m) => m.isEnabled() && m.checkCollisions)
+      .filter((m) => { const b = m.getBoundingInfo().boundingBox; return x >= b.minimumWorld.x - PAD && x <= b.maximumWorld.x + PAD && z >= b.minimumWorld.z - PAD && z <= b.maximumWorld.z + PAD && b.maximumWorld.y > 0.35 && b.minimumWorld.y < 1.7; })
+      .map((m) => { const b = m.getBoundingInfo().boundingBox; return `${m.name} [${b.minimumWorld.x.toFixed(2)},${b.maximumWorld.x.toFixed(2)}]x[${b.minimumWorld.z.toFixed(2)},${b.maximumWorld.z.toFixed(2)}] y${b.minimumWorld.y.toFixed(2)}-${b.maximumWorld.y.toFixed(2)}`; });
+  }
+  let token = 0;
+  const held = new Set<string>();
+  let lookSens = 0; // radians per pixel of touch drag, measured on first use
+
+  const codeFor = (key: string) => (key === ' ' ? 'Space' : key === 'Tab' ? 'Tab' : key === 'Shift' ? 'ShiftLeft' : `Key${key.toUpperCase()}`);
+  const sendKey = (type: 'keydown' | 'keyup', key: string) => {
+    document.body.dispatchEvent(new KeyboardEvent(type, { key, code: codeFor(key), bubbles: true, cancelable: true }));
+  };
+  const setHeld = (keys: string) => {
+    const want = new Set(keys.split(''));
+    for (const k of [...held]) if (!want.has(k)) { held.delete(k); sendKey('keyup', k); }
+    for (const k of want) if (!held.has(k)) { held.add(k); sendKey('keydown', k); }
+  };
+  const releaseAll = () => setHeld('');
+
+  /** A short drag on the canvas: the touch-look path a phone player uses. */
+  const dragLook = (dx: number) => {
+    const canvas = probe.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const x = rect.left + rect.width * 0.62;
+    const y = rect.top + rect.height * 0.5;
+    const touch = (cx: number) => new Touch({ identifier: 41, target: canvas, clientX: cx, clientY: y });
+    const fire = (type: string, cx: number, live: boolean) => {
+      const t = touch(cx);
+      canvas.dispatchEvent(new TouchEvent(type, {
+        touches: live ? [t] : [], targetTouches: live ? [t] : [], changedTouches: [t], bubbles: true, cancelable: true,
+      }));
+    };
+    fire('touchstart', x, true);
+    fire('touchmove', x + dx, true);
+    fire('touchend', x + dx, false);
+  };
+
+  const clickCanvas = () => {
+    const canvas = probe.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const init = { pointerType: 'mouse', pointerId: 1, button: 0, buttons: 1, bubbles: true, cancelable: true, clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 };
+    canvas.dispatchEvent(new PointerEvent('pointerdown', init));
+    canvas.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0 }));
+  };
+
+  const input = (action: string, down: boolean) => {
+    const map: Record<string, string> = { forward: 'w', back: 's', left: 'a', right: 'd', jump: ' ', interact: 'e', phone: 'f', weapon: 'q', shadow: 'c', ability: 'Tab', reload: 'r', medkit: 'h' };
+    const key = map[action] ?? action;
+    if (action === 'fire') { if (down) clickCanvas(); return; }
+    if (down) { held.add(key); sendKey('keydown', key); } else { held.delete(key); sendKey('keyup', key); }
+  };
+
+  installPlaytest({
+    product: 'phorigins',
+    scenarios: [
+      { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
+      ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
+      { id: 'full', title: 'Levels 1–6 in order, cutscenes included (long rides skipped after 16 s)', seconds: 760, tags: ['full'] },
+    ],
+    isReady: () => probe.ready(),
+    stallSeconds: 75,
+    input,
+    stop: () => { token++; releaseAll(); },
+    async start(id: string, options: RunOptions, t: Tracker) {
+      const my = ++token;
+      const saved = snapshotSave();
+      const watch = watchProblems(t);
+      try {
+        await run(id, options, t, my);
+      } finally {
+        watch();
+        releaseAll();
+        restoreSave(saved);
+      }
+    },
+  });
+
+  // ------------------------------------------------------------ run
+
+  const run = async (id: string, options: RunOptions, t: Tracker, my: number) => {
+    const alive = () => { if (my !== token) throw new Error('playtest stopped'); };
+    const frame = () => new Promise<void>((resolve) => {
+      let done = false;
+      const go = () => { if (!done) { done = true; resolve(); } };
+      requestAnimationFrame(go);
+      setTimeout(go, 60); // keeps going in a background tab
+    }).then(alive);
+    const sleep = async (ms: number) => {
+      const until = performance.now() + ms;
+      while (performance.now() < until) await frame();
+    };
+    const tap = async (key: string, label?: string) => {
+      sendKey('keydown', key);
+      await sleep(70);
+      sendKey('keyup', key);
+      t.add('interactions');
+      if (label) t.log(`press ${key === ' ' ? 'Space' : key.toUpperCase()} (${label})`);
+    };
+    const press = (button: HTMLButtonElement, label: string) => {
+      button.click();
+      t.add('interactions');
+      t.log(`click ${label}`);
+    };
+    const full = id === 'full';
+    const speed = Math.max(1, Number(options.speed) || 1);
+    let rng = (Number(options.seed) || 1) >>> 0 || 1;
+    const random = () => { rng ^= rng << 13; rng >>>= 0; rng ^= rng >> 17; rng ^= rng << 5; rng >>>= 0; return rng / 4294967296; };
+
+    // ---- what the bot watches every frame
+    let lastLine = '';
+    let lastPhone = '';
+    let scene: { id: string; t0: number; limit: number; skipAt: number; last: number; skipped: boolean } | null = null;
+    let lastPos: { x: number; z: number; y: number } | null = null;
+    let fallen = false;
+    let levelIndex = 0;
+    let levelsTotal = 1;
+    let levelSteps = 0;
+    const seenRaw = new Set<string>();
+
+    const mark = () => t.progress((levelIndex + Math.min(0.92, levelSteps * 0.08)) / levelsTotal);
+
+    const checkCopy = (where: string, text: string) => {
+      if (!text) return;
+      const m = RAW_KEY.exec(text);
+      if (!m || seenRaw.has(m[0])) return;
+      seenRaw.add(m[0]);
+      t.problem('bug', `missing locale string? "${m[0]}" shown in ${where}: "${text.slice(0, 90)}"`);
+    };
+
+    const controllable = () => probe.running() && !probe.cutscene() && !probe.scripted() && !probe.menu().open;
+
+    const observe = () => {
+      const sub = probe.subtitle();
+      const line = sub.text.trim();
+      if (line && line !== lastLine) {
+        t.add('dialogueLines');
+        t.event('dialogue', `${sub.speaker || '—'}: ${line.slice(0, 100)}`);
+        checkCopy('subtitle', `${sub.speaker} ${line}`);
+        mark();
+      }
+      lastLine = line;
+      const ph = probe.phone();
+      const pline = ph.line.trim();
+      if (pline && pline !== lastPhone && ph.busy) {
+        t.add('dialogueLines');
+        t.event('dialogue', `phone ${ph.speaker || '—'}: ${pline.slice(0, 100)}`);
+        checkCopy('phone', `${ph.speaker} ${pline}`);
+        mark();
+      }
+      lastPhone = pline;
+      const obj = probe.objective();
+      if (obj.visible) {
+        checkCopy('objective', `${obj.title} ${obj.text}`);
+        if (!obj.text.trim()) {
+          const key = `empty-objective-${probe.level().libraryId}-${obj.title}`;
+          if (!seenRaw.has(key)) { seenRaw.add(key); t.problem('warning', `objective "${obj.title}" shows with no text on ${probe.level().name}`); }
+        }
+      }
+      const label = probe.action();
+      if (label) checkCopy('action button', label);
+      const menu = probe.menu();
+      if (menu.open) checkCopy('card', `${menu.title} ${menu.text}`);
+
+      // Cutscenes: timeline scenes and the scripted ones (lobby, desk, station opening).
+      const cut = probe.cutscene();
+      const scripted = probe.scripted();
+      const nowId = cut?.id ?? scripted ?? '';
+      if (nowId && (!scene || scene.id !== nowId)) {
+        if (scene) endScene();
+        const limit = cut ? cut.duration * 1.25 + 8 : SCRIPTED_LIMIT;
+        const skipAfter = full ? FULL_SKIP_AFTER[nowId] : undefined;
+        const bySpeed = speed > 1 && cut ? cut.duration / speed : undefined;
+        scene = { id: nowId, t0: performance.now(), limit, skipAt: Math.min(skipAfter ?? Infinity, bySpeed ?? Infinity), last: -1, skipped: false };
+        t.add('cutscenes');
+        t.event('cutscene-start', nowId);
+        levelSteps += 1;
+        mark();
+      } else if (!nowId && scene) {
+        endScene();
+      }
+      if (scene) {
+        const secs = (performance.now() - scene.t0) / 1000;
+        const time = cut?.time ?? secs;
+        if (time > scene.last + 0.5) { scene.last = time; mark(); }
+        if (!scene.skipped && secs > scene.skipAt) {
+          scene.skipped = true;
+          t.event('cutscene-skip', `${scene.id} at ${secs.toFixed(0)} s`);
+          if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        } else if (!scene.skipped && secs > scene.limit) {
+          scene.skipped = true;
+          t.problem('bug', `cutscene "${scene.id}" never ended (${secs.toFixed(0)} s, expected about ${Math.round(scene.limit)} s)`);
+          if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        }
+      }
+
+      // Falls and knockbacks (a car on the street throws him to the curb).
+      const p = probe.player();
+      if (controllable()) {
+        if (lastPos) {
+          const jump = Math.hypot(p.x - lastPos.x, p.z - lastPos.z);
+          if (jump > 1.5 && jump < 40) {
+            // On the street that is a car throwing him to the curb. Elsewhere the collider pushed him out of something.
+            const kind = probe.level().libraryId === 'going-home' ? 'knockback' : 'snap';
+            t.add(kind === 'knockback' ? 'knockbacks' : 'positionSnaps');
+            t.event(kind, `${jump.toFixed(1)} m at (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+          }
+        }
+        if (p.y < -2 && !fallen) {
+          fallen = true;
+          t.add('falls');
+          t.event('fall', `${probe.level().name} at (${p.x.toFixed(1)}, ${p.z.toFixed(1)}), y ${p.y.toFixed(1)}`);
+          t.problem('bug', `Pierce fell through the floor on ${probe.level().name} at (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+        }
+        if (p.y > -1) fallen = false;
+        lastPos = { x: p.x, z: p.z, y: p.y };
+      } else lastPos = null;
+    };
+
+    const endScene = () => {
+      if (!scene) return;
+      const secs = (performance.now() - scene.t0) / 1000;
+      t.event('cutscene-end', `${scene.id} after ${secs.toFixed(1)} s${scene.skipped ? ' (skipped)' : ''}`);
+      t.metric(`cutscene:${scene.id}`, Math.round(secs * 10) / 10);
+      scene = null;
+      mark();
+    };
+
+    const tick = async () => { await frame(); observe(); };
+
+    // ---- camera and walking
+    const measureLook = async () => {
+      if (lookSens) return;
+      const before = probe.cameraYaw();
+      dragLook(12);
+      await frame();
+      await frame();
+      const moved = wrap(probe.cameraYaw() - before);
+      if (Math.abs(moved) > 1e-4) {
+        lookSens = moved / 12;
+        dragLook(-12);
+      }
+    };
+
+    const face = (heading: number) => {
+      const err = wrap(heading - probe.cameraYaw());
+      if (Math.abs(err) < 0.04 || !lookSens) return err;
+      const px = Math.max(-14, Math.min(14, err / lookSens));
+      if (Math.abs(px) >= 0.5) dragLook(px);
+      return err;
+    };
+
+    const OCTANTS: Record<number, string> = { 0: 'w', 1: 'wd', 2: 'd', 3: 'sd', 4: 's', [-4]: 's', [-1]: 'wa', [-2]: 'a', [-3]: 'sa' };
+    const steer = (to: Point, turn = true) => {
+      const p = probe.player();
+      const heading = Math.atan2(to.x - p.x, to.z - p.z);
+      if (turn) face(heading);
+      const rel = wrap(heading - probe.cameraYaw());
+      setHeld(OCTANTS[Math.round(rel / (Math.PI / 4))] ?? 'w');
+    };
+
+    type Nav = { key: string; goal: Point; path: Point[] | null; grid: Grid | null; built: number; best: number; bestAt: number; wpBest: number; wpAt: number; recover: number; reported: boolean; direct: boolean };
+    let nav: Nav | null = null;
+    const unreachableSince = new Map<string, number>();
+
+    const streetRoute = (from: Point, goal: Point): Point[] => {
+      // Going Home: the south sidewalk of the main avenue runs from the tower to the stairs.
+      const pts: Point[] = [];
+      if (Math.abs(from.z - STREET_LANE_Z) > 1.2) pts.push({ x: from.x + 1.5, z: STREET_LANE_Z });
+      if (goal.x - from.x > 6) pts.push({ x: goal.x - 4, z: STREET_LANE_Z });
+      pts.push(goal);
+      return pts;
+    };
+
+    const plan = (goal: Point, key: string) => {
+      const lib = probe.level().libraryId;
+      const here = probe.player();
+      const grid = buildGrid(probe.scene, lib);
+      let path: Point[] | null = null;
+      let direct = false;
+      if (grid && nearestOpen(grid, here, 2.5)) path = findPath(grid, here, goal);
+      if (!path) {
+        direct = true;
+        const onGrid = !!(grid && nearestOpen(grid, here, 2.5));
+        const waitedK = `unreachable-${lib}-${key}`;
+        const waited = performance.now() - (unreachableSince.get(waitedK) ?? performance.now());
+        // On a grid level, hold still first: the goal is often behind a door that opens on its own.
+        path = lib === 'going-home' ? streetRoute(here, goal) : onGrid && waited < 8000 ? [] : [goal];
+        const k = `unreachable-${lib}-${key}`;
+        const first = unreachableSince.get(k) ?? performance.now();
+        unreachableSince.set(k, first);
+        // Doors open on their own (the B3 cab), so only report a goal that stays cut off.
+        if (grid && nearestOpen(grid, here, 2.5) && lib !== 'going-home' && performance.now() - first > 8000) {
+          if (!seenRaw.has(k)) {
+            seenRaw.add(k);
+            t.problem('bug', `no walkable path to "${key}" at (${goal.x.toFixed(1)}, ${goal.z.toFixed(1)}) on ${probe.level().name} from (${here.x.toFixed(1)}, ${here.z.toFixed(1)}); trying a straight line`);
+          }
+        }
+      }
+      const now = performance.now();
+      const d = dist(here, goal);
+      // A re-plan for the same goal keeps the stuck clock running.
+      const same = nav && nav.key === key && dist(nav.goal, goal) <= 0.5 ? nav : null;
+      nav = {
+        key, goal, path, grid, built: now, best: same ? Math.min(same.best, d) : d, bestAt: same?.bestAt ?? now,
+        wpBest: Infinity, wpAt: now, recover: same?.recover ?? 0, reported: same?.reported ?? false, direct,
+      };
+      t.log(`route to ${key}: ${path.length} waypoints${direct ? ' (direct)' : ''}, ${d.toFixed(1)} m`);
+    };
+
+    /** One frame of walking toward goal. Returns true once within `arrive` metres. */
+    const walkTo = async (goal: Point, key: string, arrive = 0.55): Promise<boolean> => {
+      const here = probe.player();
+      const d = dist(here, goal);
+      if (d <= arrive) { releaseAll(); return true; }
+      if (!nav || nav.key !== key || dist(nav.goal, goal) > 0.5 || (nav.direct && performance.now() - nav.built > 3000)) plan(goal, key);
+      const n = nav!;
+      const now = performance.now();
+      if (d < n.best - 0.5) { n.best = d; n.bestAt = now; n.recover = 0; levelSteps += 0.02; mark(); }
+      // Drop reached waypoints.
+      if (n.grid && probe.level().libraryId !== 'going-home' && !nearestOpen(n.grid, here, 1.6)) {
+        const k = `outside-${probe.level().libraryId}`;
+        if (!seenRaw.has(k)) {
+          seenRaw.add(k);
+          t.problem('bug', `Pierce is outside the walkable area on ${probe.level().name} at (${here.x.toFixed(1)}, ${here.z.toFixed(1)}): through a wall?`);
+        }
+      }
+      while (n.path && n.path.length > 1 && dist(here, n.path[0]) < 0.5) { n.path.shift(); n.wpBest = Infinity; }
+      if (n.path && !n.path.length) { releaseAll(); n.wpAt = now; return false; } // waiting for a way through
+      const wp = n.path?.[0] ?? goal;
+      const wd = dist(here, wp);
+      if (wd < n.wpBest - 0.2) { n.wpBest = wd; n.wpAt = now; }
+      if (now - n.wpAt > 2600) {
+        // No closer to the next waypoint: hop, sidestep, plan again.
+        n.recover += 1;
+        t.add('stuckRecoveries');
+        t.log(`stuck near (${here.x.toFixed(1)}, ${here.z.toFixed(1)}) going to ${key}, recovery ${n.recover}`);
+        const side = random() < 0.5 ? 'a' : 'd';
+        setHeld(side);
+        await tap(' ');
+        await sleep(450);
+        setHeld('s');
+        await sleep(250);
+        releaseAll();
+        plan(goal, key);
+        return false;
+      }
+      if (now - n.bestAt > 30000 && !n.reported) {
+        n.reported = true;
+        t.problem('bug', `stuck: no movement toward "${key}" for 30 s on ${probe.level().name} at (${here.x.toFixed(1)}, ${here.z.toFixed(1)}), ${d.toFixed(1)} m away`);
+      }
+      if (now - n.bestAt > 45000) throw new Error(`timed out walking to ${key}`);
+      t.note(`walking to ${key.slice(0, 40)}: ${d.toFixed(1)} m, at (${here.x.toFixed(1)}, ${here.z.toFixed(1)})`);
+      steer(wp);
+      return false;
+    };
+
+    // ---- menus
+    const waitControl = async (what: string, ms = 90000) => {
+      const until = performance.now() + ms;
+      while (!(probe.running() && !probe.menu().open)) {
+        if (performance.now() > until) throw new Error(`timed out waiting for ${what}`);
+        await tick();
+      }
+    };
+
+    const enterLevel = async (n: number) => {
+      const menu = probe.menu();
+      const lvl = probe.level();
+      if (n === 1 && menu.open && lvl.id === 1 && menu.start && /start/i.test(menu.start)) {
+        press(probe.startButton, menu.start);
+      } else if (n === 1 && menu.open && menu.newGame) {
+        press(probe.newGameButton, 'New Game');
+      } else {
+        t.event('setup', `start at level ${n} directly (test shortcut)`);
+        await probe.setupLevel(n);
+      }
+      const until = performance.now() + 90000;
+      while (!(probe.running() && probe.level().id === n)) {
+        if (performance.now() > until) throw new Error(`timed out waiting for level ${n} to start`);
+        await tick();
+      }
+    };
+
+    // ---- per level special play
+    let lastShot = 0;
+    let huntDownAt = 0;
+    let huntNudged = false;
+    let lastKey: Record<string, number> = {};
+    const once = async (key: string, gapMs: number, label: string) => {
+      const now = performance.now();
+      if ((lastKey[key] ?? 0) + gapMs > now) return false;
+      lastKey[key] = now;
+      await tap(key, label);
+      return true;
+    };
+
+    const huntStep = async () => {
+      const p = probe.player();
+      if (!p.weaponDrawn) { releaseAll(); await once('q', 1800, 'draw sidearm'); return; }
+      if (p.health < 45 && p.medkits > 0) await once('h', 2000, 'medkit');
+      if (p.clip <= 0) {
+        if (p.ammo > 0) { releaseAll(); await once('r', 2200, 'reload'); return; }
+        const box = probe.pickups().filter((k) => k.item === 'ammo').sort((a, b) => dist(p, a) - dist(p, b))[0];
+        if (box) {
+          if (await walkTo(box, 'ammo box', 0.9)) await once('e', 900, 'take ammo');
+          return;
+        }
+      }
+      const beast = probe.creature();
+      if (!beast) {
+        // Dropped: it runs for the vat and the vat scene starts on its own. Follow the marker like a player.
+        if (!huntDownAt) huntDownAt = performance.now();
+        const waited = performance.now() - huntDownAt;
+        const goal = probe.objective().target;
+        if (waited < 14000 && goal) {
+          if (await walkTo(goal, 'vat (creature down)', 2)) releaseAll();
+          return;
+        }
+        if (!huntNudged) {
+          huntNudged = true;
+          t.problem('bug', 'B3 softlock: the creature went down before Pierce entered decon, and it never ran for the vat. stepHunt returns while huntWaiting is true, so the retreat timer never runs until he walks into the den (act1.ts).');
+        }
+        await walkTo(B3_DEN, 'decon (unstick the vat run)', 1.2);
+        return;
+      }
+      const d = dist(p, beast);
+      const heading = Math.atan2(beast.x - p.x, beast.z - p.z);
+      const locked = probe.aimLocked();
+      if ((locked && d < 15) || d < 3.2) {
+        // Stand, turn to it, fire. Up close a shot lands without the snap when he faces it.
+        releaseAll();
+        const err = face(heading);
+        if ((locked || Math.abs(err) < 0.18) && performance.now() - lastShot > 380) {
+          lastShot = performance.now();
+          clickCanvas();
+          t.add('shots');
+          t.add('interactions');
+        }
+        return;
+      }
+      // Not in sight yet: walk in (it waits in decon until Pierce enters, then hunts him).
+      await walkTo(beast, 'creature', 2.6);
+    };
+
+    let lesson = { started: 0, gaveUp: false };
+    const streetLessonStep = async (): Promise<boolean> => {
+      // Going Home teaches Shadow mode: use Shadow Shock and Possess on passersby. Returns false when it is done.
+      if (lesson.gaveUp) return false;
+      if (!lesson.started) { lesson.started = performance.now(); t.event('tutorial-start', 'street powers'); }
+      if (performance.now() - lesson.started > 70000) {
+        lesson.gaveUp = true;
+        t.problem('warning', 'bot could not finish the street powers tutorial in 70 s (Shadow Shock, then Possess on a passerby)');
+        return false;
+      }
+      const sh = probe.shadow();
+      if (!sh.controls) return true;
+      if (!sh.on) { releaseAll(); await once('c', 1200, 'Shadow mode'); return true; }
+      if (sh.linked) { releaseAll(); await once('Tab', 1200, 'release link'); return true; }
+      const p = probe.player();
+      const crowd = probe.people().filter((x) => x.kind === 'person' || x.kind === 'hostile');
+      const target = crowd.sort((a, b) => dist(p, a) - dist(p, b))[0];
+      const wantPossess = sh.lessonStarted;
+      if (wantPossess && sh.ability !== 'possess') { releaseAll(); await once('Tab', 900, 'switch to Possess'); return true; }
+      if (wantPossess && !sh.handsOut) { releaseAll(); await once('q', 1200, 'raise hands'); return true; }
+      if (!target) { setHeld('w'); return true; }
+      const d = dist(p, target);
+      if (!wantPossess) {
+        if (d < 2.2) { releaseAll(); face(Math.atan2(target.x - p.x, target.z - p.z)); await sleep(120); clickCanvas(); t.add('interactions'); t.log('click Shadow Shock'); await sleep(900); return true; }
+        steer(target);
+        return true;
+      }
+      if (d < 4.5) {
+        releaseAll();
+        const err = face(Math.atan2(target.x - p.x, target.z - p.z));
+        if (probe.aimLocked() || Math.abs(err) < 0.25) {
+          clickCanvas();
+          t.add('interactions');
+          t.log('click Possess');
+          await sleep(700);
+        }
+        return true;
+      }
+      steer(target);
+      return true;
+    };
+
+    // ---- one level, start to the Level Complete card
+    const playLevel = async (n: number): Promise<Outcome> => {
+      const info = LEVELS[n - 1];
+      const t0 = performance.now();
+      levelSteps = 0;
+      nav = null;
+      lesson = { started: 0, gaveUp: false };
+      t.scene(info.name);
+      t.event('level-start', info.name);
+      mark();
+      let endPressed = false;
+      let defeats = 0;
+      let lastAction = '';
+      await measureLook();
+      for (;;) {
+        await tick();
+        const menu = probe.menu();
+        if (menu.open) {
+          if (menu.title === 'Defeat') {
+            releaseAll();
+            defeats += 1;
+            t.add('respawns');
+            t.event('defeat', `${info.name}, try ${defeats}`);
+            if (defeats > 4) return 'lost';
+            await sleep(1200);
+            if (menu.start) press(probe.startButton, 'Start (retry)');
+            await waitControl('retry');
+            nav = null;
+            continue;
+          }
+          if (endPressed) break;
+          continue;
+        }
+        if (!probe.running()) continue;
+        if (probe.cutscene() || probe.scripted()) { releaseAll(); continue; }
+        if (!lookSens) await measureLook();
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
+        if (phone.busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) {
+          releaseAll();
+          if (await once('e', 1200, label)) {
+            if (label !== lastAction) t.event('action', label);
+            lastAction = label;
+            levelSteps += 1;
+            mark();
+            if (label === 'End Level') endPressed = true;
+          }
+          continue;
+        }
+        const lib = probe.level().libraryId;
+        const phase = probe.phase();
+        if (lib === 'b3-basement' && phase === 'hunt') {
+          await huntStep();
+          continue;
+        }
+        const obj = probe.objective();
+        if (lib === 'going-home' && !obj.target && probe.shadow().controls && (await streetLessonStep())) continue;
+        // A possess link steers the other body, so let go before walking on.
+        if (probe.shadow().linked && (await once('Tab', 1200, 'release link'))) continue;
+        let goal = obj.target;
+        if (!goal && lib === 'going-home' && probe.shadow().controls) goal = HOME_STAIRS;
+        if (!goal) { releaseAll(); continue; }
+        // While the board walks out, wait in the room instead of standing in their doorway.
+        const arrive = phase === 'wait-board' ? 4 : lib === 'the-station' ? 0.25 : 0.45;
+        const there = await walkTo(goal, `${obj.title || 'objective'}: ${obj.text.slice(0, 40)}`, arrive);
+        if (there && phase !== 'wait-board') {
+          // At the mark and no action yet: inch to the exact point (walk-ups test the trigger radius).
+          const p = probe.player();
+          if (dist(p, goal) > 0.12) steer(goal, false);
+          else releaseAll();
+        }
+      }
+      releaseAll();
+      const secs = (performance.now() - t0) / 1000;
+      t.metric(`level${n}Seconds`, Math.round(secs));
+      t.event('level-end', `${info.name} in ${secs.toFixed(0)} s`);
+      return 'won';
+    };
+
+    // ---- scenarios
+    await t.until(() => probe.ready(), 90000, 'game ready');
+    t.scene('Title');
+    t.event('title', probe.menu().title);
+    await sleep(600);
+
+    if (id === 'smoke') {
+      levelsTotal = 1;
+      await enterLevel(1);
+      t.scene(LEVELS[0].name);
+      t.event('level-start', LEVELS[0].name);
+      await measureLook();
+      const until = performance.now() + 54000;
+      let menusChecked = false;
+      let sceneSeen = 0;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()) {
+          if (!sceneSeen) sceneSeen = performance.now();
+          if (performance.now() - sceneSeen > 5000) {
+            if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+            await sleep(800);
+            observe();
+            break;
+          }
+          continue;
+        }
+        if (!probe.running() || probe.menu().open) continue;
+        if (!lookSens) await measureLook();
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
+        if (phone.busy) { releaseAll(); continue; }
+        if (!menusChecked) {
+          menusChecked = true;
+          releaseAll();
+          await tap('o', 'Missions');
+          await sleep(500);
+          await tap('o', 'Missions');
+          await tap('i', 'Inventory');
+          await sleep(500);
+          await tap('i', 'Inventory');
+          continue;
+        }
+        const label = probe.action();
+        if (label) { releaseAll(); if (await once('e', 1500, label)) t.event('action', label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      if (!sceneSeen) t.problem('bug', 'smoke: the board scene did not start within 54 s of Start');
+      t.progress(1);
+      t.finish(sceneSeen ? 'done' : 'stuck');
+      return;
+    }
+
+    if (id === 'full') {
+      levelsTotal = 6;
+      await enterLevel(1);
+      for (let n = 1; n <= 6; n++) {
+        levelIndex = n - 1;
+        const outcome = await playLevel(n);
+        if (outcome !== 'won') { t.finish(outcome); return; }
+        if (n < 6) {
+          await sleep(2500);
+          const menu = probe.menu();
+          if (!menu.start) throw new Error(`no Continue on the level ${n} card`);
+          press(probe.startButton, menu.start);
+          const until = performance.now() + 90000;
+          while (!(probe.running() && probe.level().id === n + 1)) {
+            if (performance.now() > until) throw new Error(`timed out waiting for level ${n + 1} after Continue`);
+            await tick();
+          }
+        }
+      }
+      t.progress(1);
+      t.finish('won');
+      return;
+    }
+
+    const m = /^level-(\d)$/.exec(id);
+    if (m) {
+      const n = Number(m[1]);
+      levelsTotal = 1;
+      await enterLevel(n);
+      const outcome = await playLevel(n);
+      t.progress(1);
+      t.finish(outcome);
+    }
+  };
+
+  // ------------------------------------------------------------ problems the page can see
+
+  const watchProblems = (t: Tracker) => {
+    const missing = storyLines().filter(missingClip);
+    if (missing.length) {
+      t.problem('polish', `${missing.length} spoken line${missing.length === 1 ? ' has' : 's have'} no audio clip: ${missing.slice(0, 6).map((row) => row.id).join(', ')}${missing.length > 6 ? '…' : ''}`);
+    }
+    const seen = new Set<string>();
+    const report = (url: string, status: number) => {
+      const path = url.replace(location.origin, '');
+      if (seen.has(path)) return;
+      seen.add(path);
+      const kind = /\.(glb|gltf)(\?|$)/i.test(path) ? 'model' : /\.(png|jpe?g|webp|ktx2?|env|dds)(\?|$)/i.test(path) ? 'texture' : /\.(wav|ogg|mp3|m4a)(\?|$)/i.test(path) ? 'audio' : 'file';
+      t.problem('bug', `missing ${kind}: ${path}${status ? ` (${status})` : ''}`);
+    };
+    let observer: PerformanceObserver | null = null;
+    try {
+      observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries() as PerformanceResourceTiming[]) {
+          const status = (entry as PerformanceResourceTiming & { responseStatus?: number }).responseStatus ?? 0;
+          if (status >= 400) report(entry.name, status);
+        }
+      });
+      observer.observe({ type: 'resource', buffered: true });
+    } catch { observer = null; }
+    const original = console.error;
+    console.error = (...args: unknown[]) => {
+      try {
+        const text = args.map((a) => (a instanceof Error ? a.message : String(a))).join(' ');
+        const url = /(\/assets\/[^\s"'()]+)/.exec(text)?.[1];
+        if (url && /unable to load|failed|error|404/i.test(text)) report(url, 0);
+        else t.log(`console.error ${text.slice(0, 200)}`);
+      } catch { /* never break the page */ }
+      original.apply(console, args as []);
+    };
+    const onMediaError = (event: Event) => {
+      const el = event.target as HTMLMediaElement | null;
+      if (el && 'currentSrc' in el && el.currentSrc) report(el.currentSrc, 0);
+    };
+    window.addEventListener('error', onMediaError, true);
+    return () => {
+      observer?.disconnect();
+      if (console.error !== original) console.error = original;
+      window.removeEventListener('error', onMediaError, true);
+    };
+  };
+};
+
+// ---------------------------------------------------------------- save cookie
+
+const SAVE_KEY = 'ph-origins-save';
+
+const snapshotSave = () => {
+  const cookie = document.cookie.split('; ').find((row) => row.startsWith(`${SAVE_KEY}=`)) ?? null;
+  let stored: string | null = null;
+  try { stored = localStorage.getItem(SAVE_KEY); } catch { stored = null; }
+  return { cookie, stored };
+};
+
+const restoreSave = (saved: ReturnType<typeof snapshotSave>) => {
+  if (saved.cookie) document.cookie = `${saved.cookie}; path=/; max-age=${60 * 60 * 24 * 400}; SameSite=Lax`;
+  else document.cookie = `${SAVE_KEY}=; path=/; max-age=0`;
+  try {
+    if (saved.stored === null) localStorage.removeItem(SAVE_KEY);
+    else localStorage.setItem(SAVE_KEY, saved.stored);
+  } catch { /* storage blocked */ }
+};

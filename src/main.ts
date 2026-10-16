@@ -46,6 +46,7 @@ import { createMinimap } from './game/minimap';
 import { createScreenFade } from './game/fade';
 import { createPerfMonitor } from './game/perfMonitor';
 import { createAutoAim } from './game/autoAim';
+import { installPhPlaytest } from './playtest/phPlaytest';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 const root = document.getElementById('game-root') as HTMLDivElement;
@@ -3488,4 +3489,83 @@ engine.runRenderLoop(renderLoop);
 window.addEventListener('resize', () => {
   configureResponsiveUI(root);
   engine.resize();
+});
+
+// Hawkes playtest contract (src/playtest/phPlaytest.ts). Read-only probe; the bot plays through real input.
+installPhPlaytest({
+  ready: () => gameReady && !startBtn.disabled,
+  running: () => state.running,
+  level: () => {
+    const level = getLevelDefinition(state.level);
+    return { id: level.id, libraryId: level.libraryId, name: level.name };
+  },
+  player: () => ({
+    x: state.player.x,
+    y: state.player.y,
+    z: state.player.z,
+    yaw: state.characterYaw,
+    health: state.health,
+    clip: state.player.clip,
+    ammo: itemCount(state.inventory, 'ammo'),
+    medkits: itemCount(state.inventory, 'medkit'),
+    weaponDrawn: state.player.weaponDrawn,
+  }),
+  cameraYaw: () => followCamera.getYaw(),
+  objective: () => {
+    const target = objectiveMarker.getTarget();
+    const kicker = objectiveHud?.querySelector('.objective-kicker') as HTMLElement | null;
+    return {
+      target: target && objectiveMarker.isVisible() ? { x: target.x, z: target.z } : null,
+      title: kicker?.textContent ?? '',
+      text: objectiveText?.textContent ?? '',
+      visible: objectiveHud?.classList.contains('visible') ?? false,
+    };
+  },
+  action: () => storyAction(),
+  phase: () => act.phase(),
+  cutscene: () => (state.inCutscene && activeCutscene
+    ? { id: activeCutscene.id, time: activeCutscene.time, duration: activeCutscene.duration }
+    : null),
+  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : null),
+  phone: () => {
+    const view = phone.view();
+    return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
+  },
+  menu: () => ({
+    open: !messageBox.classList.contains('hidden'),
+    title: messageTitle.textContent ?? '',
+    text: messageText.textContent ?? '',
+    start: startBtn.style.display === 'none' ? null : (startBtn.textContent ?? '').trim(),
+    startEnabled: !startBtn.disabled,
+    newGame: newGameBtn.style.display !== 'none',
+  }),
+  subtitle: () => ({
+    speaker: cineTitle.textContent ?? '',
+    text: cineHud.style.display === 'none' ? '' : cineText.textContent ?? '',
+  }),
+  creature: () => {
+    const at = act.aimPoint();
+    return at ? { x: at.x, y: at.y, z: at.z } : null;
+  },
+  aimLocked: () => !!autoAim.point(),
+  shadow: () => ({
+    controls: shadowPlay().controls(),
+    on: shadowPlay().shadowMode(),
+    handsOut: shadowPlay().handsOut(),
+    linked: shadowPlay().linked(),
+    ability: shadowPlay().shadowMode() ? shadowPick : meleeAbility,
+    lessonStarted: isHomeLevel() ? home.shoveShown() : true,
+  }),
+  people: () => (isHomeLevel() ? home.map()?.blips ?? [] : [])
+    .filter((blip) => blip.kind !== 'shop' && blip.kind !== 'linked')
+    .map((blip) => ({ x: blip.x, z: blip.z, kind: blip.kind })),
+  pickups: () => pickups
+    .filter((pickup) => pickup.active && !pickup.mesh.isDisposed() && pickup.mesh.isEnabled())
+    .map((pickup) => ({ x: pickup.mesh.position.x, z: pickup.mesh.position.z, item: pickup.item })),
+  scene,
+  canvas,
+  startButton: startBtn,
+  newGameButton: newGameBtn,
+  skipButton: skipCutsceneBtn,
+  setupLevel: (id) => startAtLevel(id, true, true),
 });

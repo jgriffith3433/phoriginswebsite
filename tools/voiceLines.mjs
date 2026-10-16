@@ -4,28 +4,19 @@
  * compares that record to the current line. A file with no record is out of date.
  * Older wavs still read their `phln` chunk.
  *
- * The API key is ELEVENLABS_API_KEY in .env. Takes use eleven_v4.
+ * ElevenLabs runs through Hawkes Gen (C:\Projects\hawkesgen, its audio.voice
+ * tool), which holds the key; start it with hawkesgen\auto-start.bat. Takes use eleven_v4.
  * Default performance sends the line alone. Any other performance prefixes an audio tag.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import https from 'node:https';
+import { HawkesGen } from './hawkesgen.mjs';
 import os from 'node:os';
 import path from 'node:path';
 
 const CHUNK_ID = 'phln';
 
-const readKeyFile = (file) => {
-  if (!fs.existsSync(file)) return '';
-  const match = fs.readFileSync(file, 'utf8').match(/^ELEVENLABS_API_KEY=(.*)$/m);
-  if (!match) return '';
-  return match[1].trim().replace(/^['"]|['"]$/g, '');
-};
-
-export const elevenLabsKey = (root) => {
-  if (process.env.ELEVENLABS_API_KEY?.trim()) return process.env.ELEVENLABS_API_KEY.trim();
-  return readKeyFile(path.join(root, '.env.local')) || readKeyFile(path.join(root, '.env'));
-};
+const gen = new HawkesGen({ project: 'phorigins' });
 
 const parseMeta = (raw) => {
   try {
@@ -88,24 +79,6 @@ const MODEL = 'eleven_v4';
 const PCM_FORMAT = 'pcm_22050';
 const PCM_RATE = 22050;
 
-const explainFetch = (error) => {
-  const cause = error?.cause;
-  const detail = cause ? [cause.code, cause.message].filter(Boolean).join(' ') : '';
-  return detail ? `${error.message} (${detail})` : error.message;
-};
-
-/** IPv4. The dev server's fetch gives up on this host before the socket connects. */
-const elevenRequest = (url, { method, headers, body }) => new Promise((resolve, reject) => {
-  const req = https.request(url, { method, headers, family: 4, timeout: 30000 }, (res) => {
-    const chunks = [];
-    res.on('data', (chunk) => chunks.push(chunk));
-    res.on('end', () => resolve({ status: res.statusCode ?? 0, buffer: Buffer.concat(chunks) }));
-  });
-  req.on('timeout', () => req.destroy(new Error('ElevenLabs timed out')));
-  req.on('error', reject);
-  if (body) req.write(body);
-  req.end();
-});
 
 /** ElevenLabs pcm_* is raw 16-bit mono. wav_44100 is limited to Pro plans. */
 const pcmToWav = (pcm) => {
@@ -218,27 +191,10 @@ const chosenVoice = (root, speaker, voiceId) => {
 };
 
 export const listVoices = async (root) => {
-  const key = elevenLabsKey(root);
-  if (!key) throw new Error('Set ELEVENLABS_API_KEY in .env, then restart npm run dev.');
-  let response;
-  try {
-    response = await elevenRequest('https://api.elevenlabs.io/v1/voices', {
-      method: 'GET',
-      headers: { 'xi-api-key': key },
-    });
-  } catch (error) {
-    throw new Error(explainFetch(error));
-  }
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`ElevenLabs ${response.status}: ${response.buffer.toString('utf8').slice(0, 400)}`);
-  }
-  const body = JSON.parse(response.buffer.toString('utf8'));
-  return (body.voices ?? [])
-    .map((voice) => ({
-      voiceId: String(voice.voice_id || ''),
-      name: String(voice.name || ''),
-      category: String(voice.category || ''),
-    }))
+  void root;
+  const voices = await gen.voices();
+  return voices
+    .map((voice) => ({ voiceId: String(voice.id || ''), name: String(voice.name || ''), category: String(voice.category || '') }))
     .filter((voice) => voice.voiceId && voice.name)
     .sort((a, b) => a.name.localeCompare(b.name));
 };
@@ -246,8 +202,6 @@ export const listVoices = async (root) => {
 export const synthesizeLine = async (root, { id, speaker, text, audio, performance, voiceId }) => {
   const line = String(text ?? '').trim();
   if (!line) throw new Error('This line has no sentence to speak.');
-  const key = elevenLabsKey(root);
-  if (!key) throw new Error('Set ELEVENLABS_API_KEY in .env, then restart npm run dev.');
   const voice = chosenVoice(root, speaker, voiceId);
   if (!voice) throw new Error(`No ElevenLabs voice for “${speaker || 'unknown'}”. Pick one in Story lines.`);
   const relative = outputPathFor(id, audio);
@@ -257,26 +211,12 @@ export const synthesizeLine = async (root, { id, speaker, text, audio, performan
   const spoken = tag ? `[${tag}] ${line}` : line;
   const recorded = tag ? String(performance).trim() : 'default';
 
-  let response;
-  try {
-    response = await elevenRequest(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voice.voiceId}?output_format=${PCM_FORMAT}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': key,
-          'Content-Type': 'application/json',
-          Accept: 'application/octet-stream',
-        },
-        body: JSON.stringify({ text: spoken, model_id: MODEL }),
-      },
-    );
-  } catch (error) {
-    throw new Error(explainFetch(error));
-  }
-  if (response.status < 200 || response.status >= 300) {
-    throw new Error(`ElevenLabs ${response.status}: ${response.buffer.toString('utf8').slice(0, 400)}`);
-  }
+  const job = await gen.run('audio.voice', {
+    params: { text: spoken, voice: voice.voiceId, model: MODEL, format: PCM_FORMAT },
+    labels: { line: id, speaker },
+    timeoutMs: 5 * 60 * 1000,
+  });
+  const response = { buffer: Buffer.from(await gen.bytes(job.outputs[0].asset)) };
   const pcm = response.buffer;
   if (pcm.length < 2) throw new Error('ElevenLabs returned an empty clip.');
   fs.mkdirSync(path.dirname(abs), { recursive: true });

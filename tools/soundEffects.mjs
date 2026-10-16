@@ -7,14 +7,16 @@
  *
  * One description is one sound. Duration is omitted on a one-shot so the model
  * picks the length. Loop and a duration are sent only for a bed the game repeats.
- * The key is ELEVENLABS_API_KEY in .env.
+ * ElevenLabs runs through Hawkes Gen (C:\Projects\hawkesgen, its audio.sfx
+ * tool), which holds the key; start it with hawkesgen\auto-start.bat.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
-import { elevenLabsKey } from './voiceLines.mjs';
+import { HawkesGen } from './hawkesgen.mjs';
+
+const gen = new HawkesGen({ project: 'phorigins' });
 
 const MODEL = 'eleven_text_to_sound_v2';
 const MP3_FORMAT = 'mp3_44100_128';
@@ -83,23 +85,6 @@ const writeWavMeta = (wav, json) => {
   return out;
 };
 
-const explainFetch = (error) => {
-  const cause = error?.cause;
-  const detail = cause ? [cause.code, cause.message].filter(Boolean).join(' ') : '';
-  return detail ? `${error.message} (${detail})` : error.message;
-};
-
-const elevenRequest = (url, { method, headers, body }) => new Promise((resolve, reject) => {
-  const req = https.request(url, { method, headers, family: 4, timeout: 120000 }, (res) => {
-    const chunks = [];
-    res.on('data', (chunk) => chunks.push(chunk));
-    res.on('end', () => resolve({ status: res.statusCode ?? 0, buffer: Buffer.concat(chunks) }));
-  });
-  req.on('timeout', () => req.destroy(new Error('ElevenLabs timed out')));
-  req.on('error', reject);
-  if (body) req.write(body);
-  req.end();
-});
 
 const safeAssetPath = (root, relativePath) => {
   const cleaned = String(relativePath || '').replace(/\\/g, '/');
@@ -243,42 +228,16 @@ const encodeFile = (mp3, dest, record) => new Promise((resolve, reject) => {
 export const synthesizeEffect = async (root, { id, text, audio, loop, duration, influence }) => {
   const description = String(text ?? '').trim();
   if (!description) throw new Error('This effect has no description.');
-  const key = elevenLabsKey(root);
-  if (!key) throw new Error('Set ELEVENLABS_API_KEY in .env, then restart npm run dev.');
   const relative = outputPathFor(id, audio);
   const abs = relative ? safeAssetPath(root, relative) : null;
   if (!abs) throw new Error('Could not choose a path for this sound effect.');
   const seamless = loop === true;
   const seconds = clampDuration(duration);
   const weight = clampInfluence(influence);
-  const body = {
-    text: description,
-    model_id: MODEL,
-    prompt_influence: weight,
-    loop: seamless,
-  };
-  if (seconds != null) body.duration_seconds = seconds;
-
-  let response;
-  try {
-    response = await elevenRequest(
-      `https://api.elevenlabs.io/v1/sound-generation?output_format=${MP3_FORMAT}`,
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': key,
-          'Content-Type': 'application/json',
-          Accept: 'application/octet-stream',
-        },
-        body: JSON.stringify(body),
-      },
-    );
-  } catch (error) {
-    throw new Error(explainFetch(error));
-  }
-  if (response.status < 200 || response.status >= 300 || response.buffer[0] === 0x7b) {
-    throw new Error(`ElevenLabs ${response.status}: ${response.buffer.toString('utf8').slice(0, 400)}`);
-  }
+  const params = { text: description, model: MODEL, format: MP3_FORMAT, influence: weight, loop: seamless };
+  if (seconds != null) params.duration = seconds;
+  const job = await gen.run('audio.sfx', { params, labels: { sfx: id }, timeoutMs: 5 * 60 * 1000 });
+  const response = { buffer: Buffer.from(await gen.bytes(job.outputs[0].asset)) };
   if (response.buffer.length < 128) throw new Error('ElevenLabs returned an empty sound effect.');
   const record = { text: description, loop: seamless, duration: seconds, influence: weight };
   await encodeFile(response.buffer, abs, record);
