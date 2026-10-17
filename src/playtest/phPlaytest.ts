@@ -41,6 +41,8 @@ export type PhProbe = {
   skipButton: HTMLButtonElement | null;
   /** Test shortcut for setup: start a level directly, as Continue does. */
   setupLevel: (id: number) => Promise<void>;
+  /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
+  failNextLoad: (kind: 'error' | 'hang') => void;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
   phoneFrame: (on: boolean) => void;
   /** Tap to play, the AudioContext, Pause and Settings (studio sound standard). */
@@ -360,6 +362,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Shows the Tap to play prompt, taps it with a pointer press on the spot (hit-tested, so a covered prompt fails) and checks the AudioContext is running. Opens Settings from the title, turns Sound off and Music to 40%, reloads the page (the run carries on after the reload through ?playtest=sound-settings), checks the prompt and the saved choice are back, then opens Settings again from Pause in level 1. The player\'s own hawkes.sound is put back at the end.',
         seconds: 120,
         tags: ['menus', 'sound'],
+      },
+      {
+        id: 'load-error',
+        title: "A level that fails to load shows Couldn't start the game and Retry; Retry reloads to START",
+        description: 'Checks a normal load reaches the START card with no error. Then makes the next level load fail (setup; options.fail "hang" (default) never finishes, so the stall timeout (20 s with nothing loading) shows, "error" fails at once), presses Start, and times the error card with its Retry button. Presses Retry: the page really reloads (the run carries on after it through ?playtest=load-error), and the title card reaches START again; Start enters level 1.',
+        seconds: 90,
+        tags: ['menus'],
       },
       {
         id: 'phone-b3',
@@ -1181,6 +1190,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
       return;
     }
+    if (id === 'load-error') {
+      await loadErrorRun(t, tapAt, tapToPlay, sleep, options);
+      return;
+    }
     if (probe.sound().prompt) await tapToPlay();
     t.scene('Title');
     t.event('title', probe.menu().title);
@@ -1449,6 +1462,90 @@ export const installPhPlaytest = (probe: PhProbe) => {
     t.finish('done');
   };
 
+  // ------------------------------------------------------------ load-error
+
+  const loadErrorRun = async (
+    t: Tracker,
+    tapAt: (el: HTMLElement | null, label: string) => Promise<void>,
+    tapToPlay: () => Promise<void>,
+    sleep: (ms: number) => Promise<void>,
+    options: RunOptions,
+  ) => {
+    const ERROR_TITLE = "Couldn't start the game";
+    const carried = (() => {
+      try { return JSON.parse(sessionStorage.getItem(LOAD_ERROR_RUN_KEY) ?? 'null') as { events: { type: string; detail?: string }[] } | null; } catch { return null; }
+    })();
+    const errorFlag = () => document.documentElement.getAttribute('data-load-error');
+    /** The title card is at START (or Continue, with a save) and shows no error. */
+    const checkStartCard = (where: string) => {
+      const menu = probe.menu();
+      const ok = menu.open && menu.title === 'PH Origins' && !!menu.start && /^(start|continue)$/i.test(menu.start) && menu.startEnabled && !errorFlag();
+      if (!ok) t.problem('bug', `the title card is not at START ${where}: "${menu.title}" / "${menu.start}"${errorFlag() ? ` (load error: ${errorFlag()})` : ''}`);
+      else t.event('start-card', `${where}: ${menu.start}, no error`);
+      return ok;
+    };
+    const play = async () => {
+      await tapAt(probe.startButton, probe.menu().start ?? 'Start');
+      await t.until(() => probe.running() && !probe.menu().open, 60000, 'the level to start');
+      t.scene(probe.level().name);
+      t.event('level-start', probe.level().name);
+      await sleep(2500);
+    };
+
+    if (!carried) {
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('Title (normal load)');
+      await sleep(800);
+      checkStartCard('on a normal load');
+      t.progress(0.2);
+
+      const kind = options.fail === 'error' ? 'error' : 'hang';
+      probe.failNextLoad(kind);
+      t.event('setup', `the next level load fails (${kind === 'hang' ? 'never finishes' : 'level file missing'}; test shortcut)`);
+      const pressedAt = performance.now();
+      await tapAt(probe.startButton, probe.menu().start ?? 'Start');
+      t.scene('Loading (forced failure)');
+      try {
+        await t.until(() => probe.menu().title === ERROR_TITLE && probe.menu().start === 'Retry' && probe.menu().startEnabled, 30000, 'the error card');
+      } catch {
+        t.problem('bug', `no "${ERROR_TITLE}" card with Retry within 30 s of Start: "${probe.menu().title}" / "${probe.menu().start}"`);
+        t.finish('stuck');
+        return;
+      }
+      const seconds = (performance.now() - pressedAt) / 1000;
+      t.metric('errorCardSeconds', Math.round(seconds * 10) / 10);
+      t.scene('Error card');
+      t.event('error-card', `${probe.menu().title}: ${probe.menu().text} (${seconds.toFixed(1)} s after Start)`);
+      if (seconds > 28) t.problem('bug', `the error card took ${seconds.toFixed(1)} s to show (about 20 s expected)`);
+      t.progress(0.5);
+      await sleep(2500);
+
+      sessionStorage.setItem(LOAD_ERROR_RUN_KEY, JSON.stringify({ events: [{ type: 'error-card', detail: `${seconds.toFixed(1)} s` }] }));
+      // Retry reloads the page itself; keep the run in the URL so it carries on after the reload.
+      const url = new URL(location.href);
+      url.searchParams.set('playtest', 'load-error');
+      url.searchParams.set('seed', String(options.seed ?? 1));
+      url.searchParams.set('speed', String(options.speed ?? 1));
+      history.replaceState(history.state, '', url.toString());
+      t.event('retry', 'Retry pressed; the page reloads and the run carries on after it');
+      await tapAt(probe.startButton, 'Retry');
+      await new Promise(() => {}); // the page is going away
+      return;
+    }
+
+    sessionStorage.removeItem(LOAD_ERROR_RUN_KEY);
+    for (const e of carried.events) t.event(`before-reload:${e.type}`, e.detail);
+    t.event('reloaded', 'the page reloaded after Retry');
+    if (probe.sound().prompt) await tapToPlay();
+    t.scene('Title (after Retry)');
+    await sleep(800);
+    const ok = checkStartCard('after Retry');
+    t.progress(0.8);
+    if (ok) await play();
+    t.progress(1);
+    t.finish(ok ? 'done' : 'stuck');
+  };
+
   // ------------------------------------------------------------ problems the page can see
 
   const watchProblems = (t: Tracker) => {
@@ -1502,6 +1599,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
 const SAVE_KEY = 'ph-origins-save';
 const SOUND_KEY = 'hawkes.sound';
 const SOUND_RUN_KEY = 'hawkes.playtest.sound-settings';
+const LOAD_ERROR_RUN_KEY = 'hawkes.playtest.load-error';
 
 const snapshotSave = () => {
   const cookie = document.cookie.split('; ').find((row) => row.startsWith(`${SAVE_KEY}=`)) ?? null;

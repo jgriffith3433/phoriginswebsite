@@ -196,7 +196,8 @@ The game implements the Hawkes playtest contract v1 (`C:\Projects\hawkesstudio\d
   Shadow Shock, Possess), a touch drag for the camera, and the Start / Continue / New Game / Skip buttons. It routes
   with A* on a 0.2 m grid built from the loaded scene (ground slabs, minus padded colliders, plus the B3 doorway
   links), and walks to the objective marker. On the street it follows the south sidewalk (z 22.6) to the stairs.
-  The one shortcut is `setupLevel(n)` (`startAtLevel(n, true, true)`), used to begin `level-2` … `level-6`.
+  The shortcuts are `setupLevel(n)` (`startAtLevel(n, true, true)`), used to begin `level-2` … `level-6`, and
+  `failNextLoad('hang' | 'error')` (the next level load never ends, or comes back missing), used by `load-error`.
 - The save cookie and its localStorage copy are put back when a run ends, so a run does not change progress.
 - Scenarios: `smoke` (Start, answer Voss, open Missions and Inventory, walk to the head chair, Join meeting, Skip;
   about 55 s), `level-1` … `level-6` (each to the Level Complete card), `full` (1–6 with Continue; the two elevator
@@ -210,7 +211,10 @@ The game implements the Hawkes playtest contract v1 (`C:\Projects\hawkesstudio\d
   and a sessionStorage marker: prompt again, the saved choice in Settings, then Settings from Pause in level 1; it puts
   the player's `hawkes.sound` back), `site-links` (shows Home, About, Characters and What's new in an overlay, jumps
   each to its footer and checks a visible "Powered by HAWKES GEN" link to hawkesgen.com, plus Hawkes Biomedical on Home;
-  then checks the game page has no credit link). Every other scenario taps the prompt first. `options.speed` > 1 skips each timeline after
+  then checks the game page has no credit link), `load-error` (checks a normal load reaches START with no error, makes
+  the next level load fail (`options.fail`: `hang`, the default, or `error`), presses Start, times the "Couldn't start
+  the game" card and its Retry (metric `errorCardSeconds`), presses Retry, which really reloads, then picks up again
+  through `?playtest=load-error` and a sessionStorage marker, checks START and enters level 1). Every other scenario taps the prompt first. `options.speed` > 1 skips each timeline after
   duration / speed.
 - Metrics: `levelNSeconds`, `interactions`, `dialogueLines`, `cutscenes`, `cutscene:<id>` seconds, `shots`,
   `respawns` (Defeat → Start), `falls`, `knockbacks` (cars), `stuckRecoveries`, plus `fpsAverage` / `fpsWorst`.
@@ -220,6 +224,12 @@ The game implements the Hawkes playtest contract v1 (`C:\Projects\hawkesstudio\d
   with no clip (from `locales/en.json`), any 4xx GLB / texture / audio request, a cutscene running past 1.25× its
   timeline (+8 s, or 150 s for the scripted lobby / desk / station scenes), no walkable path to an objective, and
   no movement toward the goal for 30 s (the run ends `stuck` at 45 s).
+- Load errors: `game.html`'s first inline script owns the "Couldn't start the game" card (`window.__phBoot`), so it
+  shows even when `main.ts` never runs (entry module 404 or wrong MIME, an error or rejection before the module
+  finishes, or a stall: 20 s with no request finishing while the main thread is not busy, `__phBoot.idleMs()`; a
+  plain clock would fire on slow headless WebGL). `main.ts` calls `started()`, `ready()` after the boot level, and
+  `fail('level')` when the boot load or Start's load fails; `withLoadTimeout` applies the stall rule to later level
+  loads. A load that stalled and then finished puts the title card back (`recover()`). Retry is `location.reload()`.
 - Check it by hand: `npm run dev`, then `/game.html?playtest=smoke` and `window.hawkesPlaytest.report()` in the
   console. A hidden or background tab does not render, so watch it in a visible window or headless Playwright.
 - When you change walk-up radii, phase names, objective targets, the street route, or the hunt, check the matching

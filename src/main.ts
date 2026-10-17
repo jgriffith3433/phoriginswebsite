@@ -50,7 +50,17 @@ import { installPhPlaytest } from './playtest/phPlaytest';
 import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSettings';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
-(window as { __phBoot?: { ok(): void } }).__phBoot?.ok();
+// The load-error card lives in game.html's inline script, so it still shows when this module never runs.
+type LoadFailure = 'files' | 'error' | 'level' | 'timeout';
+const phBoot = (window as {
+  __phBoot?: {
+    started(): void; ready(): void; idleMs(): number;
+    fail(kind: LoadFailure): void; failed(): LoadFailure | null; recover(): boolean;
+  };
+}).__phBoot;
+const loadFailed = () => !!phBoot?.failed();
+/** A level load that stalls this long (nothing finishing, page not busy: game.html's idleMs) shows the error card. */
+const LEVEL_LOAD_STALL_MS = 20000;
 const root = document.getElementById('game-root') as HTMLDivElement;
 const screenFade = createScreenFade(document.getElementById('screenFade') as HTMLElement);
 const healthBar = document.getElementById('healthBar') as HTMLDivElement;
@@ -60,9 +70,11 @@ const messageTitle = document.getElementById('messageTitle') as HTMLHeadingEleme
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
 const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 const settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
-startBtn.disabled = true;
-startBtn.textContent = 'Loading…';
-startBtn.setAttribute('aria-busy', 'true');
+if (!loadFailed()) {
+  startBtn.disabled = true;
+  startBtn.textContent = 'Loading…';
+  startBtn.setAttribute('aria-busy', 'true');
+}
 const newGameBtn = document.getElementById('newGameBtn') as HTMLButtonElement;
 const resetBtn = document.getElementById('resetBtn') as HTMLButtonElement;
 const jumpBtn = document.getElementById('jumpBtn') as HTMLButtonElement;
@@ -519,6 +531,9 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
   act.handleTrigger(trigger);
 });
 
+/** Playtest setup (`load-error`): make the next level load fail, as a missing level file or a load that never ends. */
+let forcedLoadFailure: 'error' | 'hang' | null = null;
+
 const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
   dressedLevelId = 0;
   if (mode === 'boot') {
@@ -535,7 +550,12 @@ const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') 
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
-    const loaded = await loadSceneFromJsonFile(scene, path, { ...sceneLoadOptions, replaceNodes: sceneNodes });
+    const forced = forcedLoadFailure;
+    forcedLoadFailure = null;
+    if (forced === 'hang') await new Promise<never>(() => {});
+    const loaded = forced === 'error' ? null : await loadSceneFromJsonFile(scene, path, { ...sceneLoadOptions, replaceNodes: sceneNodes });
+    // A missing or broken level file comes back as null; the boot load and Start must not carry on into an empty scene.
+    if (!loaded && mode === 'boot') throw new Error(`level file did not load: ${path}`);
     applyLoadedScene(loaded);
     triggerRunner.bind(loaded?.data.triggers ?? []);
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
@@ -1263,6 +1283,8 @@ const menuMode = () => {
 };
 
 const syncStartButtonLabel = () => {
+  // The "Couldn't start the game" card owns the Start button (Retry) until the page reloads.
+  if (loadFailed()) return;
   const loading = !gameReady;
   startBtn.disabled = loading;
   resetBtn.disabled = loading;
@@ -1631,6 +1653,44 @@ const startLevelCredits = (levelId: number) => {
   }
   levelCredits.hidden = false;
   levelCredits.innerHTML = markup;
+};
+
+/** Swap the title card for "Couldn't start the game" with Retry (rendered by game.html's boot script). */
+const showLoadError = (kind: LoadFailure, error?: unknown) => {
+  if (error) console.warn('PH Origins: the game could not start', error);
+  state.running = false;
+  phBoot?.fail(kind);
+  levelSelect.classList.add('hidden');
+  messageBox.classList.remove('leaving', 'hidden');
+  stopLevelCredits();
+  unlockPointer();
+  screenFade.to(0, 0);
+};
+
+/** Wait for a level load; when it stalls for LEVEL_LOAD_STALL_MS show the error card. A late finish puts the card back. */
+const withLoadTimeout = async (load: Promise<void>) => {
+  let timedOut = false;
+  const started = performance.now();
+  const timer = setInterval(() => {
+    // The stall clock is page-wide, so it only counts from when this load began.
+    const stalled = Math.min(phBoot?.idleMs() ?? 0, performance.now() - started);
+    if (timedOut || stalled <= LEVEL_LOAD_STALL_MS) return;
+    timedOut = true;
+    showLoadError('timeout');
+  }, 250);
+  try {
+    await load;
+  } finally {
+    clearInterval(timer);
+  }
+  if (timedOut) recoverFromStall();
+};
+
+/** A load that stalled (error card shown) and then finished after all: put the title card back. */
+const recoverFromStall = () => {
+  if (!phBoot?.recover()) return;
+  messageText.textContent = levelStartLine();
+  syncStartButtonLabel();
 };
 
 const showMessage = (title: string, text: string) => {
@@ -2045,15 +2105,15 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false) =
     state.progression.currentLevel = level.id;
     const sceneTheme = (scene.metadata as { themeName?: string } | null)?.themeName;
     // dressedLevelId can still name this level after a detour. The street scene is not the station.
-    if (forceLoad || dressedLevelId !== level.id || sceneTheme !== level.theme) {
+    if (forceLoad || forcedLoadFailure || dressedLevelId !== level.id || sceneTheme !== level.theme) {
       applyLevelConfig(level);
-      await loadMissionScene(level.path);
+      await withLoadTimeout(loadMissionScene(level.path));
+      if (loadFailed()) return;
     }
     await fadeOutCard();
     beginGame();
-  } catch {
-    state.running = false;
-    showMessage('PH Origins', levelStartLine());
+  } catch (error) {
+    showLoadError('level', error);
   } finally {
     startingLevel = false;
   }
@@ -2066,6 +2126,8 @@ void (async () => {
   state.progression.currentLevel = bootLevel.id;
   applyLevelConfig(bootLevel);
   await loadMissionScene(bootLevel.path);
+  phBoot?.ready();
+  recoverFromStall();
   const params = new URLSearchParams(location.search);
   const beat = params.get('beat');
   const cutscene = params.get('cutscene');
@@ -2139,7 +2201,10 @@ void (async () => {
     beginGame();
     act.startCall();
   }
-})().catch(() => applyLoadedScene(null));
+})().catch((error) => {
+  applyLoadedScene(null);
+  showLoadError('level', error);
+});
 
 const spawnPickup = (position: BABYLON.Vector3, item: InventoryItemType, amount = 1) => {
   const colorMap: Record<InventoryItemType, BABYLON.Color3> = {
@@ -3107,7 +3172,8 @@ fireBtn.addEventListener('pointerleave', () => { state.fireHeld = false; });
 fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
 startBtn.addEventListener('click', () => {
-  if (cardLeaving) return;
+  // Retry on the error card reloads the page (its own handler in game.html).
+  if (cardLeaving || loadFailed()) return;
   unlockAudio();
   const mode = menuMode();
   if (mode === 'level-complete') {
@@ -3129,6 +3195,11 @@ startBtn.addEventListener('click', () => {
     return;
   }
   if (!gameReady) return;
+  if (forcedLoadFailure) {
+    // Playtest `load-error`: Start loads the level again so the forced failure happens on a real press.
+    void startAtLevel(state.level, false, true);
+    return;
+  }
   void fadeOutCard().then(beginGame);
 });
 newGameBtn.addEventListener('click', () => {
@@ -3276,7 +3347,7 @@ resetBtn.addEventListener('click', () => {
   clearDynamicObjects();
   clearInputState();
   resetPlayer();
-  void loadMissionScene(getLevelDefinition(1).path);
+  void withLoadTimeout(loadMissionScene(getLevelDefinition(1).path)).catch((error) => showLoadError('level', error));
   updateHud();
   showMessage('PH Origins', levelStartLine());
   menuCameraActive = true;
@@ -3547,7 +3618,7 @@ const renderLevelSelect = () => {
       state.level = level.id;
       state.progression.currentLevel = level.id;
       applyLevelConfig(level);
-      void loadMissionScene(level.path);
+      void withLoadTimeout(loadMissionScene(level.path)).catch((error) => showLoadError('level', error));
       levelSelect.classList.add('hidden');
       messageTitle.textContent = 'PH Origins';
       messageText.textContent = levelStartLine(level);
@@ -3602,7 +3673,7 @@ const devActions: Record<string, () => void> = {
   level: () => {
     state.level = Math.min(getLevels().length, state.level + 1);
     applyLevelConfig(getLevelDefinition(state.level));
-    void loadMissionScene(getLevelDefinition(state.level).path);
+    void withLoadTimeout(loadMissionScene(getLevelDefinition(state.level).path)).catch((error) => showLoadError('level', error));
     updateHud();
   },
   pause: () => {
@@ -3745,6 +3816,7 @@ installPhPlaytest({
   newGameButton: newGameBtn,
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
+  failNextLoad: (kind) => { forcedLoadFailure = kind; },
   phoneFrame: setPhoneFrame,
   sound: () => ({
     prompt: tapPromptShowing(),
@@ -3754,3 +3826,6 @@ installPhPlaytest({
     settings: soundSettings(),
   }),
 });
+
+// The module ran: from here on, load failures are caught above (boot, Start) and by the load timeout.
+phBoot?.started();
