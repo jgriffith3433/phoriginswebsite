@@ -1255,6 +1255,12 @@
         opacity: 0;
       }
 
+      /* the panel can reach under the right-hand hotkey stack on a phone: hide the stack while it is open */
+      body:has(.missions-hud.open) .inventory-hud:not(.open) {
+        visibility: hidden;
+        pointer-events: none;
+      }
+
       .missions-hud.open #missionsHint {
         display: none;
       }
