@@ -1819,10 +1819,198 @@
           font-size: 20px;
         }
       }
+      /* Studio standard: one tap unlocks sound before the game starts (src/game/audioUnlock.ts). */
+      .tap-to-play {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(env(safe-area-inset-top, 0px) + 24px) calc(env(safe-area-inset-right, 0px) + 24px) calc(env(safe-area-inset-bottom, 0px) + 24px) calc(env(safe-area-inset-left, 0px) + 24px);
+        background: radial-gradient(ellipse at 50% 40%, rgba(16, 32, 44, 0.96) 0%, rgba(3, 6, 10, 0.99) 70%);
+        color: var(--text);
+        text-align: center;
+        cursor: pointer;
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: opacity 0.35s ease;
+      }
+
+      /* It keeps catching taps while it fades, so the tap's own click never lands on the card below. */
+      .tap-to-play.gone {
+        opacity: 0;
+      }
+
+      .tap-to-play[hidden] {
+        display: none;
+      }
+
+      .tap-to-play h1 {
+        margin: 0 0 18px;
+        font-size: clamp(34px, 8vw, 60px);
+        letter-spacing: 0.04em;
+      }
+
+      .tap-cta {
+        display: inline-block;
+        margin: 0;
+        padding: 14px 28px;
+        border: 1px solid var(--panel-border);
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.24rem;
+        text-transform: uppercase;
+        color: var(--gold);
+        animation: tap-pulse 2.4s ease-in-out infinite;
+      }
+
+      .tap-note {
+        margin: 16px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+      }
+
+      @keyframes tap-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.55; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .tap-cta { animation: none; }
+      }
+
+      /* Pause and Settings sit over the level and the title card alike. */
+      .pause-btn {
+        position: absolute;
+        top: calc(var(--safe-top) + 14px);
+        right: 16px;
+        z-index: 31;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 50%;
+        background: rgba(8, 10, 14, 0.72);
+        color: var(--text);
+        font-size: 15px;
+        letter-spacing: 0;
+        line-height: 44px;
+        text-align: center;
+      }
+
+      .pause-btn[hidden] {
+        display: none;
+      }
+
+      .skip-cutscene {
+        right: 72px;
+      }
+
+      body[data-device='mobile'] .pause-btn,
+      body[data-device='tablet'] .pause-btn {
+        right: 10px;
+        top: calc(var(--safe-top) + 10px);
+      }
+
+      .overlay-card {
+        position: absolute;
+        inset: 0;
+        z-index: 40;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 16px);
+        background: rgba(3, 6, 10, 0.72);
+      }
+
+      .overlay-card[hidden] {
+        display: none;
+      }
+
+      .overlay-card .panel {
+        width: min(400px, 100%);
+        max-height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .settings-card {
+        z-index: 45;
+      }
+
+      .settings-rows {
+        display: grid;
+        gap: 18px;
+        margin-top: 18px;
+        text-align: left;
+      }
+
+      .settings-row {
+        display: grid;
+        gap: 8px;
+      }
+
+      .settings-row.inline {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+      }
+
+      .settings-row label,
+      .settings-row .settings-label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16rem;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .settings-row output {
+        float: right;
+        color: var(--text);
+        letter-spacing: 0.04em;
+      }
+
+      .settings-row input[type='range'] {
+        width: 100%;
+        height: 32px;
+        margin: 0;
+        accent-color: var(--gold);
+        touch-action: pan-x;
+      }
+
+      .settings-rows[data-off='true'] .settings-row.volume {
+        opacity: 0.45;
+      }
+
+      .sound-switch {
+        min-width: 76px;
+        padding: 10px 16px;
+        border: 1px solid var(--panel-border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+
+      .sound-switch[aria-checked='true'] {
+        background: linear-gradient(135deg, var(--accent), var(--good));
+        color: #07141e;
+        border-color: transparent;
+      }
+
+      @media (max-height: 480px) {
+        .overlay-card .panel { padding: 18px 20px; }
+        .overlay-card h1 { font-size: 28px; margin-bottom: 6px; }
+        .settings-rows { gap: 10px; margin-top: 10px; }
+        .overlay-card .button-row { margin-top: 12px; }
+      }
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" crossorigin src="./assets/index-1bJUtX0E.js"></script>
+    <script type="module" crossorigin src="./assets/index-CdvGa1Gw.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -2001,12 +2189,94 @@
             <button class="secondary" id="newGameBtn" type="button" style="display:none">New Game</button>
             <button class="secondary" id="resetBtn">Reset</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
+            <button class="secondary" id="settingsBtn" type="button">Settings</button>
           </div>
           <a class="build-version" href="/whatsnew.html" target="_blank" rel="noopener" data-hawkes-version data-prefix="Version " hidden></a>
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />
         </div>
       </div>
+
+      <button type="button" id="pauseBtn" class="pause-btn" hidden aria-label="Pause">&#10074;&#10074;</button>
+
+      <div class="overlay-card" id="pauseMenu" hidden role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+        <div class="panel">
+          <div class="eyebrow">Hawkes Tower</div>
+          <h1 id="pauseTitle">Paused</h1>
+          <p class="subtitle">The night will wait.</p>
+          <div class="button-row">
+            <button class="primary" id="resumeBtn" type="button">Resume</button>
+            <button class="secondary" id="pauseSettingsBtn" type="button">Settings</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay-card settings-card" id="settingsMenu" hidden role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="panel">
+          <h1 id="settingsTitle">Settings</h1>
+          <div class="settings-rows" id="settingsRows">
+            <div class="settings-row inline">
+              <span class="settings-label" id="soundLabel">Sound</span>
+              <button type="button" class="sound-switch" id="soundSwitch" role="switch" aria-checked="true" aria-labelledby="soundLabel">On</button>
+            </div>
+            <div class="settings-row volume">
+              <label for="musicVolume">Music <output id="musicVolumeOut" for="musicVolume">100%</output></label>
+              <input type="range" id="musicVolume" min="0" max="100" step="5" value="100" />
+            </div>
+            <div class="settings-row volume">
+              <label for="sfxVolume">Effects &amp; voice <output id="sfxVolumeOut" for="sfxVolume">100%</output></label>
+              <input type="range" id="sfxVolume" min="0" max="100" step="5" value="100" />
+            </div>
+          </div>
+          <div class="button-row">
+            <button class="primary" id="settingsDoneBtn" type="button">Done</button>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div class="tap-to-play" id="tapToPlay" role="button" tabindex="0" aria-label="Tap to play">
+      <div>
+        <div class="eyebrow">One night in Hawkes Tower</div>
+        <h1>PH Origins</h1>
+        <p class="tap-cta">Tap to play</p>
+        <p class="tap-note">Sound on. Headphones help.</p>
+      </div>
+    </div>
+    <script>
+      // One tap before the game starts unlocks sound (iOS needs a gesture). main.ts may not have loaded yet: then
+      // this tap starts the AudioContext itself and audioUnlock.ts adopts it (window.__phTap.ctx).
+      (function () {
+        var prompt = document.getElementById('tapToPlay');
+        var tap = window.__phTap = { tapped: false, ctx: null, onTap: null };
+        var go = function () {
+          if (tap.tapped) return;
+          tap.tapped = true;
+          if (!tap.onTap) {
+            try {
+              var Ctor = window.AudioContext || window.webkitAudioContext;
+              if (Ctor) {
+                tap.ctx = new Ctor();
+                if (tap.ctx.resume) tap.ctx.resume().catch(function () {});
+              }
+            } catch (e) {}
+          }
+          prompt.classList.add('gone');
+          setTimeout(function () { prompt.hidden = true; }, 400);
+          if (tap.onTap) tap.onTap();
+        };
+        prompt.addEventListener('click', go);
+        prompt.addEventListener('pointerup', go);
+        prompt.addEventListener('touchend', go);
+        window.addEventListener('keydown', function (event) {
+          if (tap.tapped || event.repeat) return;
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            go();
+          }
+        }, true);
+      })();
+    </script>
     <script src="/site/hawkes-release.js" data-releases="/releases.json" defer></script>
   </body>
 </html>
