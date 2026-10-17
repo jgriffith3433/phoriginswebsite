@@ -1,0 +1,18 @@
+{
+  "_about": "assets/models in the Hawkes Gen library (hawkesgen/clients/js/hawkesgen-folders.mjs): one entity per GLB, its model slot the file. Characters by name, everything else a prop. Picks write back to the same file.",
+  "project": "phorigins",
+  "layout": "files",
+  "root": "assets/models",
+  "mappings": [
+    {
+      "kind": "character",
+      "entities": ["ch*", "hero", "parasite-*"],
+      "slots": [{ "slot": "model", "current": "{entity}.glb", "takes": "_takes/{entity}-*.glb" }]
+    },
+    {
+      "kind": "prop",
+      "skip": ["_*", "ch*", "hero", "parasite-*"],
+      "slots": [{ "slot": "model", "current": "{entity}.glb", "takes": "_takes/{entity}-*.glb" }]
+    }
+  ]
+}

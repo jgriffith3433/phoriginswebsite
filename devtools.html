@@ -772,6 +772,17 @@
         gap: 14px;
       }
 
+      .library-host {
+        --hg-bg: var(--bg);
+        --hg-panel: var(--panel-2);
+        --hg-fg: var(--text);
+        --hg-muted: var(--muted);
+        --hg-line: var(--border);
+        --hg-accent: var(--accent);
+        max-height: calc(100vh - 260px);
+        overflow: auto;
+      }
+
       .story-modal {
         width: min(1100px, calc(100vw - 32px));
       }
@@ -1003,6 +1014,7 @@
               <button id="animTrimBtn" type="button">Animation trim</button>
               <button id="storyLinesBtn" type="button">Story lines</button>
               <button id="soundEffectsBtn" type="button">Sound effects</button>
+              <button id="libraryBtn" type="button">Library</button>
               <button id="addTexturesBtn" type="button">Add Textures</button>
             </div>
           </div>
@@ -1268,6 +1280,30 @@
         <div class="modal-footer">
           <button id="storyGenerateBtn" type="button">Generate missing / out of date</button>
           <button id="storySaveBtn" class="primary" type="button">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="libraryOverlay" hidden>
+      <div class="modal story-modal library-modal" role="dialog" aria-labelledby="libraryTitle">
+        <div class="modal-header">
+          <span id="libraryTitle">Library</span>
+          <button id="libraryCloseBtn" class="icon-btn" type="button" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="pref-hint">Every character and prop in Hawkes Gen's library, shared with Studio and the other tools. Each one keeps every version of its model: use one, discard, give feedback and revise, or make more takes (a prop's model is made from its reference image; GPU work is priced first). Import brings assets/models in; a pick is written back to the same GLB.</p>
+          <div class="story-tools">
+            <select id="libraryKind">
+              <option value="">Characters and props</option>
+              <option value="character">Characters</option>
+              <option value="prop">Props</option>
+            </select>
+            <button id="libraryImportBtn" type="button">Import assets/models</button>
+            <button id="libraryExportBtn" type="button">Write back</button>
+            <label class="pref-toggle" title="When you pick a version, write it into assets/models so the game uses it"><input id="libraryWriteBack" type="checkbox" checked /> Write picks back</label>
+            <span id="libraryStatus" class="pref-hint"></span>
+          </div>
+          <div id="libraryHost" class="library-host"></div>
         </div>
       </div>
     </div>

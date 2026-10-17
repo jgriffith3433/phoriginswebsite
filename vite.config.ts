@@ -4,6 +4,7 @@ import type { Connect, Plugin, ViteDevServer } from 'vite';
 import { defineConfig } from 'vite';
 import { convertCharacterGlb, inferClipName } from './tools/blenderConvert.mjs';
 import { linkBlender } from './tools/linkBlender.mjs';
+import { genLibrary } from './tools/genLibrary.mjs';
 import { importEditorTexture } from './tools/process-textures.mjs';
 import { inspectSoundFiles, synthesizeEffect } from './tools/soundEffects.mjs';
 import { inspectVoiceFiles, listVoices, synthesizeLine } from './tools/voiceLines.mjs';
@@ -119,6 +120,12 @@ const editorApiPlugin = (): Plugin => ({
       res.setHeader('Content-Type', 'application/json');
       res.end(fs.readFileSync(abs, 'utf8'));
     });
+
+    // Tools > Library: Hawkes Gen's library through this server (tools/genLibrary.mjs adds the key).
+    const library = genLibrary(root);
+    server.middlewares.use('/api/gen', (req, res) => void library.relay(req, res));
+    server.middlewares.use('/api/library/import', (req, res) => void library.importFolders(req, res));
+    server.middlewares.use('/api/library/export', (req, res) => void library.exportFolders(req, res));
 
     server.middlewares.use('/api/tree', (req, res) => {
       res.setHeader('Content-Type', 'application/json');
