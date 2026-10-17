@@ -118,6 +118,8 @@ tools/                      Blender convert, bake anims, texture pipeline
 
 Home, About, and Characters share `site/marketing.css` and `site/marketing.js`. Play links point at `/play/game.html` (the build; correct with no JS). `marketing.js` swaps them to `/game.html` on a local dev host (any port except the preview server on 4173). GitHub Pages publishes the repo root, so the live `/game.html` is the unbuilt source page (Pages serves `src/main.ts` as `video/mp2t`). An inline script at the top of `game.html` redirects to `./play/game.html` when Vite has not substituted `%MODE%`; keep it. The same script shows "Could not load the game" with a Reload button if the entry module fails to load or throws before `main.ts` calls `window.__phBoot.ok()`. Landing music key stays `ph-origins-landing-music`, volume **0.42**.
 
+Every site page (not `game.html`) ends its footer with the Hawkes credit (`p.hawkes-credit`): "Powered by **HAWKES GEN**" → https://hawkesgen.com (`data-hawkes-credit="gen"`). Home also has "A **Hawkes Biomedical** company" → https://hawkesbiomedical.com (`data-hawkes-credit="parent"`). A new site page copies that footer; the `site-links` playtest checks it. The game screen carries no credit.
+
 Public cast is the named board only: **Pierce Hawkes**, **Director Hale** (woman), **Voss** (man), **Lang** (man). Do not invent first names. The post-vat figure on Characters is concept art; Ch44 is still reserved and not swapped in.
 
 ### Important `src/game` modules
@@ -206,7 +208,9 @@ The game implements the Hawkes playtest contract v1 (`C:\Projects\hawkesstudio\d
   prompt fills the screen, taps it with a hit-tested pointer press, checks the AudioContext runs, opens Settings from
   the title, turns Sound off and Music to 40%, reloads the page, then picks up again through `?playtest=sound-settings`
   and a sessionStorage marker: prompt again, the saved choice in Settings, then Settings from Pause in level 1; it puts
-  the player's `hawkes.sound` back). Every other scenario taps the prompt first. `options.speed` > 1 skips each timeline after
+  the player's `hawkes.sound` back), `site-links` (shows Home, About, Characters and What's new in an overlay, jumps
+  each to its footer and checks a visible "Powered by HAWKES GEN" link to hawkesgen.com, plus Hawkes Biomedical on Home;
+  then checks the game page has no credit link). Every other scenario taps the prompt first. `options.speed` > 1 skips each timeline after
   duration / speed.
 - Metrics: `levelNSeconds`, `interactions`, `dialogueLines`, `cutscenes`, `cutscene:<id>` seconds, `shots`,
   `respawns` (Defeat → Start), `falls`, `knockbacks` (cars), `stuckRecoveries`, plus `fpsAverage` / `fpsWorst`.
