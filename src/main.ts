@@ -3128,6 +3128,38 @@ newGameBtn.addEventListener('click', () => {
 });
 canvas.addEventListener('pointerdown', () => unlockAudio());
 installAudioUnlock();
+
+/**
+ * iOS drops the click for a tap made while another finger is on a stick, so HUD buttons never fire mid-drag.
+ * Fire the click on touch pointerup ourselves and swallow the native one if it does arrive.
+ */
+let touchClickAt = 0;
+let touchClickTarget: Element | null = null;
+document.addEventListener('pointerup', (event) => {
+  if (event.pointerType !== 'touch') return;
+  const target = (event.target as Element | null)?.closest?.('button');
+  if (!target || (target as HTMLButtonElement).disabled || target.closest('#devtools, .editor')) return;
+  const down = touchDownButtons.get(event.pointerId);
+  touchDownButtons.delete(event.pointerId);
+  if (down !== target) return;
+  touchClickAt = performance.now();
+  touchClickTarget = target;
+  (target as HTMLButtonElement).click();
+}, true);
+const touchDownButtons = new Map<number, Element>();
+document.addEventListener('pointerdown', (event) => {
+  if (event.pointerType !== 'touch') return;
+  const target = (event.target as Element | null)?.closest?.('button');
+  if (target) touchDownButtons.set(event.pointerId, target);
+}, true);
+document.addEventListener('pointercancel', (event) => touchDownButtons.delete(event.pointerId), true);
+window.addEventListener('click', (event) => {
+  if (!event.isTrusted || !touchClickTarget) return;
+  if (performance.now() - touchClickAt > 800) return;
+  if (!touchClickTarget.contains(event.target as Node)) return;
+  event.stopImmediatePropagation();
+  event.preventDefault();
+}, true);
 resetBtn.addEventListener('click', () => {
   if (messageTitle.textContent === 'Defeat') {
     defeatLeft = 0;
