@@ -1683,7 +1683,14 @@ const withLoadTimeout = async (load: Promise<void>) => {
   } finally {
     clearInterval(timer);
   }
-  if (timedOut && phBoot?.recover()) syncStartButtonLabel();
+  if (timedOut) recoverFromStall();
+};
+
+/** A load that stalled (error card shown) and then finished after all: put the title card back. */
+const recoverFromStall = () => {
+  if (!phBoot?.recover()) return;
+  messageText.textContent = levelStartLine();
+  syncStartButtonLabel();
 };
 
 const showMessage = (title: string, text: string) => {
@@ -2120,7 +2127,7 @@ void (async () => {
   applyLevelConfig(bootLevel);
   await loadMissionScene(bootLevel.path);
   phBoot?.ready();
-  if (phBoot?.recover()) syncStartButtonLabel();
+  recoverFromStall();
   const params = new URLSearchParams(location.search);
   const beat = params.get('beat');
   const cutscene = params.get('cutscene');
