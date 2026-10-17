@@ -16,42 +16,92 @@
         window.__phRedirecting = true;
         location.replace('./play/game.html' + location.search + location.hash);
       }
-      // If the game module fails to load or throws before it starts, say so instead of "Loading" forever.
-      // main.ts calls window.__phBoot.ok() once it is running.
+      // If the game module fails to load, throws before it starts, or loading stalls for about 20 s, swap the
+      // Loading card for "Couldn't start the game" and a Retry button that reloads the page.
+      // A stall is 20 s with no request finishing while the page is not busy (idleMs). A plain clock would fire on
+      // healthy loads on slow machines: headless WebGL on the playtest server needs minutes to reach Start.
+      // main.ts calls __phBoot.started() once its module has run, __phBoot.ready() once the first level is loaded,
+      // and __phBoot.fail(kind) when a level load fails or times out later (Start, Continue).
       (function () {
+        var LOAD_TIMEOUT_MS = 20000;
+        // A tick this late means the page was busy (parsing models, compiling shaders): that is progress.
+        var BUSY_GAP_MS = 2500;
         var started = false;
-        var fail = function (reason) {
-          if (started || window.__phRedirecting) return;
-          started = true;
-          var show = function () {
-            var title = document.getElementById('messageTitle');
-            var text = document.getElementById('messageText');
-            var btn = document.getElementById('startBtn');
-            if (title) title.textContent = 'Could not load the game';
-            if (text) text.textContent = reason + ' Check your connection and reload. If it keeps happening, try another browser.';
-            if (btn) {
-              btn.disabled = false;
-              btn.removeAttribute('aria-busy');
-              btn.textContent = 'Reload';
-              btn.onclick = function () { location.reload(); };
-            }
-            document.documentElement.setAttribute('data-load-error', reason);
-          };
-          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show);
-          else show();
+        var ready = false;
+        var failedKind = null;
+        var hiddenButtons = [];
+        var reasons = {
+          files: 'The game files did not load.',
+          error: 'Something went wrong while the game was starting.',
+          level: 'The level did not load.',
+          timeout: 'Loading is taking too long.'
         };
-        window.__phBoot = { ok: function () { started = true; } };
+        var render = function () {
+          var title = document.getElementById('messageTitle');
+          var text = document.getElementById('messageText');
+          var btn = document.getElementById('startBtn');
+          if (title) title.textContent = "Couldn't start the game";
+          if (text) text.textContent = (reasons[failedKind] || reasons.error) + ' Check your connection and press Retry.';
+          if (btn) {
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+            btn.style.display = '';
+            btn.textContent = 'Retry';
+            btn.onclick = function () { location.reload(); };
+          }
+          hiddenButtons = [];
+          ['newGameBtn', 'resetBtn', 'loadModelBtn'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) { hiddenButtons.push([el, el.style.display]); el.style.display = 'none'; }
+          });
+          document.documentElement.setAttribute('data-load-error', failedKind);
+        };
+        var fail = function (kind) {
+          if (failedKind || window.__phRedirecting) return;
+          failedKind = kind;
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
+          else render();
+        };
+        var idle = 0;
+        var lastTick = Date.now();
+        var progress = function () { idle = 0; };
+        try {
+          new PerformanceObserver(progress).observe({ type: 'resource' });
+        } catch (e) {}
+        setInterval(function () {
+          var now = Date.now();
+          var gap = now - lastTick;
+          lastTick = now;
+          if (gap > BUSY_GAP_MS) idle = 0;
+          else idle += gap;
+          if (!ready && idle > LOAD_TIMEOUT_MS) fail('timeout');
+        }, 250);
+        window.__phBoot = {
+          started: function () { started = true; },
+          ready: function () { ready = true; },
+          idleMs: function () { return idle; },
+          fail: fail,
+          failed: function () { return failedKind; },
+          // A load that only timed out and then finished after all: put the title card back.
+          recover: function () {
+            if (failedKind !== 'timeout') return false;
+            failedKind = null;
+            var title = document.getElementById('messageTitle');
+            var btn = document.getElementById('startBtn');
+            if (title) title.textContent = 'PH Origins';
+            if (btn) btn.onclick = null;
+            hiddenButtons.forEach(function (pair) { pair[0].style.display = pair[1]; });
+            hiddenButtons = [];
+            document.documentElement.removeAttribute('data-load-error');
+            return true;
+          }
+        };
         window.addEventListener('error', function (event) {
           var el = event.target;
-          if (el && el.tagName === 'SCRIPT' && el.type === 'module') fail('The game files did not load.');
-          else if (event instanceof ErrorEvent) fail('The game hit an error while starting.');
+          if (el && el.tagName === 'SCRIPT' && el.type === 'module') fail('files');
+          else if (!started && event instanceof ErrorEvent) fail('error');
         }, true);
-        window.addEventListener('unhandledrejection', function () { fail('The game hit an error while starting.'); });
-        setTimeout(function () {
-          if (started || window.__phRedirecting) return;
-          var text = document.getElementById('messageText');
-          if (text) text.textContent = 'Still loading. This is taking longer than usual; reload if it does not finish.';
-        }, 45000);
+        window.addEventListener('unhandledrejection', function () { if (!started) fail('error'); });
       })();
     </script>
     <style>
