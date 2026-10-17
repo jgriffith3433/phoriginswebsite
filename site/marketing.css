@@ -835,3 +835,13 @@ a {
 .releases ul { margin: 0; padding-left: 1.2em; }
 .releases li { margin: 0.35em 0; }
 .site-footer .footer-version { flex-basis: 100%; letter-spacing: 0.18em; }
+
+/* Hawkes credit in the footer: Powered by HAWKES GEN on every page, the parent company on Home. */
+.site-footer .hawkes-credit { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 0; margin: 0; letter-spacing: 0.14em; }
+.hawkes-credit strong { color: var(--text); font-weight: 700; letter-spacing: 0.2em; }
+.hawkes-credit a:hover strong { color: var(--gold); }
+.hawkes-credit-sep { margin: 0 0.8em; color: var(--line); }
+@media (max-width: 480px) {
+  .hawkes-credit { flex-direction: column; }
+  .hawkes-credit-sep { display: none; }
+}

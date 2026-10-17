@@ -368,6 +368,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         seconds: 260,
         tags: ['menus'],
       },
+      {
+        id: 'site-links',
+        title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, the game screen unchanged',
+        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another, scrolls each to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
+        seconds: 60,
+        tags: ['menus', 'site'],
+      },
     ],
     isReady: () => probe.ready(),
     stallSeconds: 75,
@@ -999,6 +1006,58 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
     };
 
+    /** Each site page in an overlay: the footer's Powered by HAWKES GEN link, and Hawkes Biomedical on Home. */
+    const siteLinksCheck = async () => {
+      const pages: [string, string][] = [['index.html', 'Home'], ['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
+      const want: [string, string, RegExp, string][] = [
+        ['gen', 'https://hawkesgen.com', /powered by\s+hawkes gen/i, 'Powered by HAWKES GEN'],
+        ['parent', 'https://hawkesbiomedical.com', /hawkes biomedical/i, 'Hawkes Biomedical'],
+      ];
+      for (const [i, [file, name]] of pages.entries()) {
+        t.scene(`${name} page`);
+        const url = new URL((location.pathname.includes('/play/') ? '../' : './') + file, location.href);
+        const frame = document.createElement('iframe');
+        frame.src = url.href;
+        Object.assign(frame.style, { position: 'fixed', inset: '4%', width: '92%', height: '92%', zIndex: '9999', border: '2px solid #d4b483', background: '#05080c' });
+        document.body.appendChild(frame);
+        try {
+          const until = performance.now() + 20000;
+          while (!frame.contentDocument?.querySelector('footer') && performance.now() < until) await sleep(200);
+          await sleep(600);
+          const doc = frame.contentDocument;
+          const footer = doc?.querySelector('footer');
+          if (!doc || !footer) { t.problem('bug', `${name} page did not load in the overlay (${url.href})`); continue; }
+          footer.scrollIntoView({ block: 'end', behavior: 'instant' });
+          await sleep(900);
+          for (const [kind, href, text, label] of want) {
+            if (kind === 'parent' && file !== 'index.html') continue;
+            const match = (root: ParentNode) => [...root.querySelectorAll<HTMLAnchorElement>('a[href]')].filter((a) => a.href.replace(/\/$/, '') === href);
+            const links = match(footer).length ? match(footer) : match(doc);
+            const link = links.find((a) => text.test(a.textContent ?? '')) ?? links[0];
+            const r = link?.getBoundingClientRect();
+            const cs = link ? frame.contentWindow!.getComputedStyle(link) : null;
+            const visible = !!(r && r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < frame.clientHeight && cs && cs.visibility !== 'hidden' && +cs.opacity > 0.05);
+            const shown = (link?.textContent ?? '').trim().replace(/\s+/g, ' ');
+            if (link) link.style.outline = '2px solid #d4b483';
+            t.event('site-link', `${name}: ${visible && text.test(shown) ? 'shows' : 'NO'} "${label}" → ${href}${link ? ` (text "${shown}", ${visible ? 'visible' : 'not visible'})` : ''}`);
+            if (!link) t.problem('bug', `${name} page: no link to ${href}`);
+            else if (!visible || !text.test(shown)) t.problem('bug', `${name} page: the ${href} link is not a visible "${label}" (text "${shown}", ${visible ? 'visible' : 'hidden'})`);
+          }
+          await sleep(2500);
+        } finally {
+          frame.remove();
+        }
+        t.progress(0.15 + (0.65 * (i + 1)) / pages.length);
+      }
+      // The game screen stays as it was: no credit on the title card or in the HUD.
+      t.scene('Game screen');
+      await sleep(400);
+      const inGame = [...document.querySelectorAll<HTMLAnchorElement>('a[href]')].filter((a) => /hawkesgen\.com|hawkesbiomedical\.com/.test(a.href) || a.hasAttribute('data-hawkes-credit'));
+      t.event('game-screen', inGame.length ? `credit links on the game page: ${inGame.map((a) => a.href).join(', ')}` : 'unchanged: no credit links on the game page');
+      if (inGame.length) t.problem('bug', `the game page shows ${inGame.length} credit link(s); the credit belongs on the site pages only`);
+      await sleep(2000);
+    };
+
     /** Stand still until the objective changes to a hint that matches. */
     const waitHint = async (what: string, test: RegExp, ms: number) => {
       releaseAll();
@@ -1218,6 +1277,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
       t.progress(1);
       t.finish('won');
+      return;
+    }
+
+    if (id === 'site-links') {
+      t.progress(0.15);
+      await siteLinksCheck();
+      t.progress(1);
+      t.finish('done');
       return;
     }
 
