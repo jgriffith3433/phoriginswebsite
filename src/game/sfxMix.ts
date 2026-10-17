@@ -1,5 +1,5 @@
 import catalog from '../../locales/sfx.json';
-import { getSharedAudioContext } from './audioUnlock';
+import { busInput, getSharedAudioContext } from './audioUnlock';
 
 /**
  * `volume` on a sound effect is its full playback level. Preview plays that.
@@ -120,7 +120,7 @@ export const startGaplessLoop = async (url: string, volume: number): Promise<Loo
   const gain = ctx.createGain();
   gain.gain.value = clamp(volume);
   source.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(busInput(ctx, 'sfx'));
   source.start();
   return {
     setVolume: (next) => {

@@ -1,7 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
 import phoneCopy from '../story/phone.json';
-import { createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
+import { busInput, createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
 import { mixVolume } from './sfxMix';
 import { phoneSpeakerId, storyLine } from './locale';
 import type { PlayerAvatar } from './playerAvatar';
@@ -511,7 +511,7 @@ export const createPhone = (
     osc.frequency.value = frequency;
     gain.gain.value = volume;
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(busInput(ctx, 'sfx'));
     const now = ctx.currentTime;
     gain.gain.setValueAtTime(volume, now);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
