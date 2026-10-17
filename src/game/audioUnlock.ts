@@ -15,7 +15,39 @@ const resumeContext = () => {
   const Ctor = AudioCtor();
   if (!Ctor) return;
   if (!ctx) ctx = new Ctor();
-  if (ctx.state === 'suspended') void ctx.resume();
+  // iOS also reports 'interrupted' after a call, a lock or a tab switch.
+  if (ctx.state !== 'running') void ctx.resume().catch(() => {});
+};
+
+/**
+ * iOS only lets an HTMLAudio element play outside a touch if that element was started during one.
+ * Prime a pool on every gesture; createUnlockedAudio hands them out, so a cutscene voice line can start
+ * while the player's thumbs are off the screen.
+ */
+const POOL_SIZE = 32;
+const pool: HTMLAudioElement[] = [];
+let priming = 0;
+
+const primePool = () => {
+  while (pool.length + priming < POOL_SIZE) {
+    const element = new Audio(SILENCE_WAV);
+    element.preload = 'auto';
+    element.muted = true;
+    element.setAttribute('playsinline', 'true');
+    priming += 1;
+    const done = (ok: boolean) => {
+      priming -= 1;
+      element.pause();
+      element.currentTime = 0;
+      if (ok) pool.push(element);
+    };
+    const play = element.play();
+    if (play && typeof play.then === 'function') {
+      void play.then(() => done(true), () => done(false));
+    } else {
+      done(true);
+    }
+  }
 };
 
 const unlockHtmlAudio = () => {
@@ -64,12 +96,12 @@ export const unlockAudio = () => {
   resumeContext();
   unlockBuffer();
   unlockHtmlAudio();
+  primePool();
 };
 
 export const createUnlockedAudio = (url: string): HTMLAudioElement => {
-  const element = silent
-    ? (silent.cloneNode(true) as HTMLAudioElement)
-    : new Audio();
+  const element = pool.pop()
+    ?? (silent ? (silent.cloneNode(true) as HTMLAudioElement) : new Audio());
   element.muted = false;
   element.loop = false;
   element.preload = 'auto';
@@ -86,4 +118,9 @@ export const installAudioUnlock = () => {
   window.addEventListener('touchstart', onGesture, { capture: true, passive: true });
   window.addEventListener('click', onGesture, { capture: true });
   window.addEventListener('keydown', onGesture, { capture: true });
+  // Lifting a finger is a gesture too, and it keeps the context and the pool topped up on a phone.
+  window.addEventListener('touchend', onGesture, { capture: true, passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) resumeContext();
+  });
 };
