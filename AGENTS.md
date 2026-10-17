@@ -36,6 +36,7 @@ Writes under `assets/`, `levels/`, `cutscenes/`, and `locales/` do not hot-reloa
 - **Combat off** on Apex Peak and B3 (`combat: false` in `levels/level-library.json`). Do not spawn wave enemies there.
 - **Level 3** (`the-return`) reuses the B3 scene, then the Apex Peak scene. Combat stays off. Powers are not in yet.
 - Unlock audio on first gesture (`src/game/audioUnlock.ts`). Mobile needs this.
+- **Tap to play, Pause, Settings** (studio sound standard). `game.html` opens on a full-screen **Tap to play** prompt (`#tapToPlay`); that tap resumes the AudioContext and primes the pool. If the tap beats `main.ts`, the inline script starts the context and `audioUnlock.ts` adopts it (`window.__phTap.ctx`). The context resumes again on `visibilitychange`, `pageshow`, `focus` and its own `statechange` (iOS "interrupted"). **Settings** (title card and Pause) has Sound on/off, Music and Effects & voice, saved in localStorage `hawkes.sound` as `{ on, music, sfx }` (0-1, `src/game/soundSettings.ts`). Music is the trigger beds and the ending songs (`createUnlockedAudio(url, 'music')`); everything else is effects. Every clip goes through `createUnlockedAudio` (or `trackAudio` for a clone), and Web Audio sounds connect to `busInput(ctx, 'sfx')`, not `ctx.destination`. A tracked clip's `volume` and `muted` read back what the caller set; what plays is scaled by Settings. iOS ignores `volume`, so there a clip between full and silent is routed through a gain node. **Pause** (the ❚❚ button, **Esc**, or leaving the tab) holds the render loop, Babylon animations and every playing clip; `setTimeout` story timers are not held.
 - Invert mouse Y is intentional (`thirdPersonCamera.ts`).
 - Start stays disabled until `gameReady` (player + NPCs `whenReady`, skybox faces, and a few rendered frames). The black veil stays up through that. Start holds it across the camera switch, waits **1s**, then fades clear over **1.5s**, so the night-city cube does not flash. Characters stay hidden until idle/sit is playing — avoids T-pose on early Start.
 
@@ -201,7 +202,11 @@ The game implements the Hawkes playtest contract v1 (`C:\Projects\hawkesstudio\d
   390x844 phone through the probe's `phoneFrame` setup, checks the title card hides the HUD and touch controls and
   the level waits for Start, then the three action buttons, the FPS badge and the look-stick gap; shows `about.html`
   in an overlay and checks beats 01–03 have their paragraph; then plays B3, stands still for both way hints, downs
-  the creature from the lab before entering decon, and finishes the level). `options.speed` > 1 skips each timeline after
+  the creature from the lab before entering decon, and finishes the level), `sound-settings` (checks the Tap to play
+  prompt fills the screen, taps it with a hit-tested pointer press, checks the AudioContext runs, opens Settings from
+  the title, turns Sound off and Music to 40%, reloads the page, then picks up again through `?playtest=sound-settings`
+  and a sessionStorage marker: prompt again, the saved choice in Settings, then Settings from Pause in level 1; it puts
+  the player's `hawkes.sound` back). Every other scenario taps the prompt first. `options.speed` > 1 skips each timeline after
   duration / speed.
 - Metrics: `levelNSeconds`, `interactions`, `dialogueLines`, `cutscenes`, `cutscene:<id>` seconds, `shots`,
   `respawns` (Defeat → Start), `falls`, `knockbacks` (cars), `stuckRecoveries`, plus `fpsAverage` / `fpsWorst`.

@@ -127,7 +127,7 @@ export const createMusicTriggerPlayer = () => {
     }
     if (existing) stopVoice(existing);
 
-    const element = createUnlockedAudio(url);
+    const element = createUnlockedAudio(url, 'music');
     element.loop = trigger.data?.loop !== false;
     element.volume = 0;
     const voice: MusicVoice = {

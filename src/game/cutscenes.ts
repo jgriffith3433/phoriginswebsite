@@ -1,4 +1,4 @@
-import { createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
+import { busInput, createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
 import { storyLine } from './locale';
 import { mixVolume, startGaplessLoop, type LoopHandle } from './sfxMix';
 
@@ -173,7 +173,7 @@ const playVoiceStub = (cutscene: ActiveCutscene, seconds: number, hz: number) =>
   osc.frequency.value = hz;
   gain.gain.value = 0.045;
   osc.connect(gain);
-  gain.connect(ctx.destination);
+  gain.connect(busInput(ctx, 'sfx'));
   osc.start();
   const end = ctx.currentTime + Math.max(0.4, seconds);
   gain.gain.setValueAtTime(0.045, ctx.currentTime);

@@ -37,7 +37,7 @@ import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
-import { createUnlockedAudio, getSharedAudioContext, installAudioUnlock, unlockAudio } from './game/audioUnlock';
+import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, releaseAllAudio, trackAudio, unlockAudio } from './game/audioUnlock';
 import { mixVolume, startGaplessLoop, type LoopHandle } from './game/sfxMix';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
@@ -47,6 +47,7 @@ import { createScreenFade } from './game/fade';
 import { createPerfMonitor } from './game/perfMonitor';
 import { createAutoAim } from './game/autoAim';
 import { installPhPlaytest } from './playtest/phPlaytest';
+import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSettings';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 (window as { __phBoot?: { ok(): void } }).__phBoot?.ok();
@@ -58,6 +59,7 @@ const messageBox = document.getElementById('messageBox') as HTMLDivElement;
 const messageTitle = document.getElementById('messageTitle') as HTMLHeadingElement;
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
 const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
+const settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
 startBtn.disabled = true;
 startBtn.textContent = 'Loading…';
 startBtn.setAttribute('aria-busy', 'true');
@@ -804,7 +806,7 @@ const audio = {
     osc.frequency.value = frequency;
     gain.gain.value = volume;
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(busInput(this.ctx, 'sfx'));
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
     osc.stop(this.ctx.currentTime + duration);
@@ -817,7 +819,7 @@ const audio = {
       template = createUnlockedAudio(url);
       oneShotTemplates.set(url, template);
     }
-    const element = template.cloneNode(true) as HTMLAudioElement;
+    const element = trackAudio(template.cloneNode(true) as HTMLAudioElement);
     element.volume = mixVolume(url, volume);
     element.currentTime = 0;
     void element.play().catch(() => {});
@@ -865,7 +867,7 @@ const audio = {
     musicTriggerPlayer.stop();
     if (!this.enabled) return;
     this.ensure();
-    endingSong = createUnlockedAudio(endingTrack(state.level));
+    endingSong = createUnlockedAudio(endingTrack(state.level), 'music');
     endingSong.loop = false;
     endingSong.volume = 0.7;
     void endingSong.play().catch(() => {});
@@ -2789,6 +2791,14 @@ const spawnWaveEnemy = () => {
 };
 
 window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    if (settingsOpen()) closeSettings();
+    else if (isPaused()) setPaused(false);
+    else setPaused(true);
+    return;
+  }
+  // While paused or in Settings, keys belong to the menu.
+  if (isPaused() || settingsOpen()) return;
   const key = event.key.toLowerCase();
   if (key === 'w' || key === 'arrowup') state.input.forward = true;
   if (key === 's' || key === 'arrowdown') state.input.backward = true;
@@ -3129,6 +3139,91 @@ newGameBtn.addEventListener('click', () => {
 canvas.addEventListener('pointerdown', () => unlockAudio());
 installAudioUnlock();
 
+// ---------------------------------------------------------------- Tap to play, Pause, Settings (studio standard)
+
+const tapPrompt = document.getElementById('tapToPlay') as HTMLDivElement | null;
+const tapState = (window as { __phTap?: { tapped: boolean; onTap: (() => void) | null } }).__phTap;
+// The capture listeners above already unlocked sound during this tap; this tops the pool up once more.
+if (tapState) tapState.onTap = () => unlockAudio();
+const tapPromptShowing = () => Boolean(tapPrompt && !tapPrompt.hidden && !tapPrompt.classList.contains('gone'));
+
+const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
+const pauseMenu = document.getElementById('pauseMenu') as HTMLDivElement;
+const resumeBtn = document.getElementById('resumeBtn') as HTMLButtonElement;
+const settingsMenu = document.getElementById('settingsMenu') as HTMLDivElement;
+const settingsRows = document.getElementById('settingsRows') as HTMLDivElement;
+const soundSwitch = document.getElementById('soundSwitch') as HTMLButtonElement;
+const musicVolume = document.getElementById('musicVolume') as HTMLInputElement;
+const sfxVolume = document.getElementById('sfxVolume') as HTMLInputElement;
+const musicVolumeOut = document.getElementById('musicVolumeOut') as HTMLOutputElement;
+const sfxVolumeOut = document.getElementById('sfxVolumeOut') as HTMLOutputElement;
+
+const renderSoundSettings = () => {
+  const settings = soundSettings();
+  soundSwitch.setAttribute('aria-checked', String(settings.on));
+  soundSwitch.textContent = settings.on ? 'On' : 'Off';
+  settingsRows.dataset.off = String(!settings.on);
+  musicVolume.value = String(Math.round(settings.music * 100));
+  sfxVolume.value = String(Math.round(settings.sfx * 100));
+  musicVolumeOut.textContent = `${musicVolume.value}%`;
+  sfxVolumeOut.textContent = `${sfxVolume.value}%`;
+};
+renderSoundSettings();
+onSoundSettings(renderSoundSettings);
+
+soundSwitch.addEventListener('click', () => setSoundSettings({ on: !soundSettings().on }));
+musicVolume.addEventListener('input', () => setSoundSettings({ music: Number(musicVolume.value) / 100 }));
+sfxVolume.addEventListener('input', () => {
+  setSoundSettings({ sfx: Number(sfxVolume.value) / 100 });
+});
+// A short tick at the new level, so the slider is heard as it moves.
+sfxVolume.addEventListener('change', () => audio.tone(660, 0.09, 'sine', 0.05));
+
+const settingsOpen = () => !settingsMenu.hidden;
+const openSettings = () => {
+  renderSoundSettings();
+  settingsMenu.hidden = false;
+  unlockPointer();
+  soundSwitch.focus({ preventScroll: true });
+};
+const closeSettings = () => {
+  settingsMenu.hidden = true;
+  if (!pauseMenu.hidden) resumeBtn.focus({ preventScroll: true });
+};
+
+let paused = false;
+const isPaused = () => paused;
+const setPaused = (on: boolean) => {
+  if (on === paused) return;
+  if (on && (!state.running || !messageBox.classList.contains('hidden'))) return;
+  paused = on;
+  pauseMenu.hidden = !on;
+  if (on) {
+    clearInputState();
+    state.fireHeld = false;
+    audio.setWalk(false);
+    unlockPointer();
+    holdAllAudio();
+    scene.animationsEnabled = false;
+    resumeBtn.focus({ preventScroll: true });
+  } else {
+    closeSettings();
+    scene.animationsEnabled = true;
+    releaseAllAudio();
+    lockGameplayPointer();
+  }
+};
+
+settingsBtn.addEventListener('click', () => openSettings());
+document.getElementById('pauseSettingsBtn')?.addEventListener('click', () => openSettings());
+document.getElementById('settingsDoneBtn')?.addEventListener('click', () => closeSettings());
+pauseBtn.addEventListener('click', () => setPaused(true));
+resumeBtn.addEventListener('click', () => setPaused(false));
+// Going to another tab or app pauses; coming back shows Paused so nothing is missed.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.running && messageBox.classList.contains('hidden')) setPaused(true);
+});
+
 /**
  * iOS drops the click for a tap made while another finger is on a stick, so HUD buttons never fire mid-drag.
  * Fire the click on touch pointerup ourselves and swallow the native one if it does arrive.
@@ -3189,6 +3284,12 @@ resetBtn.addEventListener('click', () => {
 });
 
 const renderLoop = () => {
+  pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden'));
+  if (paused) {
+    // Hold the frame: no story, camera or cutscene time passes until Resume.
+    scene.render();
+    return;
+  }
   const delta = engine.getDeltaTime() / 1000;
   screenFade.update(delta);
   syncActionHint();
@@ -3645,4 +3746,11 @@ installPhPlaytest({
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
   phoneFrame: setPhoneFrame,
+  sound: () => ({
+    prompt: tapPromptShowing(),
+    context: audioContextState(),
+    paused: isPaused(),
+    settingsOpen: settingsOpen(),
+    settings: soundSettings(),
+  }),
 });

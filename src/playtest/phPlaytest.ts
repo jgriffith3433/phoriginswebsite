@@ -43,6 +43,11 @@ export type PhProbe = {
   setupLevel: (id: number) => Promise<void>;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
   phoneFrame: (on: boolean) => void;
+  /** Tap to play, the AudioContext, Pause and Settings (studio sound standard). */
+  sound: () => {
+    prompt: boolean; context: string; paused: boolean; settingsOpen: boolean;
+    settings: { on: boolean; music: number; sfx: number };
+  };
 };
 
 const LEVELS = [
@@ -349,6 +354,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
       { id: 'full', title: 'Levels 1–6 in order, cutscenes included (long rides skipped after 16 s)', seconds: 760, tags: ['full'] },
+      {
+        id: 'sound-settings',
+        title: 'Tap to play unlocks sound, Settings from the title and from Pause, a setting that survives a reload',
+        description: 'Shows the Tap to play prompt, taps it with a pointer press on the spot (hit-tested, so a covered prompt fails) and checks the AudioContext is running. Opens Settings from the title, turns Sound off and Music to 40%, reloads the page (the run carries on after the reload through ?playtest=sound-settings), checks the prompt and the saved choice are back, then opens Settings again from Pause in level 1. The player\'s own hawkes.sound is put back at the end.',
+        seconds: 120,
+        tags: ['menus', 'sound'],
+      },
       {
         id: 'phone-b3',
         title: 'Phone title card and buttons, About beat 01, then B3 with the creature downed before decon',
@@ -1077,8 +1089,40 @@ export const installPhPlaytest = (probe: PhProbe) => {
       return playLevel(2);
     };
 
+    /**
+     * A press on the spot where a player would put a finger or the mouse: whatever is on top there gets it, so a
+     * covered control fails. On a touch layout the game's own pointerup handler clicks the button, as on a phone.
+     */
+    const tapAt = async (el: HTMLElement | null, label: string) => {
+      if (!el) throw new Error(`${label} is not on the page`);
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      const target = (document.elementFromPoint(x, y) as HTMLElement | null) ?? el;
+      if (!el.contains(target)) t.problem('bug', `${label} is covered: a press on it lands on ${target.id ? `#${target.id}` : target.tagName.toLowerCase()}`);
+      const touch = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+      const init = { pointerType: touch ? 'touch' : 'mouse', pointerId: touch ? 51 : 1, isPrimary: true, button: 0, buttons: 1, bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y };
+      target.dispatchEvent(new PointerEvent('pointerdown', init));
+      await sleep(60);
+      target.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0 }));
+      if (!touch || !target.closest('button')) target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 }));
+      t.add('interactions');
+      t.log(`tap ${label}`);
+      await sleep(120);
+    };
+    const tapToPlay = async () => {
+      await tapAt(document.getElementById('tapToPlay'), 'Tap to play');
+      await t.until(() => !probe.sound().prompt, 5000, 'the Tap to play prompt to go');
+      t.event('tap-to-play', 'prompt tapped');
+    };
+
     // ---- scenarios
     await t.until(() => probe.ready(), 90000, 'game ready');
+    if (id === 'sound-settings') {
+      await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
+      return;
+    }
+    if (probe.sound().prompt) await tapToPlay();
     t.scene('Title');
     t.event('title', probe.menu().title);
     await sleep(600);
@@ -1201,6 +1245,143 @@ export const installPhPlaytest = (probe: PhProbe) => {
     }
   };
 
+  // ------------------------------------------------------------ sound-settings
+
+  const soundSettingsRun = async (
+    t: Tracker,
+    tapAt: (el: HTMLElement | null, label: string) => Promise<void>,
+    tapToPlay: () => Promise<void>,
+    sleep: (ms: number) => Promise<void>,
+    enterLevel: (n: number) => Promise<void>,
+    options: RunOptions,
+  ) => {
+    const byId = (id: string) => document.getElementById(id);
+    const saved = () => {
+      try { return JSON.parse(localStorage.getItem(SOUND_KEY) ?? 'null') as { on: boolean; music: number; sfx: number } | null; } catch { return null; }
+    };
+    const carried = (() => {
+      try { return JSON.parse(sessionStorage.getItem(SOUND_RUN_KEY) ?? 'null') as { original: string | null; events: { type: string; detail?: string }[] } | null; } catch { return null; }
+    })();
+    const checkPrompt = (where: string) => {
+      const prompt = byId('tapToPlay');
+      if (!probe.sound().prompt || !prompt) { t.problem('bug', `no Tap to play prompt ${where}`); return; }
+      const r = prompt.getBoundingClientRect();
+      if (r.width < innerWidth - 1 || r.height < innerHeight - 1) t.problem('bug', `the Tap to play prompt does not fill the screen ${where} (${Math.round(r.width)}x${Math.round(r.height)} of ${innerWidth}x${innerHeight})`);
+      t.event('prompt-shown', `${where}, ${innerWidth}x${innerHeight} ${innerWidth > innerHeight ? 'landscape' : 'portrait'}`);
+    };
+    const checkRunning = async (where: string) => {
+      try {
+        await t.until(() => probe.sound().context === 'running', 5000, 'the AudioContext to run');
+        t.event('audio-running', `AudioContext ${probe.sound().context} ${where}`);
+      } catch {
+        t.problem('bug', `the AudioContext is "${probe.sound().context}" after the tap ${where}`);
+      }
+    };
+    const slide = (input: HTMLInputElement, percent: number, label: string) => {
+      // A range input has no drag a page can fake; set it as a drag ends and send the same events.
+      input.value = String(percent);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      t.add('interactions');
+      t.log(`slide ${label} to ${percent}%`);
+    };
+
+    if (!carried) {
+      t.scene('Tap to play');
+      checkPrompt('on load');
+      await sleep(1200);
+      await tapToPlay();
+      await checkRunning('after the first tap');
+      t.progress(0.15);
+
+      t.scene('Title');
+      await sleep(500);
+      await tapAt(byId('settingsBtn'), 'Settings (title)');
+      await t.until(() => probe.sound().settingsOpen, 3000, 'Settings to open from the title');
+      t.scene('Settings');
+      t.event('settings-open', 'from the title');
+      const original = localStorage.getItem(SOUND_KEY);
+      if (!probe.sound().settings.on) await tapAt(byId('soundSwitch'), 'Sound on');
+      await sleep(400);
+      await tapAt(byId('soundSwitch'), 'Sound off');
+      slide(byId('musicVolume') as HTMLInputElement, 40, 'Music');
+      await sleep(800);
+      const now = saved();
+      if (!now || now.on !== false || Math.abs(now.music - 0.4) > 0.001) t.problem('bug', `hawkes.sound did not save Sound off and Music 40%: ${JSON.stringify(now)}`);
+      else t.event('setting-saved', JSON.stringify(now));
+      if (probe.sound().settings.on !== false) t.problem('bug', 'Sound off did not apply right away');
+      t.progress(0.35);
+      await tapAt(byId('settingsDoneBtn'), 'Done');
+      await sleep(400);
+
+      sessionStorage.setItem(SOUND_RUN_KEY, JSON.stringify({ original, events: [{ type: 'setting-saved', detail: JSON.stringify(now) }] }));
+      t.event('reload', 'the page reloads; the run carries on after it');
+      const url = new URL(location.href);
+      url.searchParams.set('playtest', 'sound-settings');
+      url.searchParams.set('seed', String(options.seed ?? 1));
+      url.searchParams.set('speed', String(options.speed ?? 1));
+      await sleep(300);
+      location.replace(url.toString());
+      await new Promise(() => {}); // the page is going away
+      return;
+    }
+
+    sessionStorage.removeItem(SOUND_RUN_KEY);
+    for (const e of carried.events) t.event(`before-reload:${e.type}`, e.detail);
+    t.scene('Tap to play (after reload)');
+    checkPrompt('after the reload');
+    await sleep(1000);
+    await tapToPlay();
+    await checkRunning('after the reload');
+    t.progress(0.5);
+
+    const back = probe.sound().settings;
+    if (back.on !== false || Math.abs(back.music - 0.4) > 0.001) t.problem('bug', `the setting did not survive the reload: ${JSON.stringify(back)}`);
+    else t.event('setting-survived-reload', JSON.stringify(back));
+    t.scene('Title');
+    await tapAt(byId('settingsBtn'), 'Settings (title)');
+    await t.until(() => probe.sound().settingsOpen, 3000, 'Settings to open after the reload');
+    t.scene('Settings (after reload)');
+    const shows = `${byId('soundSwitch')?.textContent} / Music ${(byId('musicVolume') as HTMLInputElement).value}%`;
+    if (shows !== 'Off / Music 40%') t.problem('bug', `Settings shows "${shows}" after the reload, not Off / Music 40%`);
+    else t.event('settings-shows-saved', shows);
+    await sleep(1500);
+    await tapAt(byId('soundSwitch'), 'Sound on');
+    slide(byId('musicVolume') as HTMLInputElement, 100, 'Music');
+    if (saved()?.on !== true) t.problem('bug', 'Sound on did not save');
+    await tapAt(byId('settingsDoneBtn'), 'Done');
+    t.progress(0.65);
+
+    await enterLevel(1);
+    t.scene(LEVELS[0].name);
+    await sleep(3000);
+    await t.until(() => !(byId('pauseBtn') as HTMLButtonElement).hidden, 20000, 'the Pause button');
+    await tapAt(byId('pauseBtn'), 'Pause');
+    await t.until(() => probe.sound().paused, 3000, 'Pause');
+    t.scene('Paused');
+    t.event('paused');
+    await sleep(800);
+    await tapAt(byId('pauseSettingsBtn'), 'Settings (pause)');
+    await t.until(() => probe.sound().settingsOpen, 3000, 'Settings to open from Pause');
+    t.scene('Settings (pause)');
+    t.event('settings-open', 'from pause');
+    slide(byId('sfxVolume') as HTMLInputElement, 70, 'Effects & voice');
+    if (Math.abs((saved()?.sfx ?? 0) - 0.7) > 0.001) t.problem('bug', 'Effects & voice did not save from Pause');
+    else t.event('setting-saved', JSON.stringify(saved()));
+    await sleep(1200);
+    await tapAt(byId('settingsDoneBtn'), 'Done');
+    await tapAt(byId('resumeBtn'), 'Resume');
+    await t.until(() => !probe.sound().paused, 3000, 'Resume');
+    t.event('resumed');
+    t.progress(0.95);
+    await sleep(1500);
+
+    if (carried.original === null) localStorage.removeItem(SOUND_KEY);
+    else localStorage.setItem(SOUND_KEY, carried.original);
+    t.progress(1);
+    t.finish('done');
+  };
+
   // ------------------------------------------------------------ problems the page can see
 
   const watchProblems = (t: Tracker) => {
@@ -1252,6 +1433,8 @@ export const installPhPlaytest = (probe: PhProbe) => {
 // ---------------------------------------------------------------- save cookie
 
 const SAVE_KEY = 'ph-origins-save';
+const SOUND_KEY = 'hawkes.sound';
+const SOUND_RUN_KEY = 'hawkes.playtest.sound-settings';
 
 const snapshotSave = () => {
   const cookie = document.cookie.split('; ').find((row) => row.startsWith(`${SAVE_KEY}=`)) ?? null;
