@@ -1,8 +1,21 @@
 {
   "product": "phorigins",
   "name": "PH Origins",
-  "current": "1.0.0",
+  "current": "1.1.0",
   "releases": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-18",
+      "build": "95b2981",
+      "title": "New in this update",
+      "notes": [
+        "\"All of that sounds good. And if you are going to be touching audio, can you somehow fix the issue on phones where un",
+        "Folder bridge copy: per-slot adopt",
+        "Folder bridge copy",
+        "Tools > Library: characters and props in Hawkes Gen's library (assets/models, one GLB per entity), picks written back",
+        "Fixed: Missions panel is overlapped by the SIDEARM/LIGHT/MEDKIT/PHONE/INVENTORY button stack"
+      ]
+    },
     {
       "version": "1.0.0",
       "date": "2026-10-16",
