@@ -37,8 +37,8 @@ import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
-import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, releaseAllAudio, trackAudio, unlockAudio } from './game/audioUnlock';
-import { mixVolume, startGaplessLoop, type LoopHandle } from './game/sfxMix';
+import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
+import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
@@ -796,17 +796,28 @@ const SFX = {
   shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
 } as const;
 const endingTrack = (level: number) => `/assets/audio/ending-${Math.max(1, level)}.mp3`;
-const oneShotTemplates = new Map<string, HTMLAudioElement>();
-let walkLoop: HTMLAudioElement | null = null;
-let walkStartPending = false;
+let walkLoop: ClipHandle | null = null;
 let walkWanted = false;
 let endingSong: HTMLAudioElement | null = null;
 
 const stopEndingSong = () => {
   if (!endingSong) return;
-  endingSong.pause();
-  endingSong.src = '';
+  releaseUnlockedAudio(endingSong);
   endingSong = null;
+};
+
+/** No Web Audio: a pooled element, handed back when it ends. */
+const playElementOnce = (url: string, level: number) => {
+  const element = createUnlockedAudio(url);
+  element.volume = level;
+  const done = () => {
+    element.removeEventListener('ended', done);
+    element.removeEventListener('error', done);
+    releaseUnlockedAudio(element);
+  };
+  element.addEventListener('ended', done);
+  element.addEventListener('error', done);
+  void element.play().catch(done);
 };
 
 const audio = {
@@ -827,53 +838,32 @@ const audio = {
     gain.gain.value = volume;
     osc.connect(gain);
     gain.connect(busInput(this.ctx, 'sfx'));
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
     osc.stop(this.ctx.currentTime + duration);
   },
+  /** One-shots play from a decoded buffer, so a phone hears them without a finger on the screen. */
   play(url: string, volume: number) {
     if (!this.enabled) return;
     this.ensure();
-    let template = oneShotTemplates.get(url);
-    if (!template) {
-      template = createUnlockedAudio(url);
-      oneShotTemplates.set(url, template);
-    }
-    const element = trackAudio(template.cloneNode(true) as HTMLAudioElement);
-    element.volume = mixVolume(url, volume);
-    element.currentTime = 0;
-    void element.play().catch(() => {});
+    const level = mixVolume(url, volume);
+    if (playClip(url, level)) return;
+    playElementOnce(url, level);
   },
   setWalk(playing: boolean) {
     walkWanted = Boolean(playing && this.enabled);
     if (!walkWanted) {
-      walkStartPending = false;
-      if (walkLoop) {
-        walkLoop.pause();
-        walkLoop.currentTime = 0;
-      }
+      walkLoop?.stop(0.05);
+      walkLoop = null;
       return;
     }
+    if (walkLoop && !walkLoop.done()) return;
     this.ensure();
-    if (!walkLoop) {
-      walkLoop = createUnlockedAudio(SFX.walk);
-      walkLoop.loop = true;
-      walkLoop.muted = false;
-      walkLoop.volume = mixVolume(SFX.walk, 0.28);
-    }
-    if (!walkLoop.paused || walkStartPending) return;
-    walkLoop.muted = false;
-    walkLoop.volume = mixVolume(SFX.walk, 0.28);
-    walkStartPending = true;
-    const loop = walkLoop;
-    void loop.play().then(() => {
-      walkStartPending = false;
-      if (walkWanted) return;
-      loop.pause();
-      loop.currentTime = 0;
-    }).catch(() => {
-      walkStartPending = false;
-    });
+    walkLoop = playClip(SFX.walk, mixVolume(SFX.walk, 0.28), { loop: true });
   },
   hit() { this.play(SFX.hurt, 0.45); },
   shoot() { this.play(SFX.shot, 0.78); },
@@ -887,10 +877,16 @@ const audio = {
     musicTriggerPlayer.stop();
     if (!this.enabled) return;
     this.ensure();
-    endingSong = createUnlockedAudio(endingTrack(state.level), 'music');
-    endingSong.loop = false;
-    endingSong.volume = 0.7;
-    void endingSong.play().catch(() => {});
+    const song = createUnlockedAudio(endingTrack(state.level), 'music');
+    endingSong = song;
+    song.loop = false;
+    song.volume = 0.7;
+    const done = () => {
+      song.removeEventListener('ended', done);
+      if (endingSong === song) stopEndingSong();
+    };
+    song.addEventListener('ended', done);
+    void song.play().catch(() => {});
   },
 };
 
@@ -3215,7 +3211,12 @@ installAudioUnlock();
 const tapPrompt = document.getElementById('tapToPlay') as HTMLDivElement | null;
 const tapState = (window as { __phTap?: { tapped: boolean; onTap: (() => void) | null } }).__phTap;
 // The capture listeners above already unlocked sound during this tap; this tops the pool up once more.
-if (tapState) tapState.onTap = () => unlockAudio();
+const warmSounds = () => {
+  unlockAudio();
+  preloadClips([SFX.walk, SFX.jump, SFX.start, SFX.objective, SFX.levelComplete, SFX.draw, SFX.holster, SFX.hurt]);
+};
+if (tapState) tapState.onTap = warmSounds;
+if (tapState?.tapped) warmSounds();
 const tapPromptShowing = () => Boolean(tapPrompt && !tapPrompt.hidden && !tapPrompt.classList.contains('gone'));
 
 const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
@@ -3275,12 +3276,14 @@ const setPaused = (on: boolean) => {
     audio.setWalk(false);
     unlockPointer();
     holdAllAudio();
+    holdClips();
     scene.animationsEnabled = false;
     resumeBtn.focus({ preventScroll: true });
   } else {
     closeSettings();
     scene.animationsEnabled = true;
     releaseAllAudio();
+    releaseClips();
     lockGameplayPointer();
   }
 };

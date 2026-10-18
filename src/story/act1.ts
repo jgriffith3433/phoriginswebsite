@@ -1,8 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
 import { mountBathroomMirror, type BathroomMirror } from './bathroomMirror';
-import { createUnlockedAudio } from '../game/audioUnlock';
-import { mixVolume } from '../game/sfxMix';
+import { mixVolume, playClip, type ClipHandle } from '../game/sfxMix';
 import type { CutsceneVec3 } from '../game/cutscenes';
 import { createCharacterAvatar, findClip } from '../game/playerAvatar';
 import { TRANSFORM_HERO_ASSET_ID, PLAYER_ASSET_ID } from '../game/modelLoader';
@@ -276,7 +275,7 @@ export const createAct1 = (host: ActHost) => {
   let lightBaseline: LightBaseline | null = null;
   const alarm = {
     active: false,
-    wav: null as HTMLAudioElement | null,
+    wav: null as ClipHandle | null,
     pulse: 0,
   };
 
@@ -686,8 +685,7 @@ export const createAct1 = (host: ActHost) => {
     alarm.active = false;
     host.alarmFlash?.classList.remove('visible');
     if (alarm.wav) {
-      alarm.wav.pause();
-      alarm.wav.src = '';
+      alarm.wav.stop();
       alarm.wav = null;
     }
     restyleTerminal(false);
@@ -711,15 +709,14 @@ export const createAct1 = (host: ActHost) => {
     restyleTerminal(true);
     if (!host.audioOn()) return;
     host.ensureAudio();
-    alarm.wav = createUnlockedAudio('/assets/audio/cutscenes/apex-window/alarm.wav');
-    alarm.wav.loop = true;
-    alarm.wav.volume = mixVolume('/assets/audio/cutscenes/apex-window/alarm.wav', 0.46);
-    alarm.wav.addEventListener('error', () => {
-      alarm.wav = null;
+    const url = '/assets/audio/cutscenes/apex-window/alarm.wav';
+    const clip = playClip(url, mixVolume(url, 0.46), {
+      loop: true,
+      onError: () => {
+        if (alarm.wav === clip) alarm.wav = null;
+      },
     });
-    void alarm.wav.play().catch(() => {
-      alarm.wav = null;
-    });
+    alarm.wav = clip;
   };
 
   const finishLevel = (which: 'apex' | 'b3' | 'return') => {

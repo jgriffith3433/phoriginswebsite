@@ -125,6 +125,29 @@ export const createUnlockedAudio = (url: string, bus: SoundBus = 'sfx'): HTMLAud
   return element;
 };
 
+/**
+ * Hands an element from createUnlockedAudio back. It stops, lets go of its file, and goes back in the pool, so a
+ * gesture-primed element is reused instead of a fresh one that iOS will not start outside a touch. Drop every
+ * reference to it after this: the next createUnlockedAudio may hand it to someone else.
+ */
+export const releaseUnlockedAudio = (element: HTMLAudioElement | null | undefined) => {
+  if (!element) return;
+  element.pause();
+  element.loop = false;
+  element.removeAttribute('src');
+  try { element.load(); } catch { /* nothing loaded */ }
+  live.delete(element);
+  tracked.delete(element);
+  heldByPause.delete(element);
+  if (!pool.includes(element) && pool.length < POOL_SIZE) pool.push(element);
+};
+
+/** Elements that are playing right now (the playtest's audio counts). */
+export const liveAudioElementCount = () => live.size;
+
+/** Gain nodes made for iOS volume routing; each belongs to one element, which is reused. */
+export const routedAudioElementCount = () => routed;
+
 export const installAudioUnlock = () => {
   if (installed) return;
   installed = true;
@@ -171,6 +194,7 @@ const MUTED = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'muted
 const trackedState = new WeakMap<HTMLAudioElement, Tracked>();
 const tracked = new Set<HTMLAudioElement>();
 const live = new Set<HTMLAudioElement>();
+let routed = 0;
 
 let volumeLocked: boolean | null = null;
 const isVolumeLocked = () => {
@@ -197,6 +221,7 @@ const apply = (element: HTMLAudioElement) => {
       if (session && session.type !== 'playback') session.type = 'playback';
       const source = ctx.createMediaElementSource(element);
       state.gain = ctx.createGain();
+      routed += 1;
       source.connect(state.gain);
       state.gain.connect(ctx.destination);
     } catch {
