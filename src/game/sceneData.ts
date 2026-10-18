@@ -857,6 +857,10 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
       button.metadata = metadata;
       button.isPickable = false;
       button.checkCollisions = false;
+      // The plate is not under the button (its scale would squash it); it goes when the button does.
+      button.onDisposeObservable.addOnce(() => {
+        if (!plate.isDisposed()) plate.dispose(false, true);
+      });
       const bezel = BABYLON.MeshBuilder.CreateTorus('lift-b3-bezel', { diameter: 1, thickness: 0.12, tessellation: 20 }, scene);
       bezel.parent = button;
       bezel.position.set(0, 0.35, 0);

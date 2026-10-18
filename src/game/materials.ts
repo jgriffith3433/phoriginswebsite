@@ -126,6 +126,17 @@ export const isCachedMaterialTexture = (texture: BABYLON.BaseTexture) => {
   return false;
 };
 
+/** A level material and the textures made for it (clones); the catalog cache and cube probes stay. */
+export const disposeWithOwnTextures = (material: BABYLON.Material) => {
+  const textures = material.getActiveTextures();
+  if (material instanceof BABYLON.PBRMaterial || material instanceof BABYLON.StandardMaterial) material.reflectionTexture = null;
+  material.dispose(false, false);
+  for (const texture of textures) {
+    if (texture.isCube || isCachedMaterialTexture(texture)) continue;
+    texture.dispose();
+  }
+};
+
 const cachedTexture = (scene: BABYLON.Scene, url: string): BABYLON.Texture => {
   let map = textureCache.get(scene);
   if (!map) {
@@ -239,45 +250,22 @@ export const applyMaterialToMesh = (
   };
   const tile = resolveMeshUvScale(asset, scale, def);
   // Clone per mesh so uScale/vScale never leak across objects that share materialId.
-  const albedo = cachedTexture(scene, def.albedo).clone();
-  albedo.name = `${asset.id}:${materialId}:albedo`;
-  albedo.uScale = tile.u;
-  albedo.vScale = tile.v;
-  albedo.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
-  albedo.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  const makeAlbedo = () => {
+    const albedo = cachedTexture(scene, def.albedo!).clone();
+    albedo.name = `${asset.id}:${materialId}:albedo`;
+    albedo.uScale = tile.u;
+    albedo.vScale = tile.v;
+    albedo.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    albedo.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    return albedo;
+  };
 
-  const uniqueName = `${asset.id}-mat`;
-  let material: BABYLON.StandardMaterial;
-  if (mesh.material instanceof BABYLON.StandardMaterial && mesh.material.name === uniqueName) {
-    material = mesh.material;
-  } else if (mesh.material instanceof BABYLON.StandardMaterial) {
-    material = mesh.material.clone(uniqueName) ?? new BABYLON.StandardMaterial(uniqueName, scene);
-  } else {
-    material = new BABYLON.StandardMaterial(uniqueName, scene);
-  }
-  if (isHologramAsset(asset)) {
-    applyHologramLook(mesh, material, def.alpha ?? 0.32);
-    mesh.material = material;
-    return;
-  }
-  if (isWindowGlassAsset(asset)) {
-    material.diffuseTexture = null;
-    material.diffuseColor = new BABYLON.Color3(0.06, 0.1, 0.14);
-    material.emissiveColor = new BABYLON.Color3(0.01, 0.016, 0.024);
-    material.specularColor = color(def.specular, new BABYLON.Color3(0.32, 0.34, 0.38));
-    material.specularPower = def.specularPower ?? 64;
-    applyGlassFlags(material, Math.min(def.alpha ?? 0.22, 0.26));
-    mesh.renderingGroupId = 0;
-    mesh.material = material;
-    mesh.checkCollisions = true;
-    return;
-  }
+  // Opaque surfaces go PBR and never need the standard material: build that first, without a throwaway clone.
   if (!def.transparent && !isGlassAsset(asset)) {
-    if (material !== mesh.material) material.dispose();
-    const pbrName = `${uniqueName}-pbr`;
+    const pbrName = `${asset.id}-mat-pbr`;
     const previous = mesh.material;
     const pbr = new BABYLON.PBRMaterial(pbrName, scene);
-    pbr.albedoTexture = albedo;
+    pbr.albedoTexture = makeAlbedo();
     pbr.albedoColor = color(def.diffuse, BABYLON.Color3.White());
     pbr.emissiveColor = color(def.emissive, new BABYLON.Color3(0.03, 0.03, 0.035));
     pbr.metallic = 0;
@@ -304,9 +292,44 @@ export const applyMaterialToMesh = (
       pbr.useMetallnessFromMetallicTextureBlue = false;
     }
     mesh.material = pbr;
-    if (previous && previous !== pbr && previous.getBindedMeshes().length === 0) previous.dispose();
+    if (previous && previous !== pbr && previous.getBindedMeshes().length === 0) disposeWithOwnTextures(previous);
     return;
   }
+
+  const uniqueName = `${asset.id}-mat`;
+  let material: BABYLON.StandardMaterial;
+  if (mesh.material instanceof BABYLON.StandardMaterial && mesh.material.name === uniqueName) {
+    material = mesh.material;
+  } else if (mesh.material instanceof BABYLON.StandardMaterial) {
+    material = mesh.material.clone(uniqueName) ?? new BABYLON.StandardMaterial(uniqueName, scene);
+  } else {
+    material = new BABYLON.StandardMaterial(uniqueName, scene);
+  }
+  const ownDiffuse = material.diffuseTexture;
+  const dropOwnDiffuse = () => {
+    if (ownDiffuse && !ownDiffuse.isCube && !isCachedMaterialTexture(ownDiffuse)) ownDiffuse.dispose();
+  };
+  if (isHologramAsset(asset)) {
+    applyHologramLook(mesh, material, def.alpha ?? 0.32);
+    if (material.diffuseTexture !== ownDiffuse) dropOwnDiffuse();
+    mesh.material = material;
+    return;
+  }
+  if (isWindowGlassAsset(asset)) {
+    dropOwnDiffuse();
+    material.diffuseTexture = null;
+    material.diffuseColor = new BABYLON.Color3(0.06, 0.1, 0.14);
+    material.emissiveColor = new BABYLON.Color3(0.01, 0.016, 0.024);
+    material.specularColor = color(def.specular, new BABYLON.Color3(0.32, 0.34, 0.38));
+    material.specularPower = def.specularPower ?? 64;
+    applyGlassFlags(material, Math.min(def.alpha ?? 0.22, 0.26));
+    mesh.renderingGroupId = 0;
+    mesh.material = material;
+    mesh.checkCollisions = true;
+    return;
+  }
+  const albedo = makeAlbedo();
+  dropOwnDiffuse();
   material.diffuseTexture = albedo;
   material.diffuseColor = color(def.diffuse, BABYLON.Color3.White());
   material.emissiveColor = color(def.emissive, new BABYLON.Color3(0.03, 0.03, 0.035));
