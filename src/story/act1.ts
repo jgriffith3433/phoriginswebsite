@@ -180,8 +180,20 @@ type HuntNav = {
   rows: number;
   open: Uint8Array;
   zone: Uint16Array;
+  /** Per cell, bit d set when HUNT_DIRS[d] is a legal step (huntStep, worked out once). */
+  links: Uint8Array;
   blocks: HuntBlock[];
+  /** Search scratch, reused by every findHuntPath so a chase does not allocate grids each repath. */
+  scratch: { cost: Float32Array; rank: Float32Array; prev: Int32Array; done: Uint8Array; heap: number[] };
 };
+
+const HUNT_DIRS: readonly (readonly [number, number, number])[] = [
+  [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
+  [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414],
+];
+
+/** Shortest repath interval in a strike, even when the last search found nothing. */
+const HUNT_REPATH_MIN = 0.3;
 
 const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look'];
 const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
@@ -242,6 +254,7 @@ export const createAct1 = (host: ActHost) => {
   let lurkIdle = 0;
   let strikeLeft = 0;
   let repathIn = 0;
+  let repathAge = 0;
   let huntBurst = 0;
   let weave = 0;
   let weaveIn = 0;
@@ -1108,7 +1121,35 @@ export const createAct1 = (host: ActHost) => {
       }
     }
     if (count < 8) return null;
-    const map = { step, originX, originZ, cols, rows, open, zone: new Uint16Array(cols * rows), blocks };
+    const size = cols * rows;
+    const map: HuntNav = {
+      step,
+      originX,
+      originZ,
+      cols,
+      rows,
+      open,
+      zone: new Uint16Array(size),
+      links: new Uint8Array(size),
+      blocks,
+      scratch: {
+        cost: new Float32Array(size),
+        rank: new Float32Array(size),
+        prev: new Int32Array(size),
+        done: new Uint8Array(size),
+        heap: [],
+      },
+    };
+    for (let i = 0; i < size; i++) {
+      if (!open[i]) continue;
+      const c = i % cols;
+      const r = (i - c) / cols;
+      let mask = 0;
+      for (let d = 0; d < HUNT_DIRS.length; d++) {
+        if (huntStep(map, c, r, HUNT_DIRS[d][0], HUNT_DIRS[d][1])) mask |= 1 << d;
+      }
+      map.links[i] = mask;
+    }
     const zone = map.zone;
     let zoneId = 0;
     for (let i = 0; i < open.length; i++) {
@@ -1120,11 +1161,10 @@ export const createAct1 = (host: ActHost) => {
         const current = stack.pop()!;
         const c = current % cols;
         const r = (current - c) / cols;
-        for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]] as const) {
-          const nc = c + dc;
-          const nr = r + dr;
-          if (!huntStep(map, c, r, dc, dr)) continue;
-          const next = nr * cols + nc;
+        const mask = map.links[current];
+        for (let d = 0; d < HUNT_DIRS.length; d++) {
+          if (!(mask & (1 << d))) continue;
+          const next = (r + HUNT_DIRS[d][1]) * cols + (c + HUNT_DIRS[d][0]);
           if (zone[next]) continue;
           zone[next] = zoneId;
           stack.push(next);
@@ -1147,9 +1187,12 @@ export const createAct1 = (host: ActHost) => {
     z: map.originZ + r * map.step,
   });
 
-  const pointBlocked = (map: HuntNav, x: number, z: number) => map.blocks.some((block) => (
-    x >= block.minX && x <= block.maxX && z >= block.minZ && z <= block.maxZ
-  ));
+  const pointBlocked = (map: HuntNav, x: number, z: number) => {
+    for (const block of map.blocks) {
+      if (x >= block.minX && x <= block.maxX && z >= block.minZ && z <= block.maxZ) return true;
+    }
+    return false;
+  };
 
   const cellsLinked = (map: HuntNav, c: number, r: number, nc: number, nr: number) => {
     if (!huntOpen(map, nc, nr)) return false;
@@ -1219,6 +1262,7 @@ export const createAct1 = (host: ActHost) => {
     return best;
   };
 
+  /** A* on the precomputed links. Different zones cannot connect, so that answer is free. */
   const findHuntPath = (map: HuntNav, fromX: number, fromZ: number, toX: number, toZ: number) => {
     const start = nearestHuntCell(map, fromX, fromZ);
     const goal = nearestHuntCell(map, toX, toZ);
@@ -1226,14 +1270,23 @@ export const createAct1 = (host: ActHost) => {
     const startI = start.r * map.cols + start.c;
     const goalI = goal.r * map.cols + goal.c;
     if (startI === goalI) return [huntWorld(map, goal.c, goal.r)];
+    if (map.zone[startI] !== map.zone[goalI]) return [];
     const size = map.cols * map.rows;
-    const dist = new Float32Array(size);
-    dist.fill(Number.POSITIVE_INFINITY);
-    const prev = new Int32Array(size);
+    const { cost, rank, prev, done, heap } = map.scratch;
+    cost.fill(Number.POSITIVE_INFINITY);
     prev.fill(-1);
-    dist[startI] = 0;
-    const heap = [startI];
-    const done = new Uint8Array(size);
+    done.fill(0);
+    heap.length = 0;
+    const guess = (index: number) => {
+      const c = index % map.cols;
+      const r = (index - c) / map.cols;
+      const ax = Math.abs(c - goal.c);
+      const az = Math.abs(r - goal.r);
+      return Math.max(ax, az) + 0.414 * Math.min(ax, az);
+    };
+    cost[startI] = 0;
+    rank[startI] = guess(startI);
+    heap.push(startI);
     const swap = (i: number, j: number) => {
       const tmp = heap[i];
       heap[i] = heap[j];
@@ -1243,7 +1296,7 @@ export const createAct1 = (host: ActHost) => {
       let n = index;
       while (n > 0) {
         const parent = (n - 1) >> 1;
-        if (dist[heap[parent]] <= dist[heap[n]]) break;
+        if (rank[heap[parent]] <= rank[heap[n]]) break;
         swap(parent, n);
         n = parent;
       }
@@ -1254,16 +1307,12 @@ export const createAct1 = (host: ActHost) => {
         let best = n;
         const left = n * 2 + 1;
         const right = left + 1;
-        if (left < heap.length && dist[heap[left]] < dist[heap[best]]) best = left;
-        if (right < heap.length && dist[heap[right]] < dist[heap[best]]) best = right;
+        if (left < heap.length && rank[heap[left]] < rank[heap[best]]) best = left;
+        if (right < heap.length && rank[heap[right]] < rank[heap[best]]) best = right;
         if (best === n) break;
         swap(n, best);
         n = best;
       }
-    };
-    const push = (index: number) => {
-      heap.push(index);
-      bubbleUp(heap.length - 1);
     };
     const pop = () => {
       const top = heap[0];
@@ -1274,10 +1323,6 @@ export const createAct1 = (host: ActHost) => {
       }
       return top;
     };
-    const dirs: [number, number, number][] = [
-      [1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1],
-      [1, 1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414],
-    ];
     while (heap.length) {
       const current = pop();
       if (done[current]) continue;
@@ -1285,17 +1330,20 @@ export const createAct1 = (host: ActHost) => {
       if (current === goalI) break;
       const c = current % map.cols;
       const r = (current - c) / map.cols;
-      for (const [dc, dr, cost] of dirs) {
-        if (!huntStep(map, c, r, dc, dr)) continue;
-        const ni = (r + dr) * map.cols + (c + dc);
-        const next = dist[current] + cost;
-        if (next >= dist[ni]) continue;
-        dist[ni] = next;
+      const mask = map.links[current];
+      for (let d = 0; d < HUNT_DIRS.length; d++) {
+        if (!(mask & (1 << d))) continue;
+        const ni = (r + HUNT_DIRS[d][1]) * map.cols + (c + HUNT_DIRS[d][0]);
+        const next = cost[current] + HUNT_DIRS[d][2];
+        if (next >= cost[ni]) continue;
+        cost[ni] = next;
+        rank[ni] = next + guess(ni);
         prev[ni] = current;
-        push(ni);
+        heap.push(ni);
+        bubbleUp(heap.length - 1);
       }
     }
-    if (dist[goalI] === Number.POSITIVE_INFINITY) return [];
+    if (cost[goalI] === Number.POSITIVE_INFINITY) return [];
     const points: { x: number; z: number }[] = [];
     let cursor = goalI;
     for (let guard = 0; cursor >= 0 && guard < size; guard++) {
@@ -1682,6 +1730,7 @@ export const createAct1 = (host: ActHost) => {
     lurkIdle = 0;
     strikeLeft = 0;
     repathIn = 0;
+    repathAge = 0;
     huntBurst = 0;
     weave = 0;
     weaveIn = 0;
@@ -1840,6 +1889,7 @@ export const createAct1 = (host: ActHost) => {
     } else if (huntMood === 'strike') {
       strikeLeft -= delta;
       repathIn -= delta;
+      repathAge += delta;
       if (dist < BITE_RANGE) {
         if (dealBite()) breakOff(node, player.x, player.z);
         else {
@@ -1849,8 +1899,11 @@ export const createAct1 = (host: ActHost) => {
       } else if (leapLeft <= 0 && dist < 5.6 && startLeap(node, player.x, player.z)) {
         playCreature('walk', 1.7);
       } else if (leapLeft <= 0) {
-        if (repathIn <= 0 || !huntPath.length) {
+        // An empty path repaths early, but never sooner than HUNT_REPATH_MIN: with Pierce somewhere the
+        // grid cannot reach, a search every frame took a phone down to about 1 fps.
+        if (repathIn <= 0 || (!huntPath.length && repathAge >= HUNT_REPATH_MIN)) {
           repathIn = 0.5 + Math.random() * 0.25;
+          repathAge = 0;
           huntPath = pathToPlayer(node.position.x, node.position.z, player.x, player.z);
         }
         const moving = followHuntPath(node, 3.15, delta);
@@ -2428,6 +2481,8 @@ export const createAct1 = (host: ActHost) => {
         screen.material = null;
         screen.dispose();
       }
+      screenMat.emissiveTexture = null;
+      screenMat.dispose();
       target.dispose();
       if (!camera.isDisposed()) camera.dispose();
       if (!key.isDisposed()) key.dispose();
@@ -2584,6 +2639,7 @@ export const createAct1 = (host: ActHost) => {
     lurkIdle = 0;
     strikeLeft = 0;
     repathIn = 0;
+    repathAge = 0;
     huntBurst = 0;
     weave = 0;
     weaveIn = 0;

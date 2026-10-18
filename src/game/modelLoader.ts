@@ -163,6 +163,49 @@ const propSource = (scene: BABYLON.Scene, modelPath: string) => {
 
 const emptyImport = (): ImportedModel => ({ meshes: [], animationGroups: [], skeletons: [] });
 
+type OwnedResources = {
+  animationGroups: BABYLON.AnimationGroup[];
+  skeletons: BABYLON.Skeleton[];
+  materials: BABYLON.Material[];
+  textures: BABYLON.BaseTexture[];
+  /** Prop copies clone their materials and those clone their textures: free them with the material. */
+  materialTextures: boolean;
+};
+
+/**
+ * Disposing a model's root only takes its meshes. Everything else the import made goes when the root does:
+ * clips, skeletons, materials and textures. A Defeat -> Start retry used to keep a full set of each per load.
+ * The shared probe is detached first (disposing it greys the next level), and a prop's parsed container is
+ * left alone: later copies are instantiated from it.
+ */
+const releaseWithParent = (parent: BABYLON.TransformNode, owned: OwnedResources) => {
+  parent.onDisposeObservable.addOnce(() => {
+    for (const group of owned.animationGroups) {
+      group.stop();
+      group.dispose();
+    }
+    for (const skeleton of owned.skeletons) skeleton.dispose();
+    const materials = new Set<BABYLON.Material>();
+    for (const material of owned.materials) {
+      materials.add(material);
+      if (material instanceof BABYLON.MultiMaterial) {
+        for (const sub of material.subMaterials) if (sub) materials.add(sub);
+      }
+    }
+    detachSharedProbe(materials);
+    for (const material of materials) material.dispose(false, owned.materialTextures);
+    for (const texture of owned.textures) {
+      if (texture.name !== 'character-probe') texture.dispose();
+    }
+  });
+};
+
+const materialsOf = (meshes: BABYLON.AbstractMesh[]) => {
+  const found = new Set<BABYLON.Material>();
+  for (const mesh of meshes) if (mesh.material) found.add(mesh.material);
+  return [...found];
+};
+
 const placePropCopy = async (
   scene: BABYLON.Scene,
   modelPath: string,
@@ -205,6 +248,13 @@ const placePropCopy = async (
     }
     capSimultaneousLights(scene);
     for (const group of entries.animationGroups) group.stop(true);
+    releaseWithParent(parent, {
+      animationGroups: entries.animationGroups,
+      skeletons: entries.skeletons,
+      materials: materialsOf(meshes),
+      textures: [],
+      materialTextures: true,
+    });
     return {
       meshes,
       animationGroups: entries.animationGroups,
@@ -424,6 +474,13 @@ export const importGlbUnderParent = async (
     for (const node of container.rootNodes) {
       node.parent = parent;
     }
+    releaseWithParent(parent, {
+      animationGroups: container.animationGroups.slice(),
+      skeletons: container.skeletons.slice(),
+      materials: container.materials.slice(),
+      textures: container.textures.slice(),
+      materialTextures: false,
+    });
 
     return {
       meshes: container.meshes.slice(),

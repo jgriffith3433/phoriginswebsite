@@ -118,6 +118,14 @@ export const getMaterialDefs = async (): Promise<MaterialDef[]> => {
   return [...byId.values()].sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
 };
 
+/** A texture from the per-scene cache. Meshes get clones of these; the board hologram uses one as is. */
+export const isCachedMaterialTexture = (texture: BABYLON.BaseTexture) => {
+  const map = textureCache.get(texture.getScene() as BABYLON.Scene);
+  if (!map) return false;
+  for (const cached of map.values()) if (cached === texture) return true;
+  return false;
+};
+
 const cachedTexture = (scene: BABYLON.Scene, url: string): BABYLON.Texture => {
   let map = textureCache.get(scene);
   if (!map) {
