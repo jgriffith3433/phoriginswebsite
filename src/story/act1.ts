@@ -2678,13 +2678,21 @@ export const createAct1 = (host: ActHost) => {
     restoreLights();
     setCreatureVisible(true);
     setVatGlassBroken(false);
+    clearDeskPapers();
     host.clearMarker();
     host.showObjective(false);
   };
 
+  /** The office desk's papers. Built per level and taken down by reset(), so they do not follow Pierce out. */
+  let deskPapers: BABYLON.Mesh[] = [];
+  const clearDeskPapers = () => {
+    for (const mesh of deskPapers) if (!mesh.isDisposed()) mesh.dispose(false, true);
+    deskPapers = [];
+  };
+
   const spawnDeskPapers = () => {
     if (!host.isApex() && !host.isReturn()) return;
-    if (host.scene.getMeshByName('desk-paper-0')) return;
+    if (deskPapers.some((mesh) => !mesh.isDisposed())) return;
     const paperMat = new BABYLON.StandardMaterial('desk-paper-mat', host.scene);
     paperMat.diffuseColor = new BABYLON.Color3(0.86, 0.84, 0.78);
     paperMat.specularColor = new BABYLON.Color3(0.04, 0.04, 0.04);
@@ -2702,6 +2710,7 @@ export const createAct1 = (host: ActHost) => {
       mesh.material = paperMat;
       mesh.isPickable = false;
       mesh.checkCollisions = false;
+      deskPapers.push(mesh);
     });
     const folder = BABYLON.MeshBuilder.CreateBox('desk-folder', { width: 0.28, height: 0.02, depth: 0.36 }, host.scene);
     folder.position.set(47.78, 0.79, 42.7);
@@ -2712,6 +2721,7 @@ export const createAct1 = (host: ActHost) => {
     folder.material = folderMat;
     folder.isPickable = false;
     folder.checkCollisions = false;
+    deskPapers.push(folder);
   };
 
   return {

@@ -565,7 +565,18 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
 /** Playtest setup (`load-error`): make the next level load fail, as a missing level file or a load that never ends. */
 let forcedLoadFailure: 'error' | 'hang' | null = null;
 
-const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+/**
+ * Level loads run one after another. Two at once (Reset, then a level pick) both disposed the same old nodes and
+ * left the first one's level, NPCs and story mounts in the scene for good.
+ */
+let loadChain: Promise<void> = Promise.resolve();
+const loadMissionScene = (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+  const run = loadChain.then(() => loadMissionSceneNow(path, mode));
+  loadChain = run.catch(() => undefined);
+  return run;
+};
+
+const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
   dressedLevelId = 0;
   if (mode === 'boot') {
     gameReady = false;
@@ -3854,6 +3865,26 @@ installPhPlaytest({
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
+  forceDefeat: () => {
+    if (!state.running || state.inCutscene) return false;
+    applyHurt(Math.max(1, state.health));
+    return true;
+  },
+  counts: () => ({
+    meshes: scene.meshes.length,
+    materials: scene.materials.length,
+    textures: scene.textures.length,
+    skeletons: scene.skeletons.length,
+    animationGroups: scene.animationGroups.length,
+    particleSystems: scene.particleSystems.length,
+    lights: scene.lights.length,
+    transformNodes: scene.transformNodes.length,
+    renderTargets: scene.customRenderTargets.length,
+    audioElements: liveAudioElementCount(),
+    audioRouted: routedAudioElementCount(),
+    audioClips: liveClipCount(),
+    fps: Math.round(engine.getFps() * 10) / 10,
+  }),
   phoneFrame: setPhoneFrame,
   sound: () => ({
     prompt: tapPromptShowing(),

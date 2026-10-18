@@ -43,6 +43,10 @@ export type PhProbe = {
   setupLevel: (id: number) => Promise<void>;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
   failNextLoad: (kind: 'error' | 'hang') => void;
+  /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
+  forceDefeat: () => boolean;
+  /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
+  counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
   phoneFrame: (on: boolean) => void;
   /** Tap to play, the AudioContext, Pause and Settings (studio sound standard). */
@@ -51,6 +55,18 @@ export type PhProbe = {
     settings: { on: boolean; music: number; sfx: number };
   };
 };
+
+export type SceneCounts = {
+  meshes: number; materials: number; textures: number; skeletons: number; animationGroups: number;
+  particleSystems: number; lights: number; transformNodes: number; renderTargets: number;
+  /** <audio> elements playing, iOS gain routes made for elements, and live Web Audio clips. */
+  audioElements: number; audioRouted: number; audioClips: number;
+  fps: number;
+};
+
+/** Counts that must come back to the same number after a Defeat -> Start retry. */
+const FLAT_COUNTS = ['meshes', 'materials', 'textures', 'skeletons', 'animationGroups', 'particleSystems', 'lights', 'transformNodes', 'renderTargets', 'audioRouted'] as const;
+const RETRIES = 5;
 
 const LEVELS = [
   { n: 1, lib: 'apex-peak', name: 'Level 1: The Apex Peak' },
@@ -350,7 +366,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     if (down) { held.add(key); sendKey('keydown', key); } else { held.delete(key); sendKey('keyup', key); }
   };
 
-  installPlaytest({
+  const api = installPlaytest({
     product: 'phorigins',
     scenarios: [
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
@@ -378,6 +394,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['menus'],
       },
       {
+        id: 'b3-retry',
+        title: 'B3: die and press Start five times; meshes, materials, textures, skeletons, clips and lights stay flat',
+        description: `Starts level 2 (test shortcut), waits for the scene to settle and reads the scene counts (also in hawkesPlaytest.state().counts). Then ${RETRIES} times: Pierce is downed (test shortcut, as a bite would), Defeat shows, Start retries the level, the scene settles, and the counts are read again. Metrics: each count after the first retry and after the last, and their growth. A count that keeps growing across retries is a bug. Headless WebGL is about 1 fps, so each stage reports progress.`,
+        seconds: 420,
+        tags: ['level', 'perf'],
+      },
+      {
         id: 'site-links',
         title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, the game screen unchanged',
         description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another, scrolls each to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
@@ -402,6 +425,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
     },
   });
+
+  // state() also carries the scene counts, so a watcher sees a leak while a run is going.
+  const baseState = api.state.bind(api);
+  api.state = () => {
+    let counts: SceneCounts | null = null;
+    try { counts = probe.counts(); } catch { /* scene not up yet */ }
+    return { ...baseState(), counts };
+  };
 
   // ------------------------------------------------------------ run
 
@@ -1184,6 +1215,95 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.event('tap-to-play', 'prompt tapped');
     };
 
+    // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
+    const b3RetryRun = async () => {
+      levelsTotal = 1;
+      const stages = RETRIES + 1;
+      // A level keeps loading GLBs after Start is live. Wait until the counts hold still for 3 s (max 90 s).
+      const settle = async (what: string) => {
+        const until = performance.now() + 90000;
+        let last = JSON.stringify(flat(probe.counts()));
+        let since = performance.now();
+        while (performance.now() < until) {
+          await sleep(500);
+          const next = JSON.stringify(flat(probe.counts()));
+          if (next !== last) {
+            last = next;
+            since = performance.now();
+          } else if (performance.now() - since >= 3000) {
+            return probe.counts();
+          }
+        }
+        t.log(`${what}: counts still moving after 90 s`);
+        return probe.counts();
+      };
+      const flat = (c: SceneCounts) => FLAT_COUNTS.map((key) => c[key]);
+      const control = async (what: string) => {
+        const until = performance.now() + 120000;
+        while (!controllable()) {
+          if (performance.now() > until) throw new Error(`timed out waiting for ${what}`);
+          if (probe.cutscene() && probe.skipButton && !probe.skipButton.hidden) {
+            press(probe.skipButton, 'Skip');
+            await sleep(800);
+          }
+          if (probe.phone().incoming) await once('f', 1500, 'answer call');
+          await tick();
+        }
+      };
+      const report = (label: string, c: SceneCounts) => {
+        t.log(`${label}: ${FLAT_COUNTS.map((key) => `${key} ${c[key]}`).join(', ')}, audio ${c.audioElements}/${c.audioClips}, fps ${c.fps}`);
+        t.note(`${label}: meshes ${c.meshes}, materials ${c.materials}, textures ${c.textures}, skeletons ${c.skeletons}`);
+      };
+
+      t.scene(LEVELS[1].name);
+      await enterLevel(2);
+      await control('B3 control');
+      const entry = await settle('entry');
+      report('entry', entry);
+      t.progress(1 / (stages + 1));
+      const after: SceneCounts[] = [];
+      for (let n = 1; n <= RETRIES; n++) {
+        releaseAll();
+        await control(`control before death ${n}`);
+        if (!probe.forceDefeat()) throw new Error(`could not down Pierce on try ${n}`);
+        t.event('defeat', `try ${n} (test shortcut)`);
+        const until = performance.now() + 30000;
+        while (probe.menu().title !== 'Defeat' || !probe.menu().start) {
+          if (performance.now() > until) throw new Error(`no Defeat card on try ${n}`);
+          await tick();
+        }
+        await sleep(800);
+        press(probe.startButton, 'Start (retry)');
+        t.add('respawns');
+        await waitControl(`retry ${n}`, 120000);
+        await control(`retry ${n} control`);
+        const counts = await settle(`retry ${n}`);
+        after.push(counts);
+        report(`retry ${n}`, counts);
+        t.event('retry', { n, ...counts });
+        t.progress((n + 1) / (stages + 1));
+      }
+      const first = after[0];
+      const last = after[after.length - 1];
+      for (const key of FLAT_COUNTS) {
+        t.metric(`${key}Entry`, entry[key]);
+        t.metric(`${key}First`, first[key]);
+        t.metric(`${key}Last`, last[key]);
+        const growth = last[key] - first[key];
+        t.metric(`${key}Growth`, growth);
+        // The first retry may still fill a shared cache; after that each retry must come back the same.
+        const rising = after.slice(1).every((c, i) => c[key] >= after[i][key]) && growth > 0;
+        if (rising && growth >= RETRIES - 1) {
+          t.problem('bug', `B3 retry leaks ${key}: ${first[key]} after the first retry, ${last[key]} after ${RETRIES} (${after.map((c) => c[key]).join(' -> ')})`);
+        }
+      }
+      t.metric('audioElementsLast', last.audioElements);
+      t.metric('audioClipsLast', last.audioClips);
+      t.metric('fpsLast', last.fps);
+      t.progress(1);
+      t.finish('done');
+    };
+
     // ---- scenarios
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'sound-settings') {
@@ -1298,6 +1418,11 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await siteLinksCheck();
       t.progress(1);
       t.finish('done');
+      return;
+    }
+
+    if (id === 'b3-retry') {
+      await b3RetryRun();
       return;
     }
 
