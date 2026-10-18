@@ -107,7 +107,13 @@ const trimBuffers = () => {
   }
 };
 
+/** A file that would not load or decode is not fetched again for a while (the walk loop asks every frame). */
+const failedAt = new Map<string, number>();
+const RETRY_FAILED_MS = 15000;
+
 const loadBuffer = (url: string, ctx: AudioContext) => {
+  const failed = failedAt.get(url);
+  if (failed !== undefined && performance.now() - failed < RETRY_FAILED_MS) return Promise.reject(new Error('recently failed'));
   const known = buffers.get(url);
   if (known) {
     // Most recently used goes last; the oldest is trimmed first.
@@ -136,6 +142,7 @@ const loadBuffer = (url: string, ctx: AudioContext) => {
     })
     .catch((error) => {
       if (buffers.get(url) === entry) buffers.delete(url);
+      failedAt.set(url, performance.now());
       throw error;
     });
   buffers.set(url, entry);
