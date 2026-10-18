@@ -529,6 +529,9 @@ const endCutscene = () => {
 const beginNamedCutscene = (id: string) => {
   if (state.inCutscene) return;
   state.inCutscene = true;
+  // Drop the walk from the frame before, or every idle the scene asks for plays as a walk.
+  playerAvatar.setSprinting(false);
+  playerAvatar.setLocomotion(false, true);
   stashGearForCutscene();
   act.prepareCutscene(id);
   unlockPointer();
