@@ -1,6 +1,6 @@
 import type { PlayerState } from './types';
 import type { SceneTrigger } from './sceneData';
-import { createUnlockedAudio } from './audioUnlock';
+import { createUnlockedAudio, releaseUnlockedAudio } from './audioUnlock';
 
 export type TriggerHandler = (trigger: SceneTrigger) => void;
 
@@ -98,10 +98,8 @@ export const createMusicTriggerPlayer = () => {
   let duckTarget = 1;
   const voices = new Map<string, MusicVoice>();
 
-  const stopVoice = (voice: MusicVoice) => {
-    voice.element.pause();
-    voice.element.src = '';
-  };
+  // Back to the pool: a reused gesture-primed element still starts on a phone with no finger down.
+  const stopVoice = (voice: MusicVoice) => releaseUnlockedAudio(voice.element);
 
   const stopAll = () => {
     voices.forEach(stopVoice);

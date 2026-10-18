@@ -1,7 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
-import { configureResponsiveUI } from './game/mobile';
+import { configureResponsiveUI, detectDevice } from './game/mobile';
 import { clearEnemies, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
 import {
   clearNpcs,
@@ -28,7 +28,7 @@ import { createLevelDressing } from './game/levelDressing';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
 import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
-import { DEFAULT_SCENE_FILE_PATH, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
+import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createAct1, type Act1, type StoryCarry } from './story/act1';
@@ -37,8 +37,8 @@ import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
-import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, releaseAllAudio, trackAudio, unlockAudio } from './game/audioUnlock';
-import { mixVolume, startGaplessLoop, type LoopHandle } from './game/sfxMix';
+import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
+import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
@@ -51,7 +51,7 @@ import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSe
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 // The load-error card lives in game.html's inline script, so it still shows when this module never runs.
-type LoadFailure = 'files' | 'error' | 'level' | 'timeout';
+type LoadFailure = 'files' | 'error' | 'level' | 'timeout' | 'graphics';
 const phBoot = (window as {
   __phBoot?: {
     started(): void; ready(): void; idleMs(): number;
@@ -159,7 +159,37 @@ canvas.style.touchAction = 'none';
 canvas.style.userSelect = 'none';
 root.appendChild(canvas);
 
-const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+/**
+ * Phones and tablets get the low-power tier: no MSAA or preserved drawing buffer, no SSAO, a cheaper bloom, and
+ * a render size capped near a megapixel. `?quality=high` or `?quality=low` overrides it for a check.
+ */
+const qualityParam = new URLSearchParams(location.search).get('quality');
+const lowPowerGraphics = qualityParam === 'low' || (qualityParam !== 'high' && (() => {
+  const device = detectDevice();
+  return device.isTouch && (device.isMobile || device.isTablet);
+})());
+const engine = new BABYLON.Engine(canvas, !lowPowerGraphics, {
+  preserveDrawingBuffer: !lowPowerGraphics,
+  stencil: true,
+  powerPreference: lowPowerGraphics ? 'default' : 'high-performance',
+});
+const LOW_POWER_PIXELS = 1_000_000;
+const applyRenderScale = () => {
+  if (!lowPowerGraphics) return;
+  const pixels = Math.max(1, canvas.clientWidth * canvas.clientHeight);
+  engine.setHardwareScalingLevel(Math.max(1, Math.sqrt(pixels / LOW_POWER_PIXELS)));
+};
+applyRenderScale();
+// A lost WebGL context leaves a frozen or crawling canvas. Show the load-error card with Retry instead, and log it
+// so a bug report carries it.
+engine.onContextLostObservable.add(() => {
+  console.error('PH Origins: the WebGL context was lost (the graphics reset); showing Retry.');
+  if (pauseMenu) pauseMenu.hidden = true;
+  showLoadError('graphics');
+});
+engine.onContextRestoredObservable.add(() => {
+  console.warn('PH Origins: the WebGL context came back; Retry reloads the game.');
+});
 const scene = new BABYLON.Scene(engine);
 if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) (window as unknown as { __phScene?: BABYLON.Scene }).__phScene = scene;
 const shadowVeil = createShadowVeil(scene);
@@ -180,7 +210,7 @@ hemi.intensity = 0.8;
 const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
 sun.position = new BABYLON.Vector3(12, 18, 6);
 sun.intensity = 0.9;
-const grade = createSceneGrade(scene, [followCamera.camera, menuCamera]);
+const grade = createSceneGrade(scene, [followCamera.camera, menuCamera], { lowPower: lowPowerGraphics });
 
 const readDevLevelConfig = () => {
   try {
@@ -226,6 +256,7 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     return;
   }
   missionScene = initialSceneData;
+  disposeSceneNodes(sceneNodes);
   sceneNodes = loadSceneFromJson(scene, initialSceneData, sceneLoadOptions);
 };
 
@@ -534,7 +565,18 @@ const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
 /** Playtest setup (`load-error`): make the next level load fail, as a missing level file or a load that never ends. */
 let forcedLoadFailure: 'error' | 'hang' | null = null;
 
-const loadMissionScene = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+/**
+ * Level loads run one after another. Two at once (Reset, then a level pick) both disposed the same old nodes and
+ * left the first one's level, NPCs and story mounts in the scene for good.
+ */
+let loadChain: Promise<void> = Promise.resolve();
+const loadMissionScene = (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+  const run = loadChain.then(() => loadMissionSceneNow(path, mode));
+  loadChain = run.catch(() => undefined);
+  return run;
+};
+
+const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
   dressedLevelId = 0;
   if (mode === 'boot') {
     gameReady = false;
@@ -796,17 +838,28 @@ const SFX = {
   shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
 } as const;
 const endingTrack = (level: number) => `/assets/audio/ending-${Math.max(1, level)}.mp3`;
-const oneShotTemplates = new Map<string, HTMLAudioElement>();
-let walkLoop: HTMLAudioElement | null = null;
-let walkStartPending = false;
+let walkLoop: ClipHandle | null = null;
 let walkWanted = false;
 let endingSong: HTMLAudioElement | null = null;
 
 const stopEndingSong = () => {
   if (!endingSong) return;
-  endingSong.pause();
-  endingSong.src = '';
+  releaseUnlockedAudio(endingSong);
   endingSong = null;
+};
+
+/** No Web Audio: a pooled element, handed back when it ends. */
+const playElementOnce = (url: string, level: number) => {
+  const element = createUnlockedAudio(url);
+  element.volume = level;
+  const done = () => {
+    element.removeEventListener('ended', done);
+    element.removeEventListener('error', done);
+    releaseUnlockedAudio(element);
+  };
+  element.addEventListener('ended', done);
+  element.addEventListener('error', done);
+  void element.play().catch(done);
 };
 
 const audio = {
@@ -827,53 +880,32 @@ const audio = {
     gain.gain.value = volume;
     osc.connect(gain);
     gain.connect(busInput(this.ctx, 'sfx'));
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
     osc.stop(this.ctx.currentTime + duration);
   },
+  /** One-shots play from a decoded buffer, so a phone hears them without a finger on the screen. */
   play(url: string, volume: number) {
     if (!this.enabled) return;
     this.ensure();
-    let template = oneShotTemplates.get(url);
-    if (!template) {
-      template = createUnlockedAudio(url);
-      oneShotTemplates.set(url, template);
-    }
-    const element = trackAudio(template.cloneNode(true) as HTMLAudioElement);
-    element.volume = mixVolume(url, volume);
-    element.currentTime = 0;
-    void element.play().catch(() => {});
+    const level = mixVolume(url, volume);
+    if (playClip(url, level)) return;
+    playElementOnce(url, level);
   },
   setWalk(playing: boolean) {
     walkWanted = Boolean(playing && this.enabled);
     if (!walkWanted) {
-      walkStartPending = false;
-      if (walkLoop) {
-        walkLoop.pause();
-        walkLoop.currentTime = 0;
-      }
+      walkLoop?.stop(0.05);
+      walkLoop = null;
       return;
     }
+    if (walkLoop && !walkLoop.done()) return;
     this.ensure();
-    if (!walkLoop) {
-      walkLoop = createUnlockedAudio(SFX.walk);
-      walkLoop.loop = true;
-      walkLoop.muted = false;
-      walkLoop.volume = mixVolume(SFX.walk, 0.28);
-    }
-    if (!walkLoop.paused || walkStartPending) return;
-    walkLoop.muted = false;
-    walkLoop.volume = mixVolume(SFX.walk, 0.28);
-    walkStartPending = true;
-    const loop = walkLoop;
-    void loop.play().then(() => {
-      walkStartPending = false;
-      if (walkWanted) return;
-      loop.pause();
-      loop.currentTime = 0;
-    }).catch(() => {
-      walkStartPending = false;
-    });
+    walkLoop = playClip(SFX.walk, mixVolume(SFX.walk, 0.28), { loop: true });
   },
   hit() { this.play(SFX.hurt, 0.45); },
   shoot() { this.play(SFX.shot, 0.78); },
@@ -887,10 +919,16 @@ const audio = {
     musicTriggerPlayer.stop();
     if (!this.enabled) return;
     this.ensure();
-    endingSong = createUnlockedAudio(endingTrack(state.level), 'music');
-    endingSong.loop = false;
-    endingSong.volume = 0.7;
-    void endingSong.play().catch(() => {});
+    const song = createUnlockedAudio(endingTrack(state.level), 'music');
+    endingSong = song;
+    song.loop = false;
+    song.volume = 0.7;
+    const done = () => {
+      song.removeEventListener('ended', done);
+      if (endingSong === song) stopEndingSong();
+    };
+    song.addEventListener('ended', done);
+    void song.play().catch(() => {});
   },
 };
 
@@ -3215,7 +3253,12 @@ installAudioUnlock();
 const tapPrompt = document.getElementById('tapToPlay') as HTMLDivElement | null;
 const tapState = (window as { __phTap?: { tapped: boolean; onTap: (() => void) | null } }).__phTap;
 // The capture listeners above already unlocked sound during this tap; this tops the pool up once more.
-if (tapState) tapState.onTap = () => unlockAudio();
+const warmSounds = () => {
+  unlockAudio();
+  preloadClips([SFX.walk, SFX.jump, SFX.start, SFX.objective, SFX.levelComplete, SFX.draw, SFX.holster, SFX.hurt]);
+};
+if (tapState) tapState.onTap = warmSounds;
+if (tapState?.tapped) warmSounds();
 const tapPromptShowing = () => Boolean(tapPrompt && !tapPrompt.hidden && !tapPrompt.classList.contains('gone'));
 
 const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
@@ -3275,12 +3318,14 @@ const setPaused = (on: boolean) => {
     audio.setWalk(false);
     unlockPointer();
     holdAllAudio();
+    holdClips();
     scene.animationsEnabled = false;
     resumeBtn.focus({ preventScroll: true });
   } else {
     closeSettings();
     scene.animationsEnabled = true;
     releaseAllAudio();
+    releaseClips();
     lockGameplayPointer();
   }
 };
@@ -3714,11 +3759,14 @@ updateHud();
 
 updateCrosshairVisibility();
 configureResponsiveUI(root);
+engine.resize();
+applyRenderScale();
 engine.runRenderLoop(renderLoop);
 let phoneFramed = false;
 window.addEventListener('resize', () => {
   if (!phoneFramed) configureResponsiveUI(root);
   engine.resize();
+  applyRenderScale();
 });
 
 /** Playtest setup: lay the page out as a 390x844 phone, centred and scaled to fit a desktop viewport. */
@@ -3817,6 +3865,26 @@ installPhPlaytest({
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
+  forceDefeat: () => {
+    if (!state.running || state.inCutscene) return false;
+    applyHurt(Math.max(1, state.health));
+    return true;
+  },
+  counts: () => ({
+    meshes: scene.meshes.length,
+    materials: scene.materials.length,
+    textures: scene.textures.length,
+    skeletons: scene.skeletons.length,
+    animationGroups: scene.animationGroups.length,
+    particleSystems: scene.particleSystems.length,
+    lights: scene.lights.length,
+    transformNodes: scene.transformNodes.length,
+    renderTargets: scene.customRenderTargets.length,
+    audioElements: liveAudioElementCount(),
+    audioRouted: routedAudioElementCount(),
+    audioClips: liveClipCount(),
+    fps: Math.round(engine.getFps() * 10) / 10,
+  }),
   phoneFrame: setPhoneFrame,
   sound: () => ({
     prompt: tapPromptShowing(),

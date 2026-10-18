@@ -1,8 +1,8 @@
 import * as BABYLON from '@babylonjs/core';
 
 import phoneCopy from '../story/phone.json';
-import { busInput, createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
-import { mixVolume } from './sfxMix';
+import { busInput, getSharedAudioContext } from './audioUnlock';
+import { mixVolume, playClip, preloadClips, type ClipHandle } from './sfxMix';
 import { phoneSpeakerId, storyLine } from './locale';
 import type { PlayerAvatar } from './playerAvatar';
 
@@ -429,7 +429,7 @@ export const createPhone = (
   let elapsed = 0;
   let gap = 0;
   let lineToken = 0;
-  let voice: HTMLAudioElement | null = null;
+  let voice: ClipHandle | null = null;
   let nextRing = 0;
   let toast = '';
   let toastLeft = 0;
@@ -512,6 +512,10 @@ export const createPhone = (
     gain.gain.value = volume;
     osc.connect(gain);
     gain.connect(busInput(ctx, 'sfx'));
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
     const now = ctx.currentTime;
     gain.gain.setValueAtTime(volume, now);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
@@ -519,30 +523,24 @@ export const createPhone = (
     osc.stop(now + duration + 0.02);
   };
 
-  let toneClip: HTMLAudioElement | null = null;
+  let toneClip: ClipHandle | null = null;
 
   const stopTones = () => {
-    if (!toneClip) return;
-    toneClip.pause();
-    toneClip.src = '';
+    toneClip?.stop();
     toneClip = null;
   };
 
+  // Tones and voices play from decoded buffers: a phone hears them without a finger on the screen.
   const playTone = (src: string, volume: number) => {
     stopTones();
     if (!options.soundOn()) return;
-    const clip = createUnlockedAudio(src);
-    clip.volume = mixVolume(src, volume);
-    toneClip = clip;
-    void clip.play().catch(() => {});
+    toneClip = playClip(src, mixVolume(src, volume));
   };
 
   const stopVoice = () => {
     lineToken += 1;
     gap = 0;
-    if (!voice) return;
-    voice.pause();
-    voice.src = '';
+    voice?.stop();
     voice = null;
   };
 
@@ -557,22 +555,18 @@ export const createPhone = (
     const token = ++lineToken;
     gap = 0;
     if (line.audio && options.soundOn()) {
-      const clip = createUnlockedAudio(line.audio);
-      voice = clip;
-      clip.volume = 0.92;
-      const advance = () => {
-        if (token !== lineToken) return;
-        gap = 0.4;
-      };
-      clip.addEventListener('ended', advance);
-      clip.addEventListener('error', () => {
-        if (token !== lineToken) return;
-        gap = line.duration;
+      preloadClips(script.lines.slice(lineIndex + 1, lineIndex + 3).map((next) => next.audio ?? ''));
+      voice = playClip(line.audio, 0.92, {
+        onEnded: () => {
+          if (token !== lineToken) return;
+          gap = 0.4;
+        },
+        onError: () => {
+          if (token !== lineToken) return;
+          gap = line.duration;
+        },
       });
-      void clip.play().catch(() => {
-        if (token !== lineToken) return;
-        gap = line.duration;
-      });
+      if (!voice) gap = line.duration;
     } else {
       gap = line.duration;
     }

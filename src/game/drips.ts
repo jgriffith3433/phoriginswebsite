@@ -31,7 +31,8 @@ const isPipe = (mesh: BABYLON.AbstractMesh) => {
 
 /** Falling drops under basement pipes. Pass enabled false to clear them on the next level. */
 export const mountPipeDrips = (scene: BABYLON.Scene, enabled: boolean) => {
-  for (const system of live) system.dispose();
+  // Keep the shared drop texture: a dispose that took it left the next level's drips on a dead texture.
+  for (const system of live) system.dispose(false);
   live = [];
   if (!enabled) return;
 

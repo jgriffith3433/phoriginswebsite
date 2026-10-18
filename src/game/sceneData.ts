@@ -1,7 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
 import type { InventoryItemType } from './types';
-import { applyGlassFlags, applyHologramLook, applyMaterialToMesh, isHologramAsset, parseUvScale, warmupMaterials } from './materials';
+import { applyGlassFlags, applyHologramLook, applyMaterialToMesh, isCachedMaterialTexture, isHologramAsset, parseUvScale, warmupMaterials } from './materials';
 import { getAssetLibrary, loadGlbByAssetId, resolveModelPath } from './modelLoader';
 import { findClip } from './playerAvatar';
 import { getSceneTheme } from './scene';
@@ -155,6 +155,49 @@ export type LoadedJsonScene = {
   nodes: BABYLON.Node[];
 };
 
+/**
+ * Takes down the nodes a level file made, with the materials and textures on their meshes. Every scene-data
+ * material is made per asset; a GLB's clips, skeletons and container materials go with its root
+ * (modelLoader releaseWithParent). Shared textures stay: the probe cube and the material catalog's cache.
+ */
+export const disposeSceneNodes = (nodes: BABYLON.Node[]) => {
+  const scene = nodes.find((node) => !node.isDisposed())?.getScene();
+  const materials = new Set<BABYLON.Material>();
+  const collect = (material: BABYLON.Material | null | undefined) => {
+    if (!material || materials.has(material)) return;
+    if ((material.metadata as { shared?: boolean } | null)?.shared) return;
+    materials.add(material);
+    if (material instanceof BABYLON.MultiMaterial) material.subMaterials.forEach(collect);
+  };
+  for (const node of nodes) {
+    if (node.isDisposed()) continue;
+    if (node instanceof BABYLON.AbstractMesh) collect(node.material);
+    for (const mesh of node.getChildMeshes(false)) collect(mesh.material);
+  }
+  for (const node of nodes) {
+    if (!node.isDisposed()) node.dispose();
+  }
+  const textures = new Set<BABYLON.BaseTexture>();
+  for (const material of materials) {
+    // Still on a mesh that outlived the level (a persistent prop took it): leave it.
+    if (material.getBindedMeshes().length > 0) continue;
+    for (const texture of material.getActiveTextures()) textures.add(texture);
+    if (material instanceof BABYLON.PBRMaterial) material.reflectionTexture = null;
+    if (material instanceof BABYLON.StandardMaterial) material.reflectionTexture = null;
+    material.dispose(false, false);
+  }
+  if (!textures.size) return;
+  // A texture another material still shows stays (a level texture handed to something that outlived it).
+  const inUse = new Set<BABYLON.BaseTexture>();
+  for (const material of scene?.materials ?? []) {
+    for (const texture of material.getActiveTextures()) inUse.add(texture);
+  }
+  for (const texture of textures) {
+    if (inUse.has(texture) || texture.isCube || isCachedMaterialTexture(texture)) continue;
+    texture.dispose();
+  }
+};
+
 export const loadSceneFromJsonFile = async (
   scene: BABYLON.Scene,
   path = DEFAULT_SCENE_FILE_PATH,
@@ -165,9 +208,7 @@ export const loadSceneFromJsonFile = async (
     if (!response.ok) return null;
     const nextScene = parseSceneData(await response.json());
     writeSceneData(nextScene);
-    options?.replaceNodes?.forEach((node) => {
-      if (!node.isDisposed()) node.dispose();
-    });
+    if (options?.replaceNodes) disposeSceneNodes(options.replaceNodes);
     const nodes = loadSceneFromJson(scene, nextScene, options);
     return { data: nextScene, nodes };
   } catch {
@@ -816,6 +857,10 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
       button.metadata = metadata;
       button.isPickable = false;
       button.checkCollisions = false;
+      // The plate is not under the button (its scale would squash it); it goes when the button does.
+      button.onDisposeObservable.addOnce(() => {
+        if (!plate.isDisposed()) plate.dispose(false, true);
+      });
       const bezel = BABYLON.MeshBuilder.CreateTorus('lift-b3-bezel', { diameter: 1, thickness: 0.12, tessellation: 20 }, scene);
       bezel.parent = button;
       bezel.position.set(0, 0.35, 0);

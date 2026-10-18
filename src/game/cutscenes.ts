@@ -1,6 +1,6 @@
-import { busInput, createUnlockedAudio, getSharedAudioContext } from './audioUnlock';
+import { busInput, createUnlockedAudio, getSharedAudioContext, releaseUnlockedAudio } from './audioUnlock';
 import { storyLine } from './locale';
-import { mixVolume, startGaplessLoop, type LoopHandle } from './sfxMix';
+import { mixVolume, playClip, preloadClips, type ClipHandle, type LoopHandle } from './sfxMix';
 
 export type CutsceneVec3 = { x: number; y: number; z: number };
 
@@ -63,7 +63,9 @@ export type ActiveCutscene = {
   time: number;
   duration: number;
   cursor: number;
-  playing: HTMLAudioElement[];
+  playing: ClipHandle[];
+  /** Fallback elements when the browser has no Web Audio. */
+  elements: HTMLAudioElement[];
   loops: LoopHandle[];
   /** Bumped when the scene stops, so a hum that finishes decoding does not start. */
   loopToken: number;
@@ -110,57 +112,62 @@ export const loadCutsceneTimeline = async (id: string): Promise<CutsceneTimeline
   }
 };
 
-/** Clips we stopped on purpose. Clearing src fires error, and that must not beep. */
-const retiredClips = new WeakSet<HTMLAudioElement>();
-
 const stopAudio = (cutscene: ActiveCutscene) => {
   cutscene.loopToken = (cutscene.loopToken ?? 0) + 1;
   (cutscene.loops ?? []).forEach((loop) => loop.stop());
   cutscene.loops = [];
-  cutscene.playing.forEach((element) => {
-    retiredClips.add(element);
-    element.pause();
-    element.src = '';
-  });
+  cutscene.playing.forEach((clip) => clip.stop());
   cutscene.playing.length = 0;
+  cutscene.elements.forEach((element) => releaseUnlockedAudio(element));
+  cutscene.elements.length = 0;
+};
+
+/** No Web Audio in this browser: a pooled element, handed back when the scene stops. */
+const playElement = (cutscene: ActiveCutscene, url: string, level: number, loop: boolean, stubSeconds: number) => {
+  const element = createUnlockedAudio(url);
+  element.loop = loop;
+  element.volume = level;
+  cutscene.elements.push(element);
+  const token = cutscene.loopToken;
+  const failed = () => {
+    element.removeEventListener('error', failed);
+    if (token !== cutscene.loopToken || loop) return;
+    playVoiceStub(cutscene, stubSeconds, 168);
+  };
+  element.addEventListener('error', failed);
+  void element.play().catch(failed);
 };
 
 const playFile = (cutscene: ActiveCutscene, url: string, volume: number, loop: boolean, stubSeconds = 1.6) => {
   if (!cutscene.hooks.audioEnabled() || !url) return;
   const level = mixVolume(url, volume);
-  if (loop) {
-    const token = cutscene.loopToken;
-    void startGaplessLoop(url, level).then((handle) => {
-      if (token !== cutscene.loopToken) {
-        handle?.stop();
-        return;
-      }
-      if (handle) {
-        cutscene.loops.push(handle);
-        return;
-      }
-      const element = createUnlockedAudio(url);
-      element.loop = true;
-      element.volume = level;
-      cutscene.playing.push(element);
-      void element.play().catch(() => {});
-    });
+  const token = cutscene.loopToken;
+  // Web Audio plays a decoded buffer: on a phone it does not need a finger on the screen.
+  const clip = playClip(url, level, {
+    loop,
+    onError: () => {
+      if (token !== cutscene.loopToken || loop) return;
+      playVoiceStub(cutscene, stubSeconds, 168);
+    },
+  });
+  if (clip) {
+    cutscene.playing.push(clip);
     return;
   }
-  const element = createUnlockedAudio(url);
-  element.loop = false;
-  element.volume = level;
-  const handleError = () => {
-    element.removeEventListener('error', handleError);
-    if (retiredClips.has(element)) return;
-    playVoiceStub(cutscene, stubSeconds, 168);
-  };
-  element.addEventListener('error', handleError);
-  void element.play().catch(() => {
-    if (retiredClips.has(element)) return;
-    playVoiceStub(cutscene, stubSeconds, 168);
-  });
-  cutscene.playing.push(element);
+  playElement(cutscene, url, level, loop, stubSeconds);
+};
+
+/** Every clip the timeline will play, so lines start on cue instead of after a fetch. */
+const timelineAudio = (timeline: CutsceneTimeline) => {
+  const urls = new Set<string>();
+  for (const event of timeline.events) {
+    if (event.type === 'audio' && event.clip) urls.add(event.clip);
+    if (event.type === 'line') {
+      const audio = withCopy(event).audio;
+      if (audio) urls.add(audio);
+    }
+  }
+  return urls;
 };
 
 const playVoiceStub = (cutscene: ActiveCutscene, seconds: number, hz: number) => {
@@ -174,6 +181,10 @@ const playVoiceStub = (cutscene: ActiveCutscene, seconds: number, hz: number) =>
   gain.gain.value = 0.045;
   osc.connect(gain);
   gain.connect(busInput(ctx, 'sfx'));
+  osc.onended = () => {
+    osc.disconnect();
+    gain.disconnect();
+  };
   osc.start();
   const end = ctx.currentTime + Math.max(0.4, seconds);
   gain.gain.setValueAtTime(0.045, ctx.currentTime);
@@ -302,11 +313,13 @@ export const startCutscene = async (id: string, hooks: CutsceneHooks): Promise<A
     duration: Math.max(0.5, timeline.duration ?? 0),
     cursor: 0,
     playing: [],
+    elements: [],
     loops: [],
     loopToken: 0,
     hooks,
     lineHold: null,
   };
+  if (hooks.audioEnabled()) preloadClips(timelineAudio(timeline));
   flushDueEvents(cutscene);
   return cutscene;
 };
