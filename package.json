@@ -10,7 +10,8 @@
     "deploy": "npm run build",
     "convert:fbx": "node tools/convert-fbx-to-glb.mjs",
     "bake:anims": "node tools/bake-player-anims.mjs",
-    "textures": "node tools/process-textures.mjs"
+    "textures": "node tools/process-textures.mjs",
+    "check:leaks": "node tools/levelLeakCheck.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",
