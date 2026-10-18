@@ -197,6 +197,27 @@
       "roughness": 0.34
     },
     {
+      "id": "mat-stall-metal",
+      "name": "Bathroom stall stainless",
+      "albedo": "/assets/textures/lift-metal-flat.webp",
+      "tileMeters": 1.5,
+      "specular": [
+        0.32,
+        0.32,
+        0.34
+      ],
+      "specularPower": 48,
+      "emissive": [
+        0.04,
+        0.04,
+        0.045
+      ],
+      "tags": [
+        "wall"
+      ],
+      "roughness": 0.55
+    },
+    {
       "id": "mat-wood-desk",
       "name": "Light oak furniture",
       "albedo": "/assets/textures/office-desk-flat.webp",
