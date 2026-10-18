@@ -1,7 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
-import { configureResponsiveUI } from './game/mobile';
+import { configureResponsiveUI, detectDevice } from './game/mobile';
 import { clearEnemies, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
 import {
   clearNpcs,
@@ -51,7 +51,7 @@ import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSe
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 // The load-error card lives in game.html's inline script, so it still shows when this module never runs.
-type LoadFailure = 'files' | 'error' | 'level' | 'timeout';
+type LoadFailure = 'files' | 'error' | 'level' | 'timeout' | 'graphics';
 const phBoot = (window as {
   __phBoot?: {
     started(): void; ready(): void; idleMs(): number;
@@ -159,7 +159,37 @@ canvas.style.touchAction = 'none';
 canvas.style.userSelect = 'none';
 root.appendChild(canvas);
 
-const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+/**
+ * Phones and tablets get the low-power tier: no MSAA or preserved drawing buffer, no SSAO, a cheaper bloom, and
+ * a render size capped near a megapixel. `?quality=high` or `?quality=low` overrides it for a check.
+ */
+const qualityParam = new URLSearchParams(location.search).get('quality');
+const lowPowerGraphics = qualityParam === 'low' || (qualityParam !== 'high' && (() => {
+  const device = detectDevice();
+  return device.isTouch && (device.isMobile || device.isTablet);
+})());
+const engine = new BABYLON.Engine(canvas, !lowPowerGraphics, {
+  preserveDrawingBuffer: !lowPowerGraphics,
+  stencil: true,
+  powerPreference: lowPowerGraphics ? 'default' : 'high-performance',
+});
+const LOW_POWER_PIXELS = 1_000_000;
+const applyRenderScale = () => {
+  if (!lowPowerGraphics) return;
+  const pixels = Math.max(1, canvas.clientWidth * canvas.clientHeight);
+  engine.setHardwareScalingLevel(Math.max(1, Math.sqrt(pixels / LOW_POWER_PIXELS)));
+};
+applyRenderScale();
+// A lost WebGL context leaves a frozen or crawling canvas. Show the load-error card with Retry instead, and log it
+// so a bug report carries it.
+engine.onContextLostObservable.add(() => {
+  console.error('PH Origins: the WebGL context was lost (the graphics reset); showing Retry.');
+  if (pauseMenu) pauseMenu.hidden = true;
+  showLoadError('graphics');
+});
+engine.onContextRestoredObservable.add(() => {
+  console.warn('PH Origins: the WebGL context came back; Retry reloads the game.');
+});
 const scene = new BABYLON.Scene(engine);
 if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) (window as unknown as { __phScene?: BABYLON.Scene }).__phScene = scene;
 const shadowVeil = createShadowVeil(scene);
@@ -180,7 +210,7 @@ hemi.intensity = 0.8;
 const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
 sun.position = new BABYLON.Vector3(12, 18, 6);
 sun.intensity = 0.9;
-const grade = createSceneGrade(scene, [followCamera.camera, menuCamera]);
+const grade = createSceneGrade(scene, [followCamera.camera, menuCamera], { lowPower: lowPowerGraphics });
 
 const readDevLevelConfig = () => {
   try {
@@ -3718,11 +3748,14 @@ updateHud();
 
 updateCrosshairVisibility();
 configureResponsiveUI(root);
+engine.resize();
+applyRenderScale();
 engine.runRenderLoop(renderLoop);
 let phoneFramed = false;
 window.addEventListener('resize', () => {
   if (!phoneFramed) configureResponsiveUI(root);
   engine.resize();
+  applyRenderScale();
 });
 
 /** Playtest setup: lay the page out as a 390x844 phone, centred and scaled to fit a desktop viewport. */

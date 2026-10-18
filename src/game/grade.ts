@@ -18,7 +18,10 @@ const aces = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
 export const createSceneGrade = (
   scene: BABYLON.Scene,
   cameras: BABYLON.Camera[],
+  options: { lowPower?: boolean } = {},
 ): SceneGrade => {
+  // Phones and tablets: no SSAO and a smaller, narrower bloom. The grade and the vignette stay the same.
+  const lowPower = options.lowPower === true;
   const pipeline = new BABYLON.DefaultRenderingPipeline('ph-grade', true, scene, cameras);
   pipeline.fxaaEnabled = true;
   pipeline.samples = 1;
@@ -38,17 +41,19 @@ export const createSceneGrade = (
 
   let ssao: BABYLON.SSAO2RenderingPipeline | null = null;
   let ssaoAttached = false;
-  try {
-    ssao = new BABYLON.SSAO2RenderingPipeline('ph-ssao', scene, { ssaoRatio: 0.5, blurRatio: 0.5 }, cameras);
-    ssaoAttached = true;
-    ssao.radius = 1.35;
-    ssao.totalStrength = 0.72;
-    ssao.base = 0.18;
-    ssao.expensiveBlur = false;
-    ssao.samples = 8;
-  } catch (error) {
-    console.warn('SSAO unavailable', error);
-    ssao = null;
+  if (!lowPower) {
+    try {
+      ssao = new BABYLON.SSAO2RenderingPipeline('ph-ssao', scene, { ssaoRatio: 0.5, blurRatio: 0.5 }, cameras);
+      ssaoAttached = true;
+      ssao.radius = 1.35;
+      ssao.totalStrength = 0.72;
+      ssao.base = 0.18;
+      ssao.expensiveBlur = false;
+      ssao.samples = 8;
+    } catch (error) {
+      console.warn('SSAO unavailable', error);
+      ssao = null;
+    }
   }
 
   let theme = '';
@@ -137,6 +142,10 @@ export const createSceneGrade = (
       curves.shadowsExposure = 6;
       image.colorCurvesEnabled = true;
       if (apex) liftFill(1.9, 0.55);
+    }
+    if (lowPower) {
+      pipeline.bloomKernel = Math.min(pipeline.bloomKernel, 24);
+      pipeline.bloomScale = Math.min(pipeline.bloomScale, 0.3);
     }
     baseExposure = image.exposure;
     baseVignette = image.vignetteWeight;
