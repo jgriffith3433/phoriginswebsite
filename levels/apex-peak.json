@@ -2997,7 +2997,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-stall-metal"
     },
     {
       "id": "bath-stall-b",
@@ -3020,7 +3020,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-stall-metal"
     },
     {
       "id": "bath-stall-c",
@@ -3043,7 +3043,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-stall-metal"
     },
     {
       "id": "bath-stall-front-a",
@@ -3066,7 +3066,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-stall-metal"
     },
     {
       "id": "bath-stall-front-b",
@@ -3089,7 +3089,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-stall-metal"
     },
     {
       "id": "bath-toilet-1-bowl",
@@ -3548,7 +3548,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-stall-metal"
     },
     {
       "id": "bath-stall-door-b",
@@ -3571,7 +3571,7 @@
       "components": [
         "Transform"
       ],
-      "materialId": "mat-lift-metal"
+      "materialId": "mat-stall-metal"
     },
     {
       "id": "bath-spout-1",

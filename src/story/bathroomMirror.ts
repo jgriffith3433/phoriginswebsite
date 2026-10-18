@@ -4,7 +4,9 @@ import * as BABYLON from '@babylonjs/core';
  * Bathroom mirror for The Return and The Desk.
  * The pass draws the bathroom and Pierce only. An explicit MirrorTexture list is
  * not frustum culled, and the office scene also holds the city under the windows.
- * The texture refreshes while the glass is in the main camera frustum.
+ * The texture refreshes every other frame, and only while the camera is inside the
+ * bathroom and the glass is in its frustum. From the hall the frustum test alone
+ * passes through the walls, and an every-frame pass ran the room at 2-3 FPS on a T4.
  */
 
 const GLASS = { x: 20.22, y: 1.5, z: 28.15 };
@@ -16,6 +18,13 @@ const isBathroom = (mesh: BABYLON.AbstractMesh) => {
   const id = assetId(mesh);
   return id === 'floor-bath' || id.startsWith('bath-');
 };
+
+/** Mirror pass size. The glass is 1.24 m wide, so 512 holds up even close to it. */
+const SIZE = 512;
+/** Margin past the bathroom floor that still counts as inside (the doorway). */
+const ROOM_PAD = 0.6;
+/** Without a bathroom floor, the camera must be this close to the glass. */
+const NEAR_GLASS = 6;
 
 const shown = (mesh: BABYLON.AbstractMesh) =>
   !mesh.isDisposed() && mesh.isEnabled() && mesh.isVisible && mesh.getTotalVertices() > 0;
@@ -59,11 +68,14 @@ export const mountBathroomMirror = (scene: BABYLON.Scene, name: string): Bathroo
   glassMat.specularColor = new BABYLON.Color3(0.22, 0.22, 0.24);
   glassMat.specularPower = 64;
   glassMat.emissiveColor = BABYLON.Color3.Black();
-  const caps = scene.getEngine().getCaps();
-  const texType = caps.textureHalfFloatRender
-    ? BABYLON.Constants.TEXTURETYPE_HALF_FLOAT
-    : BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE;
-  const tex = new BABYLON.MirrorTexture(`${name}-tex`, { width: 1024, height: 1024 }, scene, false, texType);
+  // 8-bit is enough at level 0.45, and half the bandwidth of a half-float target.
+  const tex = new BABYLON.MirrorTexture(
+    `${name}-tex`,
+    { width: SIZE, height: SIZE },
+    scene,
+    false,
+    BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE,
+  );
   tex.mirrorPlane = BABYLON.Plane.FromPositionAndNormal(glass.position, new BABYLON.Vector3(1, 0, 0));
   tex.level = 0.45;
   tex.renderParticles = false;
@@ -75,6 +87,27 @@ export const mountBathroomMirror = (scene: BABYLON.Scene, name: string): Bathroo
   for (const mesh of scene.meshes) {
     if (isBathroom(mesh)) bathroom.push(mesh);
   }
+
+  const floor = bathroom.find((mesh) => assetId(mesh) === 'floor-bath') ?? null;
+  let room: { minX: number; maxX: number; minZ: number; maxZ: number } | null = null;
+  if (floor) {
+    floor.computeWorldMatrix(true);
+    const box = floor.getBoundingInfo().boundingBox;
+    room = {
+      minX: box.minimumWorld.x - ROOM_PAD,
+      maxX: box.maximumWorld.x + ROOM_PAD,
+      minZ: box.minimumWorld.z - ROOM_PAD,
+      maxZ: box.maximumWorld.z + ROOM_PAD,
+    };
+  }
+
+  const cameraInRoom = () => {
+    const camera = scene.activeCamera;
+    if (!camera) return false;
+    const at = camera.globalPosition;
+    if (room) return at.x >= room.minX && at.x <= room.maxX && at.z >= room.minZ && at.z <= room.maxZ;
+    return Math.hypot(at.x - GLASS.x, at.z - GLASS.z) < NEAR_GLASS;
+  };
 
   const pushNode = (next: BABYLON.AbstractMesh[], node: BABYLON.Node | null) => {
     if (!node) return;
@@ -99,7 +132,7 @@ export const mountBathroomMirror = (scene: BABYLON.Scene, name: string): Bathroo
 
   const sync = () => {
     const planes = scene.frustumPlanes;
-    const seen = planes.length > 0 && glass.isInFrustum(planes);
+    const seen = planes.length > 0 && cameraInRoom() && glass.isInFrustum(planes);
     if (seen) {
       const next = collect();
       let same = next.length === list.length;
@@ -109,7 +142,7 @@ export const mountBathroomMirror = (scene: BABYLON.Scene, name: string): Bathroo
         tex.renderList = list;
       }
     }
-    const rate = seen ? 1 : 0;
+    const rate = seen ? 2 : 0;
     if (tex.refreshRate !== rate) tex.refreshRate = rate;
   };
 
