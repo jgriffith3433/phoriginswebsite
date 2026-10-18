@@ -34,14 +34,16 @@
           files: 'The game files did not load.',
           error: 'Something went wrong while the game was starting.',
           level: 'The level did not load.',
-          timeout: 'Loading is taking too long.'
+          timeout: 'Loading is taking too long.',
+          graphics: 'The graphics stopped drawing the game.'
         };
         var render = function () {
           var title = document.getElementById('messageTitle');
           var text = document.getElementById('messageText');
           var btn = document.getElementById('startBtn');
           if (title) title.textContent = "Couldn't start the game";
-          if (text) text.textContent = (reasons[failedKind] || reasons.error) + ' Check your connection and press Retry.';
+          var next = failedKind === 'graphics' ? ' Press Retry to reload it.' : ' Check your connection and press Retry.';
+          if (text) text.textContent = (reasons[failedKind] || reasons.error) + next;
           if (btn) {
             btn.disabled = false;
             btn.removeAttribute('aria-busy');
@@ -2066,7 +2068,7 @@
     </style>
     <script data-goatcounter="https://phorigins.goatcounter.com/count"
             async src="//gc.zgo.at/count.js"></script>
-    <script type="module" crossorigin src="./assets/index-kp19L6qs.js"></script>
+    <script type="module" crossorigin src="./assets/index-Dck6vwZK.js"></script>
   </head>
   <body>
     <div id="game-root">
