@@ -35,10 +35,10 @@ jobs:
       - run: npm run build
       - name: Assemble site
         run: |
-          # The site as Pages served it from the repo (every tracked file), with play/ freshly built.
+          # The site as Pages served it from the repo (every tracked file), with play/ freshly built. The build
+          # empties play/ (new hashed names, the build stamp), so the committed play/ files aren't copied: they're gone.
           mkdir _site
-          git ls-files -z | grep -zv '^\.github/' | xargs -0 cp --parents -t _site
-          rm -rf _site/play
+          git ls-files -z | grep -zv -e '^\.github/' -e '^play/' | xargs -0 cp --parents -t _site
           cp -r play _site/play
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
