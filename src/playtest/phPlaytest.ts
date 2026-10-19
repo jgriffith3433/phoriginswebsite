@@ -41,6 +41,12 @@ export type PhProbe = {
   skipButton: HTMLButtonElement | null;
   /** Test shortcut for setup: start a level directly, as Continue does. */
   setupLevel: (id: number) => Promise<void>;
+  /** Test shortcut (`train`): start a hidden (`comingSoon`) level by library id, as `?beat=train` does. */
+  setupHidden: (libraryId: string) => Promise<void>;
+  /** The rows Load Level shows, as rendered into its list (titles only). */
+  levelRows: () => string[];
+  /** The train car kit while level 7 is dressed, else null. */
+  train: () => { seats: number; poles: number; ads: number; windows: number; lampsPassed: number; speed: number; roll: number } | null;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
   failNextLoad: (kind: 'error' | 'hang') => void;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
@@ -406,6 +412,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
         seconds: 360,
         tags: ['level', 'analytics'],
+      },
+      {
+        id: 'train',
+        title: 'Level 7 (hidden): the subway car. Seats, poles, ads, tunnel lights, sway; seats and poles block; not on Load Level; fps vs The Station',
+        description: 'Checks Load Level does not list level 7. Starts The Station (test shortcut), skips its opening scene and samples the frame rate for 8 s standing still. Then enters level 7 (test shortcut, as ?beat=train): logs what the car is made of (benches, poles, ads, windows), turns to the north windows and counts the tunnel lamps going past and the sway (camera roll) for 5 s, samples the frame rate the same way, then walks into the north bench, the south bench and a center pole (real input; each logs how close Pierce got), and walks the length of the car to the front end door. Metrics: fpsStation, fpsTrain, lampsPerSecond, swayDegrees, carWalkMeters. Problems: level 7 listed, a missing part of the car, no lamps moving, no sway, Pierce inside a seat or a pole, train fps more than 10% under the station.',
+        seconds: 200,
+        tags: ['level', 'perf'],
       },
       {
         id: 'site-links',
@@ -1311,6 +1324,160 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.finish('done');
     };
 
+    // ---- train: level 7's car (hidden level)
+    const trainRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const deg = (r: number) => (r * 180) / Math.PI;
+      // 3: Load Level does not list level 7.
+      const rows = probe.levelRows();
+      const hidden = !rows.some((row) => /level 7|the train/i.test(row));
+      t.event('check', `Load Level lists ${rows.length} levels: ${rows.join(' | ')}${hidden ? ' (no level 7)' : ''}`);
+      if (!hidden) t.problem('bug', `Load Level lists level 7 before it is released: ${rows.join(' | ')}`);
+      t.progress(0.05);
+
+      const sampleFps = async (what: string, ms: number) => {
+        releaseAll();
+        await sleep(2000); // let the level settle
+        const got: number[] = [];
+        const until = performance.now() + ms;
+        while (performance.now() < until) {
+          await sleep(500);
+          got.push(probe.counts().fps);
+        }
+        const avg = got.reduce((a, b) => a + b, 0) / Math.max(1, got.length);
+        t.event('fps', `${what}: ${avg.toFixed(1)} fps average, worst ${Math.min(...got).toFixed(1)} (${got.length} samples standing still)`);
+        return avg;
+      };
+
+      // 4: the baseline, The Station, sampled the same way.
+      let fpsStation = 0;
+      if (options.compare !== false) {
+        await enterLevel(6);
+        t.scene(LEVELS[5].name);
+        t.event('level-start', `${LEVELS[5].name} (frame rate baseline)`);
+        const until = performance.now() + 150000;
+        let skipped = false;
+        while (probe.scripted() || !probe.running()) {
+          if (performance.now() > until) throw new Error('timed out waiting for the station opening to end');
+          if (!skipped && probe.scripted() && probe.skipButton && !probe.skipButton.hidden) {
+            await sleep(2500);
+            press(probe.skipButton, 'Skip');
+            skipped = true;
+          }
+          await tick();
+        }
+        fpsStation = await sampleFps('The Station', 8000);
+        t.metric('fpsStation', Math.round(fpsStation * 10) / 10);
+      }
+      t.progress(0.3);
+
+      // 1: enter the car.
+      t.event('setup', 'start level 7, The Train, directly (test shortcut, as ?beat=train)');
+      await probe.setupHidden('the-train');
+      await t.until(() => probe.running() && probe.level().libraryId === 'the-train' && !probe.menu().open, 90000, 'level 7 to start');
+      t.scene('Level 7: The Train');
+      t.event('level-start', 'Level 7: The Train (hidden)');
+      await measureLook();
+      const car = probe.train();
+      if (!car) {
+        t.problem('bug', 'level 7 started but the train car kit is not mounted');
+        return 'error';
+      }
+      const start = probe.player();
+      t.event('car', `${car.seats} benches, ${car.poles} poles, ${car.ads} ads, ${car.windows} windows; Pierce at (${start.x.toFixed(1)}, ${start.z.toFixed(1)})`);
+      if (car.seats < 8 || car.poles < 4 || car.ads < 4 || car.windows < 8) t.problem('bug', `the car is missing parts: ${JSON.stringify(car)}`);
+
+      // Look out of the north windows: lamps going past, and the sway.
+      face(0);
+      await sleep(600);
+      face(0);
+      const lamps0 = probe.train()?.lampsPassed ?? 0;
+      let rollMin = Infinity;
+      let rollMax = -Infinity;
+      const t0 = performance.now();
+      while (performance.now() - t0 < 5000) {
+        await tick();
+        const r = probe.train()?.roll ?? 0;
+        rollMin = Math.min(rollMin, r);
+        rollMax = Math.max(rollMax, r);
+      }
+      const secs = (performance.now() - t0) / 1000;
+      const now = probe.train();
+      const lamps = (now?.lampsPassed ?? 0) - lamps0;
+      t.event('tunnel', `${lamps} tunnel lamps went past the windows in ${secs.toFixed(1)} s at ${now?.speed ?? 0} m/s`);
+      t.metric('lampsPerSecond', Math.round((lamps / secs) * 100) / 100);
+      if (lamps < 2) t.problem('bug', `the tunnel is not moving past the windows (${lamps} lamps in ${secs.toFixed(1)} s)`);
+      const sway = deg(rollMax - rollMin);
+      t.event('sway', `the car rolls between ${deg(rollMin).toFixed(2)}° and ${deg(rollMax).toFixed(2)}° (${sway.toFixed(2)}° swing)`);
+      t.metric('swayDegrees', Math.round(sway * 100) / 100);
+      if (sway < 0.3) t.problem('bug', `no visible sway: ${sway.toFixed(2)}° of roll in ${secs.toFixed(1)} s`);
+      if (sway > 4) t.problem('warning', `the sway is more than slight: ${sway.toFixed(2)}° of roll`);
+      face(Math.PI / 2);
+      t.progress(0.45);
+
+      // 4: the frame rate in the car, sampled like the station.
+      const fpsTrain = await sampleFps('The Train', 8000);
+      t.metric('fpsTrain', Math.round(fpsTrain * 10) / 10);
+      if (fpsStation > 0) {
+        t.event('check', `frame rate: train ${fpsTrain.toFixed(1)} vs station ${fpsStation.toFixed(1)} fps`);
+        if (fpsTrain < fpsStation * 0.9) t.problem('bug', `the train runs slower than The Station: ${fpsTrain.toFixed(1)} vs ${fpsStation.toFixed(1)} fps`);
+      }
+      t.progress(0.55);
+
+      // 2: the seats and poles block. Walk into each with real input and see how close he gets.
+      const arrive = async (goal: Point, key: string) => {
+        const until = performance.now() + 30000;
+        while (!(await walkTo(goal, key, 0.35))) {
+          if (performance.now() > until) throw new Error(`timed out walking to ${key}`);
+          await tick();
+        }
+        releaseAll();
+        await sleep(300);
+      };
+      /** Hold the walk toward a point; closest is to `watch` (the thing walked into). */
+      const push = async (toward: Point, ms: number, watch: Point = toward) => {
+        let closest = Infinity;
+        let far = -Infinity;
+        const until = performance.now() + ms;
+        while (performance.now() < until) {
+          steer(toward, true);
+          await tick();
+          const p = probe.player();
+          closest = Math.min(closest, dist(p, watch));
+          far = Math.max(far, Math.abs(p.z));
+        }
+        releaseAll();
+        return { closest, far, at: probe.player() };
+      };
+      for (const side of [1, -1]) {
+        const name = side > 0 ? 'north' : 'south';
+        await arrive({ x: 4.5, z: 0 }, `aisle by the ${name} bench`);
+        const got = await push({ x: 4.5, z: side * 1.4 }, 2500);
+        const stopped = got.far < 1.0;
+        t.event('blocked-seat', `walked into the ${name} bench for 2.5 s: stopped at z ${got.at.z.toFixed(2)} (bench front at ${(side * 1.04).toFixed(2)})${stopped ? '' : ' (INSIDE the bench)'}`);
+        if (!stopped) t.problem('bug', `Pierce walked into the ${name} bench: z ${got.far.toFixed(2)}`);
+      }
+      const pole = { x: 6.8, z: 0 };
+      await arrive({ x: 5.4, z: 0 }, 'aisle behind the center pole');
+      // The walk target is past the pole; what matters is how close he ever came to the pole itself.
+      const hit = await push({ x: 8.4, z: 0 }, 2500, pole);
+      const near = hit.closest;
+      const poleOk = near >= 0.3;
+      t.event('blocked-pole', `walked straight at the center pole by the second door for 2.5 s: never closer than ${near.toFixed(2)} m, ended at (${hit.at.x.toFixed(2)}, ${hit.at.z.toFixed(2)})`);
+      if (!poleOk) t.problem('bug', `Pierce walked through the center pole at x ${pole.x}: ${near.toFixed(2)} m from it`);
+      t.progress(0.7);
+
+      // 2: the length of the car, back to front, around the poles.
+      await arrive({ x: 17.0, z: 0 }, 'front of the car');
+      const end = probe.player();
+      const walked = end.x - start.x;
+      t.event('walked', `the length of the car: from x ${start.x.toFixed(1)} to x ${end.x.toFixed(1)} (${walked.toFixed(1)} m)`);
+      t.metric('carWalkMeters', Math.round(walked * 10) / 10);
+      if (walked < 14) t.problem('bug', `Pierce did not reach the front of the car (${walked.toFixed(1)} m walked)`);
+      await sleep(1500);
+      return 'done';
+    };
+
     // ---- scenarios
     if (id === 'analytics' && !window.hawkesAnalytics.config().debug) {
       // The SDK reads its debug switch when the page loads: reload once with it, and carry the run on through the URL.
@@ -1497,6 +1664,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
       t.metric('analyticsProgress', counts.progress ?? 0);
       t.metric('analyticsVideo', counts.video ?? 0);
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'train') {
+      const outcome = await trainRun();
       t.progress(1);
       t.finish(outcome);
       return;

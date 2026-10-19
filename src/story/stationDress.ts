@@ -215,12 +215,40 @@ void main(void) {
 }
 `;
 
-const AD_COPY: { title: string; sub: string; bg: [string, string]; ink: string }[] = [
+/** The four lit ads. The train cars carry the same cards (trainDress.ts). */
+export const AD_COPY: { title: string; sub: string; bg: [string, string]; ink: string }[] = [
   { title: 'HAWKES BIOMEDICAL', sub: 'Built better. Built for you.', bg: ['#0d2a3a', '#1c6f8c'], ink: '#e9fbff' },
   { title: 'VOSS CAPITAL', sub: 'Your future, leveraged.', bg: ['#2b1b0e', '#a8662a'], ink: '#fff3e0' },
   { title: 'LIBERTY SQUARE', sub: 'Fountain lights every night until 2 AM', bg: ['#132414', '#3f8a4a'], ink: '#efffef' },
   { title: 'MIDNIGHT DINER', sub: 'Pie. Coffee. Main Ave. Always open.', bg: ['#2a0b16', '#c23a5c'], ink: '#fff0f4' },
 ];
+
+/** One ad card into a 512x256 canvas rect (canvas y down). */
+export const paintAd = (ctx: CanvasRenderingContext2D, ad: (typeof AD_COPY)[number], a: { x: number; y: number; w: number; h: number }) => {
+  const grad = ctx.createLinearGradient(a.x, a.y, a.x + a.w, a.y + a.h);
+  grad.addColorStop(0, ad.bg[0]);
+  grad.addColorStop(1, ad.bg[1]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(a.x, a.y, a.w, a.h);
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = '#fff';
+  for (let k = 0; k < 6; k += 1) {
+    ctx.beginPath();
+    ctx.arc(a.x + a.w * (0.6 + 0.08 * k), a.y + a.h * 0.45, 30 + k * 18, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = ad.ink;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 44px "Arial Black", Arial, sans-serif';
+  ctx.fillText(ad.title, a.x + 26, a.y + a.h * 0.42);
+  ctx.font = '26px Arial, sans-serif';
+  ctx.fillText(ad.sub, a.x + 28, a.y + a.h * 0.68);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(a.x + 6, a.y + 6, a.w - 12, a.h - 12);
+};
 
 /** Atlas layout (UV 0..1, v up): tablet, four ads, board. */
 const ATLAS = {
@@ -279,31 +307,7 @@ export const createStationDress = (scene: BABYLON.Scene) => {
     ctx.font = 'bold 84px Arial, sans-serif';
     ctx.fillText('6', b.x + b.w / 2, b.y + b.h / 2 + 4);
     // Ads.
-    AD_COPY.forEach((ad, i) => {
-      const a = box(ATLAS.ads[i]);
-      const grad = ctx.createLinearGradient(a.x, a.y, a.x + a.w, a.y + a.h);
-      grad.addColorStop(0, ad.bg[0]);
-      grad.addColorStop(1, ad.bg[1]);
-      ctx.fillStyle = grad;
-      ctx.fillRect(a.x, a.y, a.w, a.h);
-      ctx.globalAlpha = 0.18;
-      ctx.fillStyle = '#fff';
-      for (let k = 0; k < 6; k += 1) {
-        ctx.beginPath();
-        ctx.arc(a.x + a.w * (0.6 + 0.08 * k), a.y + a.h * 0.45, 30 + k * 18, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = ad.ink;
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 44px "Arial Black", Arial, sans-serif';
-      ctx.fillText(ad.title, a.x + 26, a.y + a.h * 0.42);
-      ctx.font = '26px Arial, sans-serif';
-      ctx.fillText(ad.sub, a.x + 28, a.y + a.h * 0.68);
-      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(a.x + 6, a.y + 6, a.w - 12, a.h - 12);
-    });
+    AD_COPY.forEach((ad, i) => paintAd(ctx, ad, box(ATLAS.ads[i])));
   };
 
   let boardTick = -1;
