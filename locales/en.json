@@ -191,6 +191,78 @@
       "note": "Incoming call hale-board"
     },
     {
+      "id": "phone.hale-train.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Pierce. The update. Nothing from B3 reached the street.",
+      "audio": "/assets/audio/phone/hale-train-update.ogg",
+      "performance": "warmly",
+      "audioText": "Pierce. The update. Nothing from B3 reached the street.",
+      "audioPerformance": "warmly",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-train (The Train, at the stop)"
+    },
+    {
+      "id": "phone.hale-train.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Nothing.",
+      "audio": "/assets/audio/phone/pierce-train-nothing.ogg",
+      "performance": "tired",
+      "audioText": "Nothing.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call hale-train"
+    },
+    {
+      "id": "phone.hale-train.03",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Not a word. Not a picture. We're contained.",
+      "audio": "/assets/audio/phone/hale-train-contained.ogg",
+      "performance": "warmly",
+      "audioText": "Not a word. Not a picture. We're contained.",
+      "audioPerformance": "warmly",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Incoming call hale-train"
+    },
+    {
+      "id": "phone.hale-train.04",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "Keep it that way.",
+      "audio": "/assets/audio/phone/pierce-train-keep.ogg",
+      "performance": "tired",
+      "audioText": "Keep it that way.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Incoming call hale-train"
+    },
+    {
+      "id": "phone.stop.hale.01",
+      "type": "phone",
+      "speaker": "Hale",
+      "text": "Contained, Pierce. Go home.",
+      "audio": "/assets/audio/phone/stop-hale.ogg",
+      "performance": "warmly",
+      "audioText": "Contained, Pierce. Go home.",
+      "audioPerformance": "warmly",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Dial Hale at the stop (The Train)"
+    },
+    {
+      "id": "phone.stop.hale.02",
+      "type": "phone",
+      "speaker": "Pierce",
+      "text": "I'm on my way.",
+      "audio": "/assets/audio/phone/stop-pierce.ogg",
+      "performance": "tired",
+      "audioText": "I'm on my way.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Dial Hale at the stop (The Train)"
+    },
+    {
       "id": "phone.seat.voss.01",
       "type": "phone",
       "speaker": "Voss",
@@ -1966,6 +2038,137 @@
       "note": "The Station, the commuter"
     },
     {
+      "id": "dialogue.train.there",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "There he is. Front of the car.",
+      "audio": "/assets/audio/cutscenes/train/01-pierce-there.ogg",
+      "performance": "softly",
+      "audioText": "There he is. Front of the car.",
+      "audioPerformance": "softly",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train opening: Pierce sees his old body at the front of car 1"
+    },
+    {
+      "id": "dialogue.train.pole",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "He holds the pole like he owns the train.",
+      "audio": "/assets/audio/cutscenes/train/02-pierce-pole.ogg",
+      "performance": "sarcastic",
+      "audioText": "He holds the pole like he owns the train.",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train opening"
+    },
+    {
+      "id": "dialogue.train.turn",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I'm right here. Turn around.",
+      "audio": "/assets/audio/cutscenes/train/03-pierce-turn.ogg",
+      "performance": "nervous",
+      "audioText": "I'm right here. Turn around.",
+      "audioPerformance": "nervous",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train opening: the old body walks into the next car and does not turn"
+    },
+    {
+      "id": "dialogue.train.next",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Next car, then.",
+      "audio": "/assets/audio/cutscenes/train/04-pierce-next.ogg",
+      "performance": "tired",
+      "audioText": "Next car, then.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train opening, last line"
+    },
+    {
+      "id": "bark.train.ahead",
+      "type": "bark",
+      "speaker": "Pierce",
+      "text": "Always one car ahead of me.",
+      "audio": "/assets/audio/cutscenes/train/05-pierce-ahead.ogg",
+      "performance": "tired",
+      "audioText": "Always one car ahead of me.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train, car 2: the old body walks on ahead"
+    },
+    {
+      "id": "bark.train.stop",
+      "type": "bark",
+      "speaker": "Pierce",
+      "text": "This isn't a stop I know.",
+      "audio": "/assets/audio/cutscenes/train/06-pierce-stop.ogg",
+      "performance": "cautiously",
+      "audioText": "This isn't a stop I know.",
+      "audioPerformance": "cautiously",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train, car 3: the train slows for a stop with no name"
+    },
+    {
+      "id": "dialogue.train.mine",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "This is me.",
+      "audio": "/assets/audio/cutscenes/train/07-other-this-is-me.ogg",
+      "performance": "warmly",
+      "audioText": "This is me.",
+      "audioPerformance": "warmly",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train stop: the old, untransformed body to the commuter (Pierce voice; the other Pierce)"
+    },
+    {
+      "id": "dialogue.train.night",
+      "type": "dialogue",
+      "speaker": "Passerby",
+      "text": "Night.",
+      "audio": "/assets/audio/cutscenes/train/08-man-night.ogg",
+      "audioText": "Night.",
+      "audioPerformance": "default",
+      "audioVoice": "NMilCCbfoygNnI2VZ7ME",
+      "note": "The Train stop: the commuter from The Station"
+    },
+    {
+      "id": "dialogue.train.wait",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Hey! Wait!",
+      "audio": "/assets/audio/cutscenes/train/09-pierce-wait.ogg",
+      "performance": "shouting",
+      "audioText": "Hey! Wait!",
+      "audioPerformance": "shouting",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train stop: the old body steps off"
+    },
+    {
+      "id": "dialogue.train.back",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "He didn't look back.",
+      "audio": "/assets/audio/cutscenes/train/10-pierce-back.ogg",
+      "performance": "softly",
+      "audioText": "He didn't look back.",
+      "audioPerformance": "softly",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train stop: last line before control"
+    },
+    {
+      "id": "dialogue.train.street",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "He gets the street. I get the train.",
+      "audio": "/assets/audio/cutscenes/train/11-pierce-street.ogg",
+      "performance": "tired",
+      "audioText": "He gets the street. I get the train.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "The Train end: the doors close in front of Pierce"
+    },
+    {
       "id": "bark.street.cold",
       "type": "bark",
       "speaker": "Passerby",
@@ -2121,9 +2324,33 @@
       "id": "objective.train.front",
       "type": "objective",
       "speaker": "The train",
-      "text": "The front of the car.",
+      "text": "Follow him. The door at the front of the car.",
       "audio": "",
-      "note": "The Train (level 7, hidden), placeholder objective"
+      "note": "The Train, cars 1 and 2: the front end door"
+    },
+    {
+      "id": "objective.train.catch",
+      "type": "objective",
+      "speaker": "The train",
+      "text": "Catch up to him.",
+      "audio": "",
+      "note": "The Train, car 3 before the stop"
+    },
+    {
+      "id": "objective.train.door",
+      "type": "objective",
+      "speaker": "The stop",
+      "text": "The open door. Where he got off.",
+      "audio": "",
+      "note": "The Train, after the stop: the end trigger"
+    },
+    {
+      "id": "ui.action.train.next",
+      "type": "ui",
+      "speaker": "Next car",
+      "text": "Next car",
+      "audio": "",
+      "note": "The Train: E at the front end door (cars 1 and 2)"
     },
     {
       "id": "ui.complete.desk",
@@ -2148,6 +2375,14 @@
       "text": "The train is waiting. There is nowhere else to go.",
       "audio": "",
       "note": "The Station complete card"
+    },
+    {
+      "id": "ui.complete.train",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "The doors closed. The train kept going uptown.",
+      "audio": "",
+      "note": "The Train complete card"
     },
     {
       "id": "ui.mission.call-voss",
@@ -2273,7 +2508,7 @@
       "id": "item.train.phone",
       "type": "item",
       "speaker": "Phone",
-      "text": "No signal in the tunnel.",
+      "text": "No signal in the tunnel. A bar or two at a stop.",
       "audio": "",
       "note": "The Train inventory"
     },
@@ -2281,7 +2516,15 @@
       "id": "item.train.sidearm",
       "type": "item",
       "speaker": "Sidearm",
-      "text": "Q draws it.",
+      "text": "Q draws it, until Shadow mode.",
+      "audio": "",
+      "note": "The Train inventory"
+    },
+    {
+      "id": "item.train.shadow",
+      "type": "item",
+      "speaker": "Shadow mode",
+      "text": "C or the Shadow button turns it on. Powers only work while it is on.",
       "audio": "",
       "note": "The Train inventory"
     },

@@ -97,6 +97,27 @@
           "duration": 1.6
         }
       ]
+    },
+    "hale-train": {
+      "contact": "hale",
+      "lines": [
+        {
+          "line": "phone.hale-train.01",
+          "duration": 4.64
+        },
+        {
+          "line": "phone.hale-train.02",
+          "duration": 1.52
+        },
+        {
+          "line": "phone.hale-train.03",
+          "duration": 3.76
+        },
+        {
+          "line": "phone.hale-train.04",
+          "duration": 1.68
+        }
+      ]
     }
   },
   "byObjective": {
@@ -544,6 +565,21 @@
           {
             "line": "phone.link.hale.02",
             "duration": 1.5
+          }
+        ]
+      }
+    },
+    "stop": {
+      "hale": {
+        "contact": "hale",
+        "lines": [
+          {
+            "line": "phone.stop.hale.01",
+            "duration": 2.8
+          },
+          {
+            "line": "phone.stop.hale.02",
+            "duration": 1.92
           }
         ]
       }

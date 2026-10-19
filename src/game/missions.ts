@@ -37,6 +37,8 @@ export const missionsFor = (libraryId: string): MissionQuest[] => {
   if (libraryId === 'apex-peak' || libraryId === 'b3-basement' || libraryId === 'the-return' || libraryId === 'the-desk') {
     return [mainQuest(), ...callQuests()];
   }
+  // The Train: Hale calls at the stop (the only signal on the line); picking up, or dialing her there, counts.
+  if (libraryId === 'the-train') return [mainQuest(), sideQuest('call-hale', 'Call Hale', 'Dial Hale and get through.')];
   return [mainQuest()];
 };
 

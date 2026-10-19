@@ -403,6 +403,36 @@
       "note": "The Train (level 7) bed, a music trigger in levels/the-train.json. Looped for the whole car."
     },
     {
+      "id": "sfx.train.brakes",
+      "group": "train",
+      "text": "One-shot subway train braking to a stop inside a tunnel, heard from inside the car, long metallic brake squeal, wheels grinding down, the car body settling with a final soft lurch, no voices, no announcements, no music.",
+      "audio": "/assets/audio/train/brakes.ogg",
+      "duration": 5,
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "The Train: car 3, the train slows for the stop (theTrain.ts SFX.brakes)."
+    },
+    {
+      "id": "sfx.train.doors-open",
+      "group": "train",
+      "text": "One-shot subway car doors opening, a short two-tone electronic chime, then pneumatic hiss and the door leaves sliding open with a rubber thump, heard from inside the car, no voices, no announcements, no music.",
+      "audio": "/assets/audio/train/doors-open.ogg",
+      "duration": 2.5,
+      "influence": 0.6,
+      "volume": 0.6,
+      "note": "The Train: the north door opens at the stop."
+    },
+    {
+      "id": "sfx.train.doors-close",
+      "group": "train",
+      "text": "One-shot subway car doors closing, a descending two-tone electronic chime, then the door leaves sliding shut and meeting with a heavy rubber thud, heard from inside the car, no voices, no announcements, no music.",
+      "audio": "/assets/audio/train/doors-close.ogg",
+      "duration": 2.5,
+      "influence": 0.6,
+      "volume": 0.6,
+      "note": "The Train: the doors close in front of Pierce (the end), and quietly through each end door."
+    },
+    {
       "id": "sfx.elevator.hum",
       "group": "elevator",
       "text": "Seamless loop of a quiet elevator cab electrical hum, a low interior drone, no voices, no music.",

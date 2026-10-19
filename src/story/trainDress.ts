@@ -20,6 +20,19 @@ import { AD_COPY, paintAd } from './stationDress';
  * One shader, one draw call, no real lights. Cheaper than The Station's kit.
  */
 
+/** Where level 7's script is (theTrain.ts reports it each frame), for the playtest. */
+export type TrainStory = {
+  beat: string;
+  car: number;
+  oldBody: { x: number; z: number } | null;
+  /** Degrees; 0 faces north (+z), 90 the front of the train (+x). */
+  oldBodyFacing: number | null;
+  commuter: { x: number; z: number } | null;
+  leftCar: number | null;
+  riders: number;
+  hale: boolean;
+};
+
 /** Car interior: x along the car (0 back, 18 front, the train runs toward +x), z across, y up. */
 export const CAR = { x0: 0, x1: 18, halfWidth: 1.5, ceiling: 2.42 };
 /** Side door centers (both walls). */
@@ -82,6 +95,8 @@ uniform float scroll;
 uniform float speedN;
 uniform float time;
 uniform float flicker;
+uniform float platform;
+uniform vec3 doorOpen;
 uniform sampler2D atlas;
 
 float h21(vec2 p) {
@@ -156,6 +171,30 @@ vec3 tunnel(vec3 V) {
     }
   }
   c *= exp(-dist * 0.18);
+  // A stop: on the north side the platform slides in as the train slows, white tile with a green band and a
+  // name tablet with no name on it (the stops past HAWKES ST stay unnamed).
+  if (side > 0.0 && platform > 0.0) {
+    float pd = (1.9 - abs(vWorld.z)) / outw;
+    vec2 ph = vec2(vWorld.x + rd.x * pd, vWorld.y + rd.y * pd);
+    float pu = ph.x + scroll;
+    vec3 pc;
+    if (ph.y < -0.05) {
+      float edge = step(-0.05 - 0.35, ph.y) * (1.0 - step(-0.05, ph.y));
+      pc = mix(vec3(0.42, 0.41, 0.39), vec3(0.75, 0.6, 0.12), edge);
+    } else {
+      vec2 tile = fract(vec2(pu / 0.15, ph.y / 0.075));
+      float grout = max(1.0 - smoothstep(0.0, 0.06, min(tile.x, 1.0 - tile.x)), 1.0 - smoothstep(0.0, 0.1, min(tile.y, 1.0 - tile.y)));
+      pc = mix(vec3(0.86, 0.85, 0.8), vec3(0.55, 0.55, 0.52), grout * 0.6);
+      float band = step(1.55, ph.y) * (1.0 - step(1.75, ph.y));
+      pc = mix(pc, vec3(0.1, 0.36, 0.2), band);
+      float tu = fract(pu / 9.0) * 9.0;
+      float tablet = step(3.6, tu) * (1.0 - step(5.4, tu)) * step(1.05, ph.y) * (1.0 - step(1.45, ph.y));
+      pc = mix(pc, vec3(0.08, 0.08, 0.08), tablet);
+      pc *= 0.9 + 0.25 * step(2.3, ph.y);
+    }
+    pc *= 1.15 * exp(-pd * 0.05);
+    c = mix(c, pc, platform);
+  }
   // Glass: a faint tint and the car's own strip lights reflected.
   float fres = pow(1.0 - abs(dot(V, vec3(0.0, 0.0, side))), 3.0);
   c = c * 0.85 + vec3(0.05, 0.06, 0.065) + vec3(0.12, 0.13, 0.13) * fres;
@@ -171,6 +210,12 @@ void main(void) {
   float gloss = 0.0;
   vec2 p = vUV;
 
+  // An open side door: the leaves part from the middle and show what is outside.
+  if (doorOpen.z > 0.0 && vWorld.z * doorOpen.y > ${(CAR.halfWidth - 0.05).toFixed(2)} && vWorld.y < 2.05
+      && abs(vWorld.x - doorOpen.x) < doorOpen.z * ${DOOR_HALF.toFixed(2)}) {
+    gl_FragColor = vec4(tunnel(V), 1.0);
+    return;
+  }
   if (surf == ${SURF.WINDOW}.0) {
     gl_FragColor = vec4(tunnel(V), 1.0);
     return;
@@ -326,12 +371,14 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
 
   const material = new BABYLON.ShaderMaterial('train-dress', scene, { vertexSource: VERT, fragmentSource: FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
-    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker'],
+    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'doorOpen'],
     samplers: ['atlas'],
   });
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas);
+  material.setFloat('platform', 0);
+  material.setVector3('doorOpen', new BABYLON.Vector3(0, 1, 0));
   owned.push(material);
 
   const g = new Geo();
@@ -597,6 +644,12 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
   let flicker = 1;
   let rollNow = 0;
   const camPos = new BABYLON.Vector3();
+  // A stop: the platform shows in the north windows below this speed, and one side door opens on it.
+  let stopAt = false;
+  let platform = 0;
+  const door = { x: 0, side: 1, open: 0, target: 0 };
+  const doorVec = new BABYLON.Vector3();
+  let story: TrainStory | null = null;
 
   return {
     step: (dt: number) => {
@@ -609,6 +662,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       const speedN = speed / CRUISE;
       const f = Math.sin(clock * 23) * Math.sin(clock * 7.3) + Math.sin(clock * 1.7);
       flicker = f > 0.6 ? 0.12 : 1;
+      const wantPlatform = stopAt && speed < 7 ? 1 : 0;
+      platform += Math.sign(wantPlatform - platform) * Math.min(Math.abs(wantPlatform - platform), d / 1.2);
+      door.open += Math.sign(door.target - door.open) * Math.min(Math.abs(door.target - door.open), d / 1.1);
       // Slight sway: a slow rock, a quicker wobble, and a jolt every lamp gap or so.
       const jolt = Math.exp(-Math.pow(((scroll / 9.0) % 1) * 9.0 - 0.4, 2) * 20) * 0.004;
       rollNow = (0.0105 * Math.sin(clock * 2.3) + 0.0045 * Math.sin(clock * 5.9 + 1.3) + jolt) * Math.min(1, 0.15 + speedN);
@@ -620,6 +676,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       material.setFloat('speedN', speedN);
       material.setFloat('time', clock);
       material.setFloat('flicker', flicker);
+      material.setFloat('platform', platform);
+      doorVec.set(door.x, door.side, door.open);
+      material.setVector3('doorOpen', doorVec);
     },
     /** Camera roll in radians for this frame (main.ts applies it after the follow camera). */
     roll: () => rollNow,
@@ -628,6 +687,21 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       targetSpeed = Math.max(0, mps);
     },
     speed: () => speed,
+    /** Pull into a stop (the platform shows on the north side as the train slows) or leave it. */
+    setStop: (at: boolean) => {
+      stopAt = at;
+    },
+    /** Open (or close) the side door at x on side +1 north / -1 south; the leaves part over about a second. */
+    setDoor: (x: number, side: number, open: boolean) => {
+      door.x = x;
+      door.side = side >= 0 ? 1 : -1;
+      door.target = open ? 1 : 0;
+    },
+    doorOpen: () => door.open,
+    /** Level 7's script reports where its story is, for the playtest (`stats().story`). */
+    setStory: (info: TrainStory | null) => {
+      story = info;
+    },
     /** What the car is made of, for the playtest. */
     stats: () => ({
       seats: benchCount,
@@ -637,6 +711,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       lampsPassed: Math.floor(scroll / LAMP_GAP),
       speed: Math.round(speed * 10) / 10,
       roll: rollNow,
+      platform: Math.round(platform * 100) / 100,
+      door: Math.round(door.open * 100) / 100,
+      story,
     }),
     dispose: () => {
       for (const o of owned) o.dispose();

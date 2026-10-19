@@ -834,7 +834,7 @@ const autoAim = createAutoAim(scene, (mesh) => {
   const meta = mesh.metadata as { pickup?: unknown; sceneAssetId?: string } | undefined;
   if (meta?.pickup || meta?.sceneAssetId === 'b3-creature') return true;
   if (LOS_SKIP.test(mesh.name)) return true;
-  if ((isHomeLevel() && home.ignoresAim(mesh)) || (isStationLevel() && station.ignoresAim(mesh))) return true;
+  if ((isHomeLevel() && home.ignoresAim(mesh)) || (isStationLevel() && station.ignoresAim(mesh)) || (isTrainLevel() && train.ignoresAim(mesh))) return true;
   for (const enemy of enemies) {
     if (mesh === enemy.mesh || mesh.isDescendantOf(enemy.root)) return true;
   }
@@ -2128,6 +2128,8 @@ const station: TheStation = createTheStation({
 });
 
 const train: TheTrain = createTheTrain({
+  scene,
+  camera,
   running: () => state.running,
   placePierce,
   playClip: (clip, loop, speed, onEnded) => { playerAvatar.playClip(clip, loop, speed, onEnded); },
@@ -2145,7 +2147,14 @@ const train: TheTrain = createTheTrain({
   unlockNext: () => unlockProgress(),
   refreshHud: () => updateHud(),
   holster: () => holsterSidearm(),
+  hand: () => {
+    const joint = playerAvatar.findJoint('RightHand');
+    if (!joint) return null;
+    const at = joint.getAbsolutePosition();
+    return { x: at.x, y: at.y, z: at.z };
+  },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
+  shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   showLine: (title, text) => showCineHud(title, text),
@@ -2161,6 +2170,7 @@ const train: TheTrain = createTheTrain({
     phone.ring(id);
     updateHud();
   },
+  callBusy: () => phone.locksBody(),
   car: () => dressing.train(),
 });
 
@@ -2172,7 +2182,8 @@ storyObjectiveId = () => {
   return act.objectiveKey();
 };
 
-const shadowPlay = () => (isStationLevel() ? station : home);
+// Level 7 keeps the station's Shadow mode (its riders are the targets).
+const shadowPlay = () => (isStationLevel() ? station : isTrainLevel() ? train : home);
 
 let freshStart = false;
 
