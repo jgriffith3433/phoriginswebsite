@@ -1,6 +1,7 @@
 import type * as BABYLON from '@babylonjs/core';
 import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
 import { missingClip, storyLines } from '../game/locale';
+import type { TrainStory } from '../story/trainDress';
 
 /**
  * Hawkes playtest contract v1 (spec: C:\Projects\hawkesstudio\docs\playtest.md).
@@ -46,7 +47,13 @@ export type PhProbe = {
   /** The rows Load Level shows, as rendered into its list (titles only). */
   levelRows: () => string[];
   /** The train car kit while level 7 is dressed, else null. */
-  train: () => { seats: number; poles: number; ads: number; windows: number; lampsPassed: number; speed: number; roll: number } | null;
+  train: () => {
+    seats: number; poles: number; ads: number; windows: number; lampsPassed: number; speed: number; roll: number;
+    /** The stop: how far the platform shows in the north windows and the side door is open (0..1). */
+    platform: number; door: number;
+    /** Level 7's script (theTrain.ts): its beat, the car, where the old body is and which way he faces. */
+    story: TrainStory | null;
+  } | null;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
   failNextLoad: (kind: 'error' | 'hang') => void;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
@@ -419,6 +426,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Checks Load Level does not list level 7. Starts The Station (test shortcut), skips its opening scene and samples the frame rate for 8 s standing still. Then enters level 7 (test shortcut, as ?beat=train): logs what the car is made of (benches, poles, ads, windows), turns to the north windows and counts the tunnel lamps going past and the sway (camera roll) for 5 s, samples the frame rate the same way, then walks into the north bench, the south bench and a center pole (real input; each logs how close Pierce got), and walks the length of the car to the front end door. Metrics: fpsStation, fpsTrain, lampsPerSecond, swayDegrees, carWalkMeters. Problems: level 7 listed, a missing part of the car, no lamps moving, no sway, Pierce inside a seat or a pole, train fps more than 10% under the station.',
         seconds: 200,
         tags: ['level', 'perf'],
+      },
+      {
+        id: 'level-7',
+        title: 'Level 7 (hidden), The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door',
+        description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, presses E (Next car) at the front end door, sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
+        seconds: 240,
+        tags: ['level'],
       },
       {
         id: 'site-links',
@@ -1404,6 +1418,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await t.until(() => probe.running() && probe.level().libraryId === 'the-train' && !probe.menu().open, 90000, 'level 7 to start');
       t.scene('Level 7: The Train');
       t.event('level-start', 'Level 7: The Train (hidden)');
+      // The level opens on a scene: Skip it, the car is what this run looks at.
+      await t.until(() => !!probe.scripted() || controllable(), 15000, 'the opening scene or control');
+      if (probe.scripted()) {
+        await sleep(1500);
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await t.until(() => controllable(), 10000, 'control after the opening');
+      }
       await measureLook();
       const car = probe.train();
       if (!car) {
@@ -1503,6 +1524,185 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (walked < 14) t.problem('bug', `Pierce did not reach the front of the car (${walked.toFixed(1)} m walked)`);
       await sleep(1500);
       return 'done';
+    };
+
+    // ---- level-7: The Train, the story level (hidden)
+    const trainStoryRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const t0 = performance.now();
+      const story = () => probe.train()?.story ?? null;
+      const enter = async (why: string) => {
+        t.event('setup', `start level 7, The Train, directly (test shortcut, as ?beat=train)${why}`);
+        await probe.setupHidden('the-train');
+        await t.until(() => probe.running() && probe.level().libraryId === 'the-train' && !probe.menu().open, 90000, 'level 7 to start');
+      };
+
+      // 4: combat is off in the library row.
+      try {
+        const lib = await (await fetch(new URL('levels/level-library.json', location.href).href, { cache: 'no-store' })).json() as { levels?: { id: string; combat?: boolean }[] };
+        const row = (lib.levels ?? []).find((r) => r.id === 'the-train');
+        t.event('check', `level library: the-train combat ${row?.combat}`);
+        if (row?.combat !== false) t.problem('bug', `level 7 has combat on in levels/level-library.json (${row?.combat})`);
+      } catch {
+        t.event('check', 'level library not readable from this page; combat checked from the scene instead');
+      }
+
+      // 1: the opening, played through.
+      await enter('');
+      t.scene('Level 7: The Train');
+      t.event('level-start', 'Level 7: The Train (hidden)');
+      const want = ['dialogue.train.there', 'dialogue.train.pole', 'dialogue.train.turn', 'dialogue.train.next'];
+      const lines = storyLines();
+      const textOf = (id: string) => lines.find((row) => row.id === id)?.text ?? id;
+      for (const row of lines.filter((r) => /^(dialogue|bark)\.train\.|^phone\.(hale-train|stop\.hale)\./.test(r.id))) {
+        if (!row.audio.trim()) t.problem('bug', `train line ${row.id} has no clip`);
+      }
+      const heard: string[] = [];
+      let sawBody = false;
+      let bodyLeft = false;
+      const opening0 = performance.now();
+      await t.until(() => probe.scripted() === 'train-opening', 10000, 'the opening scene');
+      if (!probe.skipButton || probe.skipButton.hidden) t.problem('bug', 'no Skip button during the train opening');
+      while (probe.scripted() === 'train-opening') {
+        if (performance.now() - opening0 > 60000) throw new Error('the train opening ran past 60 s');
+        const sub = probe.subtitle().text.trim();
+        if (sub && heard[heard.length - 1] !== sub) heard.push(sub);
+        const s = story();
+        if (s?.oldBody) sawBody = true;
+        if (sawBody && s && !s.oldBody) bodyLeft = true;
+        await tick();
+      }
+      const openingSecs = (performance.now() - opening0) / 1000;
+      t.metric('trainOpeningSeconds', Math.round(openingSecs * 10) / 10);
+      const order = want.map((id) => heard.indexOf(textOf(id)));
+      const inOrder = order.every((at, i) => at >= 0 && (i === 0 || at > order[i - 1]));
+      t.event('check', `opening: ${heard.length} subtitles in ${openingSecs.toFixed(1)} s; the four lines ${inOrder ? 'in order' : `OUT OF ORDER or missing (${order.join(', ')})`}`);
+      if (!inOrder) t.problem('bug', `the train opening lines did not play in order: ${heard.join(' | ')}`);
+      t.event('check', `opening: the old body ${sawBody ? 'stood at the front of the car' : 'was NOT seen'}${bodyLeft ? ' and walked out through the front end door' : ''}`);
+      if (!sawBody || !bodyLeft) t.problem('bug', 'the old body was not seen leaving car 1 in the opening');
+      t.progress(0.2);
+
+      // 1: Skip.
+      await enter(' again, to press Skip in the opening');
+      await t.until(() => probe.scripted() === 'train-opening', 10000, 'the opening scene again');
+      await sleep(3000);
+      if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+      const skip0 = performance.now();
+      try {
+        await t.until(() => controllable() && probe.objective().visible, 2000, 'control after Skip');
+        t.event('check', `Skip: control and the objective back in ${((performance.now() - skip0) / 1000).toFixed(1)} s (${probe.objective().text})`);
+      } catch {
+        t.problem('bug', 'Skip in the train opening did not hand control back within 2 s');
+      }
+      await measureLook();
+      t.progress(0.3);
+
+      // 2-4: play to the end with real input.
+      let endPressed = false;
+      let shadowDone = false;
+      let lastCar = story()?.car ?? 1;
+      let stopSeen = false;
+      let facedAway = true;
+      let stepped = false;
+      const lastAction = { label: '' };
+      for (;;) {
+        await tick();
+        if (performance.now() - t0 > 230000) return 'stuck';
+        const menu = probe.menu();
+        if (menu.open) {
+          if (endPressed) break;
+          continue;
+        }
+        const s = story();
+        if (s && s.car !== lastCar) {
+          lastCar = s.car;
+          t.event('car', `car ${s.car}: the old body ${s.oldBody ? `is ahead at x ${s.oldBody.x.toFixed(1)}` : 'is not in sight'}; ${s.riders} riders`);
+          mark();
+        }
+        if (s && s.beat === 'cars' && s.car === 2 && s.oldBody && (s.leftCar ?? 0) < 2) {
+          // He keeps one car ahead: never close enough to touch.
+          const p = probe.player();
+          if (Math.abs(p.x - s.oldBody.x) < 0.6 && Math.abs(p.z - s.oldBody.z) < 0.6) t.problem('bug', 'Pierce caught up with the old body in car 2');
+        }
+        if (probe.cutscene() || probe.scripted()) {
+          releaseAll();
+          if (s?.beat === 'stop') {
+            if (!stopSeen) {
+              stopSeen = true;
+              const car = probe.train();
+              t.event('stop', `the stop scene: train at ${car?.speed ?? 0} m/s, platform ${car?.platform ?? 0}`);
+            }
+            if (s.oldBody && s.oldBody.z > 1.0) stepped = true;
+            // Pierce is behind him (south-west); facing back would point south (|yaw| > 90°).
+            if (s.oldBody && s.oldBodyFacing !== null && Math.abs(((s.oldBodyFacing + 540) % 360) - 180) > 90) facedAway = false;
+            const car = probe.train();
+            if (car && car.door > 0.9 && !seenRaw.has('door-open')) { seenRaw.add('door-open'); t.event('stop', `the north door is open (train ${car.speed} m/s, platform ${car.platform})`); }
+          }
+          continue;
+        }
+        if (!probe.running()) continue;
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
+        if (phone.busy) { releaseAll(); continue; }
+        // 4: Shadow mode as at the station, once, in car 2.
+        if (!shadowDone && s?.car === 2 && s.beat === 'cars') {
+          shadowDone = true;
+          releaseAll();
+          const before = probe.shadow();
+          t.event('shadow', `controls ${before.controls}, ability ${before.ability}`);
+          await tap('c', 'Shadow mode');
+          await sleep(500);
+          const on = probe.shadow();
+          await tap('Tab', 'switch ability');
+          await sleep(400);
+          const switched = probe.shadow().ability;
+          setHeld('w');
+          sendKey('keydown', 'Shift');
+          await sleep(900);
+          sendKey('keyup', 'Shift');
+          releaseAll();
+          await tap('c', 'Shadow mode off');
+          await sleep(500);
+          const off = probe.shadow();
+          t.event('shadow', `C: on ${on.on} (ability ${on.ability}), Tab: ${switched}, C again: on ${off.on}`);
+          if (!before.controls || !on.on || off.on || switched === on.ability) t.problem('bug', `Shadow mode on the train does not work as at the station: controls ${before.controls}, on ${on.on}, Tab ${on.ability} -> ${switched}, off ${!off.on}`);
+          const hostile = probe.people().filter((x) => x.kind === 'hostile' || x.kind === 'enemy').length;
+          if (hostile) t.problem('bug', `combat is on in level 7: ${hostile} hostiles`);
+          continue;
+        }
+        const label = probe.action();
+        if (label) {
+          releaseAll();
+          if (await once('e', 1200, label)) {
+            if (label !== lastAction.label) t.event('action', label);
+            lastAction.label = label;
+            levelSteps += 1;
+            mark();
+            if (label === 'End Level') endPressed = true;
+          }
+          continue;
+        }
+        if (probe.shadow().linked && (await once('Tab', 1200, 'release link'))) continue;
+        const obj = probe.objective();
+        if (!obj.target) { releaseAll(); continue; }
+        const there = await walkTo(obj.target, `${obj.title || 'objective'}: ${obj.text.slice(0, 40)}`, 0.3);
+        if (there) {
+          const p = probe.player();
+          if (dist(p, obj.target) > 0.12) steer(obj.target, false);
+          else releaseAll();
+        }
+      }
+      releaseAll();
+      const s = story();
+      t.event('check', `the old body got off: ${stepped ? 'stepped out through the north door' : 'NOT seen stepping out'}, ${facedAway ? 'never turned toward Pierce' : 'TURNED toward Pierce'}; Hale called: ${s?.hale}`);
+      if (!stopSeen) t.problem('bug', 'the stop scene did not play');
+      if (!stepped) t.problem('bug', 'the old body did not get off at the stop');
+      if (!facedAway) t.problem('bug', 'the old body looked back as he got off');
+      t.metric('trainCars', lastCar);
+      const secs = (performance.now() - t0) / 1000;
+      t.metric('trainSeconds', Math.round(secs));
+      t.event('level-end', `Level 7: The Train in ${secs.toFixed(0)} s`);
+      return 'won';
     };
 
     // ---- scenarios
@@ -1691,6 +1891,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
       t.metric('analyticsProgress', counts.progress ?? 0);
       t.metric('analyticsVideo', counts.video ?? 0);
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'level-7') {
+      const outcome = await trainStoryRun();
       t.progress(1);
       t.finish(outcome);
       return;
