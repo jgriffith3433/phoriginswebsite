@@ -422,8 +422,8 @@ export const installPhPlaytest = (probe: PhProbe) => {
       },
       {
         id: 'site-links',
-        title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, the game screen unchanged',
-        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another, scrolls each to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
+        title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-6 playable and 7 coming soon, the game screen unchanged',
+        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-6 and a Coming soon card for level 7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
         seconds: 60,
         tags: ['menus', 'site'],
       },
@@ -1066,6 +1066,32 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
     };
 
+    /** About's "What you can play": a Playable card for levels 1-6, a Coming soon card for level 7, no "still being built out". */
+    const aboutLevelsCheck = async (doc: Document, frame: HTMLIFrameElement) => {
+      const grid = doc.querySelector('.levels');
+      if (!grid) { t.problem('bug', 'About page: no "What you can play" level cards'); return; }
+      grid.scrollIntoView({ block: 'center', behavior: 'instant' });
+      await sleep(900);
+      const cards = [...grid.querySelectorAll<HTMLElement>('.level')];
+      const text = (el: Element | null) => (el?.textContent ?? '').trim().replace(/\s+/g, ' ');
+      for (let n = 1; n <= 7; n++) {
+        const card = cards.find((c) => new RegExp(`^Level ${n}\\b`).test(text(c.querySelector('.kicker'))));
+        const kicker = text(card?.querySelector('.kicker') ?? null);
+        const r = card?.getBoundingClientRect();
+        const cs = card ? frame.contentWindow!.getComputedStyle(card) : null;
+        const visible = !!(r && r.width > 0 && r.height > 0 && cs && cs.visibility !== 'hidden' && cs.display !== 'none');
+        const want = n <= 6 ? /playable/i : /coming soon/i;
+        const ok = !!card && visible && want.test(kicker);
+        if (card) card.style.outline = `2px solid ${ok ? '#d4b483' : '#ff4d4d'}`;
+        t.event('about-level', `${ok ? 'shows' : 'NO'} level ${n}${card ? `: "${kicker}" ${text(card.querySelector('h3'))}` : ''}`);
+        if (!ok) t.problem('bug', `About page: level ${n} should show a ${n <= 6 ? 'Playable' : 'Coming soon'} card (got ${card ? `"${kicker}"${visible ? '' : ', hidden'}` : 'none'})`);
+      }
+      const stale = /still being built out/i.test(text(doc.body));
+      t.event('about-stale', stale ? 'the "still being built out" line is still on the page' : 'no "still being built out" line');
+      if (stale) t.problem('bug', 'About page still says the rooms are "still being built out"');
+      await sleep(3000); // hold the cards for the footage
+    };
+
     /** Each site page in an overlay: the footer's Powered by HAWKES GEN link, and Hawkes Biomedical on Home. */
     const siteLinksCheck = async () => {
       const pages: [string, string][] = [['index.html', 'Home'], ['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
@@ -1087,6 +1113,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
           const doc = frame.contentDocument;
           const footer = doc?.querySelector('footer');
           if (!doc || !footer) { t.problem('bug', `${name} page did not load in the overlay (${url.href})`); continue; }
+          if (file === 'about.html') await aboutLevelsCheck(doc, frame);
           footer.scrollIntoView({ block: 'end', behavior: 'instant' });
           await sleep(900);
           for (const [kind, href, text, label] of want) {

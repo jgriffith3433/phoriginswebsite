@@ -595,6 +595,12 @@ a {
   margin-bottom: 14px;
 }
 
+.level.is-soon {
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.72;
+}
+
 /* Characters */
 
 .dossier {
