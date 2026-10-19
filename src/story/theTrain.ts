@@ -12,7 +12,9 @@ import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './str
 import { deathScream, STREET_SFX } from './streetAudio';
 
 /**
- * Level 7, The Train (hidden: `comingSoon` in levels/level-library.json until J releases it).
+ * Level 7, The Train. Continue after The Station enters it. End Level is offered only from `finish`,
+ * after the doors close and the last line. The card uses `ENDING_TRACK` (The Station's song) and the
+ * level 7 crawl in credits.ts.
  *
  * Pierce walks the cars of the uptown 6 toward his old, untransformed body, the one that boarded with the commuter
  * at The Station. There is one car on the set (trainDress.ts); "the next car" is that car again, entered from its
@@ -45,7 +47,7 @@ export type TheTrainHost = {
   setWalk: (moving: boolean) => void;
   setCarry: (items: StoryCarry[]) => void;
   showMessage: (title: string, text: string) => void;
-  /** Offers End Level; the press plays `ENDING_TRACK` and rolls `TRAIN_CREDITS`. */
+  /** Offers End Level; the press plays `ENDING_TRACK` and rolls level 7's crawl. */
   offerEnd: (title: string, text: string) => void;
   clearInput: () => void;
   unlockNext: () => void;
@@ -104,19 +106,11 @@ const L_WAIT: Line = { id: 'dialogue.train.wait', speaker: 'Pierce', hold: 1.7 }
 const L_BACK: Line = { id: 'dialogue.train.back', speaker: 'Pierce', hold: 1.9 };
 const L_STREET: Line = { id: 'dialogue.train.street', speaker: 'Pierce', hold: 3.4 };
 
-/** End-of-level credit crawl for level 7: unspoken leftovers, as the other levels' crawls. */
-export const TRAIN_CREDITS: LevelCredits | null = {
-  left: [
-    { role: 'The Other One', names: ['Kept The Coat', 'Kept The Walk', 'Never Turned Around'] },
-    { role: 'The Stop', names: ['Had No Name', 'On The Map', 'And Did Not Need One'] },
-    { role: 'The Commuter', names: ['Saved A Seat', 'For The One', 'Who Took It'] },
-  ],
-  right: [
-    { role: 'Hale', names: ['Watched The Street', 'For A Picture', 'It Walked Past Her'] },
-    { role: 'The Leak', names: ['Preferred A Man', 'And Took', 'The Stairs Up'] },
-    { role: 'The Train', names: ['Went Uptown', 'With What Stayed'] },
-  ],
-};
+/**
+ * Null so the Level Complete card uses `LEVEL_CREDITS[7]` in credits.ts.
+ * The Station's line is "The Train / Sat With A Door / Open On Nothing"; level 7 has its own crawl there.
+ */
+export const TRAIN_CREDITS: LevelCredits | null = null;
 /** The decision for now: level 7 ends on The Station's song. */
 export const ENDING_TRACK = '/assets/audio/ending-6.mp3';
 

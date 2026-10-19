@@ -163,9 +163,9 @@ export const createGameAnalytics = (probe: AnalyticsProbe) => {
       deathsHere = 0;
       if (!level) return;
       sdk().screen('level-complete');
-      if (level.id >= 6) {
+      if (level.id === 7) {
         void sdk().ask({
-          id: 'story-end', question: 'What did you think of the story?', context: 'the story (end of level 6)',
+          id: 'story-end', question: 'What did you think of the story?', context: 'the story (end of level 7)',
           kind: 'stars', comment: true, placeholder: 'Pierce, B3, the night: what stayed with you?', thanks: 'Noted. Thank you.', theme: ASK_THEME,
         });
       } else {
