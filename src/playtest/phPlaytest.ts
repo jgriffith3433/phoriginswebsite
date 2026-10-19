@@ -54,6 +54,8 @@ export type PhProbe = {
     /** Level 7's script (theTrain.ts): its beat, the car, where the old body is and which way he faces. */
     story: TrainStory | null;
   } | null;
+  /** The ending song playing on the Level Complete card, or null. Level 7 reuses ending-6. */
+  ending: () => string | null;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
   failNextLoad: (kind: 'error' | 'hang') => void;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
@@ -422,22 +424,29 @@ export const installPhPlaytest = (probe: PhProbe) => {
       },
       {
         id: 'train',
-        title: 'Level 7 (hidden): the subway car. Seats, poles, ads, tunnel lights, sway; seats and poles block; not on Load Level; fps vs The Station',
-        description: 'Checks Load Level does not list level 7. Starts The Station (test shortcut), skips its opening scene and samples the frame rate for 8 s standing still. Then enters level 7 (test shortcut, as ?beat=train): logs what the car is made of (benches, poles, ads, windows), turns to the north windows and counts the tunnel lamps going past and the sway (camera roll) for 5 s, samples the frame rate the same way, then walks into the north bench, the south bench and a center pole (real input; each logs how close Pierce got), and walks the length of the car to the front end door. Metrics: fpsStation, fpsTrain, lampsPerSecond, swayDegrees, carWalkMeters. Problems: level 7 listed, a missing part of the car, no lamps moving, no sway, Pierce inside a seat or a pole, train fps more than 10% under the station.',
+        title: 'Level 7: the subway car. Seats, poles, ads, tunnel lights, sway; seats and poles block; listed on Load Level; fps vs The Station',
+        description: 'Checks Load Level lists level 7, The Train. Starts The Station (test shortcut), skips its opening scene and samples the frame rate for 8 s standing still. Then enters level 7 (test shortcut, as ?beat=train): logs what the car is made of (benches, poles, ads, windows), turns to the north windows and counts the tunnel lamps going past and the sway (camera roll) for 5 s, samples the frame rate the same way, then walks into the north bench, the south bench and a center pole (real input; each logs how close Pierce got), and walks the length of the car to the front end door. Metrics: fpsStation, fpsTrain, lampsPerSecond, swayDegrees, carWalkMeters. Problems: level 7 missing from Load Level, a missing part of the car, no lamps moving, no sway, Pierce inside a seat or a pole, train fps more than 10% under the station.',
         seconds: 200,
         tags: ['level', 'perf'],
       },
       {
+        id: 'level-7-release',
+        title: 'The Station Continue enters The Train; End Level only after the story, then the station song and level 7 credits; Exit only; Load Level lists it',
+        description: 'Starts The Station (test shortcut), skips its opening, and plays to the Level Complete card. Checks Continue is on that card, checks Load Level\'s list includes Level 7: The Train as Play, and presses Continue. Level 7 must start. Plays the train through real input (opening, Next car, the stop, Hale, the door). End Level must not appear before the story\'s last beat. Pressing it plays ending-6 and rolls the level 7 credits (Preferred A Man, Went Uptown; not The Station\'s "Open On Nothing"). The card then shows Exit only, with Continue hidden.',
+        seconds: 480,
+        tags: ['level'],
+      },
+      {
         id: 'level-7',
-        title: 'Level 7 (hidden), The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door',
-        description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, presses E (Next car) at the front end door, sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
+        title: 'Level 7, The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door, then the end song and credits',
+        description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, presses E (Next car) at the front end door, sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. End Level must be on the finished beat. The press plays ending-6, rolls the level 7 credits, and the card is Exit only. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
         seconds: 240,
         tags: ['level'],
       },
       {
         id: 'site-links',
-        title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-6 playable and 7 coming soon, the game screen unchanged',
-        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-6 and a Coming soon card for level 7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
+        title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged',
+        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
         seconds: 60,
         tags: ['menus', 'site'],
       },
@@ -1080,7 +1089,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
     };
 
-    /** About's "What you can play": a Playable card for levels 1-6, a Coming soon card for level 7, no "still being built out". */
+    /** About's "What you can play": a Playable card for levels 1-7, no "still being built out". */
     const aboutLevelsCheck = async (doc: Document, frame: HTMLIFrameElement) => {
       const grid = doc.querySelector('.levels');
       if (!grid) { t.problem('bug', 'About page: no "What you can play" level cards'); return; }
@@ -1094,11 +1103,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
         const r = card?.getBoundingClientRect();
         const cs = card ? frame.contentWindow!.getComputedStyle(card) : null;
         const visible = !!(r && r.width > 0 && r.height > 0 && cs && cs.visibility !== 'hidden' && cs.display !== 'none');
-        const want = n <= 6 ? /playable/i : /coming soon/i;
-        const ok = !!card && visible && want.test(kicker);
+        const ok = !!card && visible && /playable/i.test(kicker);
         if (card) card.style.outline = `2px solid ${ok ? '#d4b483' : '#ff4d4d'}`;
         t.event('about-level', `${ok ? 'shows' : 'NO'} level ${n}${card ? `: "${kicker}" ${text(card.querySelector('h3'))}` : ''}`);
-        if (!ok) t.problem('bug', `About page: level ${n} should show a ${n <= 6 ? 'Playable' : 'Coming soon'} card (got ${card ? `"${kicker}"${visible ? '' : ', hidden'}` : 'none'})`);
+        if (!ok) t.problem('bug', `About page: level ${n} should show a Playable card (got ${card ? `"${kicker}"${visible ? '' : ', hidden'}` : 'none'})`);
       }
       const stale = /still being built out/i.test(text(doc.body));
       t.event('about-stale', stale ? 'the "still being built out" line is still on the page' : 'no "still being built out" line');
@@ -1369,11 +1377,11 @@ export const installPhPlaytest = (probe: PhProbe) => {
     const trainRun = async (): Promise<Outcome> => {
       levelsTotal = 1;
       const deg = (r: number) => (r * 180) / Math.PI;
-      // 3: Load Level does not list level 7.
+      // Load Level lists level 7 now that it is released.
       const rows = probe.levelRows();
-      const hidden = !rows.some((row) => /level 7|the train/i.test(row));
-      t.event('check', `Load Level lists ${rows.length} levels: ${rows.join(' | ')}${hidden ? ' (no level 7)' : ''}`);
-      if (!hidden) t.problem('bug', `Load Level lists level 7 before it is released: ${rows.join(' | ')}`);
+      const listed = rows.some((row) => /level 7/i.test(row) && /train/i.test(row));
+      t.event('check', `Load Level lists ${rows.length} levels: ${rows.join(' | ')}`);
+      if (!listed) t.problem('bug', `Load Level does not list level 7, The Train: ${rows.join(' | ')}`);
       t.progress(0.05);
 
       const sampleFps = async (what: string, ms: number) => {
@@ -1526,9 +1534,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
       return 'done';
     };
 
-    // ---- level-7: The Train, the story level (hidden)
-    const trainStoryRun = async (): Promise<Outcome> => {
-      levelsTotal = 1;
+    // ---- level-7: The Train, the story. `arrived` means Continue from The Station already started it.
+    const trainStoryRun = async (arrived = false): Promise<Outcome> => {
+      if (!arrived) levelsTotal = 1;
       const t0 = performance.now();
       const story = () => probe.train()?.story ?? null;
       const enter = async (why: string) => {
@@ -1547,10 +1555,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
         t.event('check', 'level library not readable from this page; combat checked from the scene instead');
       }
 
-      // 1: the opening, played through.
-      await enter('');
+      // 1: the opening, played through. Continue from The Station has already started it.
+      if (!arrived) await enter('');
       t.scene('Level 7: The Train');
-      t.event('level-start', 'Level 7: The Train (hidden)');
+      t.event('level-start', arrived ? 'Level 7: The Train (from The Station Continue)' : 'Level 7: The Train');
       const want = ['dialogue.train.there', 'dialogue.train.pole', 'dialogue.train.turn', 'dialogue.train.next'];
       const lines = storyLines();
       const textOf = (id: string) => lines.find((row) => row.id === id)?.text ?? id;
@@ -1580,25 +1588,28 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (!inOrder) t.problem('bug', `the train opening lines did not play in order: ${heard.join(' | ')}`);
       t.event('check', `opening: the old body ${sawBody ? 'stood at the front of the car' : 'was NOT seen'}${bodyLeft ? ' and walked out through the front end door' : ''}`);
       if (!sawBody || !bodyLeft) t.problem('bug', 'the old body was not seen leaving car 1 in the opening');
-      t.progress(0.2);
+      t.progress(arrived ? 0.5 : 0.2);
 
-      // 1: Skip.
-      await enter(' again, to press Skip in the opening');
-      await t.until(() => probe.scripted() === 'train-opening', 10000, 'the opening scene again');
-      await sleep(3000);
-      if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
-      const skip0 = performance.now();
-      try {
-        await t.until(() => controllable() && probe.objective().visible, 2000, 'control after Skip');
-        t.event('check', `Skip: control and the objective back in ${((performance.now() - skip0) / 1000).toFixed(1)} s (${probe.objective().text})`);
-      } catch {
-        t.problem('bug', 'Skip in the train opening did not hand control back within 2 s');
+      // Skip, on the direct start only. Continue already spent the opening.
+      if (!arrived) {
+        await enter(' again, to press Skip in the opening');
+        await t.until(() => probe.scripted() === 'train-opening', 10000, 'the opening scene again');
+        await sleep(3000);
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        const skip0 = performance.now();
+        try {
+          await t.until(() => controllable() && probe.objective().visible, 2000, 'control after Skip');
+          t.event('check', `Skip: control and the objective back in ${((performance.now() - skip0) / 1000).toFixed(1)} s (${probe.objective().text})`);
+        } catch {
+          t.problem('bug', 'Skip in the train opening did not hand control back within 2 s');
+        }
       }
       await measureLook();
-      t.progress(0.3);
+      t.progress(arrived ? 0.55 : 0.3);
 
       // 2-4: play to the end with real input.
       let endPressed = false;
+      let endBeat = '';
       let shadowDone = false;
       let lastCar = story()?.car ?? 1;
       let stopSeen = false;
@@ -1678,7 +1689,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
             lastAction.label = label;
             levelSteps += 1;
             mark();
-            if (label === 'End Level') endPressed = true;
+            if (label === 'End Level') {
+              if (!endBeat) {
+                endBeat = story()?.beat ?? '';
+                t.event('end-level', `offered on beat ${endBeat || 'unknown'}`);
+                if (endBeat !== 'done') t.problem('bug', `End Level showed before the story finished (beat ${endBeat || 'none'})`);
+              }
+              endPressed = true;
+            }
           }
           continue;
         }
@@ -1702,7 +1720,61 @@ export const installPhPlaytest = (probe: PhProbe) => {
       const secs = (performance.now() - t0) / 1000;
       t.metric('trainSeconds', Math.round(secs));
       t.event('level-end', `Level 7: The Train in ${secs.toFixed(0)} s`);
+      if (!endPressed) {
+        t.problem('bug', 'level 7 ended without End Level');
+        return 'stuck';
+      }
+      await sleep(700);
+      const menu = probe.menu();
+      const exitBtn = document.getElementById('loadModelBtn');
+      const credits = document.getElementById('levelCredits');
+      const crawl = (credits?.textContent ?? '').replace(/\s+/g, ' ').trim();
+      const song = probe.ending() ?? '';
+      const showing = !!credits && !credits.hidden && crawl.length > 40;
+      const own = /Preferred A Man/.test(crawl) && /Went Uptown/.test(crawl) && !/Open On Nothing/.test(crawl);
+      const exitOnly = menu.title === 'Level Complete' && menu.start == null && /exit/i.test(exitBtn?.textContent ?? '');
+      t.scene('Level 7 complete');
+      t.event('ending', `song ${/ending-6\.mp3/.test(song) ? 'ending-6' : (song || 'none')}; credits ${showing && own ? 'level 7' : 'wrong'}; continue ${menu.start ?? 'hidden'}; button ${(exitBtn?.textContent ?? '').trim()}`);
+      if (!/ending-6\.mp3/.test(song)) t.problem('bug', `level 7 did not play The Station's end song (got ${song || 'nothing'})`);
+      if (!showing || !own) t.problem('bug', `level 7 credits did not roll ("${crawl.slice(0, 160)}")`);
+      if (!exitOnly) t.problem('bug', `level 7's card should be Exit only (continue ${menu.start ?? 'hidden'}, title ${menu.title}, other ${(exitBtn?.textContent ?? '').trim()})`);
+      await sleep(3500);
       return 'won';
+    };
+
+    /** The Station's card, Continue into level 7, then the train through to Exit only. */
+    const releaseRun = async (): Promise<Outcome> => {
+      levelsTotal = 2;
+      levelIndex = 0;
+      await enterLevel(6);
+      const openUntil = performance.now() + 20000;
+      while (!probe.scripted() && !(probe.running() && !probe.menu().open && !probe.cutscene()) && performance.now() < openUntil) await tick();
+      if (probe.scripted()) {
+        await sleep(1200);
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await t.until(() => probe.running() && !probe.scripted() && !probe.menu().open, 15000, 'control after Skip on The Station');
+      }
+      const station = await playLevel(6);
+      if (station !== 'won') return station;
+      const card = probe.menu();
+      t.event('station-card', `The Station complete: continue ${card.start ?? 'none'}`);
+      if (card.title !== 'Level Complete' || card.start !== 'Continue') {
+        t.problem('bug', `The Station's card did not offer Continue (title ${card.title}, start ${card.start ?? 'none'})`);
+        return 'error';
+      }
+      const detail = probe.levelRows().length
+        ? [...document.querySelectorAll('#levelList .level-item')].map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim())
+        : [];
+      t.event('load-level', detail.join(' | '));
+      const row = detail.find((line) => /level 7/i.test(line) && /train/i.test(line));
+      if (!row) t.problem('bug', `Load Level does not list level 7, The Train: ${detail.join(' | ')}`);
+      else if (!/play/i.test(row)) t.problem('bug', `Load Level lists level 7 locked after The Station: ${row}`);
+      press(probe.startButton, 'Continue');
+      await t.until(() => probe.running() && probe.level().libraryId === 'the-train' && !probe.menu().open, 90000, 'Continue from The Station into level 7');
+      t.event('continue', `The Station's Continue entered ${probe.level().name} (${probe.level().libraryId})`);
+      if (probe.level().id !== 7) t.problem('bug', `Continue entered level ${probe.level().id}, not level 7`);
+      levelIndex = 1;
+      return trainStoryRun(true);
     };
 
     // ---- scenarios
@@ -1898,6 +1970,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
 
     if (id === 'level-7') {
       const outcome = await trainStoryRun();
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'level-7-release') {
+      const outcome = await releaseRun();
       t.progress(1);
       t.finish(outcome);
       return;

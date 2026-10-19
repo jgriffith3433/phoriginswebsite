@@ -413,7 +413,7 @@ const isReturnLevel = () => getLevelDefinition(state.level).libraryId === 'the-r
 const isHomeLevel = () => getLevelDefinition(state.level).libraryId === 'going-home';
 const isDeskLevel = () => getLevelDefinition(state.level).libraryId === 'the-desk';
 const isStationLevel = () => getLevelDefinition(state.level).libraryId === 'the-station';
-/** Level 7, hidden (`comingSoon`) until it is written. `?beat=train` and the `train` playtest enter it. */
+/** Level 7, The Train. `?beat=train` and the train playtests enter it; Continue after The Station does too. */
 const isTrainLevel = () => getLevelDefinition(state.level).libraryId === 'the-train';
 
 const cineHud = document.createElement('div');
@@ -1722,7 +1722,7 @@ const stopLevelCredits = () => {
 
 const startLevelCredits = (levelId: number) => {
   if (!levelCredits) return;
-  // Level 7's crawl lives in its own script (theTrain.ts), so the level-7 tasks only fill that file in.
+  // TRAIN_CREDITS is null, so level 7 uses LEVEL_CREDITS[7] with the other crawls.
   const markup = renderLevelCredits(levelId, isTrainLevel() ? TRAIN_CREDITS ?? undefined : undefined);
   if (!markup) {
     stopLevelCredits();
@@ -2329,7 +2329,7 @@ void (async () => {
     await loadMissionScene(level.path);
     beginGame();
   } else if (beat === 'train') {
-    // Level 7 is hidden from Load Level and Continue (comingSoon) until it is written; this enters it anyway.
+    // `?beat=train` enters level 7 the same way Continue does.
     const level = getLevels().find((entry) => entry.libraryId === 'the-train') ?? getLevelDefinition(7);
     state.level = level.id;
     state.progression.currentLevel = level.id;
@@ -3771,7 +3771,7 @@ if (isLocalPlay() || new URLSearchParams(location.search).has('debug')) document
 
 const renderLevelSelect = () => {
   levelList.innerHTML = '';
-  // Hidden slots (comingSoon, level 7 until it is written) are not listed at all.
+  // Hidden slots (`comingSoon`) are not listed at all. Level 7 is listed.
   const levels = getLevels().filter((level) => !level.comingSoon);
 
   levels.forEach((level) => {
@@ -4041,6 +4041,7 @@ installPhPlaytest({
     return [...levelList.querySelectorAll('.level-item strong')].map((row) => row.textContent?.trim() ?? '');
   },
   train: () => dressing.train()?.stats() ?? null,
+  ending: () => endingSong?.src || null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;

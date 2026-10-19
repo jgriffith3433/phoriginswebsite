@@ -672,6 +672,111 @@ export const LEVEL_CREDITS: Record<number, LevelCredits> = {
       },
     ],
   },
+  7: {
+    left: [
+      {
+        role: 'The Other One',
+        names: [
+          'Kept The Coat',
+          'Kept The Walk',
+          'And Never',
+          'Turned Around',
+        ],
+      },
+      {
+        role: 'The Stop',
+        names: [
+          'Had No Name',
+          'The Line Could Give It',
+          'And Did Not Need One',
+        ],
+      },
+      {
+        role: 'The Commuter',
+        names: [
+          'Saved A Seat',
+          'Said Goodnight',
+          'And Meant The One',
+          'Who Stepped Off',
+        ],
+      },
+      {
+        role: 'The Coat',
+        names: [
+          'Was The One',
+          'The Tower Still',
+          'Expected To See',
+        ],
+      },
+      {
+        role: 'The Platform',
+        names: [
+          'Took A Man',
+          'The Map Had Not',
+          'Named',
+        ],
+      },
+      {
+        role: 'Pierce Hawkes',
+        names: [
+          'Stayed With The Train',
+          'The Other One',
+          'Took The Street',
+        ],
+      },
+    ],
+    right: [
+      {
+        role: 'Hale',
+        names: [
+          'Watched The Street',
+          'For A Picture',
+          'It Walked Past',
+          'Without One',
+        ],
+      },
+      {
+        role: 'The Leak',
+        names: [
+          'Preferred A Man',
+          'And Took',
+          'The Stairs Up',
+        ],
+      },
+      {
+        role: 'The Street',
+        names: [
+          'Received Him',
+          'The Way It Receives',
+          'Anyone With A Coat',
+        ],
+      },
+      {
+        role: 'Containment',
+        names: [
+          'Was The Word',
+          'For A Silence',
+          'The Street',
+          'Did Not Keep',
+        ],
+      },
+      {
+        role: 'The Phone',
+        names: [
+          'Had A Bar',
+          'Where The Tunnel',
+          'Had None',
+        ],
+      },
+      {
+        role: 'The Train',
+        names: [
+          'Went Uptown',
+          'With What Stayed',
+        ],
+      },
+    ],
+  },
 };
 
 const escapeHtml = (value: string) => value
@@ -693,7 +798,7 @@ const column = (blocks: CreditBlock[], levelId: number, side: 'left' | 'right') 
   return `<div class="credit-roll credit-roll-${side}">${body}</div>`;
 };
 
-/** `credits` overrides the table (level 7 keeps its crawl in theTrain.ts). */
+/** `credits` overrides the table. Level 7's crawl is entry 7. */
 export const renderLevelCredits = (levelId: number, credits: LevelCredits | undefined = LEVEL_CREDITS[levelId]) => {
   if (!credits) return '';
 
