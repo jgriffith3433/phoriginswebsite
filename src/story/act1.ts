@@ -87,7 +87,7 @@ export type ActHost = {
   ringCall: (id: string) => void;
   pushPhoneText: (id: string) => void;
   silencePhone: () => void;
-  hurt: (amount: number) => void;
+  hurt: (amount: number, cause?: string) => void;
   stockAmmo: () => void;
   beamAt: (at: { x: number; y: number; z: number } | null) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
@@ -1650,7 +1650,7 @@ export const createAct1 = (host: ActHost) => {
   const dealBite = () => {
     if (biteCooldown > 0) return false;
     biteCooldown = 1.2;
-    host.hurt(22);
+    host.hurt(22, 'creature');
     host.playFile(CREATURE_SFX.snarl, 0.7);
     host.playFile(CREATURE_SFX.wound, 0.4);
     return true;

@@ -163,3 +163,28 @@ if (shotA && shotB) {
 
   runCycle();
 }
+
+// Hawkes Analytics (loaded in the head of every site page; AGENTS.md "Analytics"). The SDK counts page views,
+// outbound links and the device by itself; these say which page sent a player to the game, and who watched the film.
+const analytics = () => window.hawkesAnalytics;
+document.querySelectorAll('[data-play]').forEach((link) => {
+  link.addEventListener('click', () => {
+    const where = link.closest('header') ? 'nav' : link.closest('footer') ? 'footer' : 'page';
+    analytics()?.track('play_click', { page: page || 'home', where });
+    analytics()?.flush();
+  });
+});
+const film = document.querySelector('.frame iframe');
+if (film) {
+  // A click into the YouTube frame moves focus to it; that is the only signal a page gets from the embed.
+  let filmCounted = false;
+  window.addEventListener('blur', () => {
+    if (filmCounted || document.activeElement !== film) return;
+    filmCounted = true;
+    analytics()?.video('trailer', 'play', 0);
+  });
+}
+musicBtn?.addEventListener('click', () => {
+  // startMusic is async; read the button once it has settled.
+  window.setTimeout(() => analytics()?.feature('site.music', { value: musicBtn.getAttribute('aria-pressed') === 'true' ? 'on' : 'off' }), 600);
+});

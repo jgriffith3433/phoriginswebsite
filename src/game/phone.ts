@@ -134,6 +134,8 @@ export const createPhone = (
     onFinished: () => void;
     onHand: (raised: boolean) => void;
     onConnected?: (contactId: string) => void;
+    /** A scripted call ended: played to its last line (`read`), hung up early (`skipped`) or not answered (`declined`). */
+    onCallEnded?: (callId: string, how: 'read' | 'skipped' | 'declined', heard: number, of: number) => void;
     objectiveId: () => string;
     /** Open Call Voss / Call Hale on this level. Those outbound calls connect. */
     callQuestOpen: (contactId: string) => boolean;
@@ -573,6 +575,10 @@ export const createPhone = (
   };
 
   const beginEnded = () => {
+    if (script && scriptId) {
+      const of = script.lines.length;
+      options.onCallEnded?.(scriptId, lineIndex >= of ? 'read' : 'skipped', Math.min(lineIndex, of), of);
+    }
     rememberCall('Answered');
     stopVoice();
     mode = 'ended';
@@ -787,6 +793,7 @@ export const createPhone = (
       }
       if (mode !== 'active' && mode !== 'incoming') return;
       if (mode === 'incoming') {
+        if (script && scriptId) options.onCallEnded?.(scriptId, 'declined', 0, script.lines.length);
         playTone(TONE.hangup, 0.4);
         rememberCall('Missed');
         mode = 'idle';

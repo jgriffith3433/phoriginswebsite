@@ -4,6 +4,7 @@ import type { Connect, Plugin, ViteDevServer } from 'vite';
 import { defineConfig } from 'vite';
 import { convertCharacterGlb, inferClipName } from './tools/blenderConvert.mjs';
 import { linkBlender } from './tools/linkBlender.mjs';
+import { buildInfo } from './tools/buildInfo.mjs';
 import { genLibrary } from './tools/genLibrary.mjs';
 import { importEditorTexture } from './tools/process-textures.mjs';
 import { inspectSoundFiles, synthesizeEffect } from './tools/soundEffects.mjs';
@@ -421,6 +422,10 @@ const skipContentReloadPlugin = (): Plugin => ({
 
 export default defineConfig({
   base: './',
+  // Hawkes Analytics: the build every event names (src/game/analytics.ts).
+  define: {
+    __HAWKES_BUILD__: JSON.stringify(buildInfo()),
+  },
   plugins: [
     skipContentReloadPlugin(),
     editorApiPlugin(),
@@ -430,6 +435,15 @@ export default defineConfig({
         const from = path.join(process.cwd(), 'cutscenes');
         const to = path.join(process.cwd(), 'play', 'cutscenes');
         if (fs.existsSync(from)) fs.cpSync(from, to, { recursive: true });
+      },
+    },
+    {
+      // The site pages (index, about, characters, whatsnew) read the same build from here for Hawkes Analytics.
+      name: 'hawkes-build',
+      closeBundle() {
+        const to = path.join(process.cwd(), 'play', 'hawkes-build.js');
+        fs.mkdirSync(path.dirname(to), { recursive: true });
+        fs.writeFileSync(to, `window.HAWKES_BUILD = ${JSON.stringify(buildInfo())};\n`, 'utf8');
       },
     },
     {

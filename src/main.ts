@@ -47,6 +47,7 @@ import { createScreenFade } from './game/fade';
 import { createPerfMonitor } from './game/perfMonitor';
 import { createAutoAim } from './game/autoAim';
 import { installPhPlaytest } from './playtest/phPlaytest';
+import { createGameAnalytics, type GameAnalytics } from './game/analytics';
 import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSettings';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
@@ -286,6 +287,7 @@ const phone = createPhone(scene, {
     const quest = missionCallId(contactId);
     if (quest) markMission(quest);
   },
+  onCallEnded: (callId, how, heard, of) => analytics?.dialogue('call', callId, how, heard, of),
   onHand: (raised) => {
     if (!raised || phone.locksBody()) {
       if (!state.player.weaponDrawn) {
@@ -308,6 +310,8 @@ const phone = createPhone(scene, {
 phone.attachTo(playerAvatar);
 const playerCollider = createPlayerCollider(scene);
 let gameReady = false;
+/** Hawkes Analytics (src/game/analytics.ts). Made at the end of this file, next to the playtest probe. */
+let analytics: GameAnalytics | undefined;
 
 const waitAvatarReady = (avatar: PlayerAvatar) =>
   new Promise<void>((resolve) => avatar.whenReady(resolve));
@@ -509,8 +513,22 @@ const restoreGearAfterCutscene = (gear: CutsceneGear) => {
   updateCrosshairVisibility();
 };
 
+/** Where Skip was pressed in the running timeline (seconds), for analytics; null when it played out. */
+let cutsceneSkippedAt: number | null = null;
+
 const endCutscene = () => {
   const finished = activeCutscene;
+  const skippedAt = cutsceneSkippedAt;
+  cutsceneSkippedAt = null;
+  if (finished) {
+    const at = skippedAt ?? finished.time;
+    analytics?.cutsceneEnd(finished.id, at, skippedAt != null);
+    const lines = finished.timeline.events.filter((event) => event.type === 'line');
+    if (lines.length) {
+      const heard = lines.filter((event) => event.at <= at).length;
+      analytics?.dialogue('cutscene', finished.id, skippedAt != null && heard < lines.length ? 'skipped' : 'read', heard, lines.length);
+    }
+  }
   const gear = cutsceneGear;
   cutsceneGear = null;
   const reequip = finished ? finished.timeline.reequip !== false : true;
@@ -535,6 +553,7 @@ const beginNamedCutscene = (id: string) => {
   stashGearForCutscene();
   act.prepareCutscene(id);
   unlockPointer();
+  analytics?.cutscenePlay(id);
   void startCutscene(id, {
     onCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
     onHud: (title, text) => showCineHud(title, text),
@@ -1122,6 +1141,7 @@ const lockPlayPointer = () => {
 };
 
 const setInventoryOpen = (open: boolean) => {
+  if (open && !inventoryOpen) analytics?.used('inventory');
   inventoryOpen = open;
   if (open) missionsOpen = false;
   inventoryHud.classList.toggle('open', open);
@@ -1151,6 +1171,7 @@ const markMission = (id: string) => {
   const done = doneMissionIds(libraryId);
   if (done.includes(id)) return;
   saveGame({ missions: { ...(save.missions ?? {}), [libraryId]: [...done, id] } });
+  if (id !== 'main') analytics?.sideQuest(id);
   renderMissions();
 };
 
@@ -1176,6 +1197,7 @@ const renderMissions = () => {
 };
 
 const setMissionsOpen = (open: boolean) => {
+  if (open && !missionsOpen) analytics?.used('missions');
   missionsOpen = open;
   if (open) inventoryOpen = false;
   missionsHud?.classList.toggle('open', open);
@@ -1494,11 +1516,13 @@ const raisePhone = () => {
     return;
   }
   phone.setScreen(true);
+  analytics?.used('phone');
   updateHud();
 };
 
 const toggleFlashlight = () => {
   if (!state.running || state.inCutscene || weaponBusy || phone.locksBody()) return;
+  analytics?.used('flashlight');
   if (!phone.isRaised()) {
     if (state.player.weaponDrawn) {
       armPhoneAfterHolster = true;
@@ -1598,11 +1622,13 @@ skipCutsceneBtn?.addEventListener('click', (event) => {
   event.stopPropagation();
   if (activeCutscene) {
     const finished = activeCutscene;
+    cutsceneSkippedAt = finished.time;
     skipToEnd(finished);
     act.beforeCutsceneStep(finished.id, finished.duration);
     endCutscene();
     return;
   }
+  if (home.playing() || desk.playing() || station.playing()) analytics?.scriptedSkipped();
   if (home.playing()) home.skip();
   else if (desk.playing()) desk.skip();
   else if (station.playing()) station.skip();
@@ -1611,7 +1637,10 @@ skipCutsceneBtn?.addEventListener('click', (event) => {
 shadowHint?.addEventListener('click', (event) => {
   event.preventDefault();
   if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !panelsOpen()) {
-    if (shadowPlay().toggleShadow()) markMission('power-shadow');
+    if (shadowPlay().toggleShadow()) {
+      markMission('power-shadow');
+      analytics?.used('shadow-mode');
+    }
     if (!shadowPlay().shadowMode()) {
       playerAvatar.setArmed(false);
       syncEquippedCamera();
@@ -1868,7 +1897,9 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   followCamera.reset();
 };
 
-let applyHurt = (_amount: number) => {};
+let applyHurt = (_amount: number, _cause?: string) => {};
+/** What hurt Pierce last: the death's cause for analytics. */
+let lastHurtCause = 'unknown';
 let stockSidearm = () => {};
 
 act = createAct1({
@@ -1923,7 +1954,7 @@ act = createAct1({
   unlockNext: () => unlockProgress(),
   refreshHud: () => updateHud(),
   setCarry: (items) => { storyCarry = items; },
-  hurt: (amount) => applyHurt(amount),
+  hurt: (amount, cause) => applyHurt(amount, cause),
   stockAmmo: () => stockSidearm(),
   beamAt: (at) => {
     if (!at || phone.locksBody()) {
@@ -1983,7 +2014,7 @@ const home: GoingHome = createGoingHome({
   playFile: (url, volume) => { audio.play(url, volume); },
   setWalk: (moving) => audio.setWalk(moving),
   setCarry: (items) => { storyCarry = items; },
-  hurt: (amount) => applyHurt(amount),
+  hurt: (amount, cause) => applyHurt(amount, cause),
   win: () => audio.win(),
   showMessage,
   offerEnd: (title, text) => offerLevelEnd(title, text),
@@ -2127,6 +2158,7 @@ const beginGame = () => {
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
   if (isStationLevel()) station.onStart();
+  analytics?.levelStarted();
   void waitFrames(3).then(() => {
     revealFromBlack(() => state.running);
   });
@@ -2168,6 +2200,7 @@ void (async () => {
   applyLevelConfig(bootLevel);
   await loadMissionScene(bootLevel.path);
   phBoot?.ready();
+  analytics?.ready();
   recoverFromStall();
   const params = new URLSearchParams(location.search);
   const beat = params.get('beat');
@@ -2288,11 +2321,13 @@ const finishGame = (won = false) => {
     playerAvatar.playClip('deathforward', false);
     audio.play('/assets/audio/sfx/creature/wound.wav', 0.62);
     defeatLeft = 1.45;
+    analytics?.died(lastHurtCause);
   }
 };
 
-applyHurt = (amount: number) => {
+applyHurt = (amount: number, cause = 'story') => {
   if (!state.running || state.inCutscene) return;
+  lastHurtCause = cause;
   state.health = Math.max(0, state.health - amount);
   state.lastDamageAt = performance.now();
   audio.hit();
@@ -2633,6 +2668,7 @@ const useMedkit = () => {
     return;
   }
   state.health = Math.min(MAX_HEALTH, state.health + 40);
+  analytics?.used('medkit');
   showReloadNote('Medkit');
   audio.tone(520, 0.08, 'sine', 0.05);
   updateHud();
@@ -2662,6 +2698,7 @@ const presentLevelEnd = () => {
   markMission('main');
   updateHud();
   showMessage(card.title, card.text);
+  analytics?.levelCompleted();
 };
 
 const storyAction = (): string | null => {
@@ -2759,6 +2796,7 @@ const possessAimed = () => {
 
 const useShadowClick = () => {
   if (!shadowPlay().controls() || !shadowPlay().shadowMode() || !state.running || state.inCutscene || panelsOpen() || phone.isRaised() || phone.locksBody()) return;
+  analytics?.used(shadowPick === 'possess' ? (shadowPlay().linked() ? 'consume' : 'possess') : 'shadow-shock');
   if (shadowPick === 'possess') {
     if (shadowPlay().linked()) {
       if (shadowPlay().consume()) {
@@ -2799,6 +2837,7 @@ const fireWeapon = () => {
     shadowClickEdge = false;
     if (!state.running || state.inCutscene || panelsOpen() || phone.isRaised() || phone.locksBody()) return;
     shadowPlay().strike(meleeAbility);
+    analytics?.used(meleeAbility);
     updateHud();
     return;
   }
@@ -2812,6 +2851,7 @@ const fireWeapon = () => {
   }
   state.player.clip -= 1;
   state.shootCooldown = state.fireRate;
+  analytics?.used('sidearm');
   audio.shoot();
   if (playerPistol.isVisible()) muzzleFlash.showAt(playerPistol.muzzle);
   else muzzleFlash.show(camera, gatherCameraIgnoreMeshes());
@@ -2954,7 +2994,10 @@ window.addEventListener('keydown', (event) => {
   if (key === 'c') {
     event.preventDefault();
     if (shadowPlay().controls() && messageBox.classList.contains('hidden') && !panelsOpen()) {
-      if (shadowPlay().toggleShadow()) markMission('power-shadow');
+      if (shadowPlay().toggleShadow()) {
+        markMission('power-shadow');
+        analytics?.used('shadow-mode');
+      }
       if (!shadowPlay().shadowMode()) {
         playerAvatar.setArmed(false);
         syncEquippedCamera();
@@ -3244,6 +3287,7 @@ startBtn.addEventListener('click', () => {
   void fadeOutCard().then(beginGame);
 });
 newGameBtn.addEventListener('click', () => {
+  analytics?.feature('new-game');
   unlockAudio();
   lockPlayPointer();
   void startAtLevel(1, true);
@@ -3288,8 +3332,13 @@ const renderSoundSettings = () => {
 renderSoundSettings();
 onSoundSettings(renderSoundSettings);
 
-soundSwitch.addEventListener('click', () => setSoundSettings({ on: !soundSettings().on }));
+soundSwitch.addEventListener('click', () => {
+  setSoundSettings({ on: !soundSettings().on });
+  analytics?.setting('sound', soundSettings().on ? 'on' : 'off');
+});
 musicVolume.addEventListener('input', () => setSoundSettings({ music: Number(musicVolume.value) / 100 }));
+musicVolume.addEventListener('change', () => analytics?.setting('music', Number(musicVolume.value)));
+sfxVolume.addEventListener('change', () => analytics?.setting('sfx', Number(sfxVolume.value)));
 sfxVolume.addEventListener('input', () => {
   setSoundSettings({ sfx: Number(sfxVolume.value) / 100 });
 });
@@ -3298,12 +3347,14 @@ sfxVolume.addEventListener('change', () => audio.tone(660, 0.09, 'sine', 0.05));
 
 const settingsOpen = () => !settingsMenu.hidden;
 const openSettings = () => {
+  analytics?.screen(state.running ? 'settings-pause' : 'settings-title');
   renderSoundSettings();
   settingsMenu.hidden = false;
   unlockPointer();
   soundSwitch.focus({ preventScroll: true });
 };
 const closeSettings = () => {
+  if (!settingsMenu.hidden) analytics?.screen(paused ? 'pause' : state.running ? 'level' : 'title');
   settingsMenu.hidden = true;
   if (!pauseMenu.hidden) resumeBtn.focus({ preventScroll: true });
 };
@@ -3315,6 +3366,7 @@ const setPaused = (on: boolean) => {
   if (on && (!state.running || !messageBox.classList.contains('hidden'))) return;
   paused = on;
   pauseMenu.hidden = !on;
+  analytics?.screen(on ? 'pause' : 'level');
   if (on) {
     clearInputState();
     state.fireHeld = false;
@@ -3376,6 +3428,7 @@ window.addEventListener('click', (event) => {
 }, true);
 resetBtn.addEventListener('click', () => {
   if (messageTitle.textContent === 'Defeat') {
+    analytics?.toTitle();
     defeatLeft = 0;
     levelPicked = false;
     state.running = false;
@@ -3384,6 +3437,7 @@ resetBtn.addEventListener('click', () => {
     showMessage('PH Origins', levelStartLine());
     return;
   }
+  analytics?.feature('reset-progress');
   stopEndingSong();
   clearSave();
   save = { ...defaultSave, sound: audio.enabled };
@@ -3509,6 +3563,7 @@ const renderLoop = () => {
 
       if (distance < 1.8 && performance.now() - state.lastDamageAt > 500) {
         state.health -= 10;
+        lastHurtCause = 'enemy';
         state.lastDamageAt = performance.now();
         audio.hit();
         createBurst(scene, enemy.mesh.position.x, enemy.mesh.position.y + 1.5, enemy.mesh.position.z, new BABYLON.Color3(1, 0.2, 0.2), particles);
@@ -3662,6 +3717,7 @@ const renderLevelSelect = () => {
         return;
       }
       if (!unlocked) return;
+      analytics?.feature('level-select', level.id);
       levelPicked = true;
       state.level = level.id;
       state.progression.currentLevel = level.id;
@@ -3679,6 +3735,7 @@ const renderLevelSelect = () => {
 };
 
 const showLevelSelect = () => {
+  analytics?.screen('level-select');
   void loadLevelLibrary().then(() => {
     renderLevelSelect();
     messageTitle.textContent = 'Mission Select';
@@ -3697,6 +3754,7 @@ loadModelBtn.addEventListener('click', () => {
   showLevelSelect();
 });
 closeLevelSelectBtn.addEventListener('click', () => {
+  analytics?.screen('title');
   levelSelect.classList.add('hidden');
   messageTitle.textContent = 'PH Origins';
   messageText.textContent = levelStartLine();
@@ -3790,6 +3848,26 @@ const setPhoneFrame = (on: boolean) => {
   engine.resize();
 };
 
+// Hawkes Analytics (src/game/analytics.ts, AGENTS.md "Analytics"). Read-only probe like the playtest's below.
+analytics = createGameAnalytics({
+  running: () => state.running,
+  paused: () => isPaused(),
+  menuOpen: () => !messageBox.classList.contains('hidden'),
+  cutscene: () => (state.inCutscene && activeCutscene ? { id: activeCutscene.id, time: activeCutscene.time } : null),
+  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : null),
+  level: () => {
+    const level = getLevelDefinition(state.level);
+    return { id: level.id, libraryId: level.libraryId, name: level.name };
+  },
+  theme: () => (scene.metadata as { themeName?: string } | null)?.themeName ?? getLevelDefinition(state.level).theme,
+  objective: () => ({
+    title: (objectiveHud?.querySelector('.objective-kicker') as HTMLElement | null)?.textContent?.trim() ?? '',
+    text: objectiveText?.textContent?.trim() ?? '',
+  }),
+  player: () => ({ x: state.player.x, z: state.player.z }),
+});
+analytics.context({ graphics: lowPowerGraphics ? 'low' : 'high' });
+
 // Hawkes playtest contract (src/playtest/phPlaytest.ts). Read-only probe; the bot plays through real input.
 installPhPlaytest({
   ready: () => gameReady && !startBtn.disabled,
@@ -3870,7 +3948,7 @@ installPhPlaytest({
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;
-    applyHurt(Math.max(1, state.health));
+    applyHurt(Math.max(1, state.health), 'playtest');
     return true;
   },
   counts: () => ({
