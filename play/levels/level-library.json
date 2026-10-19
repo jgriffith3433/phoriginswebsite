@@ -83,8 +83,7 @@
       "combat": false,
       "playerSpeed": 3.05,
       "arenaSize": 60,
-      "reward": "The car",
-      "comingSoon": true
+      "reward": "The car"
     }
   ]
 }
