@@ -540,8 +540,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
   for (const d of DOORS_X) poles.push({ x: d, z: 0 });
   for (const s of [1, -1]) {
     for (const [a, b] of BENCHES) {
-      if (a > CAR.x0 + 0.5) poles.push({ x: a - 0.02, z: s * (SEAT_FRONT - 0.03) });
-      if (b < CAR.x1 - 0.5) poles.push({ x: b + 0.02, z: s * (SEAT_FRONT - 0.03) });
+      // A little in from the wind screen, so the way past a center pole stays wide (a padded walk grid sees boxes).
+      if (a > CAR.x0 + 0.5) poles.push({ x: a + 0.18, z: s * (SEAT_FRONT - 0.03) });
+      if (b < CAR.x1 - 0.5) poles.push({ x: b - 0.18, z: s * (SEAT_FRONT - 0.03) });
     }
   }
   surf(SURF.STEEL);
