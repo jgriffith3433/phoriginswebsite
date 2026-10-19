@@ -94,7 +94,7 @@ const LEVELS = [
 
 /** Usual timeline lengths, seconds. A scripted scene (lobby, desk, station opening) has no timeline file. */
 const SCRIPTED_LIMIT = 150;
-/** In `full`, these long rides are skipped after this many seconds so the whole story fits in about ten minutes. */
+/** In `full`, these long rides are skipped after this many seconds. Levels 1–6 stay near ten minutes; level 7 is the train after them. */
 const FULL_SKIP_AFTER: Record<string, number> = { 'elevator-b3': 16, 'elevator-up': 16 };
 
 const B3_DEN = { x: 7.5, z: 25 };
@@ -386,7 +386,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     scenarios: [
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
-      { id: 'full', title: 'Levels 1–6 in order, cutscenes included (long rides skipped after 16 s)', seconds: 760, tags: ['full'] },
+      { id: 'full', title: 'Levels 1–7 in order, cutscenes included (long rides skipped after 16 s)', seconds: 1100, tags: ['full'] },
       {
         id: 'sound-settings',
         title: 'Tap to play unlocks sound, Settings from the title and from Pause, a setting that survives a reload',
@@ -1588,7 +1588,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (!inOrder) t.problem('bug', `the train opening lines did not play in order: ${heard.join(' | ')}`);
       t.event('check', `opening: the old body ${sawBody ? 'stood at the front of the car' : 'was NOT seen'}${bodyLeft ? ' and walked out through the front end door' : ''}`);
       if (!sawBody || !bodyLeft) t.problem('bug', 'the old body was not seen leaving car 1 in the opening');
-      t.progress(arrived ? 0.5 : 0.2);
+      // `full` is already on level 7 of 7; an absolute fraction would rewind the bar.
+      if (full) mark();
+      else t.progress(arrived ? 0.5 : 0.2);
 
       // Skip, on the direct start only. Continue already spent the opening.
       if (!arrived) {
@@ -1605,7 +1607,8 @@ export const installPhPlaytest = (probe: PhProbe) => {
         }
       }
       await measureLook();
-      t.progress(arrived ? 0.55 : 0.3);
+      if (full) mark();
+      else t.progress(arrived ? 0.55 : 0.3);
 
       // 2-4: play to the end with real input.
       let endPressed = false;
@@ -1875,13 +1878,15 @@ export const installPhPlaytest = (probe: PhProbe) => {
     }
 
     if (id === 'full') {
-      levelsTotal = 6;
+      levelsTotal = 7;
       await enterLevel(1);
-      for (let n = 1; n <= 6; n++) {
+      for (let n = 1; n <= 7; n++) {
         levelIndex = n - 1;
-        const outcome = await playLevel(n);
+        // Level 7 is the train story (opening, cars, stop, Hale, the door, End Level). Continue from
+        // level 6 has already started it. playLevel walks a marker; the train's beats are trainStoryRun.
+        const outcome = n === 7 ? await trainStoryRun(true) : await playLevel(n);
         if (outcome !== 'won') { t.finish(outcome); return; }
-        if (n < 6) {
+        if (n < 7) {
           await sleep(2500);
           const menu = probe.menu();
           if (!menu.start) throw new Error(`no Continue on the level ${n} card`);
