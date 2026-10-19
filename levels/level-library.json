@@ -72,6 +72,19 @@
       "playerSpeed": 3.05,
       "arenaSize": 200,
       "reward": "The train"
+    },
+    {
+      "id": "the-train",
+      "name": "The Train",
+      "path": "/levels/the-train.json",
+      "theme": "Station",
+      "difficulty": 7,
+      "enemyCount": 0,
+      "combat": false,
+      "playerSpeed": 3.05,
+      "arenaSize": 60,
+      "reward": "The car",
+      "comingSoon": true
     }
   ]
 }

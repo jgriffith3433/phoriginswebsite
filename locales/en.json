@@ -2118,6 +2118,14 @@
       "note": "The Station, main objective"
     },
     {
+      "id": "objective.train.front",
+      "type": "objective",
+      "speaker": "The train",
+      "text": "The front of the car.",
+      "audio": "",
+      "note": "The Train (level 7, hidden), placeholder objective"
+    },
+    {
       "id": "ui.complete.desk",
       "type": "ui",
       "speaker": "Level Complete",
@@ -2260,6 +2268,22 @@
       "text": "C or the Shadow button turns it on. Powers only work while it is on.",
       "audio": "",
       "note": "The Station inventory"
+    },
+    {
+      "id": "item.train.phone",
+      "type": "item",
+      "speaker": "Phone",
+      "text": "No signal in the tunnel.",
+      "audio": "",
+      "note": "The Train inventory"
+    },
+    {
+      "id": "item.train.sidearm",
+      "type": "item",
+      "speaker": "Sidearm",
+      "text": "Q draws it.",
+      "audio": "",
+      "note": "The Train inventory"
     },
     {
       "id": "credit.1.left.0.role",

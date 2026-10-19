@@ -35,6 +35,7 @@ import { createAct1, type Act1, type StoryCarry } from './story/act1';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
+import { createTheTrain, ENDING_TRACK as TRAIN_ENDING_TRACK, TRAIN_CREDITS, type TheTrain } from './story/theTrain';
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
@@ -412,6 +413,8 @@ const isReturnLevel = () => getLevelDefinition(state.level).libraryId === 'the-r
 const isHomeLevel = () => getLevelDefinition(state.level).libraryId === 'going-home';
 const isDeskLevel = () => getLevelDefinition(state.level).libraryId === 'the-desk';
 const isStationLevel = () => getLevelDefinition(state.level).libraryId === 'the-station';
+/** Level 7, hidden (`comingSoon`) until it is written. `?beat=train` and the `train` playtest enter it. */
+const isTrainLevel = () => getLevelDefinition(state.level).libraryId === 'the-train';
 
 const cineHud = document.createElement('div');
 cineHud.style.cssText = 'position:absolute;left:0;right:0;bottom:11%;text-align:center;pointer-events:none;z-index:24;display:none;';
@@ -535,7 +538,7 @@ const endCutscene = () => {
   act.releaseSeat();
   resetCutsceneState();
   phone.aimBeam(null);
-  const restoreLight = reequip && !!gear?.light && !isReturnLevel() && !isHomeLevel() && !isDeskLevel() && !isStationLevel();
+  const restoreLight = reequip && !!gear?.light && !isReturnLevel() && !isHomeLevel() && !isDeskLevel() && !isStationLevel() && !isTrainLevel();
   if (!restoreLight) {
     if (phone.isRaised()) phone.setRaised(false);
     else phone.setFlashlight(false);
@@ -611,6 +614,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     home.dispose();
     desk.dispose();
     station.dispose();
+    train.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
@@ -629,10 +633,11 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
     clearImpactMarks();
     bindScenePickups();
-    ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
+    ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
     if (isHomeLevel()) await home.mount();
     if (isStationLevel()) await station.mount();
-    // Runtime dressing that is not in the level file (city under the office, basement air, station kit).
+    if (isTrainLevel()) await train.mount();
+    // Runtime dressing that is not in the level file (city under the office, basement air, station kit, the train car).
     dressing.mount({ levelId: loaded?.data.id ?? '', powers: isReturnLevel() });
     await Promise.all([
       waitAvatarReady(playerAvatar),
@@ -859,7 +864,7 @@ const SFX = {
   levelComplete: '/assets/audio/sfx/level-complete.ogg',
   shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
 } as const;
-const endingTrack = (level: number) => `/assets/audio/ending-${Math.max(1, level)}.mp3`;
+const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
 let walkLoop: ClipHandle | null = null;
 let walkWanted = false;
 let endingSong: HTMLAudioElement | null = null;
@@ -964,7 +969,7 @@ const updateHud = () => {
   devHealth.textContent = Math.max(0, Math.ceil(state.health)).toString();
   devLevel.textContent = state.level.toString();
 
-  const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel();
+  const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel();
   const streetPowers = shadowPlay().controls();
   const shadowHands = streetPowers && shadowPlay().shadowMode();
   const handsRaised = shadowHands && shadowPlay().handsOut();
@@ -1628,10 +1633,11 @@ skipCutsceneBtn?.addEventListener('click', (event) => {
     endCutscene();
     return;
   }
-  if (home.playing() || desk.playing() || station.playing()) analytics?.scriptedSkipped();
+  if (home.playing() || desk.playing() || station.playing() || train.playing()) analytics?.scriptedSkipped();
   if (home.playing()) home.skip();
   else if (desk.playing()) desk.skip();
   else if (station.playing()) station.skip();
+  else if (train.playing()) train.skip();
   lockGameplayPointer();
 });
 shadowHint?.addEventListener('click', (event) => {
@@ -1716,7 +1722,8 @@ const stopLevelCredits = () => {
 
 const startLevelCredits = (levelId: number) => {
   if (!levelCredits) return;
-  const markup = renderLevelCredits(levelId);
+  // Level 7's crawl lives in its own script (theTrain.ts), so the level-7 tasks only fill that file in.
+  const markup = renderLevelCredits(levelId, isTrainLevel() ? TRAIN_CREDITS ?? undefined : undefined);
   if (!markup) {
     stopLevelCredits();
     return;
@@ -2120,10 +2127,48 @@ const station: TheStation = createTheStation({
   },
 });
 
+const train: TheTrain = createTheTrain({
+  running: () => state.running,
+  placePierce,
+  playClip: (clip, loop, speed, onEnded) => { playerAvatar.playClip(clip, loop, speed, onEnded); },
+  resumeLocomotion: () => playerAvatar.resumeLocomotion(),
+  fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  setObjective,
+  showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
+  clearMarker: () => objectiveMarker.setTarget(null),
+  playFile: (url, volume) => { audio.play(url, volume); },
+  setWalk: (moving) => audio.setWalk(moving),
+  setCarry: (items) => { storyCarry = items; },
+  showMessage,
+  offerEnd: (title, text) => offerLevelEnd(title, text),
+  clearInput: () => clearInputState(),
+  unlockNext: () => unlockProgress(),
+  refreshHud: () => updateHud(),
+  holster: () => holsterSidearm(),
+  player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
+  frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  releaseCamera: () => followCamera.clearCinematic(),
+  showLine: (title, text) => showCineHud(title, text),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) {
+      audio.setWalk(false);
+      unlockPointer();
+    }
+  },
+  ringCall: (id) => {
+    clearHands();
+    phone.ring(id);
+    updateHud();
+  },
+  car: () => dressing.train(),
+});
+
 storyObjectiveId = () => {
   if (isDeskLevel()) return desk.objectiveKey();
   if (isHomeLevel()) return home.objectiveKey();
   if (isStationLevel()) return station.objectiveKey();
+  if (isTrainLevel()) return train.objectiveKey();
   return act.objectiveKey();
 };
 
@@ -2158,6 +2203,7 @@ const beginGame = () => {
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
   if (isStationLevel()) station.onStart();
+  if (isTrainLevel()) train.onStart();
   analytics?.levelStarted();
   void waitFrames(3).then(() => {
     revealFromBlack(() => state.running);
@@ -2166,10 +2212,11 @@ const beginGame = () => {
 
 let startingLevel = false;
 
-const startAtLevel = async (levelId: number, fresh = false, forceLoad = false) => {
+/** `hidden` lets a test entry (the `train` playtest) start a `comingSoon` level; Continue and Load Level never do. */
+const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, hidden = false) => {
   if (startingLevel || !gameReady) return;
   const level = getLevelDefinition(levelId);
-  if (level.comingSoon) return;
+  if (level.comingSoon && !hidden) return;
   startingLevel = true;
   freshStart = fresh;
   unlockAudio();
@@ -2265,6 +2312,14 @@ void (async () => {
     beginGame();
   } else if (beat === 'station') {
     const level = getLevels().find((entry) => entry.libraryId === 'the-station') ?? getLevelDefinition(6);
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    applyLevelConfig(level);
+    await loadMissionScene(level.path);
+    beginGame();
+  } else if (beat === 'train') {
+    // Level 7 is hidden from Load Level and Continue (comingSoon) until it is written; this enters it anyway.
+    const level = getLevels().find((entry) => entry.libraryId === 'the-train') ?? getLevelDefinition(7);
     state.level = level.id;
     state.progression.currentLevel = level.id;
     applyLevelConfig(level);
@@ -2706,9 +2761,10 @@ const storyAction = (): string | null => {
   if (!messageBox.classList.contains('hidden')) return null;
   if (pendingEnd?.levelId === state.level) return 'End Level';
   pendingEnd = null;
-  if (panelsOpen() || home.playing() || desk.playing() || station.playing()) return null;
+  if (panelsOpen() || home.playing() || desk.playing() || station.playing() || train.playing()) return null;
   if (phone.locksBody() || phone.isScreenOpen()) return null;
   if (isDeskLevel()) return desk.action();
+  if (isTrainLevel()) return train.action();
   if (isHomeLevel() || isStationLevel()) return null;
   return act.action();
 };
@@ -2722,6 +2778,7 @@ const confirmStoryAction = () => {
     return true;
   }
   if (isDeskLevel()) desk.confirm();
+  else if (isTrainLevel()) train.confirm();
   else act.confirm();
   syncActionHint();
   return true;
@@ -3456,6 +3513,19 @@ resetBtn.addEventListener('click', () => {
   activateMenuCamera(scene, menuCamera);
 });
 
+/**
+ * The train car sways: roll the game camera with the car (around the car's long axis, x). The follow camera sets
+ * its up vector back to +y every frame it updates, so this only ever adds this frame's roll.
+ */
+const applyCarSway = () => {
+  const roll = state.running && scene.activeCamera === camera ? dressing.roll() : 0;
+  if (roll === 0) {
+    if (camera.upVector.y !== 1) camera.upVector.set(0, 1, 0);
+    return;
+  }
+  camera.upVector.set(0, Math.cos(roll), Math.sin(roll));
+};
+
 const renderLoop = () => {
   pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden'));
   if (paused) {
@@ -3470,13 +3540,13 @@ const renderLoop = () => {
     defeatLeft = Math.max(0, defeatLeft - delta);
     if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
   }
-  const cine = state.inCutscene || home.playing() || desk.playing() || station.playing();
+  const cine = state.inCutscene || home.playing() || desk.playing() || station.playing() || train.playing();
   updateMinimap(delta);
   dressing.step(delta);
   if (wasInCutscene && !cine) lockGameplayPointer();
   wasInCutscene = cine;
   if (skipCutsceneBtn) {
-    const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing());
+    const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing() || train.playing());
     skipCutsceneBtn.hidden = !canSkip;
   }
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
@@ -3512,6 +3582,9 @@ const renderLoop = () => {
     } else if (station.playing()) {
       station.step(delta);
       updateCamera(delta, false, null);
+    } else if (train.playing()) {
+      train.step(delta);
+      updateCamera(delta, false, null);
     } else {
     phone.update(delta, followCamera.camera, state.player);
     if (state.fireHeld) fireWeapon();
@@ -3541,6 +3614,7 @@ const renderLoop = () => {
     act.stepWorld(delta);
     home.step(delta);
     station.step(delta);
+    train.step(delta);
     const streetShake = home.shake();
     if (streetShake > 0) {
       camera.position.x += (Math.random() - 0.5) * streetShake;
@@ -3644,6 +3718,7 @@ const renderLoop = () => {
     shadowRunActive(),
     Math.max(0, state.player.y - PLAYER_STAND_Y),
   );
+  applyCarSway();
   scene.render();
 };
 
@@ -3685,7 +3760,8 @@ if (isLocalPlay() || new URLSearchParams(location.search).has('debug')) document
 
 const renderLevelSelect = () => {
   levelList.innerHTML = '';
-  const levels = getLevels();
+  // Hidden slots (comingSoon, level 7 until it is written) are not listed at all.
+  const levels = getLevels().filter((level) => !level.comingSoon);
 
   levels.forEach((level) => {
     const comingSoon = level.comingSoon;
@@ -3854,7 +3930,7 @@ analytics = createGameAnalytics({
   paused: () => isPaused(),
   menuOpen: () => !messageBox.classList.contains('hidden'),
   cutscene: () => (state.inCutscene && activeCutscene ? { id: activeCutscene.id, time: activeCutscene.time } : null),
-  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : null),
+  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : train.playing() ? 'train-opening' : null),
   level: () => {
     const level = getLevelDefinition(state.level);
     return { id: level.id, libraryId: level.libraryId, name: level.name };
@@ -3903,7 +3979,7 @@ installPhPlaytest({
   cutscene: () => (state.inCutscene && activeCutscene
     ? { id: activeCutscene.id, time: activeCutscene.time, duration: activeCutscene.duration }
     : null),
-  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : null),
+  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : train.playing() ? 'train-opening' : null),
   phone: () => {
     const view = phone.view();
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
@@ -3945,6 +4021,15 @@ installPhPlaytest({
   newGameButton: newGameBtn,
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
+  setupHidden: (libraryId) => {
+    const level = getLevels().find((entry) => entry.libraryId === libraryId);
+    return level ? startAtLevel(level.id, true, true, true) : Promise.resolve();
+  },
+  levelRows: () => {
+    renderLevelSelect();
+    return [...levelList.querySelectorAll('.level-item strong')].map((row) => row.textContent?.trim() ?? '');
+  },
+  train: () => dressing.train()?.stats() ?? null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;

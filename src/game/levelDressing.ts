@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 
 import { createCityView, type CityView } from '../story/city/cityView';
 import { createStationDress, type StationDress } from '../story/stationDress';
+import { createTrainDress, type TrainDress } from '../story/trainDress';
 import { createAtmosphere, type Atmosphere } from './atmosphere';
 import { apexPlan } from './interior/apexPlan';
 import { b3Plan } from './interior/b3Plan';
@@ -14,6 +15,7 @@ import { createInteriorDress, type InteriorDress } from './interior/dress';
  * apex-peak:   the generated city 205 m below the office windows.
  * b3-basement: dust, light shafts, steam, a visible flashlight beam.
  * the-station: tiles, tunnels, tubes, ads, departure board, plus dust.
+ * the-train:   the subway car: seats, poles, ads, tunnel out the windows, sway.
  * (going-home mounts its own city: the level runs it.)
  */
 export type DressingContext = {
@@ -27,6 +29,7 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
   let cityView: CityView | null = null;
   let atmosphere: Atmosphere | null = null;
   let station: StationDress | null = null;
+  let train: TrainDress | null = null;
   let interior: InteriorDress | null = null;
   let current = '';
 
@@ -37,6 +40,8 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     atmosphere = null;
     station?.dispose();
     station = null;
+    train?.dispose();
+    train = null;
     interior?.dispose();
     interior = null;
     current = '';
@@ -84,14 +89,22 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
           shafts: { match: /^station-light-/, gain: 0.07, maxHeight: 3.2, spread: 0.9 },
           beam: 0.2,
         });
+      } else if (ctx.levelId === 'the-train') {
+        // No dust or shafts: the car stays cheaper than the station on a phone.
+        train = createTrainDress(scene);
       }
     },
     step: (dt: number) => {
       cityView?.step(dt);
       atmosphere?.step(dt);
       station?.step(dt);
+      train?.step(dt);
       interior?.step(dt);
     },
+    /** The car's camera roll this frame (0 off the train). */
+    roll: () => train?.roll() ?? 0,
+    /** The mounted train kit, for level 7's script and the playtest. */
+    train: () => train,
     dispose: clear,
   };
 };

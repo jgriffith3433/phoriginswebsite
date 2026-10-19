@@ -693,8 +693,8 @@ const column = (blocks: CreditBlock[], levelId: number, side: 'left' | 'right') 
   return `<div class="credit-roll credit-roll-${side}">${body}</div>`;
 };
 
-export const renderLevelCredits = (levelId: number) => {
-  const credits = LEVEL_CREDITS[levelId];
+/** `credits` overrides the table (level 7 keeps its crawl in theTrain.ts). */
+export const renderLevelCredits = (levelId: number, credits: LevelCredits | undefined = LEVEL_CREDITS[levelId]) => {
   if (!credits) return '';
 
   return column(credits.left, levelId, 'left') + column(credits.right, levelId, 'right');
