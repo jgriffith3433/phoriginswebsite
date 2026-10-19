@@ -392,6 +392,17 @@
       "note": "Walking into a shop."
     },
     {
+      "id": "sfx.train.rumble",
+      "group": "train",
+      "text": "Seamless loop of the inside of a moving subway car in a tunnel, steady low wheel rumble, rhythmic rail joints clicking, a faint electric motor whine and car body rattle, no voices, no announcements, no music.",
+      "audio": "/assets/audio/train/rumble.ogg",
+      "loop": true,
+      "duration": 12,
+      "influence": 0.6,
+      "volume": 0.24,
+      "note": "The Train (level 7) bed, a music trigger in levels/the-train.json. Looped for the whole car."
+    },
+    {
       "id": "sfx.elevator.hum",
       "group": "elevator",
       "text": "Seamless loop of a quiet elevator cab electrical hum, a low interior drone, no voices, no music.",
