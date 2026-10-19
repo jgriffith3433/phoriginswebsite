@@ -30,7 +30,7 @@ export type GoingHomeHost = {
   playFile: (url: string, volume: number) => void;
   setWalk: (moving: boolean) => void;
   setCarry: (items: StoryCarry[]) => void;
-  hurt: (amount: number) => void;
+  hurt: (amount: number, cause?: string) => void;
   win: () => void;
   showMessage: (title: string, text: string) => void;
   offerEnd: (title: string, text: string) => void;
@@ -1347,7 +1347,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
             });
             host.playFile(STREET_SFX.punch, 0.5);
             person.swing = 0.85;
-            host.hurt(person.role === 'police' ? 14 : 8);
+            host.hurt(person.role === 'police' ? 14 : 8, person.role === 'police' ? 'police' : 'hostile');
           }
         }
       }
@@ -1363,7 +1363,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
           const hit = traffic.hits(here);
           if (hit) {
             carHit = 1.4;
-            host.hurt(16);
+            host.hurt(16, 'car');
             shake = 0.3;
             const to = world ? world.resolve(hit.x, hit.z, 0.45) : hit;
             host.placePierce(to.x, to.z, here.yaw);

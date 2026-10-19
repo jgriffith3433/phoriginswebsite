@@ -27,6 +27,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Build version for Hawkes Analytics
+        run: |
+          echo "HAWKES_BUILD_VERSION=$(node -p "require('./releases.json').current")" >> "$GITHUB_ENV"
+          echo "HAWKES_BUILD_COMMIT=${GITHUB_SHA::12}" >> "$GITHUB_ENV"
+          echo "HAWKES_BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
       - run: npm run build
       - name: Assemble site
         run: |

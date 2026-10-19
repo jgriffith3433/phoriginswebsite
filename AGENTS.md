@@ -102,6 +102,7 @@ characters.html             Cast: Pierce Hawkes, Hale, Voss, Lang
 site/marketing.css          Shared marketing styles
 site/marketing.js           Nav, play link, landing music, hero cycle
 src/main.ts                 Boot, HUD, input, render loop
+src/analytics/              Hawkes Analytics SDK copy (hawkesgen/clients/js); src/game/analytics.ts sends the events
 src/story/                  Act I director, phone calls, objective copy
 src/story/city/             Going Home city: layout, streaming world, GLSL, traffic
 src/game/                   Runtime systems
@@ -217,7 +218,8 @@ The game implements the Hawkes playtest contract v1 (`C:\Projects\hawkesstudio\d
   then checks the game page has no credit link), `b3-retry` (starts level 2, downs Pierce with the `forceDefeat` test shortcut, presses Start five times and checks the scene counts stay flat; `hawkesPlaytest.state().counts` carries meshes, materials, textures, skeletons, clips, particle systems, lights, render targets, audio and fps), `load-error` (checks a normal load reaches START with no error, makes
   the next level load fail (`options.fail`: `hang`, the default, or `error`), presses Start, times the "Couldn't start
   the game" card and its Retry (metric `errorCardSeconds`), presses Retry, which really reloads, then picks up again
-  through `?playtest=load-error` and a sessionStorage marker, checks START and enters level 1). Every other scenario taps the prompt first. `options.speed` > 1 skips each timeline after
+  through `?playtest=load-error` and a sessionStorage marker, checks START and enters level 1), `analytics` (see
+  **Analytics**: level 1 with the SDK's debug log, the build and env, the feedback card). Every other scenario taps the prompt first. `options.speed` > 1 skips each timeline after
   duration / speed.
 - Metrics: `levelNSeconds`, `interactions`, `dialogueLines`, `cutscenes`, `cutscene:<id>` seconds, `shots`,
   `respawns` (Defeat → Start), `falls`, `knockbacks` (cars), `stuckRecoveries`, plus `fpsAverage` / `fpsWorst`.
@@ -371,6 +373,55 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would beat `PistolAim` fallback. Lab consoles also sit in chem, decon, containment, and the transformation wing. The rest of the basement is still boxes. Landing stills are placeholders. Arena combat code still exists and stays off on story levels. Opaque level materials are PBR (albedo, normal, roughness). Do not assign `scene.environmentTexture`; characters and props use the flat probe in `assets/textures/probe/`.
 
 When you change IDs, clip names, sequence phases, or these constraints, **update this file**.
+
+## Analytics (Hawkes Analytics)
+
+Hawkes Analytics is the only analytics here (contract: `hawkesgen/docs/analytics.md`, product id `phorigins`).
+GoatCounter is gone; never add another tracker. Devtools (`devtools.html`, the level editor) loads none of it.
+
+- **Site pages** (index, about, characters, whatsnew) load `./play/hawkes-build.js` and then
+  `https://gen.hawkesgen.com/sdk/analytics@1.js` with `data-product="phorigins"`, both `defer`, in the head. A new
+  site page copies those two tags and the footer's `p.site-privacy` line (anonymous statistics, no cookies, no
+  personal data, no IP stored). `site/marketing.js` adds `play_click` (`page`, `where`: nav / page / footer), `video`
+  `trailer` play (focus moving into the YouTube frame) and `feature` `site.music`.
+- **The game** bundles the SDK: `src/analytics/hawkes-analytics.js` + `.d.ts` are copies of
+  `hawkesgen/clients/js/` (copy them again when those change; don't edit them here). `src/game/analytics.ts`
+  (`createGameAnalytics`) inits it and owns every game event; `main.ts` makes it at the end, next to the playtest
+  probe, with its own read-only probe, and calls `analytics?.…` at the real moments. Settings says the same privacy
+  line (`.settings-privacy`).
+- **Build:** `tools/buildInfo.mjs` gives `{ version, commit, date }`: `HAWKES_BUILD_VERSION/_COMMIT/_DATE` from
+  `pages.yml`, else `releases.json` `current`, `git rev-parse` and the clock (Studio's beta build). `vite.config.ts`
+  defines it as `__HAWKES_BUILD__` (the game sets `window.HAWKES_BUILD`) and writes `play/hawkes-build.js` for the
+  site pages.
+- **Context:** `mode` story, `graphics` low/high, `level` (1-6), `level_name`, `objective` (the HUD kicker + text),
+  `area` (the room on the 58th floor or in B3 from `apexPlan` / `b3Plan` rooms, else the scene theme).
+- **Events** (where they are sent):
+  - `game_ready` + `screen` title: the boot level loaded and Start works (boot IIFE after `phBoot.ready()`).
+  - `level_start`: end of `beginGame` (each attempt; a start on a level still open closes it as `restart`).
+    `level_end`: `complete` in `presentLevelEnd` (End Level pressed), `death` with the death, `quit` on Main Menu
+    from Defeat or when the tab closes inside a level. Props: `name`, `objective`, `steps`, `area`, `uses` (counts).
+  - `death` in `finishGame(false)`: `cause` is the last thing that hurt Pierce (`applyHurt(amount, cause)`:
+    `creature`, `police`, `hostile`, `car`, `enemy`, `playtest`), with `area`, `x`, `z`, `objective`.
+  - `progress`: each new objective (the watcher reads the HUD once a second): `step` (grows per level), `label`.
+  - `stuck` (custom): three minutes of real play (not paused, no scene or card, tab visible) on one objective;
+    again at 6 and 9 minutes. `level`, `objective`, `minutes`, `area`, `x`, `z`.
+  - `video`: every timeline cutscene (`beginNamedCutscene` play; `endCutscene` complete or skip with `at`, the
+    timeline second Skip was pressed) and the scripted scenes (`going-home-lobby`, `the-desk`, `station-opening`,
+    seen by the watcher).
+  - `feature`: `dialogue.read` / `dialogue.skipped` / `dialogue.declined` for calls (`phone.ts` `onCallEnded`:
+    heard / of lines) and cutscene lines; `settings.sound` / `settings.music` / `settings.sfx` (on change, not per
+    slider step); the first use per level of `punch`, `kick`, `sidearm`, `shadow-mode`, `shadow-shock`, `possess`,
+    `consume`, `flashlight`, `phone`, `medkit`, `missions`, `inventory`; `side_quest`; `new-game`,
+    `reset-progress`, `level-select`.
+  - `screen`: title, level, pause, settings-title / settings-pause, level-select, level-complete, defeat.
+- **Feedback cards** (`ask`, gold on the panel black): after Level Complete on levels 1-5 (thumbs + comment,
+  `after-level-N`), after level 6 "What did you think of the story?" (stars + comment, `story-end`), and on the
+  Defeat card after the second death on a level ("Is this part fair?"). Never mid-play: a card still up when the next
+  level starts is removed.
+- No per-frame events: the watcher reads once a second and sends only on change. Nothing personal in props.
+- Playtest `analytics` reloads once with `?hawkes-analytics-debug=1`, plays level 1, logs each event from
+  `hawkesAnalytics.debugLog` (`analytics:<name>`) with the build and env, and checks the feedback card. When you
+  move an objective, a cutscene or a death, keep its event where the moment really is.
 
 ## Versions and What's new
 

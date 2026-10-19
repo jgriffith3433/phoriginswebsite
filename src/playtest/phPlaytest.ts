@@ -401,6 +401,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['level', 'perf'],
       },
       {
+        id: 'analytics',
+        title: 'Hawkes Analytics: level 1 played to its card, the events going out (debug log), the feedback card after the level',
+        description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
+        seconds: 360,
+        tags: ['level', 'analytics'],
+      },
+      {
         id: 'site-links',
         title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, the game screen unchanged',
         description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another, scrolls each to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
@@ -1305,6 +1312,18 @@ export const installPhPlaytest = (probe: PhProbe) => {
     };
 
     // ---- scenarios
+    if (id === 'analytics' && !window.hawkesAnalytics.config().debug) {
+      // The SDK reads its debug switch when the page loads: reload once with it, and carry the run on through the URL.
+      const url = new URL(location.href);
+      url.searchParams.set('hawkes-analytics-debug', '1');
+      url.searchParams.set('playtest', 'analytics');
+      url.searchParams.set('seed', String(options.seed ?? 1));
+      url.searchParams.set('speed', String(options.speed ?? 1));
+      t.event('reload', 'the page reloads with ?hawkes-analytics-debug=1; the run carries on after it');
+      location.assign(url.toString());
+      await new Promise(() => {}); // the page is going away
+      return;
+    }
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
@@ -1423,6 +1442,63 @@ export const installPhPlaytest = (probe: PhProbe) => {
 
     if (id === 'b3-retry') {
       await b3RetryRun();
+      return;
+    }
+
+    if (id === 'analytics') {
+      levelsTotal = 1;
+      const ha = window.hawkesAnalytics;
+      const cfg = ha.config();
+      const build = cfg.build ?? {};
+      t.event('analytics', `product ${cfg.product}, env ${cfg.env}, build ${build.version ?? '?'} ${build.commit ?? '?'} ${build.date ?? ''}, debug ${cfg.debug}`);
+      if (!build.version || !build.commit) t.problem('bug', `analytics: the build is incomplete (${JSON.stringify(build)}); window.HAWKES_BUILD should come from the real build`);
+      const counts: Record<string, number> = {};
+      let logged = 0;
+      const brief = (props: Record<string, unknown> | undefined) => Object.entries(props ?? {})
+        .filter(([, v]) => v != null && typeof v !== 'object')
+        .map(([k, v]) => `${k}=${String(v).slice(0, 60)}`)
+        .join(' ');
+      const drain = () => {
+        const log = ha.debugLog;
+        for (; logged < log.length; logged++) {
+          const e = log[logged];
+          counts[e.name] = (counts[e.name] ?? 0) + 1;
+          if (e.name === 'perf' || e.name === 'exit') continue;
+          t.event(`analytics:${e.name}`, `${brief(e.props)}${e.ctx?.level ? ` [level ${e.ctx.level}]` : ''}`);
+        }
+        const sent = log.filter((e) => e.sent).length;
+        t.metric('analyticsEvents', log.length);
+        t.metric('analyticsSent', sent);
+      };
+      const timer = window.setInterval(drain, 1000);
+      let outcome: Outcome;
+      try {
+        await enterLevel(1);
+        t.scene(LEVELS[0].name);
+        outcome = await playLevel(1);
+        await t.until(() => !!document.querySelector('[data-hawkes-ask]'), 10000, 'the feedback card').catch(() => undefined);
+        const card = document.querySelector('[data-hawkes-ask]');
+        const question = card?.shadowRoot?.querySelector('.ha-q')?.textContent ?? '';
+        if (card) {
+          t.scene('Level Complete + feedback card');
+          t.event('feedback-card', question || card.getAttribute('data-hawkes-ask') || 'shown');
+        } else {
+          t.problem('bug', 'analytics: no feedback card after the level 1 Level Complete card');
+        }
+        await sleep(4000); // hold it for the footage
+        ha.flush();
+        await sleep(600);
+      } finally {
+        window.clearInterval(timer);
+        drain();
+      }
+      for (const name of ['game_ready', 'level_start', 'progress', 'video', 'level_end']) {
+        if (!counts[name]) t.problem('bug', `analytics: no ${name} event in level 1`);
+      }
+      t.metric('analyticsProgress', counts.progress ?? 0);
+      t.metric('analyticsVideo', counts.video ?? 0);
+      t.progress(1);
+      t.finish(outcome);
       return;
     }
 
