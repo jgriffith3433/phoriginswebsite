@@ -76,6 +76,12 @@ const STOP_DOOR = { x: 11.2, z: 1.2 };
 const LAST_CAR = 3;
 const CRUISE = 14;
 const EXIT_X = 17.85;
+/** Car 2: already near the front end door when Pierce enters, so he walks out before a shadow run can close. */
+const CAR2_SPAWN_X = 15.2;
+/** Base walk in car 2; ramps when Pierce closes the lead, with a burst if he gets inside ~3 m. */
+const CAR2_WALK = 2.6;
+const CAR2_LEAD = 6;
+const CAR2_BURST = 9;
 
 const COMMUTER = 'asset-ch28-npc';
 const RIDER_ASSETS = ['asset-ch08-npc', 'asset-ch31-npc', 'asset-ch23-npc'];
@@ -556,8 +562,9 @@ export const createTheTrain = (host: TheTrainHost) => {
     clearFigures();
     spawnRiders(n);
     if (n < LAST_CAR) {
-      double = spawnFigure('train-double', PLAYER_ASSET_ID, 11.6, 0.15, Math.PI / 2);
-      commuter = spawnFigure('train-commuter', COMMUTER, 12.3, -0.25, Math.PI / 2);
+      // Already past mid-car and walking out — one car ahead, not a fair chase.
+      double = spawnFigure('train-double', PLAYER_ASSET_ID, CAR2_SPAWN_X, 0.15, Math.PI / 2);
+      commuter = spawnFigure('train-commuter', COMMUTER, CAR2_SPAWN_X + 0.7, -0.25, Math.PI / 2);
     } else {
       // At the north door, facing it. He does not turn around again.
       double = spawnFigure('train-double', PLAYER_ASSET_ID, STOP_DOOR.x, 0.95, 0);
@@ -949,7 +956,9 @@ export const createTheTrain = (host: TheTrainHost) => {
         // One car ahead, and through the end door before Pierce gets there.
         if (carTime > 0.8) cue(L_AHEAD, 0);
         const lead = double && !double.gone ? double.mesh.position.x - here.x : 99;
-        const speed = 1.05 + Math.max(0, 5 - lead) * 0.9;
+        // Faster when he closes in; a short burst keeps shadow-run from tagging him.
+        let speed = CAR2_WALK + Math.max(0, CAR2_LEAD - lead) * 1.15;
+        if (lead < 3) speed = Math.max(speed, CAR2_BURST);
         const gone = walkForward(double, 0.15, speed, stepDt);
         walkForward(commuter, -0.25, speed, stepDt);
         if (gone && leftCar < carNo) leftCar = carNo;
