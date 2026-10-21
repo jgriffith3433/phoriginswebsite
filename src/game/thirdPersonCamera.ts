@@ -167,12 +167,12 @@ export const createThirdPersonCamera = (
   };
 
   const isCameraObstacle = (mesh: BABYLON.AbstractMesh | undefined, ignore: Set<BABYLON.AbstractMesh>) => {
-    if (!mesh || !mesh.isEnabled() || !mesh.isVisible || mesh.visibility <= 0) return false;
+    if (!mesh || !mesh.isEnabled() || mesh.visibility <= 0) return false;
     if (ignore.has(mesh)) return false;
-    const meta = mesh.metadata as { sceneTriggerId?: string; cameraClip?: boolean } | undefined;
-    if (meta?.sceneTriggerId) return false;
-    if (meta?.cameraClip) return true;
-    return mesh.checkCollisions || mesh.isPickable;
+    const meta = mesh.metadata as { sceneTriggerId?: string; cameraClip?: boolean; trainCollider?: boolean } | undefined;
+    if (meta?.sceneTriggerId || meta?.trainCollider) return false;
+    if (meta?.cameraClip || mesh.checkCollisions) return true;
+    return mesh.isVisible && mesh.isPickable;
   };
 
   const pickAlong = (
