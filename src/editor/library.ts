@@ -1,10 +1,12 @@
-// Tools > Library: every character and prop in Hawkes Gen's library (hawkesgen/docs/library.md), shared with Studio,
-// the other products' tools and Claude. Each one keeps every version of its model slot (and a prop's reference image):
-// use one, discard, give feedback and revise, or make more takes with the recipes in hawkesgen/presets/phorigins.json.
+// Tools > Library: every character, prop and Gaussian splat in Hawkes Gen's library (hawkesgen/docs/library.md), shared
+// with Studio, the other products' tools and Claude. Each one keeps every version of its model/splat slot (and a prop's
+// reference image): use one, discard, give feedback and revise, or make more takes with the recipes in
+// hawkesgen/presets/phorigins.json.
 //
-// assets/models stays what the game loads: Import brings it into the library (hawkes.library.json: one GLB per entity),
-// and a pick is written back to the same file. The components are Hawkes Gen's web components (./hawkesgen/, a copy of
-// hawkesgen/clients/js); they call Gen through the dev server (/api/gen, tools/genLibrary.mjs), which adds the key.
+// assets/models and assets/splats stay what the game loads: Import brings them into the library (hawkes.library.json:
+// one GLB or .splat per entity), and a pick is written back to the same file. The components are Hawkes Gen's web
+// components (./hawkesgen/, a copy of hawkesgen/clients/js); they call Gen through the dev server (/api/gen,
+// tools/genLibrary.mjs), which adds the key.
 
 const $ = (id: string) => document.getElementById(id) as HTMLElement;
 const PREF = 'ph-library-writeback';
@@ -56,12 +58,12 @@ const openLibrary = async () => {
     lib.setAttribute('thumb', 'reference,concept');
     lib.setAttribute('open-inline', '');
     setKind(($('libraryKind') as HTMLSelectElement).value);
-    // A pick changes what the game loads: write that entity's GLB back.
+    // A pick changes what the game loads: write that entity's GLB or .splat back.
     lib.addEventListener('hg-pick', async (ev: Event) => {
       if (!($('libraryWriteBack') as HTMLInputElement).checked) return;
       const slug = String((ev as CustomEvent).detail.entity).split('/')[1];
       const counts = await run('export', { only: slug });
-      if (counts?.written) statusEl().textContent = `Wrote ${counts.written} file${counts.written > 1 ? 's' : ''} into assets/models. Reload the level to see it.`;
+      if (counts?.written) statusEl().textContent = `Wrote ${counts.written} file${counts.written > 1 ? 's' : ''} into assets/. Reload the level to see it.`;
     });
     $('libraryHost').append(lib);
     statusEl().textContent = '';
@@ -100,10 +102,10 @@ export const bindLibrary = () => {
     if (!dry) return;
     const n = (dry['would-add'] ?? 0) + (dry['would-create'] ?? 0) + (dry['would-pick'] ?? 0);
     if (!n) {
-      statusEl().textContent = 'The library already has everything in assets/models.';
+      statusEl().textContent = 'The library already has everything in assets/models and assets/splats.';
       return;
     }
-    if (confirm(`Import ${dry['would-create'] ?? 0} new characters and props and ${dry['would-add'] ?? 0} files into Hawkes Gen's library?`)) {
+    if (confirm(`Import ${dry['would-create'] ?? 0} new characters, props and splats and ${dry['would-add'] ?? 0} files into Hawkes Gen's library?`)) {
       await run('import', {});
       lib?.setAttribute('project', 'phorigins'); // reload the list
     }
@@ -112,9 +114,9 @@ export const bindLibrary = () => {
     const dry = await run('export', { dry: true });
     if (!dry) return;
     if (!dry['would-write']) {
-      statusEl().textContent = 'assets/models already matches the library.';
+      statusEl().textContent = 'assets/models and assets/splats already match the library.';
       return;
     }
-    if (confirm(`Write ${dry['would-write']} files into assets/models?`)) await run('export', {});
+    if (confirm(`Write ${dry['would-write']} files into assets/models and assets/splats?`)) await run('export', {});
   });
 };

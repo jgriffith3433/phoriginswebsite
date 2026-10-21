@@ -51,6 +51,8 @@ export type PhProbe = {
     seats: number; poles: number; ads: number; windows: number; lampsPassed: number; speed: number; roll: number;
     /** The stop: how far the platform shows in the north windows and the side door is open (0..1). */
     platform: number; door: number;
+    /** 3D Gaussian Splatting scene readiness and total splat count. */
+    splatReady?: boolean; splatCount?: number;
     /** Level 7's script (theTrain.ts): its beat, the car, where the old body is and which way he faces. */
     story: TrainStory | null;
   } | null;
@@ -1494,8 +1496,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
       const secs = (performance.now() - t0) / 1000;
       const now = probe.train();
       const lamps = (now?.lampsPassed ?? 0) - lamps0;
-      t.event('tunnel', `${lamps} tunnel lamps went past the windows in ${secs.toFixed(1)} s at ${now?.speed ?? 0} m/s`);
+      t.event('tunnel', `${lamps} tunnel lamps went past the windows in ${secs.toFixed(1)} s at ${now?.speed ?? 0} m/s (splatReady=${Boolean(now?.splatReady)}, splatCount=${now?.splatCount ?? 0})`);
       t.metric('lampsPerSecond', Math.round((lamps / secs) * 100) / 100);
+      t.metric('splatCount', now?.splatCount ?? 0);
       if (lamps < 2) t.problem('bug', `the tunnel is not moving past the windows (${lamps} lamps in ${secs.toFixed(1)} s)`);
       const sway = deg(rollMax - rollMin);
       t.event('sway', `the car rolls between ${deg(rollMin).toFixed(2)}° and ${deg(rollMax).toFixed(2)}° (${sway.toFixed(2)}° swing)`);
