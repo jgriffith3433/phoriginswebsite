@@ -1248,9 +1248,12 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   /** Parent a mesh under the offset root and re-freeze its world matrix. */
   const adopt = <T extends BABYLON.AbstractMesh | null>(mesh: T): T => {
     if (!mesh || !root) return mesh;
+    mesh.doNotSyncBoundingInfo = false;
     mesh.unfreezeWorldMatrix();
     mesh.parent = root;
     mesh.computeWorldMatrix(true);
+    mesh.refreshBoundingInfo({});
+    mesh.doNotSyncBoundingInfo = true;
     mesh.freezeWorldMatrix();
     return mesh;
   };

@@ -20,7 +20,15 @@ export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => 
   let savedMaxZ = 0;
   const mobile = typeof document !== 'undefined' && document.body.dataset.device !== 'desktop';
 
+  const syncSkybox = (highAltitude: boolean) => {
+    const sky = scene.getMeshByName('apex-night-city-skybox');
+    if (!sky) return;
+    const drop = highAltitude && scene.activeCamera?.name !== 'menuCamera' ? -20 : 0;
+    if (sky.position.y !== drop) sky.position.y = drop;
+  };
+
   const dispose = () => {
+    syncSkybox(false);
     traffic?.dispose();
     traffic = null;
     world?.dispose();
@@ -53,9 +61,11 @@ export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => 
       traffic.mount(TOWER_CENTER.x, TOWER_CENTER.z + 40);
       savedMaxZ = camera.maxZ;
       camera.maxZ = Math.max(camera.maxZ, 2200);
+      syncSkybox(true);
     },
     step: (dt: number) => {
       if (!world) return;
+      syncSkybox(true);
       world.step(TOWER_CENTER.x, TOWER_CENTER.z, dt);
       traffic?.step(dt, { x: TOWER_CENTER.x, z: TOWER_CENTER.z + 40 }, { fx: 0, fz: 1 }, false, () => {});
     },

@@ -31,8 +31,8 @@ export const apexPlan: InteriorPlan = {
   rooms: [
     { id: 'hall1', minX: -2.2, maxX: 2.2, minZ: -1, maxZ: 34.25, wall: IS.OFFICE_WALL, wallVar: 0.15, floor: IS.CARPET, floorVar: 0, ceil: IS.ACOUSTIC },
     { id: 'hall2', minX: 2.2, maxX: 35.3, minZ: 29.8, maxZ: 34.26, wall: IS.OFFICE_WALL, wallVar: 0.15, floor: IS.CARPET, floorVar: 0, ceil: IS.ACOUSTIC },
-    { id: 'board', minX: 35.2, maxX: 53, minZ: 24, maxZ: 40, wall: IS.WOOD_SLATS, floor: IS.CARPET, floorVar: 1, ceil: IS.ACOUSTIC },
-    { id: 'office', minX: 43.2, maxX: 52.76, minZ: 40.1, maxZ: 47, wall: IS.WALNUT_PAPER, floor: IS.PLANKS, ceil: IS.ACOUSTIC },
+    { id: 'board', minX: 35.2, maxX: 52.7, minZ: 24, maxZ: 40, wall: IS.WOOD_SLATS, floor: IS.CARPET, floorVar: 1, ceil: IS.ACOUSTIC },
+    { id: 'office', minX: 43.2, maxX: 52.7, minZ: 40.1, maxZ: 46.72, wall: IS.WALNUT_PAPER, floor: IS.PLANKS, ceil: IS.ACOUSTIC },
     { id: 'bath', minX: 15.6, maxX: 20.4, minZ: 25.5, maxZ: 29.56, wall: IS.BATH_TILE, floor: IS.SMALL_TILE, ceil: IS.ACOUSTIC },
   ],
   skip: /^(lift-|floor-lift|office-wall-n|board-glass|office-glass|bath-stall|bath-door|bath-jamb|trim-|ceil-lift)/,

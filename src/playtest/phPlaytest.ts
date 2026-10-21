@@ -899,6 +899,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
       let endPressed = false;
       let defeats = 0;
       let lastAction = '';
+      let perfChecked = false;
+      let phoneCallChecked = false;
+      let waitBoardChecked = false;
       await measureLook();
       for (;;) {
         await tick();
@@ -920,9 +923,31 @@ export const installPhPlaytest = (probe: PhProbe) => {
           continue;
         }
         if (!probe.running()) continue;
+        if (!perfChecked && !new URLSearchParams(location.search).has('debug')) {
+          perfChecked = true;
+          const perfEl = document.getElementById('perfMonitor');
+          const perfCs = perfEl ? getComputedStyle(perfEl) : null;
+          if (perfEl && perfCs && perfCs.display !== 'none' && perfCs.visibility !== 'hidden') {
+            t.problem('bug', 'FPS / MEM debug pill (#perfMonitor) is visible in normal play');
+          } else {
+            t.event('hud-check', 'FPS / MEM debug pill hidden in normal play');
+          }
+        }
         if (probe.cutscene() || probe.scripted()) { releaseAll(); continue; }
         if (!lookSens) await measureLook();
         const phone = probe.phone();
+        if ((phone.incoming || phone.busy) && !phoneCallChecked) {
+          const panel = document.getElementById('phonePanel');
+          if (panel && panel.classList.contains('calling') && !panel.hidden) {
+            phoneCallChecked = true;
+            const r = panel.getBoundingClientRect();
+            if (r.width > 240 || r.height > 230) {
+              t.problem('bug', `phone call UI is too large (${Math.round(r.width)}x${Math.round(r.height)})`);
+            } else {
+              t.event('phone-call-ui', `compact in corner (${Math.round(r.width)}x${Math.round(r.height)})`);
+            }
+          }
+        }
         if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
         if (phone.busy) { releaseAll(); continue; }
         const label = probe.action();
@@ -939,6 +964,15 @@ export const installPhPlaytest = (probe: PhProbe) => {
         }
         const lib = probe.level().libraryId;
         const phase = probe.phase();
+        if (phase === 'wait-board' && !waitBoardChecked) {
+          waitBoardChecked = true;
+          const distText = (document.getElementById('objectiveDist')?.textContent ?? '').trim();
+          if (distText) {
+            t.problem('bug', `Wait for the board to leave shows frozen distance "${distText}"`);
+          } else {
+            t.event('wait-board-check', 'objective distance hidden while waiting for board to leave');
+          }
+        }
         if (lib === 'b3-basement' && phase === 'hunt') {
           await huntStep();
           continue;

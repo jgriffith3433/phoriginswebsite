@@ -55,7 +55,7 @@
       "assetId": "structure-ground",
       "kind": "ground",
       "name": "Boardroom Floor",
-      "x": 44,
+      "x": 43.95,
       "y": 0,
       "z": 32,
       "rotation": {
@@ -64,7 +64,7 @@
         "z": 0
       },
       "scale": {
-        "x": 18,
+        "x": 17.5,
         "y": 1,
         "z": 16
       },
@@ -78,27 +78,27 @@
       "assetId": "structure-ground",
       "kind": "ground",
       "name": "Office Floor",
-      "x": 48.30162048339844,
+      "x": 48,
       "y": 0.001,
-      "z": 43.98246383666992,
+      "z": 43.38,
       "rotation": {
         "x": 0,
         "y": 0,
         "z": 0
       },
       "scale": {
-        "x": 13,
+        "x": 9.5,
         "y": 1,
-        "z": 8
+        "z": 6.68
       },
       "components": [
         "Transform"
       ],
       "materialId": "mat-board-floor",
       "position": {
-        "x": 48.30162048339844,
+        "x": 48,
         "y": 0.001,
-        "z": 43.98246383666992
+        "z": 43.38
       }
     },
     {
@@ -178,11 +178,11 @@
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Boardroom Ceiling",
-      "x": 44,
+      "x": 43.95,
       "y": 3.26,
       "z": 32,
       "scale": {
-        "x": 18,
+        "x": 17.5,
         "y": 0.12,
         "z": 16
       },
@@ -198,11 +198,11 @@
       "name": "Office Ceiling",
       "x": 48,
       "y": 3.26,
-      "z": 43,
+      "z": 43.38,
       "scale": {
-        "x": 10,
+        "x": 9.5,
         "y": 0.12,
-        "z": 8
+        "z": 6.68
       },
       "components": [
         "Transform"

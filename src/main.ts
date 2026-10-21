@@ -392,7 +392,10 @@ const setObjective = (title: string, text: string, target: { x: number; z: numbe
     if (kicker) kicker.textContent = title;
   }
   if (target) objectiveMarker.setTarget({ ...target, title, text });
-  else objectiveMarker.setTarget(null);
+  else {
+    objectiveMarker.setTarget(null);
+    if (objectiveDist) objectiveDist.textContent = '';
+  }
   const cue = `${title}|${text}`;
   if (missionsOpen) renderMissions();
   if (!text || cue === lastObjectiveCue || !state.running) return;
@@ -3638,7 +3641,7 @@ const renderLoop = () => {
     if (!state.inCutscene) objectiveMarker.update(delta);
     if (objectiveHud?.classList.contains('visible') && objectiveDist) {
       const target = objectiveMarker.getTarget();
-      objectiveDist.textContent = target
+      objectiveDist.textContent = target && objectiveMarker.isVisible()
         ? `${objectiveMarker.distanceTo(state.player.x, state.player.z).toFixed(1)} m`
         : '';
     }
@@ -3766,8 +3769,9 @@ const cycleTheme = () => {
 const isLocalPlay = () => (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
 
 if (isLocalPlay()) devToggle.hidden = false;
-// The FPS / MEM readout shows on phones and tablets only in debug (dev server or ?debug).
-if (isLocalPlay() || new URLSearchParams(location.search).has('debug')) document.body.dataset.debug = 'true';
+const hasDebugQuery = () => new URLSearchParams(location.search).has('debug');
+// The FPS / MEM readout shows only when ?debug is in the URL or the dev panel is toggled open.
+if (hasDebugQuery()) document.body.dataset.debug = 'true';
 
 const renderLevelSelect = () => {
   levelList.innerHTML = '';
@@ -3898,7 +3902,9 @@ document.querySelectorAll('[data-dev-action]').forEach((button) => {
 });
 
 devToggle.addEventListener('click', () => {
-  devPanel.classList.toggle('visible');
+  const open = devPanel.classList.toggle('visible');
+  if (open || hasDebugQuery()) document.body.dataset.debug = 'true';
+  else delete document.body.dataset.debug;
 });
 
 loadModelBtn.style.display = '';
