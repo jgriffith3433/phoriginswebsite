@@ -602,8 +602,8 @@ export const createTheTrain = (host: TheTrainHost) => {
     if (beat !== 'stop') return;
     if (openedAt < 0) openDoors();
     hideFigure(double);
+    hideFigure(commuter);
     leftCar = LAST_CAR;
-    putFigure(commuter, 12.05, 0.62, -Math.PI / 2 - 0.5, false);
     beat = 'door';
     giveControl();
     callIn = 1.0;
@@ -625,13 +625,22 @@ export const createTheTrain = (host: TheTrainHost) => {
       if (walkOutAt < 0 && sceneTime >= at + L_MINE.hold + L_NIGHT.hold + 0.2) walkOutAt = sceneTime;
     }
     if (walkOutAt >= 0 && double && !double.gone) {
-      // Straight out through the door, facing it the whole way.
-      const z = double.mesh.position.z + 1.05 * dt;
-      if (z > 1.85) {
+      // Straight out through the door onto the Gaussian Splat station platform, facing it the whole way.
+      const z = double.mesh.position.z + 1.45 * dt;
+      if (z > 2.65) {
         hideFigure(double);
         goneAt = sceneTime;
       } else {
         putFigure(double, STOP_DOOR.x, z, 0, true);
+      }
+    }
+    if (walkOutAt >= 0 && sceneTime >= walkOutAt + 0.35 && commuter && !commuter.gone) {
+      const cx = commuter.mesh.position.x + (STOP_DOOR.x + 0.22 - commuter.mesh.position.x) * Math.min(1, 3.5 * dt);
+      const cz = commuter.mesh.position.z + 1.35 * dt;
+      if (cz > 2.45) {
+        hideFigure(commuter);
+      } else {
+        putFigure(commuter, cx, cz, 0, true);
       }
     }
     if (walkOutAt >= 0) cue(L_WAIT, walkOutAt + 0.5);

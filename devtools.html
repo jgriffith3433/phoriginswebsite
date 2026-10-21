@@ -1291,16 +1291,17 @@
           <button id="libraryCloseBtn" class="icon-btn" type="button" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body">
-          <p class="pref-hint">Every character and prop in Hawkes Gen's library, shared with Studio and the other tools. Each one keeps every version of its model: use one, discard, give feedback and revise, or make more takes (a prop's model is made from its reference image; GPU work is priced first). Import brings assets/models in; a pick is written back to the same GLB.</p>
+          <p class="pref-hint">Every character, prop and Gaussian splat in Hawkes Gen's library, shared with Studio and the other tools. Each one keeps every version of its model or splat: use one, discard, give feedback and revise, or make more takes (a prop's model is made from its reference image; GPU work is priced first). Import brings assets/models and assets/splats in; a pick is written back to the same GLB or .splat file.</p>
           <div class="story-tools">
             <select id="libraryKind">
-              <option value="">Characters and props</option>
+              <option value="">Characters, props and splats</option>
               <option value="character">Characters</option>
               <option value="prop">Props</option>
+              <option value="splat">Splats</option>
             </select>
-            <button id="libraryImportBtn" type="button">Import assets/models</button>
+            <button id="libraryImportBtn" type="button">Import assets</button>
             <button id="libraryExportBtn" type="button">Write back</button>
-            <label class="pref-toggle" title="When you pick a version, write it into assets/models so the game uses it"><input id="libraryWriteBack" type="checkbox" checked /> Write picks back</label>
+            <label class="pref-toggle" title="When you pick a version, write it into assets/models or assets/splats so the game uses it"><input id="libraryWriteBack" type="checkbox" checked /> Write picks back</label>
             <span id="libraryStatus" class="pref-hint"></span>
           </div>
           <div id="libraryHost" class="library-host"></div>

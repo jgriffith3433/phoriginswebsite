@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { detectDevice } from '../game/mobile';
 import { Geo } from './city/geo';
 import { AD_COPY, paintAd } from './stationDress';
 
@@ -96,6 +97,8 @@ uniform float speedN;
 uniform float time;
 uniform float flicker;
 uniform float platform;
+uniform float splatReady;
+uniform float glassPass;
 uniform vec3 doorOpen;
 uniform sampler2D atlas;
 
@@ -213,10 +216,28 @@ void main(void) {
   // An open side door: the leaves part from the middle and show what is outside.
   if (doorOpen.z > 0.0 && vWorld.z * doorOpen.y > ${(CAR.halfWidth - 0.05).toFixed(2)} && vWorld.y < 2.05
       && abs(vWorld.x - doorOpen.x) < doorOpen.z * ${DOOR_HALF.toFixed(2)}) {
+    if (splatReady > 0.5) {
+      discard;
+    }
     gl_FragColor = vec4(tunnel(V), 1.0);
     return;
   }
+  if (glassPass > 0.5) {
+    if (surf != ${SURF.WINDOW}.0) {
+      discard;
+    }
+    float fres = pow(1.0 - abs(dot(V, n)), 3.0);
+    vec3 R = reflect(-V, n);
+    float strip = smoothstep(0.55, 0.92, R.y) * 0.32;
+    vec3 glassCol = vec3(0.05, 0.06, 0.07) + vec3(0.88, 0.92, 0.90) * (fres * 0.48 + strip);
+    float alpha = clamp(0.14 + fres * 0.34 + strip * 0.45, 0.14, 0.58);
+    gl_FragColor = vec4(glassCol, alpha);
+    return;
+  }
   if (surf == ${SURF.WINDOW}.0) {
+    if (splatReady > 0.5) {
+      discard;
+    }
     gl_FragColor = vec4(tunnel(V), 1.0);
     return;
   } else if (surf == ${SURF.FLOOR}.0) {
@@ -371,22 +392,50 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
 
   const material = new BABYLON.ShaderMaterial('train-dress', scene, { vertexSource: VERT, fragmentSource: FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
-    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'doorOpen'],
+    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'splatReady', 'glassPass', 'doorOpen'],
     samplers: ['atlas'],
   });
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas);
   material.setFloat('platform', 0);
+  material.setFloat('splatReady', 0);
+  material.setFloat('glassPass', 0);
   material.setVector3('doorOpen', new BABYLON.Vector3(0, 1, 0));
   owned.push(material);
 
+  const glassMaterial = new BABYLON.ShaderMaterial(
+    'train-dress-glass',
+    scene,
+    { vertexSource: VERT, fragmentSource: FRAG },
+    {
+      attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
+      uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'splatReady', 'glassPass', 'doorOpen'],
+      samplers: ['atlas'],
+      needAlphaBlending: true,
+    }
+  );
+  glassMaterial.backFaceCulling = false;
+  glassMaterial.disableDepthWrite = true;
+  glassMaterial.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+  glassMaterial.setTexture('atlas', atlas);
+  glassMaterial.setFloat('platform', 0);
+  glassMaterial.setFloat('splatReady', 1);
+  glassMaterial.setFloat('glassPass', 1);
+  glassMaterial.setVector3('doorOpen', new BABYLON.Vector3(0, 1, 0));
+  owned.push(glassMaterial);
+
   const g = new Geo();
+  const gGlass = new Geo();
+  let curSurf = 0;
   const surf = (id: number, param = 0) => {
+    curSurf = id;
     g.a.u2 = [id, param];
+    gGlass.a.u2 = [id, param];
   };
   const col = (r: number, gg: number, b: number, e = 0) => {
     g.a.c = [r, gg, b, e];
+    gGlass.a.c = [r, gg, b, e];
   };
   type V3 = [number, number, number];
   const X = { x: 1, z: 0 };
@@ -398,6 +447,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
     const z = s * (HW - inset);
     const n: V3 = [0, 0, -s];
     g.quad([x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], n, [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
+    if (curSurf === SURF.WINDOW) {
+      gGlass.quad([x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z], n, [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
+    }
   };
   /** Atlas panel on side s, facing into the car. */
   const sidePanel = (s: number, cx: number, y0: number, w: number, h: number, r: Rect, glow: number, inset = 0.01) => {
@@ -527,6 +579,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       const a = into > 0 ? z1 : z0;
       const b = into > 0 ? z0 : z1;
       g.quad([px, y0, a], [px, y0, b], [px, y1, b], [px, y1, a], n, [[a, y0], [b, y0], [b, y1], [a, y1]]);
+      if (curSurf === SURF.WINDOW) {
+        gGlass.quad([px, y0, a], [px, y0, b], [px, y1, b], [px, y1, a], n, [[a, y0], [b, y0], [b, y1], [a, y1]]);
+      }
     };
     surf(SURF.WALL);
     col(1, 1, 1);
@@ -538,10 +593,11 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
     wallZ(-0.42, 0.42, 1.78, 2.02);
     wallZ(-0.42, -0.26, 1.1, 1.78);
     wallZ(0.26, 0.42, 1.1, 1.78);
-    // The next car is dark through the end door glass.
-    surf(SURF.SOLID);
+    // End door glass: looks through to the coupled next-car splat silhouette.
+    surf(SURF.WINDOW);
     col(0.03, 0.035, 0.04, 0.6);
     wallZ(-0.26, 0.26, 1.1, 1.78);
+    surf(SURF.SOLID);
     col(0.08, 0.08, 0.09);
     g.box(x + into * 0.03, 1.0, 0.0, 0.03, 0.03, 0.12, { x: 0, z: 1 }, 0b111111);
     endPanel(x, 0, 2.1, 0.78, 0.2, ATLAS.sign, 1.4);
@@ -607,6 +663,31 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
     owned.push(mesh);
   }
 
+  const glassMesh = gGlass.toMesh('train-dress-glass-mesh', scene, glassMaterial);
+  if (glassMesh) {
+    glassMesh.alwaysSelectAsActiveMesh = true;
+    glassMesh.isPickable = false;
+    glassMesh.checkCollisions = false;
+    glassMesh.alphaIndex = 30;
+    glassMesh.setEnabled(false);
+    owned.push(glassMesh);
+  }
+
+  // Hide the authored collision shell boxes so the 3D Gaussian Splat world is visible through the windows and open door
+  // while keeping their collision & enabled flags intact for player movement and the playtest walk grid.
+  const hiddenShellMeshes: { mesh: BABYLON.AbstractMesh; wasVisible: boolean }[] = [];
+  for (const m of scene.meshes) {
+    if (
+      m.name === 'train-floor' ||
+      m.name.startsWith('train-shell-') ||
+      m.name.startsWith('train-divider-') ||
+      m.name.startsWith('train-bench-')
+    ) {
+      hiddenShellMeshes.push({ mesh: m, wasVisible: m.isVisible });
+      m.isVisible = false;
+    }
+  }
+
   // ---------- Colliders: what is drawn is what blocks ----------
   const colliderMat = new BABYLON.StandardMaterial('train-collider', scene);
   owned.push(colliderMat);
@@ -635,6 +716,94 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
     }
   }
   poles.forEach((pole, i) => collider(`train-pole-col-${i}`, pole.x, pole.z, 0.08, TOP, 0.08));
+
+  // ---------- 3D Gaussian Splatting scene layers ----------
+  let disposed = false;
+  let splatReady = false;
+  let splatCount = 0;
+  let tunnelSplat: BABYLON.GaussianSplattingMesh | null = null;
+  let stationSplat: BABYLON.GaussianSplattingMesh | null = null;
+  let carSplat: BABYLON.GaussianSplattingMesh | null = null;
+
+  const isLowPower = (): boolean => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+    try {
+      const q = new URLSearchParams(window.location.search).get('quality');
+      if (q === 'low') return true;
+      if (q === 'high') return false;
+      const dev = document.body?.dataset?.device;
+      if (dev === 'mobile' || dev === 'tablet') return true;
+      const p = detectDevice();
+      return p.isMobile || p.isTablet;
+    } catch {
+      return false;
+    }
+  };
+
+  const downsampleSplatBuffer = (buf: ArrayBuffer, stride: number): ArrayBuffer => {
+    if (stride <= 1) return buf;
+    const total = Math.floor(buf.byteLength / 32);
+    const kept = Math.ceil(total / stride);
+    const out = new Uint8Array(kept * 32);
+    const src = new Uint8Array(buf);
+    for (let i = 0, j = 0; i < total && j < kept; i += stride, j += 1) {
+      out.set(src.subarray(i * 32, i * 32 + 32), j * 32);
+    }
+    return out.buffer;
+  };
+
+  const canUseSplats =
+    typeof Worker !== 'undefined' &&
+    typeof fetch === 'function' &&
+    scene.getEngine().getClassName() !== 'NullEngine';
+
+  if (canUseSplats) {
+    const stride = isLowPower() ? 3 : 1;
+    const loadSplatLayer = async (name: string, url: string, alphaIdx: number): Promise<{ mesh: BABYLON.GaussianSplattingMesh; count: number } | null> => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      const raw = await res.arrayBuffer();
+      if (disposed || scene.isDisposed) return null;
+      const data = downsampleSplatBuffer(raw, stride);
+      const count = Math.floor(data.byteLength / 32);
+      const gs = new BABYLON.GaussianSplattingMesh(name, null, scene);
+      gs.isPickable = false;
+      gs.checkCollisions = false;
+      gs.alwaysSelectAsActiveMesh = true;
+      gs.alphaIndex = alphaIdx;
+      owned.push({
+        dispose: () => {
+          if (gs.material) gs.material.dispose(true, true);
+          gs.dispose();
+        },
+      });
+      await gs.loadDataAsync(data);
+      if (disposed || scene.isDisposed) return null;
+      return { mesh: gs, count };
+    };
+
+    void Promise.all([
+      loadSplatLayer('train-splat-tunnel', './assets/splats/train-tunnel.splat', 10),
+      loadSplatLayer('train-splat-station', './assets/splats/train-station.splat', 15),
+      loadSplatLayer('train-splat-car', './assets/splats/train-car.splat', 20),
+    ])
+      .then((layers) => {
+        if (disposed || scene.isDisposed) return;
+        const [tun, sta, car] = layers;
+        if (!tun || !sta || !car) return;
+        tunnelSplat = tun.mesh;
+        stationSplat = sta.mesh;
+        carSplat = car.mesh;
+        stationSplat.setEnabled(false);
+        splatCount = tun.count + sta.count + car.count;
+        splatReady = true;
+        material.setFloat('splatReady', 1);
+        glassMesh?.setEnabled(true);
+      })
+      .catch(() => {
+        // Keep the raytraced shader fallback if splat files fail to fetch.
+      });
+  }
 
   // ---------- Motion ----------
   let clock = 0;
@@ -679,6 +848,29 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       material.setFloat('platform', platform);
       doorVec.set(door.x, door.side, door.open);
       material.setVector3('doorOpen', doorVec);
+
+      glassMaterial.setVector3('cameraPos', camPos);
+      glassMaterial.setVector3('doorOpen', doorVec);
+
+      if (splatReady) {
+        const modScroll = ((scroll % LAMP_GAP) + LAMP_GAP) % LAMP_GAP;
+        if (tunnelSplat) {
+          tunnelSplat.position.set(-modScroll - platform * 36.0, 0, 0);
+          tunnelSplat.setEnabled(platform < 0.92);
+          if (tunnelSplat.isEnabled()) {
+            (tunnelSplat as unknown as { _postToWorker?: (forced?: boolean) => void })._postToWorker?.(true);
+          }
+        }
+        if (stationSplat) {
+          const showStation = platform > 0.01;
+          stationSplat.setEnabled(showStation);
+          if (showStation) {
+            const slideDir = stopAt ? 1 : -1;
+            stationSplat.position.set(slideDir * (1 - platform) * 14.0, 0, 0);
+            (stationSplat as unknown as { _postToWorker?: (forced?: boolean) => void })._postToWorker?.(true);
+          }
+        }
+      }
     },
     /** Camera roll in radians for this frame (main.ts applies it after the follow camera). */
     roll: () => rollNow,
@@ -713,9 +905,16 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       roll: rollNow,
       platform: Math.round(platform * 100) / 100,
       door: Math.round(door.open * 100) / 100,
+      splatReady,
+      splatCount,
       story,
     }),
     dispose: () => {
+      disposed = true;
+      for (const h of hiddenShellMeshes) {
+        if (!h.mesh.isDisposed()) h.mesh.isVisible = h.wasVisible;
+      }
+      hiddenShellMeshes.length = 0;
       for (const o of owned) o.dispose();
       owned.length = 0;
     },

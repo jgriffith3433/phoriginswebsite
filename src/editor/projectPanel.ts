@@ -4,7 +4,7 @@ export type AssetKind = 'model' | 'audio' | 'texture' | 'light' | 'other';
 
 export const inferAssetKind = (fileName: string): AssetKind => {
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'glb' || ext === 'gltf') return fileName.toLowerCase().includes('light') ? 'light' : 'model';
+  if (ext === 'glb' || ext === 'gltf' || ext === 'splat' || ext === 'ply') return fileName.toLowerCase().includes('light') ? 'light' : 'model';
   if (ext === 'wav' || ext === 'mp3' || ext === 'ogg') return 'audio';
   if (ext === 'png' || ext === 'jpg' || ext === 'jpeg' || ext === 'webp' || ext === 'ktx2') return 'texture';
   return 'other';
