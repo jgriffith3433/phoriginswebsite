@@ -1,8 +1,19 @@
 {
   "product": "phorigins",
   "name": "PH Origins",
-  "current": "1.5.1",
+  "current": "1.6.0",
   "releases": [
+    {
+      "version": "1.6.0",
+      "date": "2026-10-21",
+      "build": "826ab1d",
+      "title": "Smaller Voss calls and live Wait distance",
+      "notes": [
+        "Voss's phone calls now appear in a smaller box that covers less of the screen.",
+        "The distance shown for the Wait objective now keeps updating as you move.",
+        "The frame rate and memory counter no longer appears in the corner of the screen."
+      ]
+    },
     {
       "version": "1.5.1",
       "date": "2026-10-20",
