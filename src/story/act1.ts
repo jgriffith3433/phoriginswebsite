@@ -7,7 +7,6 @@ import { createCharacterAvatar, findClip } from '../game/playerAvatar';
 import { TRANSFORM_HERO_ASSET_ID, PLAYER_ASSET_ID } from '../game/modelLoader';
 import {
   remainingDepartingNpcs,
-  resolveBoardDoor,
   resolveBoardSeatPose,
   resolveElevator,
   resolveOfficeTerminal,
@@ -195,7 +194,7 @@ const HUNT_DIRS: readonly (readonly [number, number, number])[] = [
 /** Shortest repath interval in a strike, even when the last search found nothing. */
 const HUNT_REPATH_MIN = 0.3;
 
-const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look'];
+const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'wait-board', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look'];
 const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
 
 type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
@@ -780,9 +779,8 @@ export const createAct1 = (host: ActHost) => {
     boardDeparting = true;
     phase = 'wait-board';
     startBoardDeparture(host.getNpcs(), data);
-    const door = resolveBoardDoor(data);
     const line = objective('wait-board');
-    host.setObjective(line.title, line.text, { x: door.x, y: 2.05, z: door.z });
+    host.setObjective(line.title, line.text, null);
     syncObjective();
   };
 

@@ -348,6 +348,7 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
   owned.push(material);
 
   const g = new Geo();
+  const hidden: BABYLON.AbstractMesh[] = [];
   const roomAt = (x: number, z: number) => plan.rooms.find((r) => x > r.minX && x < r.maxX && z > r.minZ && z < r.maxZ) ?? null;
 
   // ---------- Surfaces from the authored level ----------
@@ -368,20 +369,34 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
     if (kind === 'ground') {
       const room = roomAt((min.x + max.x) / 2, (min.z + max.z) / 2);
       if (!room || room.floor < 0) continue;
+      const x0 = Math.max(min.x, room.minX);
+      const x1 = Math.min(max.x, room.maxX);
+      const z0 = Math.max(min.z, room.minZ);
+      const z1 = Math.min(max.z, room.maxZ);
+      if (x1 <= x0 || z1 <= z0) continue;
       g.a.u2 = [room.floor, room.floorVar ?? 0];
       g.a.c = [1, 1, 1, 0];
       const y = max.y + 0.004;
-      g.quad([min.x, y, min.z], [max.x, y, min.z], [max.x, y, max.z], [min.x, y, max.z], [0, 1, 0], [[min.x, min.z], [max.x, min.z], [max.x, max.z], [min.x, max.z]]);
+      g.quad([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [0, 1, 0], [[x0, z0], [x1, z0], [x1, z1], [x0, z1]]);
+      mesh.isVisible = false;
+      hidden.push(mesh);
       continue;
     }
     // Ceilings: thin slabs up high.
     if (dy <= 0.35 && min.y > 2.3 && dx > 1 && dz > 1) {
       const room = roomAt((min.x + max.x) / 2, (min.z + max.z) / 2);
       if (!room || room.ceil < 0) continue;
+      const x0 = Math.max(min.x, room.minX);
+      const x1 = Math.min(max.x, room.maxX);
+      const z0 = Math.max(min.z, room.minZ);
+      const z1 = Math.min(max.z, room.maxZ);
+      if (x1 <= x0 || z1 <= z0) continue;
       g.a.u2 = [room.ceil, 0];
       g.a.c = [1, 1, 1, 0];
       const y = min.y - 0.004;
-      g.quad([min.x, y, min.z], [max.x, y, min.z], [max.x, y, max.z], [min.x, y, max.z], [0, -1, 0], [[min.x, min.z], [max.x, min.z], [max.x, max.z], [min.x, max.z]]);
+      g.quad([x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1], [0, -1, 0], [[x0, z0], [x1, z0], [x1, z1], [x0, z1]]);
+      mesh.isVisible = false;
+      hidden.push(mesh);
       continue;
     }
     const tall = dy >= 1.8 && min.y < 0.6;
@@ -438,7 +453,6 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
   }
 
   // ---------- Hidden authored pieces ----------
-  const hidden: BABYLON.AbstractMesh[] = [];
   // Model meshes arrive after their GLB loads, so this runs again from step().
   const hideNow = () => {
     if (!plan.hide) return;
