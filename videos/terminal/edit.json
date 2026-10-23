@@ -19,14 +19,21 @@
    "label": "insert: phone rings out, VOSS"
   },
   {
-   "asset": "a_ab33332f910b95c4",
+   "asset": "a_5194ac1244d555ab",
    "in": 0,
-   "out": 5.06,
+   "out": 2.06,
+   "beat": "ots_text",
+   "label": "OTS insert: the text pops up on his phone: Pick up the terminal."
+  },
+  {
+   "asset": "a_ed2f9dfb51a6e21c",
+   "in": 0,
+   "out": 1.9,
    "beat": "text",
-   "label": "CU Pierce reads the text",
+   "label": "CU Pierce reads the text, jaw tightens",
    "zoom": {
     "from": 1,
-    "to": 1.12,
+    "to": 1.1,
     "x": 0.5,
     "y": 0.35
    }
@@ -39,20 +46,20 @@
    "label": "insert: B3 alarm, a shape in the corridor"
   },
   {
-   "asset": "a_62cdd76085a8c69a",
+   "asset": "a_db34f5b79db11441",
    "in": 0,
-   "out": 2.92,
+   "out": 1.375,
    "beat": "not_tonight",
-   "label": "CU Pierce: ...Not tonight.",
+   "label": "CU Pierce: ...Not tonight. (video.lipsync)",
    "sound": true,
    "dialogue": true
   },
   {
-   "asset": "a_4c8731b88e135627",
+   "asset": "a_18b32c21fd124ead",
    "in": 0,
-   "out": 3,
+   "out": 3.06,
    "beat": "elevator",
-   "label": "MS Pierce alone in the elevator"
+   "label": "MS Pierce alone in the elevator (locked on-model)"
   },
   {
    "asset": "a_ac369869cfb4ed28",
@@ -116,21 +123,28 @@
   {
    "asset": "a_547a09d3715bd7c9",
    "in": 0,
-   "out": 3.2,
-   "beat": "vat",
-   "label": "vat crack then burst"
+   "out": 1.2,
+   "beat": "vat_crack",
+   "label": "vat: hairline crack spreads"
+  },
+  {
+   "asset": "a_4af19ec56150a05d",
+   "in": 0,
+   "out": 3.06,
+   "beat": "vat_burst",
+   "label": "vat: tempered glass bursts, green flood"
   },
   {
    "asset": "a_de596cbba70088c3",
    "in": 0,
-   "out": 3.06,
+   "out": 3.04,
    "beat": "dark1",
    "label": "black: his voice in the dark"
   },
   {
    "asset": "a_de596cbba70088c3",
    "in": 0,
-   "out": 3.06,
+   "out": 2.9,
    "beat": "dark2",
    "label": "black"
   },
@@ -159,55 +173,55 @@
   },
   {
    "asset": "a_5c960121c940ed93",
-   "start": 9.6,
+   "start": 9.66,
    "seconds": 0.7,
    "label": "second buzz: the text",
    "volume": 0.7
   },
   {
    "asset": "a_7a80203ef3029880",
-   "start": 21.24,
-   "seconds": 6,
+   "start": 18.6,
+   "seconds": 6.06,
    "label": "low pulse A",
    "volume": 0.7
   },
   {
    "asset": "a_7a80203ef3029880",
-   "start": 24.24,
-   "seconds": 3,
+   "start": 21.6,
+   "seconds": 3.06,
    "label": "pulse B (speeds it up)",
    "volume": 0.6
   },
   {
    "asset": "a_7a80203ef3029880",
-   "start": 25.64,
-   "seconds": 1.6,
+   "start": 23.0,
+   "seconds": 1.66,
    "label": "pulse C",
    "volume": 0.6
   },
   {
    "asset": "a_3205fb12ce4054a3",
-   "start": 21.24,
-   "seconds": 6,
+   "start": 18.6,
+   "seconds": 6.06,
    "label": "elevator hum",
    "volume": 0.35
   },
   {
    "asset": "a_6789a8af4e7ff827",
-   "start": 27.24,
+   "start": 24.66,
    "seconds": 5,
    "label": "doors, something wet",
    "volume": 0.8
   },
   {
    "asset": "a_aaffe35f7e9aa4a6",
-   "start": 31.9,
+   "start": 29.92,
    "seconds": 3,
    "label": "vat bursts"
   },
   {
    "asset": "a_cae27c17bafed2d8",
-   "start": 35,
+   "start": 33.38,
    "seconds": 5.33,
    "label": "PIERCE: I can still think. That is not the same as still being me.",
    "dialogue": true
@@ -215,14 +229,9 @@
  ],
  "captions": [
   {
-   "text": "Pick up the terminal.",
-   "start": 10.4,
-   "end": 13.8
-  },
-  {
-   "text": "PH ORIGINS\nMade with Hawkes Gen \u00b7 hawkesgen.com",
-   "start": 40.56,
-   "end": 42.06
+   "text": "PH ORIGINS\nMade with Hawkes Gen · hawkesgen.com",
+   "start": 38.91,
+   "end": 40.41
   }
  ]
 }

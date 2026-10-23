@@ -66,5 +66,28 @@
   "j_c1b2819ee66a",
   "j_22c10bfc3a00",
   "j_cd8dddefeef9"
- ]
+ ],
+ "v2": {
+  "cut": "a_aa873d9060581abd",
+  "elevator_kf": "a_dc3fa6730534f542",
+  "ots_kf": "a_c7b8c66d0a1c124a",
+  "vat_kf": "a_4691f2c4dc71fe28",
+  "lipsync": "a_db34f5b79db11441",
+  "clips": {
+   "text": "a_ed2f9dfb51a6e21c",
+   "elevator": "a_18b32c21fd124ead",
+   "ots": "a_5194ac1244d555ab",
+   "vat_burst": "a_4af19ec56150a05d"
+  },
+  "jobs": [
+   "j_5ee510111c08",
+   "j_b4c42bfcfeea",
+   "j_76159eb870be",
+   "j_9f9e9d306405",
+   "j_07c14b4c04b5",
+   "j_70fc780b0b93",
+   "j_e3e970e0abaa",
+   "j_809c609267da"
+  ]
+ }
 }
