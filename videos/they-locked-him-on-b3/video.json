@@ -1,0 +1,17 @@
+{
+  "slug": "they-locked-him-on-b3",
+  "title": "They Locked Him on B3",
+  "stage": "animatic",
+  "seconds": 30.0,
+  "cast": [
+    {
+      "id": "pierce",
+      "name": "Pierce Hawkes",
+      "voiceId": "ZthjuvLPty3kTMaNKVKb",
+      "form": "hero.glb",
+      "style": "dark cinematic horror"
+    }
+  ],
+  "shots": 5,
+  "edit": "edit.json"
+}

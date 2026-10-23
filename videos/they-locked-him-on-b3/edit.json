@@ -1,0 +1,115 @@
+{
+  "width": 1080,
+  "height": 1920,
+  "fps": 24,
+  "burn": true,
+  "clips": [
+    {
+      "asset": "a_placeholder_hook",
+      "in": 0.0,
+      "out": 3.0,
+      "beat": "hook",
+      "label": "MCU Pierce Hawkes 58F"
+    },
+    {
+      "asset": "a_placeholder_tension",
+      "in": 0.0,
+      "out": 5.0,
+      "beat": "tension",
+      "label": "WS Board Meeting Room"
+    },
+    {
+      "asset": "a_placeholder_descent",
+      "in": 0.0,
+      "out": 6.0,
+      "beat": "descent",
+      "label": "CU Elevator Descent"
+    },
+    {
+      "asset": "a_placeholder_climax",
+      "in": 0.0,
+      "out": 8.0,
+      "beat": "climax",
+      "label": "MS Basement B3 Shattered Vat"
+    },
+    {
+      "asset": "a_placeholder_outro",
+      "in": 0.0,
+      "out": 8.0,
+      "beat": "outro",
+      "label": "CU Pierce Glowing Eyes Mirror"
+    }
+  ],
+  "audio": [
+    {
+      "asset": "a_voice_hook",
+      "start": 0.0,
+      "seconds": 3.0,
+      "dialogue": true,
+      "label": "PIERCE: The board thought they could bury the experiment. 58 floors up."
+    },
+    {
+      "asset": "a_voice_tension",
+      "start": 3.0,
+      "seconds": 5.0,
+      "dialogue": true,
+      "label": "NARRATOR: Push-in on the board meeting room. Papers scattered, shadows long, silence."
+    },
+    {
+      "asset": "a_voice_descent",
+      "start": 8.0,
+      "seconds": 6.0,
+      "dialogue": true,
+      "label": "NARRATOR: Pitch-black elevator shaft. Red warning lights pulsing. Screech of rusted cables going down."
+    },
+    {
+      "asset": "a_voice_climax",
+      "start": 14.0,
+      "seconds": 8.0,
+      "dialogue": true,
+      "label": "NARRATOR: Basement B3. Massive glass vat shattered from the inside. Something got out."
+    },
+    {
+      "asset": "a_voice_outro",
+      "start": 22.0,
+      "seconds": 8.0,
+      "dialogue": true,
+      "label": "PIERCE: Pierce Hawkes staring into an office mirror, eyes glowing. Play PH Origins."
+    },
+    {
+      "asset": "a_music_bed",
+      "start": 0.0,
+      "seconds": 30.0,
+      "volume": 0.3,
+      "duck": true,
+      "label": "dark cinematic horror bed"
+    }
+  ],
+  "captions": [
+    {
+      "text": "The board thought they could bury the experiment. 58 floors up.",
+      "start": 0.0,
+      "end": 3.0
+    },
+    {
+      "text": "Push-in on the board meeting room. Papers scattered, shadows long, silence.",
+      "start": 3.0,
+      "end": 8.0
+    },
+    {
+      "text": "Pitch-black elevator shaft. Red warning lights pulsing.",
+      "start": 8.0,
+      "end": 14.0
+    },
+    {
+      "text": "Basement B3. Massive glass vat shattered from the inside. Something got out.",
+      "start": 14.0,
+      "end": 22.0
+    },
+    {
+      "text": "Pierce Hawkes staring into an office mirror, eyes glowing. Play PH Origins.",
+      "start": 22.0,
+      "end": 30.0
+    }
+  ]
+}
