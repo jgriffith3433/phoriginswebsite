@@ -89,5 +89,31 @@
    "j_e3e970e0abaa",
    "j_809c609267da"
   ]
+ },
+ "v3": {
+  "cut_no_card": "a_fb20a89f7e93629b",
+  "clips": {
+   "hook": "a_59d8e120a196a354",
+   "vat_face": "a_ad632fd87b0c9380",
+   "dark_push": "a_5648b2c55377fbc3",
+   "corridor": "a_3c3b0f41b57a1150",
+   "ots_monitor": "a_04b5e627d85e493a",
+   "jacket_rejected": "a_85bcc3a5557a81fa"
+  },
+  "jobs": [
+   "j_4266305e5bb2",
+   "j_12ee1f270b9d",
+   "j_df2dffba947b",
+   "j_075aa4150c09",
+   "j_00a721eebb9b",
+   "j_89ca6b0b798a",
+   "j_b2eddf880f37",
+   "j_a587e9f3a33a",
+   "j_8d7a01bd08bb",
+   "j_d5512de807c8",
+   "j_b89fbc303104",
+   "j_40b5c686b06b",
+   "j_9ee48aea7c3e"
+  ]
  }
 }

@@ -1,155 +1,116 @@
 [
  {
-  "key": "window",
-  "t": 0,
-  "seconds": 4.6,
-  "shot": "WS",
-  "camera": "push-in",
-  "action": "WS Pierce at the 58th-floor window",
-  "why": "held until the line lands; city and glass set the world"
+  "key": "hook",
+  "seconds": 3.56,
+  "action": "CU profile at window: Compliance doesn't set the ceiling.",
+  "t": 0
  },
  {
   "key": "phone",
-  "t": 4.6,
-  "seconds": 5.06,
-  "shot": "insert",
-  "camera": "static",
+  "seconds": 3.0,
   "action": "insert: phone rings out, VOSS",
-  "why": "J: let it ring out"
+  "t": 3.56
  },
  {
   "key": "ots_text",
-  "t": 9.66,
   "seconds": 2.06,
-  "shot": "",
-  "camera": "",
-  "action": "OTS insert: the text pops up on his phone: Pick up the terminal.",
-  "why": ""
+  "action": "OTS insert: the text pops up on his phone",
+  "t": 6.56
  },
  {
   "key": "text",
-  "t": 11.72,
   "seconds": 1.9,
-  "shot": "CU",
-  "camera": "push-in",
   "action": "CU Pierce reads the text, jaw tightens",
-  "why": "hold on his face"
+  "t": 8.62
  },
  {
-  "key": "alarm",
-  "t": 13.62,
-  "seconds": 3.6,
-  "shot": "insert",
-  "camera": "static",
-  "action": "insert: B3 alarm, a shape in the corridor",
-  "why": "the cause of the call"
+  "key": "alarm_ots",
+  "seconds": 3.0,
+  "action": "OTS Pierce turns to the monitor, B3 alarm",
+  "t": 10.52
+ },
+ {
+  "key": "alarm_shape",
+  "seconds": 2.6,
+  "action": "CU monitor: a shape crawls in the corridor",
+  "t": 13.52
  },
  {
   "key": "not_tonight",
-  "t": 17.22,
   "seconds": 1.375,
-  "shot": "CU",
-  "camera": "static",
-  "action": "CU Pierce: ...Not tonight. (video.lipsync)",
-  "why": "refusal, then he goes anyway"
+  "action": "CU Pierce: ...Not tonight.",
+  "t": 16.12
  },
  {
   "key": "elevator",
-  "t": 18.6,
   "seconds": 3.06,
-  "shot": "MS",
-  "camera": "push-in",
-  "action": "MS Pierce alone in the elevator (locked on-model)",
-  "why": "the descent is the tension"
+  "action": "MS Pierce alone in the elevator",
+  "t": 17.5
  },
  {
   "key": "f58",
-  "t": 21.66,
   "seconds": 1,
-  "shot": "",
-  "camera": "",
   "action": "ECU floor 58",
-  "why": ""
+  "t": 20.55
  },
  {
   "key": "f30",
-  "t": 22.66,
   "seconds": 0.8,
-  "shot": "",
-  "camera": "",
   "action": "ECU floor 30",
-  "why": ""
+  "t": 21.55
  },
  {
   "key": "fb1",
-  "t": 23.46,
   "seconds": 0.6,
-  "shot": "",
-  "camera": "",
   "action": "ECU floor B1",
-  "why": ""
+  "t": 22.36
  },
  {
   "key": "fb3",
-  "t": 24.06,
   "seconds": 0.6,
-  "shot": "",
-  "camera": "",
   "action": "ECU floor B3",
-  "why": ""
+  "t": 22.96
  },
  {
   "key": "doors",
-  "t": 24.66,
-  "seconds": 4.06,
-  "shot": "WS",
-  "camera": "push-in",
+  "seconds": 3.0,
   "action": "WS doors open on green light",
-  "why": "pulse cut to silence"
+  "t": 23.56
  },
  {
   "key": "vat_crack",
-  "t": 28.72,
   "seconds": 1.2,
-  "shot": "",
-  "camera": "",
   "action": "vat: hairline crack spreads",
-  "why": ""
+  "t": 26.56
+ },
+ {
+  "key": "vat_face",
+  "seconds": 2.0,
+  "action": "CU Pierce's face, crack light spreading on the glass",
+  "t": 27.76
  },
  {
   "key": "vat_burst",
-  "t": 29.92,
   "seconds": 3.06,
-  "shot": "",
-  "camera": "",
   "action": "vat: tempered glass bursts, green flood",
-  "why": ""
+  "t": 29.76
  },
  {
   "key": "dark1",
-  "t": 32.98,
-  "seconds": 3.04,
-  "shot": "",
-  "camera": "",
-  "action": "black: his voice in the dark",
-  "why": ""
+  "seconds": 5.06,
+  "action": "ECU Pierce's eyes in dim green, slow push, his voice",
+  "t": 32.82
  },
  {
   "key": "dark2",
-  "t": 36.02,
-  "seconds": 2.9,
-  "shot": "",
-  "camera": "",
-  "action": "black",
-  "why": ""
+  "seconds": 0.6,
+  "action": "black beat",
+  "t": 37.88
  },
  {
   "key": "endcard",
-  "t": 38.91,
   "seconds": 1.5,
-  "shot": "card",
-  "camera": "static",
   "action": "end card",
-  "why": "end card"
+  "t": 38.48
  }
 ]

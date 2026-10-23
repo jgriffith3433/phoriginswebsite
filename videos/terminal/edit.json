@@ -5,16 +5,16 @@
  "burn": true,
  "clips": [
   {
-   "asset": "a_28923a5cb63620e9",
+   "asset": "a_59d8e120a196a354",
    "in": 0,
-   "out": 4.6,
-   "beat": "window",
-   "label": "WS Pierce at the 58th-floor window"
+   "out": 3.56,
+   "beat": "hook",
+   "label": "CU profile at window: Compliance doesn't set the ceiling."
   },
   {
    "asset": "a_9f3b54a7ec7818ca",
    "in": 0,
-   "out": 5.06,
+   "out": 3.0,
    "beat": "phone",
    "label": "insert: phone rings out, VOSS"
   },
@@ -23,7 +23,7 @@
    "in": 0,
    "out": 2.06,
    "beat": "ots_text",
-   "label": "OTS insert: the text pops up on his phone: Pick up the terminal."
+   "label": "OTS insert: the text pops up on his phone"
   },
   {
    "asset": "a_ed2f9dfb51a6e21c",
@@ -39,18 +39,25 @@
    }
   },
   {
-   "asset": "a_fdcfa99ca252c331",
+   "asset": "a_04b5e627d85e493a",
    "in": 0,
-   "out": 3.6,
-   "beat": "alarm",
-   "label": "insert: B3 alarm, a shape in the corridor"
+   "out": 3.0,
+   "beat": "alarm_ots",
+   "label": "OTS Pierce turns to the monitor, B3 alarm"
+  },
+  {
+   "asset": "a_3c3b0f41b57a1150",
+   "in": 0,
+   "out": 2.6,
+   "beat": "alarm_shape",
+   "label": "CU monitor: a shape crawls in the corridor"
   },
   {
    "asset": "a_db34f5b79db11441",
    "in": 0,
    "out": 1.375,
    "beat": "not_tonight",
-   "label": "CU Pierce: ...Not tonight. (video.lipsync)",
+   "label": "CU Pierce: ...Not tonight.",
    "sound": true,
    "dialogue": true
   },
@@ -59,7 +66,7 @@
    "in": 0,
    "out": 3.06,
    "beat": "elevator",
-   "label": "MS Pierce alone in the elevator (locked on-model)"
+   "label": "MS Pierce alone in the elevator"
   },
   {
    "asset": "a_ac369869cfb4ed28",
@@ -116,7 +123,7 @@
   {
    "asset": "a_c66e80b863a00e15",
    "in": 0,
-   "out": 4.06,
+   "out": 3.0,
    "beat": "doors",
    "label": "WS doors open on green light"
   },
@@ -128,6 +135,13 @@
    "label": "vat: hairline crack spreads"
   },
   {
+   "asset": "a_ad632fd87b0c9380",
+   "in": 0,
+   "out": 2.0,
+   "beat": "vat_face",
+   "label": "CU Pierce's face, crack light spreading on the glass"
+  },
+  {
    "asset": "a_4af19ec56150a05d",
    "in": 0,
    "out": 3.06,
@@ -135,21 +149,21 @@
    "label": "vat: tempered glass bursts, green flood"
   },
   {
-   "asset": "a_de596cbba70088c3",
+   "asset": "a_5648b2c55377fbc3",
    "in": 0,
-   "out": 3.04,
+   "out": 5.06,
    "beat": "dark1",
-   "label": "black: his voice in the dark"
+   "label": "ECU Pierce's eyes in dim green, slow push, his voice"
   },
   {
    "asset": "a_de596cbba70088c3",
    "in": 0,
-   "out": 2.9,
+   "out": 0.6,
    "beat": "dark2",
-   "label": "black"
+   "label": "black beat"
   },
   {
-   "asset": "a_de596cbba70088c3",
+   "asset": "card",
    "in": 0,
    "out": 1.5,
    "beat": "endcard",
@@ -159,79 +173,66 @@
  "audio": [
   {
    "asset": "a_5c5ba5e2c4f76517",
-   "start": 0.5,
+   "start": 0.2,
    "seconds": 3.79,
    "label": "PIERCE: Compliance doesn't set the ceiling. I do.",
    "dialogue": true
   },
   {
    "asset": "a_5c960121c940ed93",
-   "start": 4.6,
-   "seconds": 5.06,
+   "start": 3.56,
+   "seconds": 3.0,
    "label": "phone buzzing",
    "volume": 0.9
   },
   {
    "asset": "a_5c960121c940ed93",
-   "start": 9.66,
+   "start": 6.56,
    "seconds": 0.7,
    "label": "second buzz: the text",
    "volume": 0.7
   },
   {
    "asset": "a_7a80203ef3029880",
-   "start": 18.6,
+   "start": 17.5,
    "seconds": 6.06,
    "label": "low pulse A",
    "volume": 0.7
   },
   {
    "asset": "a_7a80203ef3029880",
-   "start": 21.6,
+   "start": 20.5,
    "seconds": 3.06,
    "label": "pulse B (speeds it up)",
    "volume": 0.6
   },
   {
-   "asset": "a_7a80203ef3029880",
-   "start": 23.0,
-   "seconds": 1.66,
-   "label": "pulse C",
-   "volume": 0.6
-  },
-  {
    "asset": "a_3205fb12ce4054a3",
-   "start": 18.6,
+   "start": 17.5,
    "seconds": 6.06,
    "label": "elevator hum",
    "volume": 0.35
   },
   {
    "asset": "a_6789a8af4e7ff827",
-   "start": 24.66,
+   "start": 23.56,
    "seconds": 5,
    "label": "doors, something wet",
    "volume": 0.8
   },
   {
    "asset": "a_aaffe35f7e9aa4a6",
-   "start": 29.92,
+   "start": 29.76,
    "seconds": 3,
    "label": "vat bursts"
   },
   {
    "asset": "a_cae27c17bafed2d8",
-   "start": 33.38,
+   "start": 33.02,
    "seconds": 5.33,
    "label": "PIERCE: I can still think. That is not the same as still being me.",
    "dialogue": true
   }
  ],
- "captions": [
-  {
-   "text": "PH ORIGINS\nMade with Hawkes Gen · hawkesgen.com",
-   "start": 38.91,
-   "end": 40.41
-  }
- ]
+ "captions": []
 }
