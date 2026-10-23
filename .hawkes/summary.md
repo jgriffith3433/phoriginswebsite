@@ -1,0 +1,1 @@
+Keyframes judged and kept (k1 take2, k2 take1, k3 take1, k4 take2, k5 take2, k6 take2, k7 take1, k8 take1, k9 take2; floor stills 58/30/B1/B3, "30" reads as "3.0"). Eight clips queued (7 Wan i2v, 1 LTX perform for "...Not tonight" with lips). Next: compose the cut, critic, hand over.
