@@ -1,0 +1,228 @@
+{
+ "width": 1080,
+ "height": 1920,
+ "fps": 24,
+ "burn": true,
+ "clips": [
+  {
+   "asset": "a_28923a5cb63620e9",
+   "in": 0,
+   "out": 4.6,
+   "beat": "window",
+   "label": "WS Pierce at the 58th-floor window"
+  },
+  {
+   "asset": "a_9f3b54a7ec7818ca",
+   "in": 0,
+   "out": 5.06,
+   "beat": "phone",
+   "label": "insert: phone rings out, VOSS"
+  },
+  {
+   "asset": "a_ab33332f910b95c4",
+   "in": 0,
+   "out": 5.06,
+   "beat": "text",
+   "label": "CU Pierce reads the text",
+   "zoom": {
+    "from": 1,
+    "to": 1.12,
+    "x": 0.5,
+    "y": 0.35
+   }
+  },
+  {
+   "asset": "a_fdcfa99ca252c331",
+   "in": 0,
+   "out": 3.6,
+   "beat": "alarm",
+   "label": "insert: B3 alarm, a shape in the corridor"
+  },
+  {
+   "asset": "a_62cdd76085a8c69a",
+   "in": 0,
+   "out": 2.92,
+   "beat": "not_tonight",
+   "label": "CU Pierce: ...Not tonight.",
+   "sound": true,
+   "dialogue": true
+  },
+  {
+   "asset": "a_4c8731b88e135627",
+   "in": 0,
+   "out": 3,
+   "beat": "elevator",
+   "label": "MS Pierce alone in the elevator"
+  },
+  {
+   "asset": "a_ac369869cfb4ed28",
+   "in": 0,
+   "out": 1,
+   "beat": "f58",
+   "label": "ECU floor 58",
+   "zoom": {
+    "from": 1,
+    "to": 1.15,
+    "x": 0.5,
+    "y": 0.3
+   }
+  },
+  {
+   "asset": "a_d03c8404913fbbbb",
+   "in": 0,
+   "out": 0.8,
+   "beat": "f30",
+   "label": "ECU floor 30",
+   "zoom": {
+    "from": 1,
+    "to": 1.15,
+    "x": 0.5,
+    "y": 0.3
+   }
+  },
+  {
+   "asset": "a_5522fa9b69979cfa",
+   "in": 0,
+   "out": 0.6,
+   "beat": "fb1",
+   "label": "ECU floor B1",
+   "zoom": {
+    "from": 1,
+    "to": 1.15,
+    "x": 0.5,
+    "y": 0.3
+   }
+  },
+  {
+   "asset": "a_1a8518fb883fe8cc",
+   "in": 0,
+   "out": 0.6,
+   "beat": "fb3",
+   "label": "ECU floor B3",
+   "zoom": {
+    "from": 1,
+    "to": 1.15,
+    "x": 0.5,
+    "y": 0.3
+   }
+  },
+  {
+   "asset": "a_c66e80b863a00e15",
+   "in": 0,
+   "out": 4.06,
+   "beat": "doors",
+   "label": "WS doors open on green light"
+  },
+  {
+   "asset": "a_547a09d3715bd7c9",
+   "in": 0,
+   "out": 3.2,
+   "beat": "vat",
+   "label": "vat crack then burst"
+  },
+  {
+   "asset": "a_de596cbba70088c3",
+   "in": 0,
+   "out": 3.06,
+   "beat": "dark1",
+   "label": "black: his voice in the dark"
+  },
+  {
+   "asset": "a_de596cbba70088c3",
+   "in": 0,
+   "out": 3.06,
+   "beat": "dark2",
+   "label": "black"
+  },
+  {
+   "asset": "a_de596cbba70088c3",
+   "in": 0,
+   "out": 1.5,
+   "beat": "endcard",
+   "label": "end card"
+  }
+ ],
+ "audio": [
+  {
+   "asset": "a_5c5ba5e2c4f76517",
+   "start": 0.5,
+   "seconds": 3.79,
+   "label": "PIERCE: Compliance doesn't set the ceiling. I do.",
+   "dialogue": true
+  },
+  {
+   "asset": "a_5c960121c940ed93",
+   "start": 4.6,
+   "seconds": 5.06,
+   "label": "phone buzzing",
+   "volume": 0.9
+  },
+  {
+   "asset": "a_5c960121c940ed93",
+   "start": 9.6,
+   "seconds": 0.7,
+   "label": "second buzz: the text",
+   "volume": 0.7
+  },
+  {
+   "asset": "a_7a80203ef3029880",
+   "start": 21.24,
+   "seconds": 6,
+   "label": "low pulse A",
+   "volume": 0.7
+  },
+  {
+   "asset": "a_7a80203ef3029880",
+   "start": 24.24,
+   "seconds": 3,
+   "label": "pulse B (speeds it up)",
+   "volume": 0.6
+  },
+  {
+   "asset": "a_7a80203ef3029880",
+   "start": 25.64,
+   "seconds": 1.6,
+   "label": "pulse C",
+   "volume": 0.6
+  },
+  {
+   "asset": "a_3205fb12ce4054a3",
+   "start": 21.24,
+   "seconds": 6,
+   "label": "elevator hum",
+   "volume": 0.35
+  },
+  {
+   "asset": "a_6789a8af4e7ff827",
+   "start": 27.24,
+   "seconds": 5,
+   "label": "doors, something wet",
+   "volume": 0.8
+  },
+  {
+   "asset": "a_aaffe35f7e9aa4a6",
+   "start": 31.9,
+   "seconds": 3,
+   "label": "vat bursts"
+  },
+  {
+   "asset": "a_cae27c17bafed2d8",
+   "start": 35,
+   "seconds": 5.33,
+   "label": "PIERCE: I can still think. That is not the same as still being me.",
+   "dialogue": true
+  }
+ ],
+ "captions": [
+  {
+   "text": "Pick up the terminal.",
+   "start": 10.4,
+   "end": 13.8
+  },
+  {
+   "text": "PH ORIGINS\nMade with Hawkes Gen \u00b7 hawkesgen.com",
+   "start": 40.56,
+   "end": 42.06
+  }
+ ]
+}

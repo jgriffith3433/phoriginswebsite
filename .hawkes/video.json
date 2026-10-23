@@ -1,0 +1,393 @@
+{
+ "asset": "a_0c7b90c0b2e85ff2",
+ "poster": "a_7d98f8a8d968615c",
+ "seconds": 41.96,
+ "stage": "animatic",
+ "story": "# Pick Up the Terminal (one night in Hawkes Tower)\n\n**Logline:** A chairman who believes nothing below his tower moves without his say is summoned to the one place he swore stayed dark, goes anyway, and finds out what that costs him.\n**Pierce:** wants to prove the dark is his to keep; certain, then not. **Voss** (never seen): the call he refuses to take, then the text that makes him go.\n**The turn:** the text, \"Pick up the terminal.\" Pierce stops saying no. **Payoff:** the vat bursts in green light and sound; his voice returns in the dark, quieter: thinking is not the same as being himself.\n**Why it matters:** the game's premise in 40 s: corporate certainty meets B3; the creature is never shown or named.\n**For a stranger:** a powerful man, an ignored call, an alarm, a descent, and a change we hear rather than see.\n",
+ "beats": [
+  {
+   "key": "window",
+   "t": 0,
+   "seconds": 4.6,
+   "shot": "WS",
+   "camera": "push-in",
+   "action": "Pierce at the window",
+   "why": "held until the line lands; city and glass set the world",
+   "expression": "",
+   "attention": "Pierce at the window",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "phone",
+   "t": 4.6,
+   "seconds": 5.06,
+   "shot": "insert",
+   "camera": "static",
+   "action": "VOSS rings out in full",
+   "why": "J: let it ring out",
+   "expression": "",
+   "attention": "VOSS rings out in full",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "text",
+   "t": 9.6,
+   "seconds": 5.06,
+   "shot": "CU",
+   "camera": "push-in",
+   "action": "he reads: Pick up the terminal.",
+   "why": "hold on his face",
+   "expression": "",
+   "attention": "he reads: Pick up the terminal.",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "alarm",
+   "t": 14.7,
+   "seconds": 3.6,
+   "shot": "insert",
+   "camera": "static",
+   "action": "B3 alarm, a shape in the corridor",
+   "why": "the cause of the call",
+   "expression": "",
+   "attention": "B3 alarm, a shape in the corridor",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "not_tonight",
+   "t": 18.3,
+   "seconds": 2.9,
+   "shot": "CU",
+   "camera": "static",
+   "action": "...Not tonight.",
+   "why": "refusal, then he goes anyway",
+   "expression": "",
+   "attention": "...Not tonight.",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "elevator",
+   "t": 21.2,
+   "seconds": 3,
+   "shot": "MS",
+   "camera": "push-in",
+   "action": "alone in the elevator, pulse begins",
+   "why": "the descent is the tension",
+   "expression": "",
+   "attention": "alone in the elevator, pulse begins",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "floors",
+   "t": 24.2,
+   "seconds": 2.9,
+   "shot": "ECU",
+   "camera": "push-in",
+   "action": "58, 30, B1, B3 faster and faster",
+   "why": "pulse speeds up",
+   "expression": "",
+   "attention": "58, 30, B1, B3 faster and faster",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "doors",
+   "t": 27.2,
+   "seconds": 4,
+   "shot": "WS",
+   "camera": "push-in",
+   "action": "doors open, green light, silence",
+   "why": "pulse cut to silence",
+   "expression": "",
+   "attention": "doors open, green light, silence",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "vat",
+   "t": 31.2,
+   "seconds": 3.2,
+   "shot": "insert",
+   "camera": "static",
+   "action": "crack spreads, glass bursts, green floods",
+   "why": "light and sound, no creature",
+   "expression": "",
+   "attention": "crack spreads, glass bursts, green floods",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "dark",
+   "t": 34.4,
+   "seconds": 6.1,
+   "shot": "black",
+   "camera": "static",
+   "action": "his voice in the dark",
+   "why": "quieter, close",
+   "expression": "",
+   "attention": "his voice in the dark",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  },
+  {
+   "key": "endcard",
+   "t": 40.5,
+   "seconds": 1.5,
+   "shot": "card",
+   "camera": "static",
+   "action": "PH Origins, Made with Hawkes Gen",
+   "why": "end card",
+   "expression": "",
+   "attention": "PH Origins, Made with Hawkes Gen",
+   "expect": "",
+   "change": "",
+   "residue": ""
+  }
+ ],
+ "edit": {
+  "width": 1080,
+  "height": 1920,
+  "fps": 24,
+  "burn": true,
+  "clips": [
+   {
+    "asset": "a_28923a5cb63620e9",
+    "in": 0,
+    "out": 4.6,
+    "beat": "window",
+    "label": "WS Pierce at the 58th-floor window"
+   },
+   {
+    "asset": "a_9f3b54a7ec7818ca",
+    "in": 0,
+    "out": 5.06,
+    "beat": "phone",
+    "label": "insert: phone rings out, VOSS"
+   },
+   {
+    "asset": "a_ab33332f910b95c4",
+    "in": 0,
+    "out": 5.06,
+    "beat": "text",
+    "label": "CU Pierce reads the text",
+    "zoom": {
+     "from": 1,
+     "to": 1.12,
+     "x": 0.5,
+     "y": 0.35
+    }
+   },
+   {
+    "asset": "a_fdcfa99ca252c331",
+    "in": 0,
+    "out": 3.6,
+    "beat": "alarm",
+    "label": "insert: B3 alarm, a shape in the corridor"
+   },
+   {
+    "asset": "a_62cdd76085a8c69a",
+    "in": 0,
+    "out": 2.92,
+    "beat": "not_tonight",
+    "label": "CU Pierce: ...Not tonight.",
+    "sound": true,
+    "dialogue": true
+   },
+   {
+    "asset": "a_4c8731b88e135627",
+    "in": 0,
+    "out": 3,
+    "beat": "elevator",
+    "label": "MS Pierce alone in the elevator"
+   },
+   {
+    "asset": "a_ac369869cfb4ed28",
+    "in": 0,
+    "out": 1,
+    "beat": "f58",
+    "label": "ECU floor 58",
+    "zoom": {
+     "from": 1,
+     "to": 1.15,
+     "x": 0.5,
+     "y": 0.3
+    }
+   },
+   {
+    "asset": "a_d03c8404913fbbbb",
+    "in": 0,
+    "out": 0.8,
+    "beat": "f30",
+    "label": "ECU floor 30",
+    "zoom": {
+     "from": 1,
+     "to": 1.15,
+     "x": 0.5,
+     "y": 0.3
+    }
+   },
+   {
+    "asset": "a_5522fa9b69979cfa",
+    "in": 0,
+    "out": 0.6,
+    "beat": "fb1",
+    "label": "ECU floor B1",
+    "zoom": {
+     "from": 1,
+     "to": 1.15,
+     "x": 0.5,
+     "y": 0.3
+    }
+   },
+   {
+    "asset": "a_1a8518fb883fe8cc",
+    "in": 0,
+    "out": 0.6,
+    "beat": "fb3",
+    "label": "ECU floor B3",
+    "zoom": {
+     "from": 1,
+     "to": 1.15,
+     "x": 0.5,
+     "y": 0.3
+    }
+   },
+   {
+    "asset": "a_c66e80b863a00e15",
+    "in": 0,
+    "out": 4.06,
+    "beat": "doors",
+    "label": "WS doors open on green light"
+   },
+   {
+    "asset": "a_547a09d3715bd7c9",
+    "in": 0,
+    "out": 3.2,
+    "beat": "vat",
+    "label": "vat crack then burst"
+   },
+   {
+    "asset": "a_de596cbba70088c3",
+    "in": 0,
+    "out": 3.06,
+    "beat": "dark1",
+    "label": "black: his voice in the dark"
+   },
+   {
+    "asset": "a_de596cbba70088c3",
+    "in": 0,
+    "out": 3.06,
+    "beat": "dark2",
+    "label": "black"
+   },
+   {
+    "asset": "a_de596cbba70088c3",
+    "in": 0,
+    "out": 1.5,
+    "beat": "endcard",
+    "label": "end card"
+   }
+  ],
+  "audio": [
+   {
+    "asset": "a_5c5ba5e2c4f76517",
+    "start": 0.5,
+    "seconds": 3.79,
+    "label": "PIERCE: Compliance doesn't set the ceiling. I do.",
+    "dialogue": true
+   },
+   {
+    "asset": "a_5c960121c940ed93",
+    "start": 4.6,
+    "seconds": 5.06,
+    "label": "phone buzzing",
+    "volume": 0.9
+   },
+   {
+    "asset": "a_5c960121c940ed93",
+    "start": 9.6,
+    "seconds": 0.7,
+    "label": "second buzz: the text",
+    "volume": 0.7
+   },
+   {
+    "asset": "a_7a80203ef3029880",
+    "start": 21.24,
+    "seconds": 6,
+    "label": "low pulse A",
+    "volume": 0.7
+   },
+   {
+    "asset": "a_7a80203ef3029880",
+    "start": 24.24,
+    "seconds": 3,
+    "label": "pulse B (speeds it up)",
+    "volume": 0.6
+   },
+   {
+    "asset": "a_7a80203ef3029880",
+    "start": 25.64,
+    "seconds": 1.6,
+    "label": "pulse C",
+    "volume": 0.6
+   },
+   {
+    "asset": "a_3205fb12ce4054a3",
+    "start": 21.24,
+    "seconds": 6,
+    "label": "elevator hum",
+    "volume": 0.35
+   },
+   {
+    "asset": "a_6789a8af4e7ff827",
+    "start": 27.24,
+    "seconds": 5,
+    "label": "doors, something wet",
+    "volume": 0.8
+   },
+   {
+    "asset": "a_aaffe35f7e9aa4a6",
+    "start": 31.9,
+    "seconds": 3,
+    "label": "vat bursts"
+   },
+   {
+    "asset": "a_cae27c17bafed2d8",
+    "start": 35,
+    "seconds": 5.33,
+    "label": "PIERCE: I can still think. That is not the same as still being me.",
+    "dialogue": true
+   }
+  ],
+  "captions": [
+   {
+    "text": "Pick up the terminal.",
+    "start": 10.4,
+    "end": 13.8
+   },
+   {
+    "text": "PH ORIGINS\nMade with Hawkes Gen \u00b7 hawkesgen.com",
+    "start": 40.56,
+    "end": 42.06
+   }
+  ]
+ },
+ "summary": "Animatic v1 (41.96 s, 1080x1920): the real Pierce voice, keyframes from text (Pierce's face varies), Wan clips, LTX lip-synced 'Not tonight', sound effects, no music until the elevator pulse, cut to silence at the doors. Critic 4.8: story 5.4, pacing 5, voices 5.8, lipsync 3.8, movement 4.2, consistency 3.4, sound 5.2.",
+ "caption": "Compliance doesn't set the ceiling. One night in Hawkes Tower. #PHOrigins #thriller #shorts #hawkesgen hawkesgen.com"
+}

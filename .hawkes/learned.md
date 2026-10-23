@@ -1,0 +1,3 @@
+- lesson: Gen job files collide in save_to — outputs are named by seed, so two jobs with overlapping seeds overwrite each other in one folder; use one folder per job.
+- lesson: video.compose needs video inputs — a still image fails ("no duration"); make a short i2v clip of each still (floor displays, black card).
+- lesson: agents can't upload local files to Gen (remote callers need blob/asset ids and have no API key), so concept art in the repo can't be a reference until it is in the library.
