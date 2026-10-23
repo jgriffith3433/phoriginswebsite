@@ -1,4 +1,70 @@
-{"slug":"terminal","stage":"animatic","voice":{"pierce":"ZthjuvLPty3kTMaNKVKb"},
- "voice_jobs":{"l1":"j_cc5da1eb8207","l2":"j_0d329d8c2f42","l3":"j_961cc20e1bd9"},
- "sfx_jobs":{"phone":"j_fdb4eae3ed23","burst":"j_1fc345c54589","pulse":"j_867b40155ff6","elevator":"j_c85ba1978382","doors":"j_532d8df46651"},
- "keyframe_jobs":["j_d5d28cccfa28","j_a66b90c95853","j_875ed00fb510","j_6a264cd9f612","j_d2bfb6b56d40","j_bbb3a2f69f14","j_457110763ad1","j_6b9d3052fa02","j_eda35cc98512","j_5abca35027cd","j_1f250505cf26","j_917d446e962c","j_f43b10420bf2"]}
+{
+ "slug": "terminal",
+ "stage": "animatic",
+ "voice": {
+  "pierce": "ZthjuvLPty3kTMaNKVKb"
+ },
+ "voice_jobs": {
+  "l1": "j_cc5da1eb8207",
+  "l2": "j_0d329d8c2f42",
+  "l3": "j_961cc20e1bd9"
+ },
+ "sfx_jobs": {
+  "phone": "j_fdb4eae3ed23",
+  "burst": "j_1fc345c54589",
+  "pulse": "j_867b40155ff6",
+  "elevator": "j_c85ba1978382",
+  "doors": "j_532d8df46651"
+ },
+ "keyframe_jobs": [
+  "j_d5d28cccfa28",
+  "j_a66b90c95853",
+  "j_875ed00fb510",
+  "j_6a264cd9f612",
+  "j_d2bfb6b56d40",
+  "j_bbb3a2f69f14",
+  "j_457110763ad1",
+  "j_6b9d3052fa02",
+  "j_eda35cc98512",
+  "j_5abca35027cd",
+  "j_1f250505cf26",
+  "j_917d446e962c",
+  "j_f43b10420bf2"
+ ],
+ "clips": {
+  "c1_window": "a_28923a5cb63620e9",
+  "c2_phone": "a_9f3b54a7ec7818ca",
+  "c3_face_text": "a_ab33332f910b95c4",
+  "c4_monitor": "a_fdcfa99ca252c331",
+  "c5_not_tonight": "a_62cdd76085a8c69a",
+  "c6_elevator": "a_4c8731b88e135627",
+  "c7_doors": "a_c66e80b863a00e15",
+  "c8_vat_burst": "a_547a09d3715bd7c9"
+ },
+ "voice_assets": {
+  "l1": "a_5c5ba5e2c4f76517",
+  "l2": "a_da935c040982e8ae",
+  "l3": "a_cae27c17bafed2d8"
+ },
+ "sfx_assets": {
+  "phone": "a_5c960121c940ed93",
+  "burst": "a_aaffe35f7e9aa4a6",
+  "pulse": "a_7a80203ef3029880",
+  "elevator": "a_3205fb12ce4054a3",
+  "doors": "a_6789a8af4e7ff827"
+ },
+ "stills": {
+  "d58": "a_d43cc07143b26d97",
+  "d30": "a_a200d7c5cc626c8e",
+  "db1": "a_1edb72fac7a90759",
+  "db3": "a_64b27444ba02f181",
+  "black": "a_877d4f4e40091cdc"
+ },
+ "clip_jobs_pending": [
+  "j_50afa459f0d3",
+  "j_6c035b04cb62",
+  "j_c1b2819ee66a",
+  "j_22c10bfc3a00",
+  "j_cd8dddefeef9"
+ ]
+}
