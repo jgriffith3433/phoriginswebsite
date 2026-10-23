@@ -2217,7 +2217,10 @@ const beginGame = () => {
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
   if (isStationLevel()) station.onStart();
-  if (isTrainLevel()) train.onStart();
+  if (isTrainLevel()) {
+    train.onStart();
+    syncSkipButton();
+  }
   analytics?.levelStarted();
   void waitFrames(3).then(() => {
     revealFromBlack(() => state.running);
@@ -3540,6 +3543,13 @@ const applyCarSway = () => {
   camera.upVector.set(0, Math.cos(roll), Math.sin(roll));
 };
 
+/** Skip shows whenever a cutscene or a scripted scene runs. Also called when a scene starts, so it is there from the first frame. */
+const syncSkipButton = () => {
+  if (!skipCutsceneBtn) return;
+  const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing() || train.playing());
+  skipCutsceneBtn.hidden = !canSkip;
+};
+
 const renderLoop = () => {
   pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden'));
   if (paused) {
@@ -3559,10 +3569,7 @@ const renderLoop = () => {
   dressing.step(delta);
   if (wasInCutscene && !cine) lockGameplayPointer();
   wasInCutscene = cine;
-  if (skipCutsceneBtn) {
-    const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing() || train.playing());
-    skipCutsceneBtn.hidden = !canSkip;
-  }
+  syncSkipButton();
   state.shootCooldown = Math.max(0, state.shootCooldown - delta);
   muzzleFlash.update();
 
