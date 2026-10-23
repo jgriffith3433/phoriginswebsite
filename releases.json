@@ -1,8 +1,17 @@
 {
   "product": "phorigins",
   "name": "PH Origins",
-  "current": "1.7.1",
+  "current": "1.7.2",
   "releases": [
+    {
+      "version": "1.7.2",
+      "date": "2026-10-23",
+      "build": "55e6330",
+      "title": "Improvements and fixes",
+      "notes": [
+        "Improvements and fixes."
+      ]
+    },
     {
       "version": "1.7.1",
       "date": "2026-10-22",
