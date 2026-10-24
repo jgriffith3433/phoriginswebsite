@@ -1,1 +1,1 @@
-- lesson: corpse floor ray — floorUnder (streetRules.ts) grabs the first upward face from y 1.5, so benches/ledges hold bodies in the air; ignore hits above the feet.
+- convention: Train splats are procedural — edit `tools/genTrainSplats.mjs` and rerun it (`node tools/genTrainSplats.mjs`) to rewrite `assets/splats/*.splat`; `SHARPEN` sets how tight opaque splats are.

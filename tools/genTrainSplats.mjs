@@ -50,12 +50,21 @@ function quatFromEuler(rx = 0, ry = 0, rz = 0) {
   ];
 }
 
+const SHARPEN = 0.68;
+
 class SplatBuilder {
   constructor() {
     this.records = [];
   }
 
   add(x, y, z, sx, sy, sz, r, g, b, a = 220, rot = [255, 128, 128, 128]) {
+    // Surface splats were wider than their grid spacing and blurred together; tighten the opaque ones.
+    // Faint halos (low alpha) keep their size: they are meant to be soft.
+    if (a >= 128) {
+      sx *= SHARPEN;
+      sy *= SHARPEN;
+      sz *= SHARPEN;
+    }
     this.records.push({ x, y, z, sx, sy, sz, r, g, b, a, rot });
   }
 
