@@ -2164,6 +2164,8 @@ const train: TheTrain = createTheTrain({
   holdScene: (held) => {
     state.inCutscene = held;
     if (held) {
+      // Clear the held walk state, or pose-loop idle clips resolve to walk.
+      playerAvatar.setLocomotion(false, true);
       audio.setWalk(false);
       unlockPointer();
     }
