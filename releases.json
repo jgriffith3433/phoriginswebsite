@@ -1,8 +1,21 @@
 {
   "product": "phorigins",
   "name": "PH Origins",
-  "current": "1.7.2",
+  "current": "1.8.0",
   "releases": [
+    {
+      "version": "1.8.0",
+      "date": "2026-10-24",
+      "build": "cd22ca1",
+      "title": "Cutscenes, splats and fallen characters",
+      "notes": [
+        "A new cutscene, Pick Up the Terminal, opens one night in Hawkes Tower.",
+        "Characters who have been defeated now settle onto the ground instead of floating in the air.",
+        "Gaissan splats look cleaner and more convincing.",
+        "One line of dialogue in a cutscene now reads correctly.",
+        "The opening train cutscene in Level 7 can now be skipped."
+      ]
+    },
     {
       "version": "1.7.2",
       "date": "2026-10-23",
