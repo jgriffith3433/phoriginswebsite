@@ -1,1 +1,5 @@
-The Train's dead riders were already fixed in #25 (floorY = 0), but the screenshot build (d2664cb) predates it. The Station has the same bug: `floorUnder` casts a ray from y 1.5 and took the first upward face, so a body by a bench came to rest on the seat or ledge and floated. Fix: `floorUnder` (src/story/streetRules.ts) now ignores surfaces more than 0.12 above the person's feet. Checked with `npx tsc --noEmit` (passes). Not seen in a browser; ask for a playtest if needed.
+**What was wrong:** the Level 7 (The Train) Gaussian splats seen through the windows were blurry. Opaque surface splats (tunnel wall, tiles, station) were wider than their grid spacing, so neighbours smeared together.
+
+**Changed:** `tools/genTrainSplats.mjs` now scales opaque splats (alpha >= 128) by 0.68. Faint glow halos keep their size. I regenerated `assets/splats/train-{tunnel,station,car}.splat` with that script (same counts and layout).
+
+**Checked:** `npx tsc --noEmit` passes and the generator runs. I did not look at it in a browser (none allowed here), so how it looks is unchecked. Please ask for a playtest of level 7 (`?beat=` train) to judge it. If it is too sparse or speckly, change `SHARPEN` (0.68) and rerun `node tools/genTrainSplats.mjs`.
