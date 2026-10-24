@@ -1,8 +1,8 @@
 {
- "poster": "videos/terminal/out/poster_v3.png",
- "seconds": 39.83,
- "stage": "animatic",
- "summary": "v3 answers the v2 review. (1) On-model: every new Pierce shot (window profile, face in the vat glass, eyes at the end, OTS at the monitor) is drawn from the same k5 face keyframe (beard, tie, charcoal suit); the text CU and 'Not tonight' CU are unchanged from v2 and still vary slightly. (2) Alarm: new OTS shows him turning to the monitor, face and screen in one frame, then a CU where a hunched non-human shape crawls down the corridor. (3) Turn to going: I made a jacket beat but dropped it, the clip showed him taking the jacket off; 'Not tonight' still goes straight to the elevator. (4) Elevator: NOT fixed, floor '30' still garbled; coverage unchanged. (5) Payoff: new CU of his face with the crack's green light, then the burst; a reflection shot and an engulfed wide were not made. (6) Ending: black cut from about 6 s to 0.6 s; his last line plays over a slow push on his eyes in green light. (7) End card: large and centred, 1.5 s, cut straight on. (8) Hook: opens on his profile with the line by 0.2 s; phone insert cut from 5 s to 3 s. The critic could not run (Gemini quota 429 again), so no scores. The cut is a local file because the end card is made locally; Gen asset a_fb20a89f7e93629b is the same cut without the end card.",
+ "poster": "videos/terminal/out/poster_v6.png",
+ "seconds": 39.79,
+ "stage": "final",
+ "summary": "v6 answers Studio's review of v5. (1) Floors 58/30/B1/B3 [0:20.8-0:22.2]: the garbled generated digits are replaced by clean seven-segment displays drawn locally (videos/terminal/make_floors.py); '30' now reads 30. (2) Vat burst [0:29.8-0:32.5]: a new i2v take (seed 821, upscaled) opens it with the glass bursting into flying shards and a fast spray, then the earlier green flood; added a glass-shatter and high-pressure spray SFX layer on top of the burst sound. (3) Opening line [0:00.5-0:03.2]: the hook is re-made with video.lipsync (LTX, the exact Pierce voice line, loose jaw and lips, 2 takes, take 2 picked on-model) instead of a silent i2v with the voice laid over. Nothing else changed. Critic not re-run. GPU this pass about $0.6.",
  "caption": "Compliance doesn't set the ceiling. Pick up the terminal. PH Origins, one night in Hawkes Tower. #PHOrigins #Thriller #IndieGame #HawkesGen hawkesgen.com",
  "story": "# Pick Up the Terminal (one night in Hawkes Tower)\n\n**Logline:** A chairman who believes nothing below his tower moves without his say is summoned to the one place he swore stayed dark, goes anyway, and finds out what that costs him.\n**Pierce:** wants to prove the dark is his to keep; certain, then not. **Voss** (never seen): the call he refuses to take, then the text that makes him go.\n**The turn:** the text, \"Pick up the terminal.\" Pierce stops saying no. **Payoff:** the vat bursts in green light and sound; his voice returns in the dark, quieter: thinking is not the same as being himself.\n**Why it matters:** the game's premise in 40 s: corporate certainty meets B3; the creature is never shown or named.\n**For a stranger:** a powerful man, an ignored call, an alarm, a descent, and a change we hear rather than see.\n",
  "beats": [
@@ -128,28 +128,28 @@
   "burn": true,
   "clips": [
    {
-    "asset": "a_59d8e120a196a354",
+    "asset": "a_7d75e302714b87c2",
     "in": 0,
     "out": 3.56,
     "beat": "hook",
-    "label": "CU profile at window: Compliance doesn't set the ceiling."
+    "label": "CU profile at window, lip-synced (LTX lipsync take 2): Compliance doesn't set the ceiling."
    },
    {
-    "asset": "a_9f3b54a7ec7818ca",
+    "asset": "a_aeebe5381449ce50",
     "in": 0,
     "out": 3.0,
     "beat": "phone",
     "label": "insert: phone rings out, VOSS"
    },
    {
-    "asset": "a_5194ac1244d555ab",
+    "asset": "a_c576bdfb07815bb9",
     "in": 0,
     "out": 2.06,
     "beat": "ots_text",
     "label": "OTS insert: the text pops up on his phone"
    },
    {
-    "asset": "a_ed2f9dfb51a6e21c",
+    "asset": "a_adf6404104d8ab48",
     "in": 0,
     "out": 1.9,
     "beat": "text",
@@ -162,21 +162,21 @@
     }
    },
    {
-    "asset": "a_04b5e627d85e493a",
+    "asset": "a_39b646119289acb6",
     "in": 0,
     "out": 3.0,
     "beat": "alarm_ots",
     "label": "OTS Pierce turns to the monitor, B3 alarm"
    },
    {
-    "asset": "a_3c3b0f41b57a1150",
+    "asset": "a_cc6d36a6a3eac15f",
     "in": 0,
     "out": 2.6,
     "beat": "alarm_shape",
     "label": "CU monitor: a shape crawls in the corridor"
    },
    {
-    "asset": "a_db34f5b79db11441",
+    "asset": "a_4874cd521f98434f",
     "in": 0,
     "out": 1.375,
     "beat": "not_tonight",
@@ -185,94 +185,77 @@
     "dialogue": true
    },
    {
-    "asset": "a_18b32c21fd124ead",
+    "asset": "a_bb44517c83f5e8b9",
     "in": 0,
     "out": 3.06,
     "beat": "elevator",
     "label": "MS Pierce alone in the elevator"
    },
    {
-    "asset": "a_ac369869cfb4ed28",
+    "asset": "local:videos/terminal/floors/f58.mp4",
     "in": 0,
     "out": 1,
     "beat": "f58",
-    "label": "ECU floor 58",
-    "zoom": {
-     "from": 1,
-     "to": 1.15,
-     "x": 0.5,
-     "y": 0.3
-    }
+    "label": "Clean seven-segment floor 58"
    },
    {
-    "asset": "a_d03c8404913fbbbb",
+    "asset": "local:videos/terminal/floors/f30.mp4",
     "in": 0,
     "out": 0.8,
     "beat": "f30",
-    "label": "ECU floor 30",
-    "zoom": {
-     "from": 1,
-     "to": 1.15,
-     "x": 0.5,
-     "y": 0.3
-    }
+    "label": "Clean seven-segment floor 30"
    },
    {
-    "asset": "a_5522fa9b69979cfa",
+    "asset": "local:videos/terminal/floors/fb1.mp4",
     "in": 0,
     "out": 0.6,
     "beat": "fb1",
-    "label": "ECU floor B1",
-    "zoom": {
-     "from": 1,
-     "to": 1.15,
-     "x": 0.5,
-     "y": 0.3
-    }
+    "label": "Clean seven-segment floor B1"
    },
    {
-    "asset": "a_1a8518fb883fe8cc",
+    "asset": "local:videos/terminal/floors/fb3.mp4",
     "in": 0,
     "out": 0.6,
     "beat": "fb3",
-    "label": "ECU floor B3",
-    "zoom": {
-     "from": 1,
-     "to": 1.15,
-     "x": 0.5,
-     "y": 0.3
-    }
+    "label": "Clean seven-segment floor B3"
    },
    {
-    "asset": "a_c66e80b863a00e15",
+    "asset": "a_50c3483fab2dd2e6",
     "in": 0,
     "out": 3.0,
     "beat": "doors",
     "label": "WS doors open on green light"
    },
    {
-    "asset": "a_547a09d3715bd7c9",
+    "asset": "a_db603b89a64a40a8",
     "in": 0,
     "out": 1.2,
     "beat": "vat_crack",
     "label": "vat: hairline crack spreads"
    },
    {
-    "asset": "a_ad632fd87b0c9380",
+    "asset": "a_d959cec1fd34fe78",
     "in": 0,
     "out": 2.0,
     "beat": "vat_face",
     "label": "CU Pierce's face, crack light spreading on the glass"
    },
    {
-    "asset": "a_4af19ec56150a05d",
+    "asset": "a_ff3a5642d403dc5a",
     "in": 0,
-    "out": 3.06,
+    "out": 0.5,
     "beat": "vat_burst",
-    "label": "vat: tempered glass bursts, green flood"
+    "label": "vat: glass shatters, shards and high-velocity spray (new take)"
    },
    {
-    "asset": "a_5648b2c55377fbc3",
+    "asset": "a_b26cf68bcfa9cf7d",
+    "in": 0.5,
+    "out": 3.06,
+    "beat": "vat_flood",
+    "label": "vat: green flood"
+   },
+   {
+    "asset": "a_31aa032274146062",
     "in": 0,
     "out": 5.06,
     "beat": "dark1",
@@ -286,18 +269,17 @@
     "label": "black beat"
    },
    {
-    "asset": null,
+    "asset": "card",
     "in": 0,
     "out": 1.5,
     "beat": "endcard",
-    "label": "end card",
-    "file": "videos/terminal/card/endcard.mp4"
+    "label": "end card"
    }
   ],
   "audio": [
    {
     "asset": "a_5c5ba5e2c4f76517",
-    "start": 0.2,
+    "start": 0,
     "seconds": 3.79,
     "label": "PIERCE: Compliance doesn't set the ceiling. I do.",
     "dialogue": true
@@ -356,9 +338,15 @@
     "seconds": 5.33,
     "label": "PIERCE: I can still think. That is not the same as still being me.",
     "dialogue": true
+   },
+   {
+    "asset": "a_f346e91a6e59858c",
+    "start": 29.76,
+    "seconds": 3,
+    "label": "glass shatter and spray"
    }
   ],
   "captions": []
  },
- "file": "videos/terminal/out/cut_v3.mp4"
+ "file": "videos/terminal/out/cut_v6.mp4"
 }

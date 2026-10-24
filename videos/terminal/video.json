@@ -133,5 +133,27 @@
    "vat_burst": "a_b26cf68bcfa9cf7d",
    "dark1": "a_31aa032274146062"
   }
+ },
+ "v6": {
+  "cut_local": "out/cut_v6.mp4",
+  "lipsync_takes": [
+   "a_ae44c1b96df862d1",
+   "a_a72ca71cf8b91829"
+  ],
+  "hook_upscaled": "a_7d75e302714b87c2",
+  "burst_takes": [
+   "a_6b3528eb2f7a214f",
+   "a_86055c9692b78751",
+   "a_7cf84c4a9b439737"
+  ],
+  "burst_upscaled": "a_ff3a5642d403dc5a",
+  "glass_sfx": "a_f346e91a6e59858c",
+  "jobs": [
+   "j_670cc29e8b08",
+   "j_9354be1db124",
+   "j_093a4205d3c5",
+   "j_816fc8bbc4f1",
+   "j_d57df90e86e8"
+  ]
  }
 }

@@ -1,0 +1,227 @@
+{
+ "width": 1080,
+ "height": 1920,
+ "fps": 24,
+ "burn": true,
+ "clips": [
+  {
+   "asset": "a_7d75e302714b87c2",
+   "in": 0,
+   "out": 3.56,
+   "beat": "hook",
+   "label": "CU profile at window, lip-synced (LTX lipsync take 2): Compliance doesn't set the ceiling."
+  },
+  {
+   "asset": "a_aeebe5381449ce50",
+   "in": 0,
+   "out": 3.0,
+   "beat": "phone",
+   "label": "insert: phone rings out, VOSS"
+  },
+  {
+   "asset": "a_c576bdfb07815bb9",
+   "in": 0,
+   "out": 2.06,
+   "beat": "ots_text",
+   "label": "OTS insert: the text pops up on his phone"
+  },
+  {
+   "asset": "a_adf6404104d8ab48",
+   "in": 0,
+   "out": 1.9,
+   "beat": "text",
+   "label": "CU Pierce reads the text, jaw tightens",
+   "zoom": {
+    "from": 1,
+    "to": 1.1,
+    "x": 0.5,
+    "y": 0.35
+   }
+  },
+  {
+   "asset": "a_39b646119289acb6",
+   "in": 0,
+   "out": 3.0,
+   "beat": "alarm_ots",
+   "label": "OTS Pierce turns to the monitor, B3 alarm"
+  },
+  {
+   "asset": "a_cc6d36a6a3eac15f",
+   "in": 0,
+   "out": 2.6,
+   "beat": "alarm_shape",
+   "label": "CU monitor: a shape crawls in the corridor"
+  },
+  {
+   "asset": "a_4874cd521f98434f",
+   "in": 0,
+   "out": 1.375,
+   "beat": "not_tonight",
+   "label": "CU Pierce: ...Not tonight.",
+   "sound": true,
+   "dialogue": true
+  },
+  {
+   "asset": "a_bb44517c83f5e8b9",
+   "in": 0,
+   "out": 3.06,
+   "beat": "elevator",
+   "label": "MS Pierce alone in the elevator"
+  },
+  {
+   "asset": "local:videos/terminal/floors/f58.mp4",
+   "in": 0,
+   "out": 1,
+   "beat": "f58",
+   "label": "Clean seven-segment floor 58"
+  },
+  {
+   "asset": "local:videos/terminal/floors/f30.mp4",
+   "in": 0,
+   "out": 0.8,
+   "beat": "f30",
+   "label": "Clean seven-segment floor 30"
+  },
+  {
+   "asset": "local:videos/terminal/floors/fb1.mp4",
+   "in": 0,
+   "out": 0.6,
+   "beat": "fb1",
+   "label": "Clean seven-segment floor B1"
+  },
+  {
+   "asset": "local:videos/terminal/floors/fb3.mp4",
+   "in": 0,
+   "out": 0.6,
+   "beat": "fb3",
+   "label": "Clean seven-segment floor B3"
+  },
+  {
+   "asset": "a_50c3483fab2dd2e6",
+   "in": 0,
+   "out": 3.0,
+   "beat": "doors",
+   "label": "WS doors open on green light"
+  },
+  {
+   "asset": "a_db603b89a64a40a8",
+   "in": 0,
+   "out": 1.2,
+   "beat": "vat_crack",
+   "label": "vat: hairline crack spreads"
+  },
+  {
+   "asset": "a_d959cec1fd34fe78",
+   "in": 0,
+   "out": 2.0,
+   "beat": "vat_face",
+   "label": "CU Pierce's face, crack light spreading on the glass"
+  },
+  {
+   "asset": "a_ff3a5642d403dc5a",
+   "in": 0,
+   "out": 0.5,
+   "beat": "vat_burst",
+   "label": "vat: glass shatters, shards and high-velocity spray (new take)"
+  },
+  {
+   "asset": "a_b26cf68bcfa9cf7d",
+   "in": 0.5,
+   "out": 3.06,
+   "beat": "vat_flood",
+   "label": "vat: green flood"
+  },
+  {
+   "asset": "a_31aa032274146062",
+   "in": 0,
+   "out": 5.06,
+   "beat": "dark1",
+   "label": "ECU Pierce's eyes in dim green, slow push, his voice"
+  },
+  {
+   "asset": "a_de596cbba70088c3",
+   "in": 0,
+   "out": 0.6,
+   "beat": "dark2",
+   "label": "black beat"
+  },
+  {
+   "asset": "card",
+   "in": 0,
+   "out": 1.5,
+   "beat": "endcard",
+   "label": "end card"
+  }
+ ],
+ "audio": [
+  {
+   "asset": "a_5c5ba5e2c4f76517",
+   "start": 0,
+   "seconds": 3.79,
+   "label": "PIERCE: Compliance doesn't set the ceiling. I do.",
+   "dialogue": true
+  },
+  {
+   "asset": "a_5c960121c940ed93",
+   "start": 3.56,
+   "seconds": 3.0,
+   "label": "phone buzzing",
+   "volume": 0.9
+  },
+  {
+   "asset": "a_5c960121c940ed93",
+   "start": 6.56,
+   "seconds": 0.7,
+   "label": "second buzz: the text",
+   "volume": 0.7
+  },
+  {
+   "asset": "a_7a80203ef3029880",
+   "start": 17.5,
+   "seconds": 6.06,
+   "label": "low pulse A",
+   "volume": 0.7
+  },
+  {
+   "asset": "a_7a80203ef3029880",
+   "start": 20.5,
+   "seconds": 3.06,
+   "label": "pulse B (speeds it up)",
+   "volume": 0.6
+  },
+  {
+   "asset": "a_3205fb12ce4054a3",
+   "start": 17.5,
+   "seconds": 6.06,
+   "label": "elevator hum",
+   "volume": 0.35
+  },
+  {
+   "asset": "a_6789a8af4e7ff827",
+   "start": 23.56,
+   "seconds": 5,
+   "label": "doors, something wet",
+   "volume": 0.8
+  },
+  {
+   "asset": "a_aaffe35f7e9aa4a6",
+   "start": 29.76,
+   "seconds": 3,
+   "label": "vat bursts"
+  },
+  {
+   "asset": "a_cae27c17bafed2d8",
+   "start": 33.02,
+   "seconds": 5.33,
+   "label": "PIERCE: I can still think. That is not the same as still being me.",
+   "dialogue": true
+  },
+  {
+   "asset": "a_f346e91a6e59858c",
+   "start": 29.76,
+   "seconds": 3,
+   "label": "glass shatter and spray"
+  }
+ ],
+ "captions": []
+}
