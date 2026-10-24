@@ -1,1 +1,1 @@
-- lesson: Gen library files — the local Gen library is unreadable from agent sessions; copy outputs with hawkesgen_job save_to, and remote hawkesgen_run cannot take local files, so mix locally with ffmpeg (videos/terminal/build_v6.sh).
+- lesson: corpse floor ray — floorUnder (streetRules.ts) grabs the first upward face from y 1.5, so benches/ledges hold bodies in the air; ignore hits above the feet.
