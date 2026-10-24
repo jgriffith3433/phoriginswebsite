@@ -1,3 +1,2 @@
-1. Open Studio's Screening tab and play "Pick Up the Terminal" (animatic).
-2. Check the voice, the "Pick up the terminal." text beat and the sound cut at the doors.
-3. Approve it or send timeline notes; the final is made after.
+1. Open Studio Screening and play Pick Up the Terminal v3 (unchanged since J's "okay it's good").
+2. To go on to the final, approve it with any guidance and a GPU budget.
