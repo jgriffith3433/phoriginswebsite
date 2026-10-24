@@ -17,6 +17,8 @@ import { callQuestOpen, missionCallId, missionLabel, missionsFor } from './game/
 import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, flyPlayer, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
+import { installMenuNav } from './game/menuNav';
+import { lineText } from './game/locale';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
@@ -70,6 +72,9 @@ const healthFill = document.getElementById('healthFill') as HTMLSpanElement;
 const messageBox = document.getElementById('messageBox') as HTMLDivElement;
 const messageTitle = document.getElementById('messageTitle') as HTMLHeadingElement;
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
+const messageEyebrow = document.getElementById('messageEyebrow');
+if (messageEyebrow) messageEyebrow.textContent = lineText('ui.menu.eyebrow', 'Hawkes Biomedical · One night');
+installMenuNav(messageBox);
 const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 const settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
 if (!loadFailed()) {

@@ -1,1 +1,2 @@
-- convention: Train splats are procedural — edit `tools/genTrainSplats.mjs` and rerun it (`node tools/genTrainSplats.mjs`) to rewrite `assets/splats/*.splat`; `SHARPEN` sets how tight opaque splats are.
+- convention: Title card markup is in game.html (#messageBox); main.ts keys off the h1 text "PH Origins" and button ids, so restyle with CSS scoped to .message and never rename them.
+- lesson: vite build rewrites tracked play/ files even with --outDir — run `git checkout play` after a test build.
