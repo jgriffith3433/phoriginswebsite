@@ -5,28 +5,28 @@
  "burn": true,
  "clips": [
   {
-   "asset": "a_59d8e120a196a354",
+   "asset": "a_2a8cd97edb6242bc",
    "in": 0,
    "out": 3.56,
    "beat": "hook",
    "label": "CU profile at window: Compliance doesn't set the ceiling."
   },
   {
-   "asset": "a_9f3b54a7ec7818ca",
+   "asset": "a_aeebe5381449ce50",
    "in": 0,
    "out": 3.0,
    "beat": "phone",
    "label": "insert: phone rings out, VOSS"
   },
   {
-   "asset": "a_5194ac1244d555ab",
+   "asset": "a_c576bdfb07815bb9",
    "in": 0,
    "out": 2.06,
    "beat": "ots_text",
    "label": "OTS insert: the text pops up on his phone"
   },
   {
-   "asset": "a_ed2f9dfb51a6e21c",
+   "asset": "a_adf6404104d8ab48",
    "in": 0,
    "out": 1.9,
    "beat": "text",
@@ -39,21 +39,21 @@
    }
   },
   {
-   "asset": "a_04b5e627d85e493a",
+   "asset": "a_39b646119289acb6",
    "in": 0,
    "out": 3.0,
    "beat": "alarm_ots",
    "label": "OTS Pierce turns to the monitor, B3 alarm"
   },
   {
-   "asset": "a_3c3b0f41b57a1150",
+   "asset": "a_cc6d36a6a3eac15f",
    "in": 0,
    "out": 2.6,
    "beat": "alarm_shape",
    "label": "CU monitor: a shape crawls in the corridor"
   },
   {
-   "asset": "a_db34f5b79db11441",
+   "asset": "a_4874cd521f98434f",
    "in": 0,
    "out": 1.375,
    "beat": "not_tonight",
@@ -62,7 +62,7 @@
    "dialogue": true
   },
   {
-   "asset": "a_18b32c21fd124ead",
+   "asset": "a_bb44517c83f5e8b9",
    "in": 0,
    "out": 3.06,
    "beat": "elevator",
@@ -121,35 +121,35 @@
    }
   },
   {
-   "asset": "a_c66e80b863a00e15",
+   "asset": "a_50c3483fab2dd2e6",
    "in": 0,
    "out": 3.0,
    "beat": "doors",
    "label": "WS doors open on green light"
   },
   {
-   "asset": "a_547a09d3715bd7c9",
+   "asset": "a_db603b89a64a40a8",
    "in": 0,
    "out": 1.2,
    "beat": "vat_crack",
    "label": "vat: hairline crack spreads"
   },
   {
-   "asset": "a_ad632fd87b0c9380",
+   "asset": "a_d959cec1fd34fe78",
    "in": 0,
    "out": 2.0,
    "beat": "vat_face",
    "label": "CU Pierce's face, crack light spreading on the glass"
   },
   {
-   "asset": "a_4af19ec56150a05d",
+   "asset": "a_b26cf68bcfa9cf7d",
    "in": 0,
    "out": 3.06,
    "beat": "vat_burst",
    "label": "vat: tempered glass bursts, green flood"
   },
   {
-   "asset": "a_5648b2c55377fbc3",
+   "asset": "a_31aa032274146062",
    "in": 0,
    "out": 5.06,
    "beat": "dark1",

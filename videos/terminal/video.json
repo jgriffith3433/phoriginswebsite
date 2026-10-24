@@ -1,6 +1,6 @@
 {
  "slug": "terminal",
- "stage": "animatic",
+ "stage": "final",
  "voice": {
   "pierce": "ZthjuvLPty3kTMaNKVKb"
  },
@@ -115,5 +115,23 @@
    "j_40b5c686b06b",
    "j_9ee48aea7c3e"
   ]
+ },
+ "final": {
+  "cut_no_card": "a_eac3a9ee2f65b910",
+  "upscaled": {
+   "hook": "a_2a8cd97edb6242bc",
+   "phone": "a_aeebe5381449ce50",
+   "ots_text": "a_c576bdfb07815bb9",
+   "text": "a_adf6404104d8ab48",
+   "alarm_ots": "a_39b646119289acb6",
+   "alarm_shape": "a_cc6d36a6a3eac15f",
+   "not_tonight": "a_4874cd521f98434f",
+   "elevator": "a_bb44517c83f5e8b9",
+   "doors": "a_50c3483fab2dd2e6",
+   "vat_crack": "a_db603b89a64a40a8",
+   "vat_face": "a_d959cec1fd34fe78",
+   "vat_burst": "a_b26cf68bcfa9cf7d",
+   "dark1": "a_31aa032274146062"
+  }
  }
 }
