@@ -1,0 +1,1 @@
+v6 re-cut of the final: lipsynced opening line, clean floor digits (58, 30, B1, B3), shattering-glass vat burst. Notes answered in video.json summary. GPU about $0.6 (lipsync 2 takes, burst 3 takes, 2 upscales, 1 sfx); critic not re-run. Cut: videos/terminal/out/cut_v6.mp4 (local file, Studio uploads it). Floor digits are drawn locally, so they are not Gen assets.

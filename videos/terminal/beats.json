@@ -1,0 +1,116 @@
+[
+ {
+  "key": "hook",
+  "seconds": 3.56,
+  "action": "CU profile at window: Compliance doesn't set the ceiling.",
+  "t": 0
+ },
+ {
+  "key": "phone",
+  "seconds": 3.0,
+  "action": "insert: phone rings out, VOSS",
+  "t": 3.56
+ },
+ {
+  "key": "ots_text",
+  "seconds": 2.06,
+  "action": "OTS insert: the text pops up on his phone",
+  "t": 6.56
+ },
+ {
+  "key": "text",
+  "seconds": 1.9,
+  "action": "CU Pierce reads the text, jaw tightens",
+  "t": 8.62
+ },
+ {
+  "key": "alarm_ots",
+  "seconds": 3.0,
+  "action": "OTS Pierce turns to the monitor, B3 alarm",
+  "t": 10.52
+ },
+ {
+  "key": "alarm_shape",
+  "seconds": 2.6,
+  "action": "CU monitor: a shape crawls in the corridor",
+  "t": 13.52
+ },
+ {
+  "key": "not_tonight",
+  "seconds": 1.375,
+  "action": "CU Pierce: ...Not tonight.",
+  "t": 16.12
+ },
+ {
+  "key": "elevator",
+  "seconds": 3.06,
+  "action": "MS Pierce alone in the elevator",
+  "t": 17.5
+ },
+ {
+  "key": "f58",
+  "seconds": 1,
+  "action": "ECU floor 58",
+  "t": 20.55
+ },
+ {
+  "key": "f30",
+  "seconds": 0.8,
+  "action": "ECU floor 30",
+  "t": 21.55
+ },
+ {
+  "key": "fb1",
+  "seconds": 0.6,
+  "action": "ECU floor B1",
+  "t": 22.36
+ },
+ {
+  "key": "fb3",
+  "seconds": 0.6,
+  "action": "ECU floor B3",
+  "t": 22.96
+ },
+ {
+  "key": "doors",
+  "seconds": 3.0,
+  "action": "WS doors open on green light",
+  "t": 23.56
+ },
+ {
+  "key": "vat_crack",
+  "seconds": 1.2,
+  "action": "vat: hairline crack spreads",
+  "t": 26.56
+ },
+ {
+  "key": "vat_face",
+  "seconds": 2.0,
+  "action": "CU Pierce's face, crack light spreading on the glass",
+  "t": 27.76
+ },
+ {
+  "key": "vat_burst",
+  "seconds": 3.06,
+  "action": "vat: tempered glass bursts, green flood",
+  "t": 29.76
+ },
+ {
+  "key": "dark1",
+  "seconds": 5.06,
+  "action": "ECU Pierce's eyes in dim green, slow push, his voice",
+  "t": 32.82
+ },
+ {
+  "key": "dark2",
+  "seconds": 0.6,
+  "action": "black beat",
+  "t": 37.88
+ },
+ {
+  "key": "endcard",
+  "seconds": 1.5,
+  "action": "end card",
+  "t": 38.48
+ }
+]

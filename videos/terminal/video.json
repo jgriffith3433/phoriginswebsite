@@ -1,0 +1,159 @@
+{
+ "slug": "terminal",
+ "stage": "final",
+ "voice": {
+  "pierce": "ZthjuvLPty3kTMaNKVKb"
+ },
+ "voice_jobs": {
+  "l1": "j_cc5da1eb8207",
+  "l2": "j_0d329d8c2f42",
+  "l3": "j_961cc20e1bd9"
+ },
+ "sfx_jobs": {
+  "phone": "j_fdb4eae3ed23",
+  "burst": "j_1fc345c54589",
+  "pulse": "j_867b40155ff6",
+  "elevator": "j_c85ba1978382",
+  "doors": "j_532d8df46651"
+ },
+ "keyframe_jobs": [
+  "j_d5d28cccfa28",
+  "j_a66b90c95853",
+  "j_875ed00fb510",
+  "j_6a264cd9f612",
+  "j_d2bfb6b56d40",
+  "j_bbb3a2f69f14",
+  "j_457110763ad1",
+  "j_6b9d3052fa02",
+  "j_eda35cc98512",
+  "j_5abca35027cd",
+  "j_1f250505cf26",
+  "j_917d446e962c",
+  "j_f43b10420bf2"
+ ],
+ "clips": {
+  "c1_window": "a_28923a5cb63620e9",
+  "c2_phone": "a_9f3b54a7ec7818ca",
+  "c3_face_text": "a_ab33332f910b95c4",
+  "c4_monitor": "a_fdcfa99ca252c331",
+  "c5_not_tonight": "a_62cdd76085a8c69a",
+  "c6_elevator": "a_4c8731b88e135627",
+  "c7_doors": "a_c66e80b863a00e15",
+  "c8_vat_burst": "a_547a09d3715bd7c9"
+ },
+ "voice_assets": {
+  "l1": "a_5c5ba5e2c4f76517",
+  "l2": "a_da935c040982e8ae",
+  "l3": "a_cae27c17bafed2d8"
+ },
+ "sfx_assets": {
+  "phone": "a_5c960121c940ed93",
+  "burst": "a_aaffe35f7e9aa4a6",
+  "pulse": "a_7a80203ef3029880",
+  "elevator": "a_3205fb12ce4054a3",
+  "doors": "a_6789a8af4e7ff827"
+ },
+ "stills": {
+  "d58": "a_d43cc07143b26d97",
+  "d30": "a_a200d7c5cc626c8e",
+  "db1": "a_1edb72fac7a90759",
+  "db3": "a_64b27444ba02f181",
+  "black": "a_877d4f4e40091cdc"
+ },
+ "clip_jobs_pending": [
+  "j_50afa459f0d3",
+  "j_6c035b04cb62",
+  "j_c1b2819ee66a",
+  "j_22c10bfc3a00",
+  "j_cd8dddefeef9"
+ ],
+ "v2": {
+  "cut": "a_aa873d9060581abd",
+  "elevator_kf": "a_dc3fa6730534f542",
+  "ots_kf": "a_c7b8c66d0a1c124a",
+  "vat_kf": "a_4691f2c4dc71fe28",
+  "lipsync": "a_db34f5b79db11441",
+  "clips": {
+   "text": "a_ed2f9dfb51a6e21c",
+   "elevator": "a_18b32c21fd124ead",
+   "ots": "a_5194ac1244d555ab",
+   "vat_burst": "a_4af19ec56150a05d"
+  },
+  "jobs": [
+   "j_5ee510111c08",
+   "j_b4c42bfcfeea",
+   "j_76159eb870be",
+   "j_9f9e9d306405",
+   "j_07c14b4c04b5",
+   "j_70fc780b0b93",
+   "j_e3e970e0abaa",
+   "j_809c609267da"
+  ]
+ },
+ "v3": {
+  "cut_no_card": "a_fb20a89f7e93629b",
+  "clips": {
+   "hook": "a_59d8e120a196a354",
+   "vat_face": "a_ad632fd87b0c9380",
+   "dark_push": "a_5648b2c55377fbc3",
+   "corridor": "a_3c3b0f41b57a1150",
+   "ots_monitor": "a_04b5e627d85e493a",
+   "jacket_rejected": "a_85bcc3a5557a81fa"
+  },
+  "jobs": [
+   "j_4266305e5bb2",
+   "j_12ee1f270b9d",
+   "j_df2dffba947b",
+   "j_075aa4150c09",
+   "j_00a721eebb9b",
+   "j_89ca6b0b798a",
+   "j_b2eddf880f37",
+   "j_a587e9f3a33a",
+   "j_8d7a01bd08bb",
+   "j_d5512de807c8",
+   "j_b89fbc303104",
+   "j_40b5c686b06b",
+   "j_9ee48aea7c3e"
+  ]
+ },
+ "final": {
+  "cut_no_card": "a_eac3a9ee2f65b910",
+  "upscaled": {
+   "hook": "a_2a8cd97edb6242bc",
+   "phone": "a_aeebe5381449ce50",
+   "ots_text": "a_c576bdfb07815bb9",
+   "text": "a_adf6404104d8ab48",
+   "alarm_ots": "a_39b646119289acb6",
+   "alarm_shape": "a_cc6d36a6a3eac15f",
+   "not_tonight": "a_4874cd521f98434f",
+   "elevator": "a_bb44517c83f5e8b9",
+   "doors": "a_50c3483fab2dd2e6",
+   "vat_crack": "a_db603b89a64a40a8",
+   "vat_face": "a_d959cec1fd34fe78",
+   "vat_burst": "a_b26cf68bcfa9cf7d",
+   "dark1": "a_31aa032274146062"
+  }
+ },
+ "v6": {
+  "cut_local": "out/cut_v6.mp4",
+  "lipsync_takes": [
+   "a_ae44c1b96df862d1",
+   "a_a72ca71cf8b91829"
+  ],
+  "hook_upscaled": "a_7d75e302714b87c2",
+  "burst_takes": [
+   "a_6b3528eb2f7a214f",
+   "a_86055c9692b78751",
+   "a_7cf84c4a9b439737"
+  ],
+  "burst_upscaled": "a_ff3a5642d403dc5a",
+  "glass_sfx": "a_f346e91a6e59858c",
+  "jobs": [
+   "j_670cc29e8b08",
+   "j_9354be1db124",
+   "j_093a4205d3c5",
+   "j_816fc8bbc4f1",
+   "j_d57df90e86e8"
+  ]
+ }
+}
