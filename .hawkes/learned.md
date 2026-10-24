@@ -1,1 +1,0 @@
-- convention: Train splats are procedural — edit `tools/genTrainSplats.mjs` and rerun it (`node tools/genTrainSplats.mjs`) to rewrite `assets/splats/*.splat`; `SHARPEN` sets how tight opaque splats are.

@@ -2138,6 +2138,218 @@
         .settings-rows { gap: 10px; margin-top: 10px; }
         .overlay-card .button-row { margin-top: 12px; }
       }
+      /* ---- Title card (PH Origins main menu): cold pharma glass over a slow, drifting night. ---- */
+      .message {
+        background:
+          radial-gradient(ellipse at 50% 38%, rgba(10, 22, 32, 0.35) 0%, rgba(2, 5, 9, 0.82) 78%),
+          rgba(3, 8, 14, 0.4);
+        padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 16px);
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+      /* Atmosphere: a pale sweep of fluorescent light crossing the glass, and a faint grid of floors behind. */
+      .message::before,
+      .message::after {
+        content: '';
+        position: absolute;
+        pointer-events: none;
+      }
+      .message::before {
+        inset: 0;
+        background: repeating-linear-gradient(0deg, rgba(103, 210, 255, 0.035) 0 1px, transparent 1px 46px);
+        mask-image: radial-gradient(ellipse at 50% 50%, #000 0%, transparent 75%);
+        -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 0%, transparent 75%);
+        animation: menu-grid 26s linear infinite;
+      }
+      .message::after {
+        top: -20%;
+        bottom: -20%;
+        left: -40%;
+        width: 40%;
+        background: linear-gradient(100deg, transparent, rgba(190, 225, 245, 0.05), transparent);
+        transform: skewX(-12deg);
+        animation: menu-sweep 14s ease-in-out infinite;
+      }
+      @keyframes menu-grid { from { background-position: 0 0; } to { background-position: 0 46px; } }
+      @keyframes menu-sweep {
+        0%, 25% { transform: translateX(0) skewX(-12deg); opacity: 0; }
+        40% { opacity: 1; }
+        85%, 100% { transform: translateX(380%) skewX(-12deg); opacity: 0; }
+      }
+      @keyframes menu-rise {
+        from { opacity: 0; transform: translateY(14px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes menu-rule {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+      }
+
+      .message .panel {
+        width: min(460px, 100%);
+        max-width: none;
+        margin: auto;
+        padding: 34px 30px 26px;
+        border-radius: 6px;
+        border: 1px solid rgba(160, 200, 222, 0.16);
+        border-top: 1px solid rgba(212, 180, 131, 0.55);
+        background: linear-gradient(180deg, rgba(10, 18, 26, 0.94), rgba(4, 8, 13, 0.97));
+        box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        animation: menu-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .message .panel > * { animation: menu-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+      .message .panel > :nth-child(1) { animation-delay: 0.10s; }
+      .message .panel > :nth-child(2) { animation-delay: 0.18s; }
+      .message .panel > :nth-child(3) { animation-delay: 0.26s; }
+      .message .panel > :nth-child(n+4) { animation-delay: 0.34s; }
+      .message .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.34em;
+        color: var(--gold);
+        margin-bottom: 14px;
+      }
+      .message .eyebrow:empty { display: none; }
+      .message .panel h1 {
+        margin: 0 0 14px;
+        font-size: clamp(34px, 7vw, 52px);
+        font-weight: 300;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        line-height: 1.05;
+        padding-bottom: 16px;
+        position: relative;
+      }
+      .message .panel h1::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 64px;
+        height: 1px;
+        margin-left: -32px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        transform-origin: center;
+        animation: menu-rule 0.9s 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .message .subtitle { font-size: 14px; letter-spacing: 0.06em; line-height: 1.5; }
+
+      .message .button-row {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 24px;
+      }
+      .message .button-row button {
+        position: relative;
+        width: 100%;
+        min-height: 46px;
+        border-radius: 3px;
+        padding: 13px 18px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.26em;
+        transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, letter-spacing 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .message .button-row .primary {
+        background: linear-gradient(180deg, rgba(212, 180, 131, 0.95), rgba(176, 142, 92, 0.95));
+        color: #0a0f14;
+        font-weight: 700;
+        min-height: 52px;
+        box-shadow: 0 0 0 1px rgba(212, 180, 131, 0.4), 0 10px 28px rgba(212, 180, 131, 0.14);
+      }
+      .message .button-row .secondary {
+        background: rgba(120, 170, 200, 0.05);
+        border: 1px solid rgba(160, 200, 222, 0.16);
+        color: #d4dde4;
+      }
+      .message .button-row .primary:hover:not(:disabled),
+      .message .button-row .primary:focus-visible {
+        transform: none;
+        letter-spacing: 0.3em;
+        box-shadow: 0 0 0 1px rgba(240, 215, 170, 0.8), 0 12px 34px rgba(212, 180, 131, 0.3);
+      }
+      .message .button-row .secondary:hover:not(:disabled),
+      .message .button-row .secondary:focus-visible {
+        transform: none;
+        background: rgba(103, 210, 255, 0.1);
+        border-color: rgba(140, 220, 255, 0.55);
+        color: #fff;
+        letter-spacing: 0.3em;
+      }
+      .message .button-row button:focus-visible {
+        outline: 2px solid var(--gold);
+        outline-offset: 3px;
+      }
+      .message .button-row button:active:not(:disabled) {
+        transform: scale(0.985);
+        transition-duration: 0.05s;
+      }
+      .message .button-row button:disabled { opacity: 0.55; }
+      .message .build-version { text-align: center; margin-top: 18px; }
+
+      .message .level-select {
+        border: 1px solid rgba(160, 200, 222, 0.14);
+        border-radius: 4px;
+        background: rgba(6, 12, 18, 0.9);
+        text-align: left;
+      }
+      .message .level-select-header h2 {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      .message .level-list { max-height: min(46vh, 340px); overflow-y: auto; gap: 6px; }
+      .message .level-item {
+        border-radius: 3px;
+        border: 1px solid rgba(160, 200, 222, 0.12);
+        border-left: 3px solid transparent;
+        background: rgba(120, 170, 200, 0.04);
+        min-height: 48px;
+        transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+      }
+      .message .level-item:hover:not(:disabled),
+      .message .level-item:focus-visible {
+        outline: none;
+        transform: translateX(4px);
+        border-left-color: var(--gold);
+        background: rgba(103, 210, 255, 0.1);
+      }
+      .message .level-item:active:not(:disabled) { transform: translateX(2px) scale(0.99); }
+      .message .level-item > span { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+      .message .level-select-header .secondary {
+        border-radius: 3px;
+        padding: 8px 14px;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        min-height: 36px;
+      }
+
+      /* Phones: the card fills the width, buttons are thumb-sized, and a short landscape screen lays the actions out in two columns. */
+      @media (max-width: 600px) {
+        .message { padding-left: 12px; padding-right: 12px; }
+        .message .panel { padding: 26px 18px 20px; }
+        .message .button-row button { min-height: 50px; }
+      }
+      @media (orientation: landscape) and (max-height: 520px) {
+        .message { align-items: safe center; }
+        .message .panel { padding: 16px 22px 14px; width: min(560px, 100%); }
+        .message .eyebrow { margin-bottom: 6px; }
+        .message .panel h1 { font-size: 28px; margin-bottom: 8px; padding-bottom: 10px; }
+        .message .button-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 12px; }
+        .message .button-row .primary { grid-column: 1 / -1; min-height: 44px; }
+        .message .button-row button { min-height: 40px; padding: 8px 12px; letter-spacing: 0.2em; }
+        .message .build-version { margin-top: 8px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .message::before, .message::after { animation: none; }
+        .message::after { display: none; }
+        .message .panel, .message .panel > *, .message .panel h1::after { animation: none; }
+        .message .button-row button, .message .level-item { transition: none; }
+      }
     </style>
     <script type="module" src="./src/main.ts"></script>
   </head>
@@ -2300,7 +2512,7 @@
       <div class="message" id="messageBox">
         <div class="level-credits" id="levelCredits" hidden></div>
         <div class="panel">
-          <div class="eyebrow"></div>
+          <div class="eyebrow" id="messageEyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
           <p class="subtitle" id="messageText">Loading</p>
           <p class="mission-score" id="missionScore" hidden></p>
