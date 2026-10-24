@@ -1,1 +1,3 @@
-Screening tab: watch v6 (about 39.8 s). Check the opening line's mouth (0:00-0:03), the elevator numbers 58, 30, B1, B3 (0:20-0:23) and the vat burst (0:30-0:33).
+1. Open the beta site and play The Station (level 6).
+2. Shock or kill someone standing next to a bench.
+3. The body should lie on the floor, not hover at seat height. On the Train (level 7), the same on the car floor.

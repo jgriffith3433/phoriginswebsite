@@ -50,6 +50,8 @@ export const floorUnder = (
     if (!hit.hit || !hit.pickedPoint || hit.distance >= bestDist) continue;
     const normal = hit.getNormal(true);
     if (!normal || normal.y < 0.55) continue;
+    // They stood at feetY; a surface above that is a bench or ledge beside them, not the ground.
+    if (hit.pickedPoint.y > feetY + 0.12) continue;
     bestDist = hit.distance;
     best = hit.pickedPoint.y;
   }
