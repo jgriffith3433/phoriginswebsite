@@ -1,1 +1,1 @@
-window.HAWKES_BUILD = {"version":"1.7.2","commit":"2a65b9cb50ab","date":"2026-10-24T02:55:20Z"};
+window.HAWKES_BUILD = {"version":"1.8.0","commit":"0bccf7a49adc","date":"2026-10-24T23:36:04Z"};
