@@ -8,7 +8,7 @@ import { PLAYER_ASSET_ID } from '../game/modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
-import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
+import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
 import { deathScream, STREET_SFX } from './streetAudio';
 
 /**
@@ -378,8 +378,8 @@ export const createTheTrain = (host: TheTrainHost) => {
     rider.corpse = CORPSE_SECONDS;
     rider.resting = false;
     rider.poseHold = 0;
-    const feet = rider.mesh.position.y + rider.avatar.group.position.y;
-    rider.floorY = floorUnder(host.scene, rider.mesh.position.x, rider.mesh.position.z, feet, rider.avatar.group);
+    // The car floor is flat at y 0. A ray down from a rider by the bench hits the seat pan (0.45) and the body floated there.
+    rider.floorY = 0;
     rider.avatar.playClip(shocked ? 'electrocuted' : 'deathforward', false);
     host.playFile(deathScream('man'), 0.72);
   };
