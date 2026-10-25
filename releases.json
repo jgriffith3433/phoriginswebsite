@@ -1,8 +1,17 @@
 {
   "product": "phorigins",
   "name": "PH Origins",
-  "current": "1.8.0",
+  "current": "1.9.0",
   "releases": [
+    {
+      "version": "1.9.0",
+      "date": "2026-10-25",
+      "build": "6879670",
+      "title": "Main menu polish",
+      "notes": [
+        "The main menu has been reworked to look and feel more polished."
+      ]
+    },
     {
       "version": "1.8.0",
       "date": "2026-10-24",
