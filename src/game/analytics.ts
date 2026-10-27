@@ -1,10 +1,10 @@
-import '../analytics/hawkes-analytics.js';
 import { apexPlan } from './interior/apexPlan';
 import { b3Plan } from './interior/b3Plan';
 
 /**
  * Hawkes Analytics for the game (contract: hawkesgen/docs/analytics.md; AGENTS.md "Analytics" says what goes where).
- * The SDK copy in src/analytics/ captures page views, sessions, device, load timings, errors, fps and the exit
+ * Hawkes Gen's SDK (game.html loads https://gen.hawkesgen.com/sdk/analytics@1.js, never a copy: a Gen deploy updates
+ * every site at once) captures page views, sessions, device, load timings, errors, fps and the exit
  * snapshot itself; this module adds the story: levels, deaths, objectives, cutscenes, calls, settings, menus, and a
  * `stuck` event when an objective has not moved for three minutes of play. Nothing here runs per frame: the watcher
  * reads the game once a second and only sends when something changed. No event carries anything personal.
@@ -30,7 +30,17 @@ const STUCK_SECONDS = 180;
 const STUCK_REPORTS = 3;
 const ASK_THEME = { background: 'rgba(5, 10, 16, 0.96)', color: '#f3f1ea', accent: '#d4b483', font: 'Arial, Helvetica, sans-serif', radius: '18px' };
 
-const sdk = () => window.hawkesAnalytics;
+/**
+ * The SDK, or while it hasn't loaded (blocked, offline, Gen down) a stand-in whose calls wait in hawkesAnalyticsQ: the
+ * SDK runs them when it arrives, and the game never depends on it. Nothing here reads a value back from the SDK.
+ */
+const queued = new Proxy({} as Window['hawkesAnalytics'], {
+  get: (_, method) => (...args: unknown[]) => {
+    (window.hawkesAnalyticsQ ??= []).push([method, ...args]);
+    return undefined;
+  },
+});
+const sdk = (): Window['hawkesAnalytics'] => window.hawkesAnalytics ?? queued;
 
 const ROOM_NAMES: Record<string, string> = {
   hall1: 'hall 1', hall2: 'hall 2', board: 'boardroom', office: 'office', bath: 'restroom',

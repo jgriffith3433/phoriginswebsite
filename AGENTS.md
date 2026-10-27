@@ -389,8 +389,10 @@ GoatCounter is gone; never add another tracker. Devtools (`devtools.html`, the l
   site page copies those two tags and the footer's `p.site-privacy` line (anonymous statistics, no cookies, no
   personal data, no IP stored). `site/marketing.js` adds `play_click` (`page`, `where`: nav / page / footer), `video`
   `trailer` play (focus moving into the YouTube frame) and `feature` `site.music`.
-- **The game** bundles the SDK: `src/analytics/hawkes-analytics.js` + `.d.ts` are copies of
-  `hawkesgen/clients/js/` (copy them again when those change; don't edit them here). `src/game/analytics.ts`
+- **The game** loads the SDK from Gen too: `game.html` has the `analytics@1.js` tag (`defer`, before the game module).
+  Never a copy here (J, 2026-10-27): a Gen deploy updates every site at once. `src/analytics/hawkes-analytics.d.ts` is
+  a copy of Gen's types, only for the compiler. If the SDK hasn't loaded, `sdk()` in `src/game/analytics.ts` queues the
+  calls in `hawkesAnalyticsQ` (the SDK runs them when it arrives), so the game never depends on Gen. `src/game/analytics.ts`
   (`createGameAnalytics`) inits it and owns every game event; `main.ts` makes it at the end, next to the playtest
   probe, with its own read-only probe, and calls `analytics?.…` at the real moments. Settings says the same privacy
   line (`.settings-privacy`).

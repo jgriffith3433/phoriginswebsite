@@ -1818,6 +1818,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
     };
 
     // ---- scenarios
+    if (id === 'analytics' && !window.hawkesAnalytics?.version) {
+      t.problem('bug', 'Hawkes Analytics did not load on the game page (gen.hawkesgen.com/sdk/analytics@1.js)');
+      return;
+    }
     if (id === 'analytics' && !window.hawkesAnalytics.config().debug) {
       // The SDK reads its debug switch when the page loads: reload once with it, and carry the run on through the URL.
       const url = new URL(location.href);
