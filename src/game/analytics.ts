@@ -3,7 +3,7 @@ import { b3Plan } from './interior/b3Plan';
 
 /**
  * Hawkes Analytics for the game (contract: hawkesgen/docs/analytics.md; AGENTS.md "Analytics" says what goes where).
- * Hawkes Gen's SDK (game.html loads https://gen.hawkesgen.com/sdk/analytics@1.js, never a copy: a Gen deploy updates
+ * Hawkes Gen's SDK (game.html loads https://gen.hawkesgen.ai/sdk/analytics@1.js, never a copy: a Gen deploy updates
  * every site at once) captures page views, sessions, device, load timings, errors, fps and the exit
  * snapshot itself; this module adds the story: levels, deaths, objectives, cutscenes, calls, settings, menus, and a
  * `stuck` event when an objective has not moved for three minutes of play. Nothing here runs per frame: the watcher

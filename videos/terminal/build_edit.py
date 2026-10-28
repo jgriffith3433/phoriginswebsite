@@ -35,5 +35,5 @@ A("a_6789a8af4e7ff827",S["doors"],5,"doors, something wet",volume=0.8),
 A("a_aaffe35f7e9aa4a6",S["vat_burst"],3,"vat bursts"),
 A("a_cae27c17bafed2d8",round(S["dark1"]+0.4,2),5.33,"PIERCE: I can still think. That is not the same as still being me.",dialogue=True)]
 edit={"width":1080,"height":1920,"fps":24,"burn":True,"clips":clips,"audio":audio,
-"captions":[{"text":"PH ORIGINS\nMade with Hawkes Gen · hawkesgen.com","start":S["endcard"],"end":end}]}
+"captions":[{"text":"PH ORIGINS\nMade with Hawkes Gen · hawkesgen.ai","start":S["endcard"],"end":end}]}
 json.dump(edit,open("edit.json","w"),indent=1,ensure_ascii=False)

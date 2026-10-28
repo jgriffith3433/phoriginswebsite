@@ -448,7 +448,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       {
         id: 'site-links',
         title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged',
-        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.com (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
+        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
         seconds: 60,
         tags: ['menus', 'site'],
       },
@@ -1154,7 +1154,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     const siteLinksCheck = async () => {
       const pages: [string, string][] = [['index.html', 'Home'], ['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
       const want: [string, string, RegExp, string][] = [
-        ['gen', 'https://hawkesgen.com', /powered by\s+hawkes gen/i, 'Powered by HAWKES GEN'],
+        ['gen', 'https://hawkesgen.ai', /powered by\s+hawkes gen/i, 'Powered by HAWKES GEN'],
         ['parent', 'https://hawkesbiomedical.com', /hawkes biomedical/i, 'Hawkes Biomedical'],
       ];
       for (const [i, [file, name]] of pages.entries()) {
@@ -1197,7 +1197,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       // The game screen stays as it was: no credit on the title card or in the HUD.
       t.scene('Game screen');
       await sleep(400);
-      const inGame = [...document.querySelectorAll<HTMLAnchorElement>('a[href]')].filter((a) => /hawkesgen\.com|hawkesbiomedical\.com/.test(a.href) || a.hasAttribute('data-hawkes-credit'));
+      const inGame = [...document.querySelectorAll<HTMLAnchorElement>('a[href]')].filter((a) => /hawkesgen\.ai|hawkesbiomedical\.com/.test(a.href) || a.hasAttribute('data-hawkes-credit'));
       t.event('game-screen', inGame.length ? `credit links on the game page: ${inGame.map((a) => a.href).join(', ')}` : 'unchanged: no credit links on the game page');
       if (inGame.length) t.problem('bug', `the game page shows ${inGame.length} credit link(s); the credit belongs on the site pages only`);
       await sleep(2000);
@@ -1819,7 +1819,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
 
     // ---- scenarios
     if (id === 'analytics' && !window.hawkesAnalytics?.version) {
-      t.problem('bug', 'Hawkes Analytics did not load on the game page (gen.hawkesgen.com/sdk/analytics@1.js)');
+      t.problem('bug', 'Hawkes Analytics did not load on the game page (gen.hawkesgen.ai/sdk/analytics@1.js)');
       return;
     }
     if (id === 'analytics' && !window.hawkesAnalytics.config().debug) {
