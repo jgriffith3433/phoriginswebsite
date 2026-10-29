@@ -1,5 +1,7 @@
 # PH Origins — agent notes
 
+**Lanes, local dev and deploys:** `LANES.md` (branches dev -> beta -> main; `dev.bat`, `deploy-beta.bat`, `deploy-prod.bat`, `status.bat`, `links.bat`, `sync.bat`; beta and live links).
+
 Cursor still reads this file. Keep it current when you change architecture, asset IDs, or hard constraints.
 
 The owner is **J** (software engineer). Work in code. Do not commit unless asked. Do not dump agent instructions into ElevenLabs / VO prompts.
