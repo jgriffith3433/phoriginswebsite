@@ -387,7 +387,7 @@ Hawkes Analytics is the only analytics here (contract: `hawkesgen/docs/analytics
 GoatCounter is gone; never add another tracker. Devtools (`devtools.html`, the level editor) loads none of it.
 
 - **Site pages** (index, about, characters, whatsnew) load `./play/hawkes-build.js` and then
-  `https://gen.hawkesgen.ai/sdk/analytics@1.js` with `data-product="phorigins"`, both `defer`, in the head. A new
+  `https://hawkesgen.ai/sdk/analytics@1.js` with `data-product="phorigins"`, both `defer`, in the head. A new
   site page copies those two tags and the footer's `p.site-privacy` line (anonymous statistics, no cookies, no
   personal data, no IP stored). `site/marketing.js` adds `play_click` (`page`, `where`: nav / page / footer), `video`
   `trailer` play (focus moving into the YouTube frame) and `feature` `site.music`.
