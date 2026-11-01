@@ -8,7 +8,7 @@
       name="description"
       content="PH Origins is a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark."
     />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>PH Origins</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -53,7 +53,7 @@
               <path d="M16 9l5 6M21 9l-5 6" />
             </svg>
           </button>
-          <a class="nav-play" data-play href="/play/game.html">Play</a>
+          <a class="nav-play" data-play href="./play/game.html">Play</a>
         </div>
       </div>
     </header>
@@ -63,7 +63,42 @@
         <div class="stage" aria-hidden="true">
           <div class="stage-shot" id="shotA"></div>
           <div class="stage-shot" id="shotB"></div>
-          <video class="stage-loop" data-hero-loop autoplay muted loop playsinline preload="auto" disablepictureinpicture poster="./site/hero-loop.jpg" aria-hidden="true"><source src="./site/hero-loop.mp4" type="video/mp4"></video><script>(function(){var v=document.querySelector('[data-hero-loop]');if(v&&window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){v.removeAttribute('autoplay');v.pause();}})();</script>
+          <video class="stage-loop" data-hero-loop autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback poster="./site/hero-loop.jpg?v=2" aria-hidden="true"><source src="./site/hero-loop.mp4?v=2" type="video/mp4"></video>
+          <script>
+            // The hero's muted gameplay loop. Reduced motion keeps the still poster. Phones in Low Power Mode or data
+            // saver refuse autoplay until the visitor does something, so it asks again on every tap, click, key, scroll
+            // and return to the tab (only a tap's touchend/pointerup/click counts as a gesture on iOS, not touchstart)
+            // until it is actually playing.
+            (function () {
+              var v = document.querySelector('[data-hero-loop]');
+              if (!v) return;
+              if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                v.removeAttribute('autoplay');
+                v.pause();
+                return;
+              }
+              v.muted = true;
+              v.defaultMuted = true;
+              v.setAttribute('muted', '');
+              var types = ['touchend', 'pointerup', 'click', 'keydown', 'scroll'];
+              var play = function () {
+                if (!v.paused) return;
+                if (v.readyState === 0) v.load();
+                var p = v.play();
+                if (p && p.catch) p.catch(function () {});
+              };
+              var stop = function () {
+                types.forEach(function (type) { window.removeEventListener(type, play, true); });
+              };
+              types.forEach(function (type) { window.addEventListener(type, play, { capture: true, passive: true }); });
+              v.addEventListener('playing', stop);
+              document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) play();
+              });
+              window.addEventListener('pageshow', play);
+              play();
+            })();
+          </script>
           <div class="stage-vignette"></div>
         </div>
         <div class="hero-copy">
@@ -73,7 +108,7 @@
             Pierce Hawkes sells dominance from the 58th floor. Below the tower, B3 has started writing back.
           </p>
           <div class="actions">
-            <a class="play-btn" data-play href="/play/game.html">Play now</a>
+            <a class="play-btn" data-play href="./play/game.html">Play now</a>
             <a class="text-link" href="./about.html">About the game</a>
           </div>
         </div>
@@ -182,7 +217,7 @@
           <a href="./about.html">About</a>
           <a href="./characters.html">Characters</a>
           <a href="./whatsnew.html">What&rsquo;s new</a>
-          <a data-play href="/play/game.html">Play</a>
+          <a data-play href="./play/game.html">Play</a>
         </nav>
         <a class="footer-version" href="./whatsnew.html" data-hawkes-version data-prefix="Version " hidden></a>
         <p class="hawkes-credit">
