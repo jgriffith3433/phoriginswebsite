@@ -63,7 +63,35 @@
         <div class="stage" aria-hidden="true">
           <div class="stage-shot" id="shotA"></div>
           <div class="stage-shot" id="shotB"></div>
-          <video class="stage-loop" data-hero-loop autoplay muted loop playsinline preload="auto" disablepictureinpicture poster="./site/hero-loop.jpg" aria-hidden="true"><source src="./site/hero-loop.mp4" type="video/mp4"></video><script>(function(){var v=document.querySelector('[data-hero-loop]');if(v&&window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){v.removeAttribute('autoplay');v.pause();}})();</script>
+          <video class="stage-loop" data-hero-loop autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback poster="./site/hero-loop.jpg?v=2" aria-hidden="true"><source src="./site/hero-loop.mp4?v=2" type="video/mp4"></video>
+          <script>
+            // The hero's muted gameplay loop. Reduced motion keeps the still poster. Otherwise it asks to play now, and
+            // again on the first touch, click, scroll or key and when the tab comes back, because phones in Low Power
+            // Mode or data saver refuse autoplay until the visitor does something.
+            (function () {
+              var v = document.querySelector('[data-hero-loop]');
+              if (!v) return;
+              if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                v.removeAttribute('autoplay');
+                v.pause();
+                return;
+              }
+              v.muted = true;
+              v.defaultMuted = true;
+              var play = function () {
+                if (!v.paused) return;
+                var p = v.play();
+                if (p && p.catch) p.catch(function () {});
+              };
+              play();
+              ['touchstart', 'pointerdown', 'scroll', 'keydown'].forEach(function (type) {
+                window.addEventListener(type, play, { once: true, passive: true });
+              });
+              document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) play();
+              });
+            })();
+          </script>
           <div class="stage-vignette"></div>
         </div>
         <div class="hero-copy">
