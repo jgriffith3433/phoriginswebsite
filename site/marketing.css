@@ -869,3 +869,12 @@ a {
 
 /* Hawkes Analytics notice, last line of every footer. */
 .site-footer .site-privacy { flex-basis: 100%; margin: 0; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: none; opacity: 0.75; }
+
+/* The hero loop is decoration: never show the browser's own play button or controls over it (iOS draws a big play
+   button when Low Power Mode holds autoplay back; the poster shows instead until it plays). */
+.stage-loop::-webkit-media-controls,
+.stage-loop::-webkit-media-controls-start-playback-button,
+.stage-loop::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+}
