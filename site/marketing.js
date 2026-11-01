@@ -1,7 +1,7 @@
 const isLocalHost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 const isLocalDev = isLocalHost && location.port !== '4173' && location.port !== '';
 
-// The static href is the live build (/play/game.html). Vite dev serves the game from source at /game.html.
+// The static href is the built game (./play/game.html, relative so it also works under the beta subpath). Vite dev serves the game from source at /game.html.
 if (isLocalDev) {
   document.querySelectorAll('[data-play]').forEach((link) => link.setAttribute('href', '/game.html'));
 }
