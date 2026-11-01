@@ -73,7 +73,7 @@ const messageBox = document.getElementById('messageBox') as HTMLDivElement;
 const messageTitle = document.getElementById('messageTitle') as HTMLHeadingElement;
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
 const messageEyebrow = document.getElementById('messageEyebrow');
-if (messageEyebrow) messageEyebrow.textContent = lineText('ui.menu.eyebrow', 'Hawkes Biomedical · One night');
+if (messageEyebrow) messageEyebrow.textContent = lineText('ui.menu.eyebrow', 'Board session · One night');
 installMenuNav(messageBox);
 const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 const settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
