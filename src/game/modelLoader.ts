@@ -490,6 +490,9 @@ export const importGlbUnderParent = async (
   });
 };
 
+/** Waits (ms) before each retry of a failed model load. */
+const MODEL_RETRY_DELAYS = [400, 1200, 3000];
+
 export const loadGlbByAssetId = async (
   scene: BABYLON.Scene,
   assetIdOrPath: string,
@@ -501,11 +504,18 @@ export const loadGlbByAssetId = async (
     console.warn(`No GLB path found for "${assetIdOrPath}".`);
     return null;
   }
-  try {
-    const matte = /asset-ch|parasite|hero/i.test(assetIdOrPath);
-    return await importGlbUnderParent(scene, modelPath, parent, { matte });
-  } catch (error) {
-    console.warn(`Failed to load model "${modelPath}":`, error);
-    return null;
+  const matte = /asset-ch|parasite|hero/i.test(assetIdOrPath);
+  // A host can answer 503 for a moment. A failed fetch touches nothing in the scene, so ask again.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await importGlbUnderParent(scene, modelPath, parent, { matte });
+    } catch (error) {
+      if (attempt >= MODEL_RETRY_DELAYS.length || parent.isDisposed()) {
+        console.warn(`Failed to load model "${modelPath}":`, error);
+        return null;
+      }
+      console.warn(`Model "${modelPath}" failed, retrying:`, error);
+      await new Promise((resolve) => setTimeout(resolve, MODEL_RETRY_DELAYS[attempt]));
+    }
   }
 };
