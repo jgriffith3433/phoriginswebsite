@@ -37,6 +37,7 @@ import { createAct1, type Act1, type StoryCarry } from './story/act1';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
+import { createTheMorning, ENDING_TRACK as MORNING_ENDING_TRACK, type TheMorning } from './story/theMorning';
 import { createTheTrain, ENDING_TRACK as TRAIN_ENDING_TRACK, TRAIN_CREDITS, type TheTrain } from './story/theTrain';
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
@@ -423,6 +424,8 @@ const isDeskLevel = () => getLevelDefinition(state.level).libraryId === 'the-des
 const isStationLevel = () => getLevelDefinition(state.level).libraryId === 'the-station';
 /** Level 7, The Train. `?beat=train` and the train playtests enter it; Continue after The Station does too. */
 const isTrainLevel = () => getLevelDefinition(state.level).libraryId === 'the-train';
+/** Level 8, The Morning: Pierce's apartment. `?beat=morning` enters it; Continue after The Train does too. */
+const isMorningLevel = () => getLevelDefinition(state.level).libraryId === 'the-morning';
 
 const cineHud = document.createElement('div');
 cineHud.style.cssText = 'position:absolute;left:0;right:0;bottom:11%;text-align:center;pointer-events:none;z-index:24;display:none;';
@@ -546,7 +549,7 @@ const endCutscene = () => {
   act.releaseSeat();
   resetCutsceneState();
   phone.aimBeam(null);
-  const restoreLight = reequip && !!gear?.light && !isReturnLevel() && !isHomeLevel() && !isDeskLevel() && !isStationLevel() && !isTrainLevel();
+  const restoreLight = reequip && !!gear?.light && !isReturnLevel() && !isHomeLevel() && !isDeskLevel() && !isStationLevel() && !isTrainLevel() && !isMorningLevel();
   if (!restoreLight) {
     if (phone.isRaised()) phone.setRaised(false);
     else phone.setFlashlight(false);
@@ -623,6 +626,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     desk.dispose();
     station.dispose();
     train.dispose();
+    morning.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
@@ -641,7 +645,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
     clearImpactMarks();
     bindScenePickups();
-    ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
+    ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel() || isMorningLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
     if (isHomeLevel()) await home.mount();
     if (isStationLevel()) await station.mount();
     if (isTrainLevel()) await train.mount();
@@ -872,7 +876,7 @@ const SFX = {
   levelComplete: '/assets/audio/sfx/level-complete.ogg',
   shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
 } as const;
-const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
+const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-morning' ? MORNING_ENDING_TRACK : getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
 let walkLoop: ClipHandle | null = null;
 let walkWanted = false;
 let endingSong: HTMLAudioElement | null = null;
@@ -977,7 +981,7 @@ const updateHud = () => {
   devHealth.textContent = Math.max(0, Math.ceil(state.health)).toString();
   devLevel.textContent = state.level.toString();
 
-  const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel();
+  const storyLevel = isApexPeakLevel() || isB3Level() || isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel() || isMorningLevel();
   const streetPowers = shadowPlay().controls();
   const shadowHands = streetPowers && shadowPlay().shadowMode();
   const handsRaised = shadowHands && shadowPlay().handsOut();
@@ -1641,11 +1645,12 @@ skipCutsceneBtn?.addEventListener('click', (event) => {
     endCutscene();
     return;
   }
-  if (home.playing() || desk.playing() || station.playing() || train.playing()) analytics?.scriptedSkipped();
+  if (home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing()) analytics?.scriptedSkipped();
   if (home.playing()) home.skip();
   else if (desk.playing()) desk.skip();
   else if (station.playing()) station.skip();
   else if (train.playing()) train.skip();
+  else if (morning.playing()) morning.skip();
   lockGameplayPointer();
 });
 shadowHint?.addEventListener('click', (event) => {
@@ -2135,6 +2140,50 @@ const station: TheStation = createTheStation({
   },
 });
 
+const morning: TheMorning = createTheMorning({
+  scene,
+  placePierce,
+  lie: (on, x, y, z, yaw) => {
+    // Flat on his back, head toward the pillow; standing again restores the upright pose.
+    playerAvatar.group.rotation.x = on ? -Math.PI / 2 : 0;
+    if (on) {
+      playerAvatar.group.position.set(x, y, z);
+      playerAvatar.group.rotation.y = yaw + Math.PI;
+    }
+  },
+  playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
+  frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  releaseCamera: () => followCamera.clearCinematic(),
+  fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  showLine: (title, text) => showCineHud(title, text),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) {
+      playerAvatar.setLocomotion(false, true);
+      audio.setWalk(false);
+      unlockPointer();
+    }
+  },
+  clearMarker: () => objectiveMarker.setTarget(null),
+  showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
+  setObjective,
+  playFile: (url, volume) => { audio.play(url, volume); },
+  setWalk: (moving) => audio.setWalk(moving),
+  setCarry: (items) => { storyCarry = items; },
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  resumeLocomotion: () => playerAvatar.resumeLocomotion(),
+  offerEnd: (title, text) => offerLevelEnd(title, text),
+  clearInput: () => clearInputState(),
+  unlockNext: () => unlockProgress(),
+  refreshHud: () => updateHud(),
+  ringCall: (id) => {
+    clearHands();
+    phone.ring(id);
+    updateHud();
+  },
+  callBusy: () => phone.locksBody(),
+});
+
 const train: TheTrain = createTheTrain({
   scene,
   camera,
@@ -2189,6 +2238,7 @@ storyObjectiveId = () => {
   if (isHomeLevel()) return home.objectiveKey();
   if (isStationLevel()) return station.objectiveKey();
   if (isTrainLevel()) return train.objectiveKey();
+  if (isMorningLevel()) return morning.objectiveKey();
   return act.objectiveKey();
 };
 
@@ -2224,6 +2274,7 @@ const beginGame = () => {
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
   if (isStationLevel()) station.onStart();
+  if (isMorningLevel()) morning.onStart();
   if (isTrainLevel()) {
     train.onStart();
     syncSkipButton();
@@ -2344,6 +2395,13 @@ void (async () => {
   } else if (beat === 'train') {
     // `?beat=train` enters level 7 the same way Continue does.
     const level = getLevels().find((entry) => entry.libraryId === 'the-train') ?? getLevelDefinition(7);
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    applyLevelConfig(level);
+    await loadMissionScene(level.path);
+    beginGame();
+  } else if (beat === 'morning') {
+    const level = getLevels().find((entry) => entry.libraryId === 'the-morning') ?? getLevelDefinition(8);
     state.level = level.id;
     state.progression.currentLevel = level.id;
     applyLevelConfig(level);
@@ -2785,10 +2843,11 @@ const storyAction = (): string | null => {
   if (!messageBox.classList.contains('hidden')) return null;
   if (pendingEnd?.levelId === state.level) return 'End Level';
   pendingEnd = null;
-  if (panelsOpen() || home.playing() || desk.playing() || station.playing() || train.playing()) return null;
+  if (panelsOpen() || home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing()) return null;
   if (phone.locksBody() || phone.isScreenOpen()) return null;
   if (isDeskLevel()) return desk.action();
   if (isTrainLevel()) return train.action();
+  if (isMorningLevel()) return morning.action();
   if (isHomeLevel() || isStationLevel()) return null;
   return act.action();
 };
@@ -2803,6 +2862,7 @@ const confirmStoryAction = () => {
   }
   if (isDeskLevel()) desk.confirm();
   else if (isTrainLevel()) train.confirm();
+  else if (isMorningLevel()) morning.confirm();
   else act.confirm();
   syncActionHint();
   return true;
@@ -3553,7 +3613,7 @@ const applyCarSway = () => {
 /** Skip shows whenever a cutscene or a scripted scene runs. Also called when a scene starts, so it is there from the first frame. */
 const syncSkipButton = () => {
   if (!skipCutsceneBtn) return;
-  const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing() || train.playing());
+  const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing());
   skipCutsceneBtn.hidden = !canSkip;
 };
 
@@ -3571,7 +3631,7 @@ const renderLoop = () => {
     defeatLeft = Math.max(0, defeatLeft - delta);
     if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
   }
-  const cine = state.inCutscene || home.playing() || desk.playing() || station.playing() || train.playing();
+  const cine = state.inCutscene || home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing();
   updateMinimap(delta);
   dressing.step(delta);
   if (wasInCutscene && !cine) lockGameplayPointer();
@@ -3613,6 +3673,9 @@ const renderLoop = () => {
     } else if (train.playing()) {
       train.step(delta);
       updateCamera(delta, false, null);
+    } else if (morning.playing()) {
+      morning.step(delta);
+      updateCamera(delta, false, null);
     } else {
     phone.update(delta, followCamera.camera, state.player);
     if (state.fireHeld) fireWeapon();
@@ -3643,6 +3706,7 @@ const renderLoop = () => {
     home.step(delta);
     station.step(delta);
     train.step(delta);
+    morning.step(delta);
     const streetShake = home.shake();
     if (streetShake > 0) {
       camera.position.x += (Math.random() - 0.5) * streetShake;
@@ -3961,7 +4025,7 @@ analytics = createGameAnalytics({
   paused: () => isPaused(),
   menuOpen: () => !messageBox.classList.contains('hidden'),
   cutscene: () => (state.inCutscene && activeCutscene ? { id: activeCutscene.id, time: activeCutscene.time } : null),
-  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : train.playing() ? 'train-opening' : null),
+  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : train.playing() ? 'train-opening' : morning.playing() ? 'morning' : null),
   level: () => {
     const level = getLevelDefinition(state.level);
     return { id: level.id, libraryId: level.libraryId, name: level.name };
@@ -4010,7 +4074,7 @@ installPhPlaytest({
   cutscene: () => (state.inCutscene && activeCutscene
     ? { id: activeCutscene.id, time: activeCutscene.time, duration: activeCutscene.duration }
     : null),
-  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : train.playing() ? 'train-opening' : null),
+  scripted: () => (home.playing() ? 'going-home-lobby' : desk.playing() ? 'the-desk' : station.playing() ? 'station-opening' : train.playing() ? 'train-opening' : morning.playing() ? 'morning' : null),
   phone: () => {
     const view = phone.view();
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
@@ -4061,6 +4125,7 @@ installPhPlaytest({
     return [...levelList.querySelectorAll('.level-item strong')].map((row) => row.textContent?.trim() ?? '');
   },
   train: () => dressing.train()?.stats() ?? null,
+  morning: () => (isMorningLevel() ? morning.story() : null),
   ending: () => endingSong?.src || null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   forceDefeat: () => {

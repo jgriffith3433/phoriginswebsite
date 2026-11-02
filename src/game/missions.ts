@@ -39,6 +39,8 @@ export const missionsFor = (libraryId: string): MissionQuest[] => {
   }
   // The Train: Hale calls at the stop (the only signal on the line); picking up, or dialing her there, counts.
   if (libraryId === 'the-train') return [mainQuest(), sideQuest('call-hale', 'Call Hale', 'Dial Hale and get through.')];
+  // The Morning: Voss rings the apartment and the player answers (counts on connect).
+  if (libraryId === 'the-morning') return [mainQuest(), sideQuest('call-voss', 'Call Voss', 'Answer Voss when he rings.')];
   return [mainQuest()];
 };
 

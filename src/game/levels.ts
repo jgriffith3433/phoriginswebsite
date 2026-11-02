@@ -37,6 +37,7 @@ const FALLBACK_LIBRARY: LibraryEntry[] = [
   { id: 'going-home', name: 'Going Home', path: '/levels/going-home.json', theme: 'Street', difficulty: 5, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 4200, reward: 'The street' },
   { id: 'the-station', name: 'The Station', path: '/levels/the-station.json', theme: 'Station', difficulty: 6, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 200, reward: 'The train' },
   { id: 'the-train', name: 'The Train', path: '/levels/the-train.json', theme: 'Station', difficulty: 7, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 60, reward: 'The car' },
+  { id: 'the-morning', name: 'The Morning', path: '/levels/the-morning.json', theme: 'Station', difficulty: 8, enemyCount: 0, combat: false, playerSpeed: 3.05, arenaSize: 40, reward: 'The news' },
 ];
 
 const normalizeLevel = (entry: LibraryEntry | Partial<LevelDefinition> | undefined, index: number): LevelDefinition => {

@@ -2,6 +2,7 @@ import type * as BABYLON from '@babylonjs/core';
 import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
 import { missingClip, storyLines } from '../game/locale';
 import type { TrainStory } from '../story/trainDress';
+import type { MorningStory } from '../story/theMorning';
 
 /**
  * Hawkes playtest contract v1 (spec: C:\Projects\hawkesstudio\docs\playtest.md).
@@ -56,6 +57,8 @@ export type PhProbe = {
     /** Level 7's script (theTrain.ts): its beat, the car, where the old body is and which way he faces. */
     story: TrainStory | null;
   } | null;
+  /** Level 8's script (theMorning.ts): its beat, whether he lies in bed, what the TV showed; null off level 8. */
+  morning: () => MorningStory | null;
   /** The ending song playing on the Level Complete card, or null. Level 7 reuses ending-6. */
   ending: () => string | null;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
@@ -432,16 +435,30 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['level', 'perf'],
       },
       {
+        id: 'level-8',
+        title: 'Level 8, The Morning: bed, the wake-up, the news naming Hawkes Tower and Pierce, Voss\'s call in full, the door, End Level',
+        description: 'Starts level 8 (test shortcut) and plays it with real input: walks to the bed and presses E (Sleep); the scene fades to black, Pierce lies in the bed and wakes (checks he lies in the bed, "I slept." is heard); walks to the television and presses E (Watch): the morning news plays on the canvas TV (checks the TV showed HAWKES TOWER and PIERCE HAWKES and the captions name them); Voss rings, the bot answers with F and checks all seven of his lines play in order; walks to the front door and presses E (Leave), then End Level. Checks the end song and the level 8 credits, and that the card is Exit only. Metric: morningSeconds. Lines use silent placeholder clips until the voice is generated.',
+        seconds: 240,
+        tags: ['level', 'story'],
+      },
+      {
+        id: 'level-8-release',
+        title: 'The Train Continue enters The Morning; the whole of level 8 follows',
+        description: 'Plays The Train (as level-7) to its card, checks Continue and Load Level list level 8, presses Continue and plays The Morning as level-8 does.',
+        seconds: 520,
+        tags: ['level'],
+      },
+      {
         id: 'level-7-release',
-        title: 'The Station Continue enters The Train; End Level only after the story, then the station song and level 7 credits; Exit only; Load Level lists it',
-        description: 'Starts The Station (test shortcut), skips its opening, and plays to the Level Complete card. Checks Continue is on that card, checks Load Level\'s list includes Level 7: The Train as Play, and presses Continue. Level 7 must start. Plays the train through real input (opening, Next car, the stop, Hale, the door). End Level must not appear before the story\'s last beat. Pressing it plays ending-6 and rolls the level 7 credits (Preferred A Man, Went Uptown; not The Station\'s "Open On Nothing"). The card then shows Exit only, with Continue hidden.',
+        title: 'The Station Continue enters The Train; End Level only after the story, then the station song and level 7 credits; Continue and Exit; Load Level lists it',
+        description: 'Starts The Station (test shortcut), skips its opening, and plays to the Level Complete card. Checks Continue is on that card, checks Load Level\'s list includes Level 7: The Train as Play, and presses Continue. Level 7 must start. Plays the train through real input (opening, Next car, the stop, Hale, the door). End Level must not appear before the story\'s last beat. Pressing it plays ending-6 and rolls the level 7 credits (Preferred A Man, Went Uptown; not The Station\'s "Open On Nothing"). The card then shows Continue (into level 8, The Morning) and Exit.',
         seconds: 480,
         tags: ['level'],
       },
       {
         id: 'level-7',
         title: 'Level 7, The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door, then the end song and credits',
-        description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, presses E (Next car) at the front end door, sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. End Level must be on the finished beat. The press plays ending-6, rolls the level 7 credits, and the card is Exit only. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
+        description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, presses E (Next car) at the front end door, sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. End Level must be on the finished beat. The press plays ending-6, rolls the level 7 credits, and the card offers Continue (level 8) and Exit. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
         seconds: 240,
         tags: ['level'],
       },
@@ -1772,14 +1789,162 @@ export const installPhPlaytest = (probe: PhProbe) => {
       const song = probe.ending() ?? '';
       const showing = !!credits && !credits.hidden && crawl.length > 40;
       const own = /Preferred A Man/.test(crawl) && /Went Uptown/.test(crawl) && !/Open On Nothing/.test(crawl);
-      const exitOnly = menu.title === 'Level Complete' && menu.start == null && /exit/i.test(exitBtn?.textContent ?? '');
+      const continues = menu.title === 'Level Complete' && menu.start === 'Continue' && /exit/i.test(exitBtn?.textContent ?? '');
       t.scene('Level 7 complete');
       t.event('ending', `song ${/ending-6\.mp3/.test(song) ? 'ending-6' : (song || 'none')}; credits ${showing && own ? 'level 7' : 'wrong'}; continue ${menu.start ?? 'hidden'}; button ${(exitBtn?.textContent ?? '').trim()}`);
       if (!/ending-6\.mp3/.test(song)) t.problem('bug', `level 7 did not play The Station's end song (got ${song || 'nothing'})`);
       if (!showing || !own) t.problem('bug', `level 7 credits did not roll ("${crawl.slice(0, 160)}")`);
-      if (!exitOnly) t.problem('bug', `level 7's card should be Exit only (continue ${menu.start ?? 'hidden'}, title ${menu.title}, other ${(exitBtn?.textContent ?? '').trim()})`);
+      if (!continues) t.problem('bug', `level 7's card should offer Continue into level 8 and Exit (continue ${menu.start ?? 'hidden'}, title ${menu.title}, other ${(exitBtn?.textContent ?? '').trim()})`);
       await sleep(3500);
       return 'won';
+    };
+
+    /** Level 8, The Morning: bed, wake-up, the TV, Voss's call, the door, End Level. Real input all the way. */
+    const morningRun = async (arrived = false): Promise<Outcome> => {
+      if (!arrived) levelsTotal = 1;
+      const t0 = performance.now();
+      const story = () => probe.morning();
+      try {
+        const lib = await (await fetch(new URL('levels/level-library.json', location.href).href, { cache: 'no-store' })).json() as { levels?: { id: string; combat?: boolean }[] };
+        const row = (lib.levels ?? []).find((r) => r.id === 'the-morning');
+        t.event('check', `level library: the-morning combat ${row?.combat}`);
+        if (!row) t.problem('bug', 'levels/level-library.json has no the-morning row');
+        else if (row.combat !== false) t.problem('bug', `level 8 has combat on in the library (${row.combat})`);
+      } catch {
+        t.event('check', 'level library not readable from this page');
+      }
+      if (!arrived) {
+        t.event('setup', 'start level 8, The Morning, directly (test shortcut)');
+        await probe.setupLevel(8);
+      }
+      await t.until(() => probe.running() && probe.level().libraryId === 'the-morning' && !probe.menu().open, 90000, 'level 8 to start');
+      t.scene('Level 8: The Morning');
+      t.event('level-start', 'Level 8: The Morning');
+      const vossIds = [1, 2, 3, 4, 5, 6, 7].map((n) => `phone.voss-morning.${String(n).padStart(2, '0')}`);
+      const rows = storyLines().filter((r) => /^(dialogue\.morning|phone\.voss-morning|news\.morning)\./.test(r.id));
+      for (const row of rows) if (missingClip(row)) t.problem('bug', `level 8 line ${row.id} has no clip`);
+      const textOf = (id: string) => storyLines().find((r) => r.id === id)?.text ?? id;
+      const heard: string[] = [];
+      const note = (text: string) => { const x = text.trim(); if (x && heard[heard.length - 1] !== x) heard.push(x); };
+      let sawLying = false;
+      let sawWake = false;
+      let sawTv = false;
+      let sawCall = false;
+      let sawSleepScene = false;
+      let endPressed = false;
+      let endBeat = '';
+      let tvText = '';
+      let lastBeat = '';
+      let lastAction = '';
+      let stepsDone = 0;
+      for (;;) {
+        await tick();
+        if (performance.now() - t0 > 300000) return 'stuck';
+        const menu = probe.menu();
+        if (menu.open) { if (endPressed) break; continue; }
+        note(probe.subtitle().text);
+        const s = story();
+        if (s) {
+          tvText = s.tvText || tvText;
+          if (s.beat !== lastBeat) {
+            lastBeat = s.beat;
+            t.event('beat', `level 8 beat: ${s.beat}`);
+          }
+          if (s.lying) sawLying = true;
+          if (s.beat === 'wake' && s.lying && !sawWake) {
+            sawWake = true;
+            t.event('wake', 'Pierce wakes in bed: lying in the bed as the morning comes up');
+          }
+          if (s.tvOn && s.beat === 'news' && !sawTv) { sawTv = true; t.event('tv', 'the television is on: the morning news'); }
+        }
+        if (probe.scripted()) { releaseAll(); sawSleepScene = true; continue; }
+        if (!probe.running()) continue;
+        const phone = probe.phone();
+        if (phone.incoming) {
+          releaseAll();
+          await once('f', 1500, 'answer call');
+          sawCall = true;
+          t.event('call', `${phone.speaker || 'Voss'} is calling; answered`);
+          continue;
+        }
+        if (phone.busy) { releaseAll(); note(phone.line); continue; }
+        const label = probe.action();
+        if (label) {
+          releaseAll();
+          if (await once('e', 1200, label)) {
+            if (label !== lastAction) t.event('action', label);
+            lastAction = label;
+            stepsDone += 1;
+            if (label === 'End Level') {
+              endBeat = story()?.beat ?? '';
+              t.event('end-level', `offered on beat ${endBeat || 'unknown'}`);
+              if (endBeat !== 'done') t.problem('bug', `End Level showed before the story finished (beat ${endBeat || 'none'})`);
+              endPressed = true;
+            }
+          }
+          continue;
+        }
+        const obj = probe.objective();
+        if (!obj.target) { releaseAll(); continue; }
+        const there = await walkTo(obj.target, `${obj.title || 'objective'}: ${obj.text.slice(0, 40)}`, 0.3);
+        if (there) {
+          const p = probe.player();
+          if (dist(p, obj.target) > 0.12) steer(obj.target, false);
+          else releaseAll();
+        }
+      }
+      releaseAll();
+      const secs = (performance.now() - t0) / 1000;
+      t.metric('morningSeconds', Math.round(secs));
+      t.event('level-end', `Level 8: The Morning in ${secs.toFixed(0)} s (${stepsDone} actions)`);
+      // 1: he slept, and woke in the bed.
+      const slept = heard.indexOf(textOf('dialogue.morning.slept'));
+      t.event('check', `wake: scene ${sawSleepScene ? 'played' : 'NOT seen'}, lying in bed ${sawLying}, woke ${sawWake}, "I slept." ${slept >= 0 ? 'heard' : 'missing'}`);
+      if (!sawSleepScene || !sawLying || !sawWake || slept < 0) t.problem('bug', 'Pierce did not wake in bed after sleeping');
+      // 2: the TV names the tower and Pierce.
+      t.event('check', `tv: ${tvText}`);
+      if (!/HAWKES TOWER/.test(tvText) || !/PIERCE HAWKES/.test(tvText) || !sawTv) t.problem('bug', `the TV did not name Hawkes Tower and Pierce Hawkes (${tvText || 'nothing shown'})`);
+      if (!heard.some((x) => /Hawkes Tower/.test(x)) || !heard.some((x) => /Pierce Hawkes/.test(x))) t.problem('bug', 'the news captions never named Hawkes Tower and Pierce Hawkes');
+      // 3: Voss's call plays in full, in order.
+      const order = vossIds.map((id) => heard.indexOf(textOf(id)));
+      const full = sawCall && order.every((at, i) => at >= 0 && (i === 0 || at > order[i - 1]));
+      t.event('check', `voss call: ${full ? 'all 7 lines, in order' : `INCOMPLETE (${order.join(', ')})`}, call done ${story()?.callDone}`);
+      if (!full || story()?.callDone !== true) t.problem('bug', "Voss's call did not play in full");
+      // 4: ends at the door; the card offers Exit only.
+      await sleep(700);
+      const menu = probe.menu();
+      const exitBtn = document.getElementById('loadModelBtn');
+      const credits = document.getElementById('levelCredits');
+      const crawl = (credits?.textContent ?? '').replace(/\s+/g, ' ').trim();
+      const showing = !!credits && !credits.hidden && crawl.length > 40 && /Voted In The Dark/.test(crawl);
+      const exitOnly = menu.title === 'Level Complete' && menu.start == null && /exit/i.test(exitBtn?.textContent ?? '');
+      t.scene('Level 8 complete');
+      t.event('ending', `song ${probe.ending() ?? 'none'}; credits ${showing ? 'level 8' : 'wrong'}; continue ${menu.start ?? 'hidden'}`);
+      if (!endPressed) t.problem('bug', 'level 8 ended without End Level at the door');
+      if (!showing) t.problem('bug', `level 8 credits did not roll ("${crawl.slice(0, 120)}")`);
+      if (!exitOnly) t.problem('bug', `level 8's card should be Exit only (continue ${menu.start ?? 'hidden'}, title ${menu.title})`);
+      await sleep(3000);
+      return endPressed ? 'won' : 'stuck';
+    };
+
+    /** The Train through to its card, Continue into level 8, then The Morning. */
+    const morningReleaseRun = async (): Promise<Outcome> => {
+      levelsTotal = 2;
+      levelIndex = 0;
+      const train = await trainStoryRun(false);
+      if (train !== 'won') return train;
+      const card = probe.menu();
+      if (card.title !== 'Level Complete' || card.start !== 'Continue') {
+        t.problem('bug', `The Train's card did not offer Continue (title ${card.title}, start ${card.start ?? 'none'})`);
+        return 'error';
+      }
+      const detail = [...document.querySelectorAll('#levelList .level-item')].map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim());
+      if (!detail.some((line) => /level 8/i.test(line) && /morning/i.test(line))) t.problem('bug', `Load Level does not list level 8, The Morning: ${detail.join(' | ')}`);
+      press(probe.startButton, 'Continue');
+      await t.until(() => probe.running() && probe.level().libraryId === 'the-morning' && !probe.menu().open, 90000, 'Continue from The Train into level 8');
+      t.event('continue', `The Train's Continue entered ${probe.level().name}`);
+      levelIndex = 1;
+      return morningRun(true);
     };
 
     /** The Station's card, Continue into level 7, then the train through to Exit only. */
@@ -2016,6 +2181,20 @@ export const installPhPlaytest = (probe: PhProbe) => {
 
     if (id === 'level-7') {
       const outcome = await trainStoryRun();
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'level-8') {
+      const outcome = await morningRun();
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'level-8-release') {
+      const outcome = await morningReleaseRun();
       t.progress(1);
       t.finish(outcome);
       return;
