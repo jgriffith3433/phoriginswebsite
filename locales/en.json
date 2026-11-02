@@ -5007,6 +5007,330 @@
       "text": "Him To Explain",
       "audio": "",
       "note": "Level 6 right column"
+    },
+    {
+      "id": "dialogue.morning.hand",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "It still knows my hand.",
+      "audio": "/assets/audio/cutscenes/morning/hand.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "dialogue.morning.home",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Home.",
+      "audio": "/assets/audio/cutscenes/morning/home.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "dialogue.morning.slept",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I slept.",
+      "audio": "/assets/audio/cutscenes/morning/slept.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "dialogue.morning.dont",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "I don't sleep.",
+      "audio": "/assets/audio/cutscenes/morning/dont.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "dialogue.morning.without",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "They did it without me in the room.",
+      "audio": "/assets/audio/cutscenes/morning/without.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "dialogue.morning.walks",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Somebody is going to have to tell them which one of us walks in.",
+      "audio": "/assets/audio/cutscenes/morning/walks.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "phone.voss-morning.01",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Pierce. Before you hear it from anyone else.",
+      "audio": "/assets/audio/phone/voss-morning-01.ogg",
+      "performance": "nervous",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "phone.voss-morning.02",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You saw I voted. I put it on the record because the charter says patients are not a number.",
+      "audio": "/assets/audio/phone/voss-morning-02.ogg",
+      "performance": "nervous",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "phone.voss-morning.03",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "I called you first last night. You were already in the elevator.",
+      "audio": "/assets/audio/phone/voss-morning-03.ogg",
+      "performance": "nervous",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "phone.voss-morning.04",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "I called Hale, too. She answered with a vote.",
+      "audio": "/assets/audio/phone/voss-morning-04.ogg",
+      "performance": "nervous",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "phone.voss-morning.05",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "I sealed it. The doors, the records. The tape from last night stays with me, not with the company.",
+      "audio": "/assets/audio/phone/voss-morning-05.ogg",
+      "performance": "nervous",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "phone.voss-morning.06",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You're not on the tape, Pierce. The man in the photograph is.",
+      "audio": "/assets/audio/phone/voss-morning-06.ogg",
+      "performance": "nervous",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "phone.voss-morning.07",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Stay off the street, and come to me. I'll be where I always am.",
+      "audio": "/assets/audio/phone/voss-morning-07.ogg",
+      "performance": "nervous",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "news.morning.01",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "Good morning. Hawkes Biomedical has a new chairman this morning, and its founder is out.",
+      "audio": "",
+      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+    },
+    {
+      "id": "news.morning.02",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "In a statement issued before dawn, the board said it had voted overnight to remove Pierce Hawkes as chairman, citing a breach of his duties to the board and to the company's investors.",
+      "audio": "",
+      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+    },
+    {
+      "id": "news.morning.03",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "The board said Mr. Hawkes left a scheduled meeting at Hawkes Tower last evening and could not be reached for the rest of the night.",
+      "audio": "",
+      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+    },
+    {
+      "id": "news.morning.04",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "Director Hale, who chaired the meeting, has been named interim chairman. She said the company is stable, and that the matters before the board are contained.",
+      "audio": "",
+      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+    },
+    {
+      "id": "news.morning.05",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "A second director, identified only as Voss, is reported to have supported the motion.",
+      "audio": "",
+      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+    },
+    {
+      "id": "news.morning.06",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "Police said they were called to Hawkes Tower last night after a report from building security. No one was hurt, and no arrests have been made.",
+      "audio": "",
+      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+    },
+    {
+      "id": "news.morning.07",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "Pierce Hawkes, founder and, until last night, chairman of Hawkes Biomedical. We'll have more as it comes in.",
+      "audio": "",
+      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+    },
+    {
+      "id": "news.morning.tick.1",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "HAWKES BIOMEDICAL REMOVES FOUNDER AS CHAIRMAN",
+      "audio": "",
+      "note": "Level 8 TV ticker"
+    },
+    {
+      "id": "news.morning.tick.2",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "DIRECTOR HALE NAMED INTERIM CHAIRMAN",
+      "audio": "",
+      "note": "Level 8 TV ticker"
+    },
+    {
+      "id": "news.morning.tick.3",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "BOARD: \"MATTERS ARE CONTAINED\"",
+      "audio": "",
+      "note": "Level 8 TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: NO ONE HURT AT HAWKES TOWER",
+      "audio": "",
+      "note": "Level 8 TV ticker"
+    },
+    {
+      "id": "news.morning.head.1",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "HAWKES TOWER",
+      "audio": "",
+      "note": "Level 8 TV still caption"
+    },
+    {
+      "id": "news.morning.head.2",
+      "type": "text",
+      "speaker": "Morning News",
+      "text": "PIERCE HAWKES",
+      "audio": "",
+      "note": "Level 8 TV still caption (portrait of the old face)"
+    },
+    {
+      "id": "objective.morning.bed",
+      "type": "objective",
+      "speaker": "Home",
+      "text": "Sleep. The bed.",
+      "audio": "",
+      "note": "Level 8 first objective"
+    },
+    {
+      "id": "objective.morning.news",
+      "type": "objective",
+      "speaker": "The news",
+      "text": "The television.",
+      "audio": "",
+      "note": "Level 8 after the wake-up"
+    },
+    {
+      "id": "objective.morning.call",
+      "type": "objective",
+      "speaker": "Voss",
+      "text": "Answer the phone. F.",
+      "audio": "",
+      "note": "Level 8 while Voss rings"
+    },
+    {
+      "id": "objective.morning.out",
+      "type": "objective",
+      "speaker": "Out",
+      "text": "The front door.",
+      "audio": "",
+      "note": "Level 8 after the call"
+    },
+    {
+      "id": "ui.action.morning.sleep",
+      "type": "ui",
+      "speaker": "Sleep",
+      "text": "Sleep",
+      "audio": "",
+      "note": "Level 8 bed"
+    },
+    {
+      "id": "ui.action.morning.watch",
+      "type": "ui",
+      "speaker": "Watch",
+      "text": "Watch",
+      "audio": "",
+      "note": "Level 8 TV"
+    },
+    {
+      "id": "ui.action.morning.leave",
+      "type": "ui",
+      "speaker": "Leave",
+      "text": "Leave",
+      "audio": "",
+      "note": "Level 8 door"
+    },
+    {
+      "id": "ui.complete.morning",
+      "type": "ui",
+      "speaker": "Level Complete",
+      "text": "The morning kept its story. He kept the door.",
+      "audio": "",
+      "note": "The Morning complete card"
     }
   ]
 }
