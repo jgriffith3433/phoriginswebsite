@@ -163,7 +163,7 @@ naming it, and it is flagged as Q6*); the tape is mentioned once; B3 is never na
 - Main objective keys: `objective.morning.home`, `.news`, `.out`; `ui.complete.morning`; line prefix
   `dialogue.morning.*`, `bark.morning.*`, `news.morning.*`, `phone.voss-morning.*`.
 - Side quests: `call-voss` only (the call is incoming; it counts on connect). `call-hale` is available but Hale does
-  not answer (S5 note, Q7).
+  not answer (what she says next is Q9).
 - Continue: none; this is the last playable level until J says otherwise. Card is **Exit only**, like level 7.
 
 ## Part 2 — Open canon questions (not invented; please decide)
