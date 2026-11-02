@@ -118,6 +118,39 @@
           "duration": 1.68
         }
       ]
+    },
+    "voss-morning": {
+      "contact": "voss",
+      "lines": [
+        {
+          "line": "phone.voss-morning.01",
+          "duration": 3.46
+        },
+        {
+          "line": "phone.voss-morning.02",
+          "duration": 6.51
+        },
+        {
+          "line": "phone.voss-morning.03",
+          "duration": 4.76
+        },
+        {
+          "line": "phone.voss-morning.04",
+          "duration": 3.53
+        },
+        {
+          "line": "phone.voss-morning.05",
+          "duration": 6.97
+        },
+        {
+          "line": "phone.voss-morning.06",
+          "duration": 4.57
+        },
+        {
+          "line": "phone.voss-morning.07",
+          "duration": 4.69
+        }
+      ]
     }
   },
   "byObjective": {

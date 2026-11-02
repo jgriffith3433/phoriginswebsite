@@ -1,0 +1,149 @@
+{
+  "id": "the-morning",
+  "name": "The Morning",
+  "theme": "Station",
+  "ambient": 0.55,
+  "assets": [
+    {
+      "id": "morning-floor",
+      "assetId": "structure-ground",
+      "kind": "ground",
+      "name": "morning-floor",
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "scale": {
+        "x": 8.4,
+        "y": 1,
+        "z": 6.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "morning-wall-n",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "morning-wall-n",
+      "x": 4,
+      "y": 1.3,
+      "z": -3.1,
+      "scale": {
+        "x": 8.6,
+        "y": 2.6,
+        "z": 0.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "morning-wall-s",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "morning-wall-s",
+      "x": 4,
+      "y": 1.3,
+      "z": 3.1,
+      "scale": {
+        "x": 8.6,
+        "y": 2.6,
+        "z": 0.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "morning-wall-w",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "morning-wall-w",
+      "x": -0.1,
+      "y": 1.3,
+      "z": 0,
+      "scale": {
+        "x": 0.2,
+        "y": 2.6,
+        "z": 6.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "morning-wall-e",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "morning-wall-e",
+      "x": 8.1,
+      "y": 1.3,
+      "z": 0,
+      "scale": {
+        "x": 0.2,
+        "y": 2.6,
+        "z": 6.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "morning-ceil",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "morning-ceil",
+      "x": 4,
+      "y": 2.7,
+      "z": 0,
+      "scale": {
+        "x": 8.6,
+        "y": 0.16,
+        "z": 6.4
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "morning-lamp-0",
+      "assetId": "structure-light",
+      "kind": "light",
+      "name": "morning-lamp-0",
+      "x": 2.5,
+      "y": 2.2,
+      "z": -1,
+      "intensity": 0.9,
+      "range": 8,
+      "color": [
+        1,
+        0.82,
+        0.6
+      ],
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "morning-lamp-1",
+      "assetId": "structure-light",
+      "kind": "light",
+      "name": "morning-lamp-1",
+      "x": 6,
+      "y": 2.2,
+      "z": 0.5,
+      "intensity": 0.9,
+      "range": 8,
+      "color": [
+        1,
+        0.85,
+        0.65
+      ],
+      "components": [
+        "Transform"
+      ]
+    }
+  ],
+  "triggers": []
+}

@@ -777,6 +777,18 @@ export const LEVEL_CREDITS: Record<number, LevelCredits> = {
       },
     ],
   },
+  8: {
+    left: [
+      { role: 'The Board', names: ['Voted In The Dark', 'And Called It', 'Stable'] },
+      { role: 'The Lock', names: ['Knew His Hand', 'Before He Did'] },
+      { role: 'The Bed', names: ['Held A Man', 'Who Does Not Sleep', 'For One Night'] },
+    ],
+    right: [
+      { role: 'The Anchor', names: ['Read His Name', 'Over A Face', 'He Did Not Recognize'] },
+      { role: 'Voss', names: ['Called First', 'And Kept The Tape'] },
+      { role: 'The Door', names: ['Closed Behind Him', 'On A Television', 'Saying His Name'] },
+    ],
+  },
 };
 
 const escapeHtml = (value: string) => value
