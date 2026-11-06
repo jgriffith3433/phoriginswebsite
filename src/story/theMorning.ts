@@ -47,13 +47,17 @@ export type MorningHost = {
 };
 
 export type MorningStory = {
-  beat: 'home' | 'sleep' | 'wake' | 'news' | 'call' | 'out' | 'leaving' | 'done';
+  beat: 'ride' | 'walk' | 'home' | 'sleep' | 'wake' | 'news' | 'call' | 'out' | 'leaving' | 'done';
   lying: boolean;
   tvOn: boolean;
   /** Everything the TV has shown so far (headline and still captions), for the playtest. */
   tvText: string;
   captions: number;
   callDone: boolean;
+  /** Beat-sheet scene now playing, 0 (S0, the ride) through 6 (S6, the exit). */
+  scene: number;
+  /** Every scene reached so far, in order (S0..S6), for the playtest. */
+  scenes: number[];
 };
 
 export const ENDING_TRACK = '/assets/audio/ending-6.mp3';
@@ -77,6 +81,8 @@ const L_HOME: Line = { id: 'dialogue.morning.home', speaker: 'Pierce', hold: 1.6
 const L_SLEPT: Line = { id: 'dialogue.morning.slept', speaker: 'Pierce', hold: 2.0 };
 const L_DONT: Line = { id: 'dialogue.morning.dont', speaker: 'Pierce', hold: 2.4 };
 const L_WITHOUT: Line = { id: 'dialogue.morning.without', speaker: 'Pierce', hold: 3.6 };
+const L_MINE: Line = { id: 'dialogue.morning.mine', speaker: 'Pierce', hold: 2.2 };
+const L_BLOCKS: Line = { id: 'dialogue.morning.blocks', speaker: 'Pierce', hold: 4.2 };
 const L_WALKS: Line = { id: 'dialogue.morning.walks', speaker: 'Pierce', hold: 5.2 };
 
 const NEWS_CAPTIONS = [1, 2, 3, 4, 5, 6, 7].map((n) => `news.morning.${String(n).padStart(2, '0')}`);
@@ -123,6 +129,13 @@ export const createTheMorning = (host: MorningHost) => {
   let still: (typeof NEWS_STILLS)[number] | 'static' | 'off' = 'off';
   let tvClock = 0;
   let newsT = 0;
+  let scenes: number[] = [];
+
+  const sceneOf = (b: MorningStory['beat']) => (b === 'ride' ? 0 : b === 'walk' ? 1 : b === 'home' ? 2 : b === 'sleep' || b === 'wake' ? 3 : b === 'news' ? 4 : b === 'call' ? 5 : 6);
+  const markScene = () => {
+    const n = sceneOf(beat);
+    if (scenes[scenes.length - 1] !== n) scenes.push(n);
+  };
 
   const owned: (BABYLON.Mesh | BABYLON.Material | BABYLON.BaseTexture)[] = [];
   let tvTexture: BABYLON.DynamicTexture | null = null;
@@ -334,6 +347,7 @@ export const createTheMorning = (host: MorningHost) => {
 
   const goHome = () => {
     beat = 'home';
+    markScene();
     host.setObjective(lineSpeaker('objective.morning.bed', 'Home'), lineText('objective.morning.bed', 'Sleep. The bed.'), { x: BED_SIDE.x, y: 1, z: BED_SIDE.z });
     host.showObjective(true);
   };
@@ -341,6 +355,7 @@ export const createTheMorning = (host: MorningHost) => {
   const beginScene = (next: MorningStory['beat']) => {
     playing = true;
     beat = next;
+    markScene();
     time = 0;
     lineUntil = 0;
     flags = new Set();
@@ -358,6 +373,7 @@ export const createTheMorning = (host: MorningHost) => {
     playing = false;
     control();
     beat = 'news';
+    markScene();
     host.setObjective(lineSpeaker('objective.morning.news', 'The news'), lineText('objective.morning.news', 'The television.'), { x: WATCH.x, y: 1.3, z: WATCH.z });
     host.showObjective(true);
   };
@@ -369,6 +385,7 @@ export const createTheMorning = (host: MorningHost) => {
     setTv(true, 'portrait');
     control();
     beat = 'call';
+    markScene();
     ringIn = 1.5;
     host.setObjective(lineSpeaker('objective.morning.call', 'Voss'), lineText('objective.morning.call', 'Answer the phone. F.'), null);
     host.showObjective(true);
@@ -382,6 +399,55 @@ export const createTheMorning = (host: MorningHost) => {
     host.showObjective(false);
     host.unlockNext();
     host.offerEnd(lineSpeaker('ui.complete.morning', 'Level Complete'), lineText('ui.complete.morning', 'The morning kept its story. He kept the door.'));
+  };
+
+  /** S0 and S1: black, sound and two barks. No street is built; the room is the next thing he sees. */
+  const endIntro = () => {
+    host.fade(0, 1.4);
+    host.showLine('', '');
+    playing = false;
+    control();
+    host.placePierce(START.x, START.z, START.yaw);
+    goHome();
+    time = 0;
+    lineUntil = 0;
+    flags.add('hand-due');
+  };
+
+  const stepIntro = () => {
+    if (beat === 'ride') {
+      if (!flags.has('a')) {
+        flags.add('a');
+        host.fade(1, 0);
+        host.playFile('/assets/audio/train/rumble.ogg', 0.3);
+        host.showLine(lineText('text.morning.ride.title', 'The uptown 6'), lineText('text.morning.ride', 'The car keeps going after the unnamed stop. The map over the door lights one stop that was never on it.'));
+      }
+      if (time > 6 && !flags.has('b')) {
+        flags.add('b');
+        host.playFile('/assets/audio/train/brakes.ogg', 0.5);
+      }
+      if (time > 9.5 && !flags.has('c')) {
+        flags.add('c');
+        host.playFile('/assets/audio/train/doors-open.ogg', 0.6);
+        say(L_MINE);
+      }
+      if (time > 13) {
+        beat = 'walk';
+        markScene();
+        time = 0;
+        flags = new Set();
+      }
+    } else {
+      if (!flags.has('a')) {
+        flags.add('a');
+        host.showLine(lineText('text.morning.walk.title', 'The walk up'), lineText('text.morning.walk', 'A dark street, wet and quiet. Two people cross it rather than pass him. The tower burns far off at the end of an avenue. He does not stop.'));
+      }
+      if (time > 4 && !flags.has('b')) {
+        flags.add('b');
+        say(L_BLOCKS);
+      }
+      if (time > 11) endIntro();
+    }
   };
 
   const stepSleep = () => {
@@ -503,7 +569,8 @@ export const createTheMorning = (host: MorningHost) => {
     },
     skip: () => {
       if (!active || !playing) return;
-      if (beat === 'sleep' || beat === 'wake') endSleep();
+      if (beat === 'ride' || beat === 'walk') endIntro();
+      else if (beat === 'sleep' || beat === 'wake') endSleep();
       else if (beat === 'news') endNews();
       else if (beat === 'leaving') finish();
     },
@@ -514,6 +581,8 @@ export const createTheMorning = (host: MorningHost) => {
       tvText: tvSeen.join(' | '),
       captions: captionsShown,
       callDone,
+      scene: sceneOf(beat),
+      scenes: [...scenes],
     }),
     dispose: () => {
       active = false;
@@ -537,6 +606,7 @@ export const createTheMorning = (host: MorningHost) => {
       wasBusy = false;
       newsT = 0;
       tvClock = 0;
+      scenes = [];
       host.setCarry(carryItems('morning', CARRY));
       build();
       host.lie(false, 0, 0, 0, 0);
@@ -544,10 +614,7 @@ export const createTheMorning = (host: MorningHost) => {
       host.holdScene(false);
       host.releaseCamera();
       host.resumeLocomotion();
-      goHome();
-      time = 0.6;
-      lineUntil = 0;
-      flags.add('hand-due');
+      beginScene('ride');
     },
     step: (delta: number) => {
       if (!active || beat === 'done') return;
@@ -556,7 +623,8 @@ export const createTheMorning = (host: MorningHost) => {
       blink += dt;
       if (led) led.emissiveColor = new BABYLON.Color3(blink % 1 < 0.5 ? 0.9 : 0.1, 0.05, 0.05);
       if (playing) {
-        if (beat === 'sleep' || beat === 'wake') stepSleep();
+        if (beat === 'ride' || beat === 'walk') stepIntro();
+        else if (beat === 'sleep' || beat === 'wake') stepSleep();
         else if (beat === 'news') stepNews();
         else if (beat === 'leaving') stepLeaving();
       } else {
@@ -587,6 +655,7 @@ export const createTheMorning = (host: MorningHost) => {
             if (wasBusy && !busy) {
               callDone = true;
               beat = 'out';
+              markScene();
               host.setObjective(lineSpeaker('objective.morning.out', 'Out'), lineText('objective.morning.out', 'The front door.'), { x: DOOR.x, y: 1.3, z: DOOR.z - 0.3 });
               host.showObjective(true);
             } else if (!wasBusy && ringSince > 40) {
