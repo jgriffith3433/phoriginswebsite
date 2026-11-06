@@ -145,5 +145,21 @@
       ]
     }
   ],
-  "triggers": []
+  "triggers": [
+    {
+      "id": "morning-bed",
+      "type": "music",
+      "label": "Morning bed",
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "data": {
+        "radius": 400,
+        "audio": "/assets/audio/ambient/morning-room.ogg",
+        "loop": true,
+        "fadeSeconds": 2,
+        "volume": 0.16
+      }
+    }
+  ]
 }

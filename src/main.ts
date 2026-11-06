@@ -147,6 +147,16 @@ const objectiveHud = document.getElementById('objectiveHud') as HTMLDivElement |
 const objectiveText = document.getElementById('objectiveText') as HTMLSpanElement | null;
 const objectiveDist = document.getElementById('objectiveDist') as HTMLSpanElement | null;
 const alarmFlash = document.getElementById('alarmFlash') as HTMLDivElement | null;
+const hitFlash = document.getElementById('hitFlash') as HTMLDivElement | null;
+/** Short white-gold screen pulse for a key action (strike, shot, power), next to its sound. */
+const actionPulse = (kind: 'strike' | 'shot' | 'power' | 'heal' | 'pickup') => {
+  if (!hitFlash) return;
+  hitFlash.dataset.kind = kind;
+  hitFlash.classList.remove('pulse');
+  void hitFlash.offsetWidth;
+  hitFlash.classList.add('pulse');
+  (window as unknown as { __phPulses?: number }).__phPulses = ((window as unknown as { __phPulses?: number }).__phPulses ?? 0) + 1;
+};
 const phonePanel = document.getElementById('phonePanel') as HTMLElement | null;
 const phoneStatus = document.getElementById('phoneStatus') as HTMLElement | null;
 const phoneContact = document.getElementById('phoneContact') as HTMLElement | null;
@@ -2880,6 +2890,7 @@ const takeSupply = (pickup: (typeof pickups)[number]) => {
   pickup.active = false;
   pickup.mesh.setEnabled(false);
   audio.pickup();
+  actionPulse('pickup');
   updateHud();
 };
 
@@ -2898,6 +2909,7 @@ const useMedkit = () => {
   analytics?.used('medkit');
   showReloadNote('Medkit');
   audio.tone(520, 0.08, 'sine', 0.05);
+  actionPulse('heal');
   updateHud();
 };
 
@@ -3060,6 +3072,7 @@ const fireWeapon = () => {
     if (!shadowClickEdge) return;
     shadowClickEdge = false;
     useShadowClick();
+    actionPulse('power');
     updateHud();
     return;
   }
@@ -3068,6 +3081,7 @@ const fireWeapon = () => {
     shadowClickEdge = false;
     if (!state.running || state.inCutscene || panelsOpen() || phone.isRaised() || phone.locksBody()) return;
     shadowPlay().strike(meleeAbility);
+    actionPulse('strike');
     analytics?.used(meleeAbility);
     updateHud();
     return;
@@ -3084,6 +3098,7 @@ const fireWeapon = () => {
   state.shootCooldown = state.fireRate;
   analytics?.used('sidearm');
   audio.shoot();
+  actionPulse('shot');
   if (playerPistol.isVisible()) muzzleFlash.showAt(playerPistol.muzzle);
   else muzzleFlash.show(camera, gatherCameraIgnoreMeshes());
   playerAvatar.playClip('shoot', false, 3, () => playerAvatar.resumeLocomotion());
@@ -4248,6 +4263,9 @@ installPhPlaytest({
     paused: isPaused(),
     settingsOpen: settingsOpen(),
     settings: soundSettings(),
+    bed: musicTriggerPlayer.active(),
+    bedPlaying: musicTriggerPlayer.playing(),
+    footsteps: Boolean(walkLoop && !walkLoop.done()),
   }),
 });
 
