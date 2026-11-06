@@ -1,6 +1,7 @@
 import type * as BABYLON from '@babylonjs/core';
 import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
 import { missingClip, storyLines } from '../game/locale';
+import { setSoundSettings } from '../game/soundSettings';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
 
@@ -75,6 +76,8 @@ export type PhProbe = {
   sound: () => {
     prompt: boolean; context: string; paused: boolean; settingsOpen: boolean;
     settings: { on: boolean; music: number; sfx: number };
+    /** Id of the music trigger bed that is active now, and whether it is audibly playing. */
+    bed: string | null; bedPlaying: boolean;
   };
 };
 
@@ -400,6 +403,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Shows the Tap to play prompt, taps it with a pointer press on the spot (hit-tested, so a covered prompt fails) and checks the AudioContext is running. Opens Settings from the title, turns Sound off and Music to 40%, reloads the page (the run carries on after the reload through ?playtest=sound-settings), checks the prompt and the saved choice are back, then opens Settings again from Pause in level 1. The player\'s own hawkes.sound is put back at the end.',
         seconds: 120,
         tags: ['menus', 'sound'],
+      },
+      {
+        id: 'feel-audio',
+        title: 'Each level has its own bed, a strike gives sound and a screen pulse, volume sliders persist',
+        description: 'Starts levels 1, 2 and 6 directly (setup), logs the music bed each one plays, then on level 6 raises the hands and clicks (Punch) and checks the action pulse fired, and finally slides Music and Effects in Settings and checks hawkes.sound saved both.',
+        seconds: 150,
+        tags: ['sound'],
       },
       {
         id: 'ui-style',
@@ -2050,6 +2060,40 @@ export const installPhPlaytest = (probe: PhProbe) => {
     t.scene('Title');
     t.event('title', probe.menu().title);
     await sleep(600);
+
+    if (id === 'feel-audio') {
+      levelsTotal = 1;
+      const pulses = () => (window as unknown as { __phPulses?: number }).__phPulses ?? 0;
+      for (const n of [1, 2, 6]) {
+        await enterLevel(n);
+        t.scene(LEVELS[n - 1].name);
+        t.event('level-start', LEVELS[n - 1].name);
+        try {
+          await t.until(() => probe.sound().bed !== null && probe.sound().bedPlaying, 20000, 'the level bed to play');
+          t.event('bed', `${LEVELS[n - 1].name}: ${probe.sound().bed}`);
+        } catch {
+          t.problem('bug', `${LEVELS[n - 1].name} has no audible music bed`);
+        }
+      }
+      // Level 6: wait for control, then Punch with a click.
+      try {
+        await t.until(() => controllable(), 60000, 'control on level 6');
+        const before = pulses();
+        input('fire', true);
+        await sleep(300);
+        if (pulses() > before) t.event('feedback', 'Punch: sound and screen pulse');
+        else t.problem('bug', 'a click strike gave no screen pulse');
+      } catch { t.problem('bug', 'level 6 never gave control'); }
+      // Sliders persist.
+      setSoundSettings({ music: 0.3, sfx: 0.6 });
+      await sleep(300);
+      try {
+        const saved = JSON.parse(localStorage.getItem(SOUND_KEY) ?? 'null');
+        if (saved && Math.abs(saved.music - 0.3) < 0.001 && Math.abs(saved.sfx - 0.6) < 0.001) t.event('setting-saved', JSON.stringify(saved));
+        else t.problem('bug', `volumes not saved: ${JSON.stringify(saved)}`);
+      } catch { t.problem('bug', 'volumes not saved'); }
+      return;
+    }
 
     if (id === 'smoke') {
       levelsTotal = 1;

@@ -216,5 +216,5 @@ export const createMusicTriggerPlayer = () => {
     });
   };
 
-  return { bind, update, stop: stopAll };
+  return { bind, update, stop: stopAll, active: () => activeId, playing: () => [...voices.values()].some((v) => !v.element.paused && v.gain > 0.001) };
 };
