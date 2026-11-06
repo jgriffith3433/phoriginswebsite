@@ -5387,6 +5387,134 @@
       "text": "A dark street, wet and quiet. Two people cross it rather than pass him. The tower burns far off at the end of an avenue. He does not stop.",
       "audio": "",
       "note": "Level 8, The Morning, beat sheet S1"
+    },
+    {
+      "id": "chapter.1.title",
+      "type": "ui",
+      "speaker": "Chapter 1",
+      "text": "The Apex Peak",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.1.line",
+      "type": "ui",
+      "speaker": "Chapter 1",
+      "text": "Fifty-eight floors up, the board is seated. Pierce is late.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "chapter.2.title",
+      "type": "ui",
+      "speaker": "Chapter 2",
+      "text": "B3",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.2.line",
+      "type": "ui",
+      "speaker": "Chapter 2",
+      "text": "Below the lobby, the clearance badge still works.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "chapter.3.title",
+      "type": "ui",
+      "speaker": "Chapter 3",
+      "text": "The Return",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.3.line",
+      "type": "ui",
+      "speaker": "Chapter 3",
+      "text": "The vat is behind him. The lights are too bright.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "chapter.4.title",
+      "type": "ui",
+      "speaker": "Chapter 4",
+      "text": "The Desk",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.4.line",
+      "type": "ui",
+      "speaker": "Chapter 4",
+      "text": "The work is still there. So is the face in the mirror.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "chapter.5.title",
+      "type": "ui",
+      "speaker": "Chapter 5",
+      "text": "Going Home",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.5.line",
+      "type": "ui",
+      "speaker": "Chapter 5",
+      "text": "Fifty-eight floors down, the street does not know him yet.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "chapter.6.title",
+      "type": "ui",
+      "speaker": "Chapter 6",
+      "text": "The Station",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.6.line",
+      "type": "ui",
+      "speaker": "Chapter 6",
+      "text": "Hawkes Street. The last stairs down.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "chapter.7.title",
+      "type": "ui",
+      "speaker": "Chapter 7",
+      "text": "The Train",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.7.line",
+      "type": "ui",
+      "speaker": "Chapter 7",
+      "text": "The uptown 6. Somebody is always one car ahead.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "chapter.8.title",
+      "type": "ui",
+      "speaker": "Chapter 8",
+      "text": "The Morning",
+      "audio": "",
+      "note": "Chapter title card: name"
+    },
+    {
+      "id": "chapter.8.line",
+      "type": "ui",
+      "speaker": "Chapter 8",
+      "text": "Three blocks. One room. Morning comes anyway.",
+      "audio": "",
+      "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
     }
   ]
 }

@@ -28,7 +28,7 @@ export type AnalyticsProbe = {
 
 const STUCK_SECONDS = 180;
 const STUCK_REPORTS = 3;
-const ASK_THEME = { background: 'rgba(5, 10, 16, 0.96)', color: '#f3f1ea', accent: '#d4b483', font: 'Arial, Helvetica, sans-serif', radius: '18px' };
+const ASK_THEME = { background: 'rgba(5, 10, 16, 0.96)', color: '#ece6d8', accent: '#c9a86a', font: "'Barlow Condensed', 'Arial Narrow', Arial, sans-serif", radius: '2px' };
 
 /**
  * The SDK, or while it hasn't loaded (blocked, offline, Gen down) a stand-in whose calls wait in hawkesAnalyticsQ: the
