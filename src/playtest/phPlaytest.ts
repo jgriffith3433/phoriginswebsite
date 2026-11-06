@@ -29,6 +29,8 @@ export type PhProbe = {
   cutscene: () => { id: string; time: number; duration: number } | null;
   scripted: () => string | null;
   phone: () => { incoming: boolean; busy: boolean; speaker: string; line: string };
+  /** The chapter title card that opens each level (kicker, name, story line). */
+  chapter: () => { open: boolean; kicker: string; title: string; line: string; closing: boolean };
   menu: () => { open: boolean; title: string; text: string; start: string | null; startEnabled: boolean; newGame: boolean };
   subtitle: () => { speaker: string; text: string };
   creature: () => { x: number; y: number; z: number } | null;
@@ -412,6 +414,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'On a desktop viewport the page is laid out as a 390x844 phone for the title and button checks. Then the About page shows in an overlay, then level 2: stand still for the way hints, shoot it from the lab before entering decon, and finish the level.',
         seconds: 260,
         tags: ['menus'],
+      },
+      {
+        id: 'chapters',
+        title: 'Chapter title cards: levels 1 to 8 each open on their own card; one press skips it; no placeholder text',
+        description: 'Opens level 1 with the Start button, then levels 2 to 8 (test shortcut, as Continue does). Each level must open on a chapter title card (Chapter N, the level name, one story line). The bot logs the card, checks it is not a copy of an earlier card and shows no placeholder text (raw ids, {braces}, undefined, TODO, lorem), waits for it to be fully up, presses one key (Space) and checks the card is gone within 1.5 s and the level is running. Metrics: chapterCards, chapterSkipSeconds. Problems: no card, a duplicate card, placeholder text, a card that needs more than one press.',
+        seconds: 420,
+        tags: ['level', 'ui'],
       },
       {
         id: 'b3-retry',
@@ -2123,6 +2132,64 @@ export const installPhPlaytest = (probe: PhProbe) => {
     if (id === 'site-links') {
       t.progress(0.15);
       await siteLinksCheck();
+      t.progress(1);
+      t.finish('done');
+      return;
+    }
+
+    if (id === 'chapters') {
+      levelsTotal = 8;
+      const seen = new Map<string, number>();
+      const PLACEHOLDER = /\{[^}]*\}|undefined|null|TODO|lorem|placeholder|\bchapter\.\d|^\s*$/i;
+      let skipTotal = 0;
+      for (let n = 1; n <= 8; n++) {
+        levelIndex = n - 1;
+        const menu = probe.menu();
+        if (n === 1 && menu.open && probe.level().id === 1 && menu.start && /start/i.test(menu.start)) {
+          press(probe.startButton, menu.start);
+        } else {
+          t.event('setup', `start at level ${n} directly (test shortcut)`);
+          void probe.setupLevel(n);
+        }
+        const until = performance.now() + 90000;
+        while (!probe.chapter().open) {
+          if (performance.now() > until) { t.problem('bug', `level ${n} opened with no chapter title card`); break; }
+          await tick();
+        }
+        const card = probe.chapter();
+        if (card.open) {
+          await sleep(900);
+          const shown = probe.chapter();
+          const text = `${shown.kicker} | ${shown.title} | ${shown.line}`;
+          t.scene(`Chapter card ${n}`);
+          t.event('chapter-card', { level: n, kicker: shown.kicker, title: shown.title, line: shown.line });
+          t.note(`Level ${n} card: ${text}`);
+          if (!shown.title || !shown.line || !/^chapter /i.test(shown.kicker)) t.problem('bug', `level ${n} chapter card is incomplete: ${text}`);
+          if (PLACEHOLDER.test(shown.kicker) || PLACEHOLDER.test(shown.title) || PLACEHOLDER.test(shown.line) || RAW_KEY.test(text)) {
+            t.problem('bug', `level ${n} chapter card shows placeholder text: ${text}`);
+          }
+          const dup = seen.get(text);
+          if (dup) t.problem('bug', `level ${n} reuses the chapter card of level ${dup}: ${text}`);
+          seen.set(text, n);
+          t.add('chapterCards');
+          const at = performance.now();
+          await tap(' ', `skip chapter card ${n}`);
+          while (probe.chapter().open && performance.now() - at < 5000) await tick();
+          const secs = (performance.now() - at) / 1000;
+          skipTotal += secs;
+          t.event('chapter-skip', { level: n, seconds: Math.round(secs * 100) / 100 });
+          if (secs > 1.5) t.problem('bug', `level ${n} chapter card took ${secs.toFixed(1)} s to skip after one press`);
+        }
+        const run = performance.now() + 90000;
+        while (!(probe.running() && probe.level().id === n)) {
+          if (performance.now() > run) throw new Error(`timed out waiting for level ${n} to start after its card`);
+          await tick();
+        }
+        releaseAll();
+        await sleep(600);
+        t.progress(n / 8);
+      }
+      t.metric('chapterSkipSeconds', Math.round((skipTotal / 8) * 100) / 100);
       t.progress(1);
       t.finish('done');
       return;

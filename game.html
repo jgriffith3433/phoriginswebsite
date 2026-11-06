@@ -1539,6 +1539,71 @@
       .build-version { display: block; margin-top: 14px; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); text-decoration: none; opacity: 0.7; }
       .build-version:hover { color: var(--gold); opacity: 1; }
 
+      /* Chapter title card: opens every level over the black veil. One press skips it. */
+      .chapter-card {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        opacity: 0;
+        transition: opacity 0.32s ease;
+        font-family: 'Barlow Condensed', 'Arial Narrow', Arial, Helvetica, sans-serif;
+        text-align: center;
+        cursor: pointer;
+      }
+      .chapter-card[hidden] { display: none; }
+      .chapter-card.on { opacity: 1; }
+      .chapter-inner { padding: 24px; max-width: min(720px, 90vw); }
+      .chapter-kicker {
+        font-size: clamp(13px, 2.2vw, 17px);
+        letter-spacing: 0.42em;
+        text-transform: uppercase;
+        color: #c9a86a;
+      }
+      .chapter-title {
+        margin: 14px 0 0;
+        font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+        font-weight: 500;
+        font-size: clamp(38px, 8vw, 78px);
+        letter-spacing: 0.04em;
+        color: #ece6d8;
+      }
+      .chapter-title::after {
+        content: '';
+        display: block;
+        width: 56px;
+        height: 1px;
+        margin: 20px auto 0;
+        background: #c9a86a;
+        opacity: 0.7;
+      }
+      .chapter-line {
+        margin: 20px 0 0;
+        font-size: clamp(17px, 2.8vw, 24px);
+        letter-spacing: 0.06em;
+        color: #b9c1c9;
+      }
+      .chapter-skip {
+        margin-top: 44px;
+        font-size: 12px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: #6f7a85;
+      }
+      .chapter-card.on .chapter-kicker,
+      .chapter-card.on .chapter-title,
+      .chapter-card.on .chapter-line { animation: menu-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+      .chapter-card.on .chapter-title { animation-delay: 0.15s; }
+      .chapter-card.on .chapter-line { animation-delay: 0.45s; }
+      @media (prefers-reduced-motion: reduce) {
+        .chapter-card.on .chapter-kicker,
+        .chapter-card.on .chapter-title,
+        .chapter-card.on .chapter-line { animation: none; }
+      }
+
       .message {
         position: absolute;
         inset: 0;
@@ -2819,6 +2884,14 @@
       </div>
 
       <div id="screenFade" aria-hidden="true"></div>
+      <div class="chapter-card" id="chapterCard" hidden aria-live="polite">
+        <div class="chapter-inner">
+          <div class="chapter-kicker"></div>
+          <h2 class="chapter-title"></h2>
+          <p class="chapter-line"></p>
+          <div class="chapter-skip">Press any key to continue</div>
+        </div>
+      </div>
       <div class="message" id="messageBox">
         <div class="level-credits" id="levelCredits" hidden></div>
         <div class="panel">

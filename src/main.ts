@@ -19,6 +19,7 @@ import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { installMenuNav } from './game/menuNav';
 import { lineText } from './game/locale';
+import { chapterCopy, createChapterCard } from './game/chapterCard';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
@@ -68,6 +69,7 @@ const loadFailed = () => !!phBoot?.failed();
 const LEVEL_LOAD_STALL_MS = 20000;
 const root = document.getElementById('game-root') as HTMLDivElement;
 const screenFade = createScreenFade(document.getElementById('screenFade') as HTMLElement);
+const chapterCard = createChapterCard(document.getElementById('chapterCard') as HTMLElement);
 const healthBar = document.getElementById('healthBar') as HTMLDivElement;
 const healthFill = document.getElementById('healthFill') as HTMLSpanElement;
 const messageBox = document.getElementById('messageBox') as HTMLDivElement;
@@ -1791,6 +1793,12 @@ const showMessage = (title: string, text: string) => {
   unlockPointer();
   levelSelect.classList.add('hidden');
   messageBox.classList.remove('hidden');
+  // The outcome beat: the card closes the chapter the title card opened.
+  if (messageEyebrow) {
+    messageEyebrow.textContent = title === 'Level Complete'
+      ? `${chapterCopy(state.level, '').kicker} · ${chapterCopy(state.level, getLevelDefinition(state.level).name).title}`
+      : lineText('ui.menu.eyebrow', 'Board session · One night');
+  }
   if (title === 'Level Complete' || title === 'Mission Clear') startLevelCredits(state.level);
   else stopLevelCredits();
   if (missionScore) {
@@ -2288,7 +2296,7 @@ const beginGame = () => {
 let startingLevel = false;
 
 /** `hidden` lets a test entry (the `train` playtest) start a `comingSoon` level; Continue and Load Level never do. */
-const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, hidden = false) => {
+const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, hidden = false, chapter = true) => {
   if (startingLevel || !gameReady) return;
   const level = getLevelDefinition(levelId);
   if (level.comingSoon && !hidden) return;
@@ -2306,6 +2314,7 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
       if (loadFailed()) return;
     }
     await fadeOutCard();
+    if (chapter) await chapterCard.show(level.id, level.name);
     beginGame();
   } catch (error) {
     showLoadError('level', error);
@@ -3398,7 +3407,7 @@ fireBtn.addEventListener('pointercancel', () => { state.fireHeld = false; });
 
 startBtn.addEventListener('click', () => {
   // Retry on the error card reloads the page (its own handler in game.html).
-  if (cardLeaving || loadFailed()) return;
+  if (cardLeaving || chapterCard.showing() || loadFailed()) return;
   unlockAudio();
   const mode = menuMode();
   if (mode === 'level-complete') {
@@ -3416,7 +3425,8 @@ startBtn.addEventListener('click', () => {
     defeatLeft = 0;
     hideMessage();
     screenFade.to(1, 0);
-    void startAtLevel(state.level, false, true);
+    // A retry is the same chapter: no title card.
+    void startAtLevel(state.level, false, true, false, false);
     return;
   }
   if (!gameReady) return;
@@ -3425,7 +3435,8 @@ startBtn.addEventListener('click', () => {
     void startAtLevel(state.level, false, true);
     return;
   }
-  void fadeOutCard().then(beginGame);
+  const entering = getLevelDefinition(state.level);
+  void fadeOutCard().then(() => chapterCard.show(entering.id, entering.name)).then(beginGame);
 });
 newGameBtn.addEventListener('click', () => {
   analytics?.feature('new-game');
@@ -4079,6 +4090,7 @@ installPhPlaytest({
     const view = phone.view();
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
   },
+  chapter: () => chapterCard.view(),
   menu: () => ({
     open: !messageBox.classList.contains('hidden'),
     title: messageTitle.textContent ?? '',
