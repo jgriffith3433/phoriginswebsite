@@ -436,8 +436,8 @@ export const installPhPlaytest = (probe: PhProbe) => {
       },
       {
         id: 'level-8',
-        title: 'Level 8, The Morning: bed, the wake-up, the news naming Hawkes Tower and Pierce, Voss\'s call in full, the door, End Level',
-        description: 'Starts level 8 (test shortcut) and plays it with real input: walks to the bed and presses E (Sleep); the scene fades to black, Pierce lies in the bed and wakes (checks he lies in the bed, "I slept." is heard); walks to the television and presses E (Watch): the morning news plays on the canvas TV (checks the TV showed HAWKES TOWER and PIERCE HAWKES and the captions name them); Voss rings, the bot answers with F and checks all seven of his lines play in order; walks to the front door and presses E (Leave), then End Level. Checks the end song and the level 8 credits, and that the card is Exit only. Metric: morningSeconds. Lines use silent placeholder clips until the voice is generated.',
+        title: 'Level 8, The Morning: the 7 scenes in order (ride, walk up, threshold), bed, the wake-up, the news naming Hawkes Tower and Pierce, Voss\'s call in full, the door, End Level',
+        description: 'Starts level 8 (test shortcut); S0 the train ride and S1 the walk up play first (barks "Mine." and "Three blocks…"), then it plays with real input: walks to the bed and presses E (Sleep); the scene fades to black, Pierce lies in the bed and wakes (checks he lies in the bed, "I slept." is heard); walks to the television and presses E (Watch): the morning news plays on the canvas TV (checks the TV showed HAWKES TOWER and PIERCE HAWKES and the captions name them); Voss rings, the bot answers with F and checks all seven of his lines play in order; walks to the front door and presses E (Leave), then End Level. Checks the end song and the level 8 credits, and that the card is Exit only. Metric: morningSeconds. Lines use silent placeholder clips until the voice is generated.',
         seconds: 240,
         tags: ['level', 'story'],
       },
@@ -1837,6 +1837,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       let lastBeat = '';
       let lastAction = '';
       let stepsDone = 0;
+      let scenesSeen: number[] = [];
       for (;;) {
         await tick();
         if (performance.now() - t0 > 300000) return 'stuck';
@@ -1845,6 +1846,11 @@ export const installPhPlaytest = (probe: PhProbe) => {
         note(probe.subtitle().text);
         const s = story();
         if (s) {
+          if (s.scenes.length !== scenesSeen.length) {
+            scenesSeen = s.scenes;
+            const names = ['S0 the ride', 'S1 the walk up', 'S2 the threshold', 'S3 the wake-up', 'S4 the news', 'S5 Voss calls', 'S6 the exit'];
+            t.event('scene', `level 8 ${names[scenesSeen[scenesSeen.length - 1]]} (${scenesSeen.length}/7)`);
+          }
           tvText = s.tvText || tvText;
           if (s.beat !== lastBeat) {
             lastBeat = s.beat;
@@ -1897,6 +1903,11 @@ export const installPhPlaytest = (probe: PhProbe) => {
       const secs = (performance.now() - t0) / 1000;
       t.metric('morningSeconds', Math.round(secs));
       t.event('level-end', `Level 8: The Morning in ${secs.toFixed(0)} s (${stepsDone} actions)`);
+      // 0: the seven scenes of the beat sheet, in order.
+      const inOrder = scenesSeen.length === 7 && scenesSeen.every((n, i) => n === i);
+      t.event('check', `scenes: ${scenesSeen.join(', ')} ${inOrder ? '(all 7, in order)' : '(NOT all 7 in order)'}`);
+      if (!inOrder) t.problem('bug', `level 8 did not play the 7 beat-sheet scenes in order (${scenesSeen.join(', ') || 'none'})`);
+      if (!heard.includes(textOf('dialogue.morning.mine')) || !heard.includes(textOf('dialogue.morning.blocks'))) t.problem('bug', 'level 8 S0/S1 barks ("Mine.", "Three blocks…") were not heard');
       // 1: he slept, and woke in the bed.
       const slept = heard.indexOf(textOf('dialogue.morning.slept'));
       t.event('check', `wake: scene ${sawSleepScene ? 'played' : 'NOT seen'}, lying in bed ${sawLying}, woke ${sawWake}, "I slept." ${slept >= 0 ? 'heard' : 'missing'}`);

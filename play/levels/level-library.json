@@ -84,6 +84,18 @@
       "playerSpeed": 3.05,
       "arenaSize": 60,
       "reward": "The car"
+    },
+    {
+      "id": "the-morning",
+      "name": "The Morning",
+      "path": "/levels/the-morning.json",
+      "theme": "Station",
+      "difficulty": 8,
+      "enemyCount": 0,
+      "combat": false,
+      "playerSpeed": 3.05,
+      "arenaSize": 40,
+      "reward": "The news"
     }
   ]
 }

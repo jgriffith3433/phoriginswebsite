@@ -1762,7 +1762,7 @@
       "id": "ui.menu.eyebrow",
       "type": "ui",
       "speaker": "Title card",
-      "text": "Board session \u00b7 One night",
+      "text": "Board session · One night",
       "audio": "",
       "note": "Small line above the title on the main menu card. No B3, vat or creature here."
     },
@@ -5331,6 +5331,62 @@
       "text": "The morning kept its story. He kept the door.",
       "audio": "",
       "note": "The Morning complete card"
+    },
+    {
+      "id": "dialogue.morning.mine",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Mine.",
+      "audio": "/assets/audio/cutscenes/morning/mine.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning, beat sheet S0 (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "dialogue.morning.blocks",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Three blocks. I can walk three blocks.",
+      "audio": "/assets/audio/cutscenes/morning/blocks.ogg",
+      "performance": "tired",
+      "audioText": "",
+      "audioPerformance": "",
+      "audioVoice": "",
+      "note": "Level 8, The Morning, beat sheet S1 (silent placeholder clip until the voice is generated)"
+    },
+    {
+      "id": "text.morning.ride.title",
+      "type": "text",
+      "speaker": "Scene",
+      "text": "The uptown 6",
+      "audio": "",
+      "note": "Level 8, The Morning, beat sheet S0"
+    },
+    {
+      "id": "text.morning.ride",
+      "type": "text",
+      "speaker": "Scene",
+      "text": "The car keeps going after the unnamed stop. The map over the door lights one stop that was never on it.",
+      "audio": "",
+      "note": "Level 8, The Morning, beat sheet S0"
+    },
+    {
+      "id": "text.morning.walk.title",
+      "type": "text",
+      "speaker": "Scene",
+      "text": "The walk up",
+      "audio": "",
+      "note": "Level 8, The Morning, beat sheet S1"
+    },
+    {
+      "id": "text.morning.walk",
+      "type": "text",
+      "speaker": "Scene",
+      "text": "A dark street, wet and quiet. Two people cross it rather than pass him. The tower burns far off at the end of an avenue. He does not stop.",
+      "audio": "",
+      "note": "Level 8, The Morning, beat sheet S1"
     }
   ]
 }
