@@ -2094,6 +2094,16 @@ export const installPhPlaytest = (probe: PhProbe) => {
         await sleep(300);
         if (pulses() > before) t.event('feedback', 'Punch: sound and screen pulse');
         else t.problem('bug', 'a click strike gave no screen pulse');
+        // A power: Shadow mode on, then a click uses the selected ability (sound and the same pulse).
+        await sleep(400);
+        if (!probe.shadow().on) { releaseAll(); await once('c', 1200, 'Shadow mode'); await sleep(400); }
+        if (probe.shadow().on) {
+          const beforePower = pulses();
+          input('fire', true);
+          await sleep(300);
+          if (pulses() > beforePower) t.event('feedback', 'Shadow power: sound and screen pulse');
+          else t.problem('bug', 'a Shadow mode click gave no screen pulse');
+        } else t.problem('bug', 'Shadow mode would not turn on on level 6');
       } catch { t.problem('bug', 'level 6 never gave control'); }
       // Sliders: open Pause, then Settings, and move the real Music and Effects sliders.
       try {
