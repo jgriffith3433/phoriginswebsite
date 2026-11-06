@@ -402,6 +402,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['menus', 'sound'],
       },
       {
+        id: 'ui-style',
+        title: 'Menu, HUD, pause, settings and end cards share fonts and colours, and nothing is clipped at 1280x720 and 390x844',
+        description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen.',
+        seconds: 150,
+        tags: ['menus'],
+      },
+      {
         id: 'load-error',
         title: "A level that fails to load shows Couldn't start the game and Retry; Retry reloads to START",
         description: 'Checks a normal load reaches the START card with no error. Then makes the next level load fail (setup; options.fail "hang" (default) never finishes, so the stall timeout (20 s with nothing loading) shows, "error" fails at once), presses Start, and times the error card with its Retry button. Presses Retry: the page really reloads (the run carries on after it through ?playtest=load-error), and the title card reaches START again; Start enters level 1.',
@@ -2024,6 +2031,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
       return;
     }
+    if (id === 'ui-style') {
+      await uiStyleRun(t, tapAt, tapToPlay, sleep, enterLevel);
+      return;
+    }
     if (id === 'load-error') {
       await loadErrorRun(t, tapAt, tapToPlay, sleep, options);
       return;
@@ -2449,6 +2460,114 @@ export const installPhPlaytest = (probe: PhProbe) => {
 
     if (carried.original === null) localStorage.removeItem(SOUND_KEY);
     else localStorage.setItem(SOUND_KEY, carried.original);
+    t.progress(1);
+    t.finish('done');
+  };
+
+  // ------------------------------------------------------------ ui-style
+
+  const uiStyleRun = async (
+    t: Tracker,
+    tapAt: (el: HTMLElement | null, label: string) => Promise<void>,
+    tapToPlay: () => Promise<void>,
+    sleep: (ms: number) => Promise<void>,
+    enterLevel: (n: number) => Promise<void>,
+  ) => {
+    const byId = (id: string) => document.getElementById(id);
+    const HOUSE = /barlow condensed|cormorant garamond|ui-monospace|sfmono|menlo|consolas|monospace|arial narrow/i;
+    const root = byId('game-root') ?? document.body;
+    const audit = (screen: string, vp: string) => {
+      const fonts = new Map<string, number>();
+      const bad: string[] = [];
+      const clipped: string[] = [];
+      let n = 0;
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const text = (node.textContent ?? '').trim();
+        const el = node.parentElement;
+        if (!text || !el || el.closest('[hidden], .hidden, #devPanel, #devToggle, #perfMonitor, .perf-monitor')) continue;
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < 0.05 || r.width < 1 || r.height < 1) continue;
+        // Skip anything under a card that is not the one on top (title card sits beneath Pause, and so on).
+        const probeX = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2));
+        const probeY = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2));
+        const top = document.elementFromPoint(probeX, probeY);
+        if (top && !(top === el || el.contains(top) || top.contains(el))) continue;
+        n++;
+        const family = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim();
+        fonts.set(family, (fonts.get(family) ?? 0) + 1);
+        if (!HOUSE.test(cs.fontFamily.split(',')[0])) bad.push(`"${text.slice(0, 24)}" in ${family}`);
+        const label = `"${text.slice(0, 28)}"`;
+        if (r.right > innerWidth + 1 || r.left < -1 || r.bottom > innerHeight + 1 && !el.closest('.message, .overlay-card') ) clipped.push(`${label} leaves the screen`);
+        let box: HTMLElement | null = el;
+        for (let depth = 0; box && depth < 4; depth++, box = box.parentElement) {
+          const bs = getComputedStyle(box);
+          const clips = bs.overflowX === 'hidden' || bs.overflowX === 'clip';
+          if (clips && box.scrollWidth > box.clientWidth + 1 && bs.textOverflow !== 'ellipsis' && !box.matches('.credit-roll, .level-credits, .credit-roll *')) {
+            clipped.push(`${label} is cut off in .${box.className.toString().split(' ')[0] || box.tagName.toLowerCase()} (${box.scrollWidth}px in ${box.clientWidth}px)`);
+            break;
+          }
+        }
+      }
+      const gold = getComputedStyle(document.documentElement).getPropertyValue('--hb-gold').trim();
+      t.event('ui-screen', `${screen} @ ${vp}: ${n} text runs, fonts ${[...fonts].map(([f, c]) => `${f} x${c}`).join(', ')}, accent ${gold}`);
+      for (const b of bad.slice(0, 5)) t.problem('bug', `${screen} @ ${vp}: text outside the house fonts: ${b}`);
+      for (const c of clipped.slice(0, 5)) t.problem('bug', `${screen} @ ${vp}: clipped text: ${c}`);
+      t.add('uiScreens');
+    };
+
+    const pass = async (vp: string) => {
+      if (probe.menu().title === 'PH Origins') {
+        t.scene(`Title (${vp})`);
+        await sleep(800);
+        audit('Title', vp);
+        await tapAt(byId('settingsBtn'), 'Settings (title)');
+        await t.until(() => probe.sound().settingsOpen, 3000, 'Settings to open');
+        t.scene(`Settings (${vp})`);
+        await sleep(800);
+        audit('Settings', vp);
+        await tapAt(byId('settingsDoneBtn'), 'Done');
+        await sleep(500);
+      } else {
+        t.scene(`Defeat card (${vp})`);
+        audit('Card', vp);
+      }
+      await enterLevel(1);
+      t.scene(`HUD (${vp})`);
+      await t.until(() => !(byId('pauseBtn') as HTMLButtonElement).hidden, 30000, 'the Pause button');
+      await t.until(() => !!byId('objectiveHud')?.classList.contains('visible'), 30000, 'the objective');
+      await sleep(1500);
+      audit('HUD', vp);
+      await tapAt(byId('pauseBtn'), 'Pause');
+      await t.until(() => probe.sound().paused, 3000, 'Pause');
+      t.scene(`Paused (${vp})`);
+      await sleep(800);
+      audit('Pause', vp);
+      await tapAt(byId('pauseSettingsBtn'), 'Settings (pause)');
+      await t.until(() => probe.sound().settingsOpen, 3000, 'Settings from Pause');
+      await sleep(600);
+      audit('Pause settings', vp);
+      await tapAt(byId('settingsDoneBtn'), 'Done');
+      await tapAt(byId('resumeBtn'), 'Resume');
+      await t.until(() => !probe.sound().paused, 3000, 'Resume');
+      await sleep(600);
+      if (!probe.forceDefeat()) throw new Error('could not down Pierce for the Defeat card');
+      t.event('defeat', 'test shortcut');
+      await t.until(() => probe.menu().title === 'Defeat', 30000, 'the Defeat card');
+      await sleep(1500);
+      t.scene(`Defeat (${vp})`);
+      audit('Defeat', vp);
+    };
+
+    t.scene('Title');
+    await pass(`${innerWidth}x${innerHeight}`);
+    t.progress(0.5);
+    probe.phoneFrame(true);
+    t.event('setup', 'phone layout 390x844');
+    await sleep(1500);
+    await pass('390x844');
+    probe.phoneFrame(false);
     t.progress(1);
     t.finish('done');
   };

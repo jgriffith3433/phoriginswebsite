@@ -116,13 +116,25 @@
       :root {
         --bg: #05080c;
         --panel: rgba(8, 12, 16, 0.86);
-        --panel-border: rgba(212, 180, 131, 0.28);
-        --text: #f3f1ea;
-        --muted: #b7c0c8;
+        --panel-border: rgba(201, 168, 106, 0.34);
+        --text: #ece6d8;
+        --muted: #a9b2ba;
         --accent: #67d2ff;
         --good: #7af0c9;
-        --gold: #d4b483;
+        --gold: #c9a86a;
         --warning: #ffd86a;
+        /* House style: the Hawkes Biomedical terminal's tokens, shared by the title card, HUD, pause, settings and end cards. */
+        --hb-ink: #0a1016;
+        --hb-paper: #ece6d8;
+        --hb-gold: #c9a86a;
+        --hb-gold-hi: #e4c88f;
+        --hb-line: rgba(196, 208, 220, 0.13);
+        --hb-line-strong: rgba(196, 208, 220, 0.24);
+        --hb-dim: #8d98a3;
+        --hb-live: #7af0c9;
+        --hb-sans: 'Barlow Condensed', 'Arial Narrow', Arial, Helvetica, sans-serif;
+        --hb-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+        --hb-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
       * { box-sizing: border-box; }
@@ -134,7 +146,7 @@
         overflow: hidden;
         background: var(--bg);
         color: var(--text);
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: var(--hb-sans);
         overscroll-behavior: none;
         touch-action: none;
         user-select: none;
@@ -1680,7 +1692,7 @@
 
       .credit-role {
         margin: 0 0 0.4em;
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: var(--hb-sans);
         font-size: clamp(9px, calc(0.55rem * var(--ui-scale, 1) + 0.45vw), calc(13px * var(--ui-scale, 1)));
         font-weight: 700;
         letter-spacing: 0.28em;
@@ -1694,7 +1706,7 @@
 
       .credit-name {
         margin: 0.06em 0;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: var(--hb-serif);
         font-size: clamp(14px, calc(0.7rem * var(--ui-scale, 1) + 1.15vw), calc(28px * var(--ui-scale, 1)));
         font-weight: 500;
         letter-spacing: 0.06em;
@@ -2723,6 +2735,66 @@
         .message .button-row button, .message .button-row button::after, .message .level-item { transition: none; }
         .corp-live { animation: none; }
       }
+
+      /* ---- House style pass: HUD, pause, settings and end cards wear the title card's language. ----
+         Barlow Condensed caps for labels and buttons, Cormorant for titles, the mono face only for readouts,
+         ink panels with a gold hairline and square corners, gold for what the player can act on. */
+      button, input, output, textarea, select { font-family: inherit; }
+      .label, .ability-kicker, .objective-kicker, .dev-stat .label { font-size: 11px; letter-spacing: 0.2em; font-weight: 600; }
+      .objective-kicker { color: var(--hb-gold); }
+      .value, .dev-stat .value { font-weight: 700; }
+      .objective-text { font-size: 18px; font-weight: 600; letter-spacing: 0.02em; line-height: 1.2; overflow-wrap: anywhere; }
+      .objective-dist { font-size: 13px; letter-spacing: 0.08em; font-family: var(--hb-mono); }
+      .objective-hud, .ability-readout, .phone-hint, .inventory-panel, .phone-toast, .minimap {
+        background: rgba(10, 16, 22, 0.8);
+        border: 1px solid var(--hb-line-strong);
+        border-top: 2px solid var(--hb-gold);
+      }
+      .minimap { border-radius: 50%; border-top-width: 1px; border-top-color: var(--hb-line-strong); }
+      .objective-hud, .ability-readout, .inventory-panel, .phone-toast { border-radius: 2px; }
+      .phone-hint {
+        border-radius: 2px;
+        font-size: 13px; font-weight: 600; letter-spacing: 0.16em;
+        min-width: 140px;
+      }
+      .phone-hint kbd, .action-hint kbd, .interact-hint kbd, .reload-hint kbd {
+        font-family: var(--hb-mono); font-size: 11px; border-radius: 2px;
+      }
+      .phone-hint kbd { border: 1px solid var(--hb-line-strong); background: rgba(236, 230, 216, 0.06); }
+      .phone-hint.raised, .phone-hint.lit { border-color: var(--hb-gold); color: var(--hb-gold-hi); }
+      .phone-hint.drawn { border-color: var(--hb-live); box-shadow: none; }
+      .ability-readout strong { font-size: 18px; font-weight: 700; letter-spacing: 0.14em; }
+      button.reload-hint, button.interact-hint, button.action-hint {
+        font-size: 15px; font-weight: 600; letter-spacing: 0.18em; border-radius: 2px;
+        background: rgba(10, 16, 22, 0.8); border: 1px solid var(--hb-line-strong); border-top: 2px solid var(--hb-gold);
+        color: var(--hb-paper);
+      }
+      button.interact-hint, button.action-hint { color: var(--hb-gold-hi); }
+      .health-bar { border-radius: 1px; border-color: var(--hb-line-strong); }
+      .health-fill { border-radius: 0; }
+      .perf-monitor { font-family: var(--hb-mono); border-radius: 2px; border: 1px solid var(--hb-line); background: rgba(10, 16, 22, 0.72); }
+      .pause-btn, .skip-cutscene {
+        border-radius: 2px; border: 1px solid var(--hb-line-strong); border-top: 2px solid var(--hb-gold);
+        background: rgba(10, 16, 22, 0.8); color: var(--hb-paper);
+      }
+      .skip-cutscene { font: 600 15px/1.2 var(--hb-sans); letter-spacing: 0.18em; }
+      .overlay-card { background: rgba(3, 6, 10, 0.78); }
+      .overlay-card .panel {
+        border-radius: 2px; border: 1px solid var(--hb-line-strong); border-top: 2px solid var(--hb-gold);
+        background: linear-gradient(180deg, rgba(12, 18, 25, 0.94), rgba(5, 9, 13, 0.97));
+        color: var(--hb-paper);
+      }
+      .overlay-card h1 {
+        font-family: var(--hb-serif); font-weight: 500; letter-spacing: 0.04em; color: var(--hb-paper);
+        overflow-wrap: anywhere;
+      }
+      .settings-row label, .settings-row .settings-label { font-size: 14px; font-weight: 600; letter-spacing: 0.2em; }
+      .sound-switch { border-radius: 2px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; font-size: 15px; }
+      .sound-switch[aria-checked='true'] { background: var(--hb-gold); color: var(--hb-ink); border-color: var(--hb-gold); }
+      .settings-privacy { font-size: 13px; opacity: 0.7; }
+      .overlay-card button.primary { background: var(--hb-gold); color: var(--hb-ink); border: 1px solid var(--hb-gold); border-radius: 2px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
+      .overlay-card button.secondary { border-radius: 2px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; background: rgba(236, 230, 216, 0.04); border: 1px solid var(--hb-line-strong); color: var(--hb-paper); }
+      body[data-device='mobile'] .phone-hint, body[data-device='tablet'] .phone-hint { min-width: 0; }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
