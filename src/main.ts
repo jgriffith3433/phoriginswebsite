@@ -2656,6 +2656,39 @@ const holdSealedPlayer = (delta: number) => {
   audio.setWalk(false);
 };
 
+/** Longest frame, in seconds, that moves Pierce on foot. */
+const MAX_MOVE_DELTA = 0.1;
+
+/**
+ * The office levels are closed rooms on authored floor slabs. If one frame's walk took Pierce from a slab to open air
+ * (a collider tunnelled at a corner, the playtest saw him standing outside the 58th floor), that frame's move is undone.
+ */
+let floorBoxes: { nodes: BABYLON.Node[]; boxes: { x0: number; x1: number; z0: number; z1: number }[] } | null = null;
+const FLOOR_MARGIN = 0.25;
+const floorBoxesFor = () => {
+  if (floorBoxes?.nodes === sceneNodes) return floorBoxes.boxes;
+  const boxes: { x0: number; x1: number; z0: number; z1: number }[] = [];
+  for (const node of sceneNodes) {
+    if ((node as BABYLON.AbstractMesh).metadata?.assetKind !== 'ground') continue;
+    const mesh = node as BABYLON.AbstractMesh;
+    mesh.computeWorldMatrix(true);
+    const box = mesh.getBoundingInfo().boundingBox;
+    boxes.push({ x0: box.minimumWorld.x - FLOOR_MARGIN, x1: box.maximumWorld.x + FLOOR_MARGIN, z0: box.minimumWorld.z - FLOOR_MARGIN, z1: box.maximumWorld.z + FLOOR_MARGIN });
+  }
+  floorBoxes = { nodes: sceneNodes, boxes };
+  return boxes;
+};
+const keepInsideFloors = (before: { x: number; z: number }) => {
+  if (!(isApexPeakLevel() || isReturnLevel() || isDeskLevel())) return;
+  const boxes = floorBoxesFor();
+  if (!boxes.length) return;
+  const over = (p: { x: number; z: number }) => boxes.some((b) => p.x >= b.x0 && p.x <= b.x1 && p.z >= b.z0 && p.z <= b.z1);
+  if (!over(before) || over(state.player)) return;
+  state.player.x = before.x;
+  state.player.z = before.z;
+  playerCollider.position.set(before.x, state.player.y, before.z);
+};
+
 const updatePlayer = (delta: number) => {
   if (levelSealed()) {
     holdSealedPlayer(delta);
@@ -2720,7 +2753,11 @@ const updatePlayer = (delta: number) => {
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
     const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
-    movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * delta, desiredMove.z * speed * delta);
+    // A stalled frame (a slow GPU, a shader compile) must not carry him metres in one step: he slows instead of tunnelling a wall corner.
+    const step = Math.min(delta, MAX_MOVE_DELTA);
+    const before = { x: state.player.x, z: state.player.z };
+    movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * step, desiredMove.z * speed * step);
+    keepInsideFloors(before);
   } else {
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
   }
