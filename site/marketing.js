@@ -3,7 +3,11 @@ const isLocalDev = isLocalHost && location.port !== '4173' && location.port !== 
 
 // The static href is the built game (./play/game.html, relative so it also works under the beta subpath). Vite dev serves the game from source at /game.html.
 if (isLocalDev) {
-  document.querySelectorAll('[data-play]').forEach((link) => link.setAttribute('href', '/game.html'));
+  document.querySelectorAll('[data-play]').forEach((link) => {
+    // A lore page's link names its level: keep ?level=N on the dev server's game page.
+    const level = link.getAttribute('data-level');
+    link.setAttribute('href', level ? `/game.html?level=${level}` : '/game.html');
+  });
 }
 
 const page = document.body.dataset.page;

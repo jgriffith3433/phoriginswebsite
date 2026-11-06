@@ -20,6 +20,7 @@ import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { installMenuNav } from './game/menuNav';
 import { lineText } from './game/locale';
 import { chapterCopy, createChapterCard } from './game/chapterCard';
+import { loreEntry, withLore } from './game/lore';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
@@ -117,6 +118,11 @@ const missionsClose = document.getElementById('missionsClose') as HTMLButtonElem
 const missionsList = document.getElementById('missionsList') as HTMLDivElement | null;
 const missionsTitle = document.getElementById('missionsTitle') as HTMLElement | null;
 const missionScore = document.getElementById('missionScore') as HTMLParagraphElement | null;
+const loreCard = document.getElementById('loreEntry') as HTMLElement | null;
+const loreKicker = document.getElementById('loreKicker');
+const loreTitle = document.getElementById('loreTitle');
+const loreText = document.getElementById('loreText');
+const loreLink = document.getElementById('loreLink') as HTMLAnchorElement | null;
 const sidearmHint = document.getElementById('sidearmHint') as HTMLButtonElement | null;
 const lightHint = document.getElementById('lightHint') as HTMLButtonElement | null;
 const abilityHint = document.getElementById('abilityHint') as HTMLButtonElement | null;
@@ -686,6 +692,8 @@ type SaveData = {
   ammo?: number;
   medkits?: number;
   missions?: Record<string, string[]>;
+  /** Lore entries unlocked by finishing a level (chapter numbers). */
+  lore?: number[];
 };
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
 const MAX_HEALTH = 100;
@@ -740,6 +748,7 @@ const parseSave = (raw: string): SaveData => {
     ammo: Number.isFinite(ammo) ? Math.max(0, Math.min(4, ammo)) : undefined,
     medkits: Number.isFinite(medkits) ? Math.max(0, Math.min(3, medkits)) : undefined,
     missions,
+    lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
   };
 };
 
@@ -773,6 +782,7 @@ const saveGame = (next: Partial<SaveData>) => {
     ammo: next.ammo ?? save.ammo,
     medkits: next.medkits ?? save.medkits,
     missions: next.missions ?? save.missions,
+    lore: next.lore ?? save.lore,
   };
   writeSaveCookie(save);
   return save;
@@ -1785,6 +1795,26 @@ const recoverFromStall = () => {
   syncStartButtonLabel();
 };
 
+/** Level Complete unlocks that chapter's lore entry (saved) and shows it with a link to its page on the site. */
+const showLore = (n: number) => {
+  const entry = n ? loreEntry(n) : null;
+  if (!loreCard || !entry || !entry.title) {
+    if (loreCard) loreCard.hidden = true;
+    return;
+  }
+  if (!(save.lore ?? []).includes(n)) saveGame({ lore: withLore(save.lore, n) });
+  if (loreKicker) loreKicker.textContent = `${lineText('ui.lore.unlocked', 'Lore unlocked')} · ${(save.lore ?? []).length}/8`;
+  if (loreTitle) loreTitle.textContent = entry.title;
+  if (loreText) loreText.textContent = entry.text;
+  if (loreLink) {
+    loreLink.href = entry.url;
+    loreLink.textContent = lineText('ui.lore.readmore', 'Read more');
+    loreLink.dataset.lore = String(n);
+  }
+  loreCard.hidden = false;
+  analytics?.feature('lore-unlocked', n);
+};
+
 const showMessage = (title: string, text: string) => {
   messageBox.classList.remove('leaving');
   messageTitle.textContent = title;
@@ -1801,6 +1831,7 @@ const showMessage = (title: string, text: string) => {
   }
   if (title === 'Level Complete' || title === 'Mission Clear') startLevelCredits(state.level);
   else stopLevelCredits();
+  showLore(title === 'Level Complete' ? state.level : 0);
   if (missionScore) {
     const showScore = title === 'Level Complete';
     missionScore.hidden = !showScore;
@@ -2420,6 +2451,19 @@ void (async () => {
     act.armPhase('call');
     beginGame();
     act.startCall();
+  } else if (params.get('level')) {
+    // `?level=N` is the site's "Play this level" link: the title card opens on that level, as if picked in Load Level. Start enters it.
+    const wanted = getLevelDefinition(Number(params.get('level')) || 1);
+    if (!wanted.comingSoon) {
+      levelPicked = true;
+      state.level = wanted.id;
+      state.progression.currentLevel = wanted.id;
+      applyLevelConfig(wanted);
+      await withLoadTimeout(loadMissionScene(wanted.path));
+      messageTitle.textContent = 'PH Origins';
+      messageText.textContent = levelStartLine(wanted);
+      syncStartButtonLabel();
+    }
   }
 })().catch((error) => {
   applyLoadedScene(null);

@@ -5515,6 +5515,150 @@
       "text": "Three blocks. One room. Morning comes anyway.",
       "audio": "",
       "note": "Chapter title card: one story line under the name. Silent. No vat or creature on a public-facing card."
+    },
+    {
+      "id": "lore.1.title",
+      "type": "ui",
+      "speaker": "Lore 1",
+      "text": "The Apex Peak",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/the-apex-peak.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.1.text",
+      "type": "ui",
+      "speaker": "Lore 1",
+      "text": "Minutes of a meeting that ended the way its chairman wanted. One director stayed behind.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "lore.2.title",
+      "type": "ui",
+      "speaker": "Lore 2",
+      "text": "B3",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/b3.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.2.text",
+      "type": "ui",
+      "speaker": "Lore 2",
+      "text": "The clearance badge still works. Nobody revoked it, because nobody thought he would use it.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "lore.3.title",
+      "type": "ui",
+      "speaker": "Lore 3",
+      "text": "The Return",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/the-return.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.3.text",
+      "type": "ui",
+      "speaker": "Lore 3",
+      "text": "The halls are too bright. Hale is already on the phone to the other investors.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "lore.4.title",
+      "type": "ui",
+      "speaker": "Lore 4",
+      "text": "The Desk",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/the-desk.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.4.text",
+      "type": "ui",
+      "speaker": "Lore 4",
+      "text": "The papers are where he left them. He is no longer sure the man who left them is the one standing here.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "lore.5.title",
+      "type": "ui",
+      "speaker": "Lore 5",
+      "text": "Going Home",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/going-home.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.5.text",
+      "type": "ui",
+      "speaker": "Lore 5",
+      "text": "The street has heard about the tower. It has not heard about him. It will.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "lore.6.title",
+      "type": "ui",
+      "speaker": "Lore 6",
+      "text": "The Station",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/the-station.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.6.text",
+      "type": "ui",
+      "speaker": "Lore 6",
+      "text": "A man on the platform looks a lot like him. The doors of the uptown train are open.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "lore.7.title",
+      "type": "ui",
+      "speaker": "Lore 7",
+      "text": "The Train",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/the-train.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.7.text",
+      "type": "ui",
+      "speaker": "Lore 7",
+      "text": "Somebody is always one car ahead. He gets off before Pierce can reach him.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "lore.8.title",
+      "type": "ui",
+      "speaker": "Lore 8",
+      "text": "The Morning",
+      "audio": "",
+      "note": "Lore entry unlocked on the Level Complete card: name. Silent. Same entry as the site page lore/the-morning.html (site/lore.json). No vat or creature."
+    },
+    {
+      "id": "lore.8.text",
+      "type": "ui",
+      "speaker": "Lore 8",
+      "text": "The lock still knows his hand. Morning comes anyway, and the news has a name for him.",
+      "audio": "",
+      "note": "Lore entry on the Level Complete card: one line above the Read more link. Silent. Also the page's lede (tools/buildLore.mjs reads it from here)."
+    },
+    {
+      "id": "ui.lore.unlocked",
+      "type": "ui",
+      "speaker": "Lore",
+      "text": "Lore unlocked",
+      "audio": "",
+      "note": "Level Complete card: kicker above the unlocked lore entry"
+    },
+    {
+      "id": "ui.lore.readmore",
+      "type": "ui",
+      "speaker": "Lore",
+      "text": "Read more",
+      "audio": "",
+      "note": "Level Complete card: link to the lore site page"
     }
   ]
 }
