@@ -149,7 +149,7 @@ const objectiveDist = document.getElementById('objectiveDist') as HTMLSpanElemen
 const alarmFlash = document.getElementById('alarmFlash') as HTMLDivElement | null;
 const hitFlash = document.getElementById('hitFlash') as HTMLDivElement | null;
 /** Short white-gold screen pulse for a key action (strike, shot, power), next to its sound. */
-const actionPulse = (kind: 'strike' | 'shot' | 'power') => {
+const actionPulse = (kind: 'strike' | 'shot' | 'power' | 'heal' | 'pickup') => {
   if (!hitFlash) return;
   hitFlash.dataset.kind = kind;
   hitFlash.classList.remove('pulse');
@@ -2890,6 +2890,7 @@ const takeSupply = (pickup: (typeof pickups)[number]) => {
   pickup.active = false;
   pickup.mesh.setEnabled(false);
   audio.pickup();
+  actionPulse('pickup');
   updateHud();
 };
 
@@ -2908,6 +2909,7 @@ const useMedkit = () => {
   analytics?.used('medkit');
   showReloadNote('Medkit');
   audio.tone(520, 0.08, 'sine', 0.05);
+  actionPulse('heal');
   updateHud();
 };
 

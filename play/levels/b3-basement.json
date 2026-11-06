@@ -7622,6 +7622,21 @@
         "cutscene": "b3-door-reveal",
         "radius": 1.7
       }
+    },
+    {
+      "id": "b3-bed",
+      "type": "music",
+      "label": "B3 bed",
+      "x": 22,
+      "y": 0,
+      "z": 22,
+      "data": {
+        "radius": 400,
+        "audio": "/assets/audio/ambient/b3-drone.ogg",
+        "loop": true,
+        "fadeSeconds": 2,
+        "volume": 0.2
+      }
     }
   ]
 }
