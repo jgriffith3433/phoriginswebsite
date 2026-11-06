@@ -408,7 +408,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       {
         id: 'feel-audio',
         title: 'Each level has its own bed, a strike gives sound and a screen pulse, volume sliders persist',
-        description: 'Starts levels 1, 2, 5 and 6 directly (setup) and logs the music bed each one plays. On level 6 it walks and checks the footstep loop starts and stops, clicks (Punch) and checks the action pulse fired, then opens Pause > Settings, slides Music and Effects and checks hawkes.sound saved both.',
+        description: 'Starts levels 1 to 8 directly (setup) and logs the music bed each one plays. On level 6 it walks and checks the footstep loop starts and stops, clicks (Punch) and checks the action pulse fired, then opens Pause > Settings, slides Music and Effects and checks hawkes.sound saved both.',
         seconds: 200,
         tags: ['sound'],
       },
@@ -2065,15 +2065,17 @@ export const installPhPlaytest = (probe: PhProbe) => {
     if (id === 'feel-audio') {
       levelsTotal = 1;
       const pulses = () => (window as unknown as { __phPulses?: number }).__phPulses ?? 0;
-      for (const n of [1, 2, 5, 6]) {
+      const bedNames = ['The Apex Peak', 'B3', 'The Return', 'The Desk', 'Going Home', 'The Station', 'The Train', 'The Morning'];
+      for (const n of [1, 2, 3, 4, 5, 7, 8, 6]) {
+        const lname = `Level ${n}: ${bedNames[n - 1]}`;
         await enterLevel(n);
-        t.scene(LEVELS[n - 1].name);
-        t.event('level-start', LEVELS[n - 1].name);
+        t.scene(lname);
+        t.event('level-start', lname);
         try {
           await t.until(() => probe.sound().bed !== null && probe.sound().bedPlaying, 20000, 'the level bed to play');
-          t.event('bed', `${LEVELS[n - 1].name}: ${probe.sound().bed}`);
+          t.event('bed', `${lname}: ${probe.sound().bed}`);
         } catch {
-          t.problem('bug', `${LEVELS[n - 1].name} has no audible music bed`);
+          t.problem('bug', `${lname} has no audible music bed`);
         }
       }
       // Level 6: wait for control, walk (footsteps), then Punch with a click.
