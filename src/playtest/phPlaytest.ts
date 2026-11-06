@@ -479,6 +479,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['level'],
       },
       {
+        id: 'lore-link',
+        title: 'Finish level 4 and unlock its lore entry, open its Read more page, check every lore page has Play this level',
+        description: 'Starts The Desk (test shortcut) and plays it to the Level Complete card through real input. The card must show a "Lore unlocked" entry for chapter 4 (title, line) and a visible "Read more" link to lore/the-desk.html; the unlock is saved on the progress cookie. The linked page is then shown in an overlay and must carry a visible "Play this level" link whose href is ?level=4. Finally every lore page (eight) is loaded and checked for its own Play this level link (?level=N) and the lore index lists all eight. Problems: no lore entry on the card, no Read more, Read more not pointing at the site, a lore page with no Play this level link.',
+        seconds: 200,
+        tags: ['level', 'site'],
+      },
+      {
         id: 'site-links',
         title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged',
         description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
@@ -2137,6 +2144,85 @@ export const installPhPlaytest = (probe: PhProbe) => {
       }
       t.progress(1);
       t.finish('won');
+      return;
+    }
+
+    if (id === 'lore-link') {
+      levelsTotal = 1;
+      const N = 4;
+      await enterLevel(N);
+      const outcome = await playLevel(N);
+      t.progress(0.6);
+      if (outcome !== 'won') { t.finish(outcome); return; }
+      await sleep(1200);
+      t.scene('Level Complete: lore entry');
+      const text = (el: Element | null) => (el?.textContent ?? '').trim().replace(/\s+/g, ' ');
+      const card = document.getElementById('loreEntry');
+      const link = document.getElementById('loreLink') as HTMLAnchorElement | null;
+      const cardShown = shown(card);
+      const entry = { kicker: text(document.getElementById('loreKicker')), title: text(document.getElementById('loreTitle')), line: text(document.getElementById('loreText')) };
+      t.event('lore-unlocked', { level: N, ...entry, link: link?.href ?? null, visible: !!cardShown });
+      if (card) (card as HTMLElement).style.outline = `2px solid ${cardShown ? '#d4b483' : '#ff4d4d'}`;
+      if (!cardShown || !entry.title || entry.line.length < 20) t.problem('bug', `Level Complete shows no lore entry for level ${N} (${JSON.stringify(entry)})`);
+      else if (!/lore unlocked/i.test(entry.kicker)) t.problem('bug', `the lore entry has no "Lore unlocked" kicker: "${entry.kicker}"`);
+      if (RAW_KEY.test(`${entry.kicker} ${entry.title} ${entry.line}`)) t.problem('bug', 'the lore entry shows a raw locale id');
+      if (!link || !shown(link) || !/read more/i.test(text(link))) t.problem('bug', 'the lore entry has no visible "Read more" link');
+      else if (!/\/lore\/the-desk\.html$/.test(link.href)) t.problem('bug', `Read more points at ${link.href}, not the site's lore/the-desk.html`);
+      else t.event('read-more', `shows "${text(link)}" -> ${link.href}`);
+      const saved = decodeURIComponent(document.cookie.split('; ').find((c) => c.startsWith('ph-origins-save='))?.slice(16) ?? '{}');
+      let unlockedList: number[] = [];
+      try { unlockedList = (JSON.parse(saved).lore as number[]) ?? []; } catch { /* no cookie */ }
+      t.event('lore-saved', `unlocked entries on the save: ${JSON.stringify(unlockedList)}`);
+      if (!unlockedList.includes(N)) t.problem('bug', `the lore entry for level ${N} is not saved as unlocked`);
+      await sleep(2500);
+      t.progress(0.75);
+
+      // Read more: the page it names, in an overlay, with its Play this level link.
+      const playLinkOf = (doc: Document, n: number) => [...doc.querySelectorAll<HTMLAnchorElement>('a[data-play]')].find((a) => /play this level/i.test(a.textContent ?? '') && new URL(a.href).searchParams.get('level') === String(n));
+      const withPage = async (url: string, fn: (doc: Document, frame: HTMLIFrameElement) => Promise<void>) => {
+        const frame = document.createElement('iframe');
+        frame.src = url;
+        Object.assign(frame.style, { position: 'fixed', inset: '4%', width: '92%', height: '92%', zIndex: '9999', border: '2px solid #d4b483', background: '#05080c' });
+        document.body.appendChild(frame);
+        try {
+          const until = performance.now() + 20000;
+          while (!frame.contentDocument?.querySelector('footer') && performance.now() < until) await sleep(200);
+          await sleep(500);
+          if (!frame.contentDocument?.querySelector('footer')) { t.problem('bug', `lore page did not load in the overlay (${url})`); return; }
+          await fn(frame.contentDocument, frame);
+        } finally { frame.remove(); }
+      };
+      t.scene('Lore page: the-desk');
+      await withPage(link?.href ?? new URL('../lore/the-desk.html', location.href).href, async (doc, frame) => {
+        const play = playLinkOf(doc, N);
+        const r = play?.getBoundingClientRect();
+        const visible = !!(r && r.width > 0 && r.height > 0);
+        if (play) { play.scrollIntoView({ block: 'center' }); play.style.outline = '2px solid #d4b483'; }
+        t.event('play-this-level', `the-desk page: ${visible ? 'shows' : 'NO'} "${text(play ?? null)}" -> ${play?.getAttribute('href') ?? 'none'}`);
+        if (!play || !visible) t.problem('bug', 'the lore page for level 4 has no visible "Play this level" link with ?level=4');
+        void frame;
+        await sleep(2500);
+      });
+      t.progress(0.85);
+
+      t.scene('Lore pages: every level');
+      const base = new URL(location.pathname.includes('/play/') ? '../' : './', location.href);
+      const slugs = ['the-apex-peak', 'b3', 'the-return', 'the-desk', 'going-home', 'the-station', 'the-train', 'the-morning'];
+      for (const [i, slug] of slugs.entries()) {
+        const res = await fetch(new URL(`lore/${slug}.html`, base).href, { cache: 'no-store' });
+        if (!res.ok) { t.problem('bug', `lore/${slug}.html answers ${res.status}`); continue; }
+        const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        const play = playLinkOf(doc, i + 1);
+        t.event('lore-page', `chapter ${i + 1} ${slug}: ${play ? `Play this level -> ?level=${i + 1}` : 'NO Play this level link'}`);
+        if (!play) t.problem('bug', `lore/${slug}.html has no "Play this level" link to ?level=${i + 1}`);
+      }
+      const indexRes = await fetch(new URL('lore.html', base).href, { cache: 'no-store' });
+      const index = new DOMParser().parseFromString(await indexRes.text(), 'text/html');
+      const listed = index.querySelectorAll('.level a[href*="lore/"]').length;
+      t.event('lore-index', `${listed} entries listed`);
+      if (listed < 8) t.problem('bug', `lore.html lists ${listed} entries, not 8`);
+      t.progress(1);
+      t.finish('done');
       return;
     }
 
