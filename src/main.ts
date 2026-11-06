@@ -4263,6 +4263,7 @@ installPhPlaytest({
     settings: soundSettings(),
     bed: musicTriggerPlayer.active(),
     bedPlaying: musicTriggerPlayer.playing(),
+    footsteps: Boolean(walkLoop && !walkLoop.done()),
   }),
 });
 

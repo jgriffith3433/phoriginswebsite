@@ -1,7 +1,6 @@
 import type * as BABYLON from '@babylonjs/core';
 import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
 import { missingClip, storyLines } from '../game/locale';
-import { setSoundSettings } from '../game/soundSettings';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
 
@@ -78,6 +77,8 @@ export type PhProbe = {
     settings: { on: boolean; music: number; sfx: number };
     /** Id of the music trigger bed that is active now, and whether it is audibly playing. */
     bed: string | null; bedPlaying: boolean;
+    /** The walk (footstep) loop is playing. */
+    footsteps: boolean;
   };
 };
 
@@ -407,8 +408,8 @@ export const installPhPlaytest = (probe: PhProbe) => {
       {
         id: 'feel-audio',
         title: 'Each level has its own bed, a strike gives sound and a screen pulse, volume sliders persist',
-        description: 'Starts levels 1, 2 and 6 directly (setup), logs the music bed each one plays, then on level 6 raises the hands and clicks (Punch) and checks the action pulse fired, and finally slides Music and Effects in Settings and checks hawkes.sound saved both.',
-        seconds: 150,
+        description: 'Starts levels 1, 2, 5 and 6 directly (setup) and logs the music bed each one plays. On level 6 it walks and checks the footstep loop starts and stops, clicks (Punch) and checks the action pulse fired, then opens Pause > Settings, slides Music and Effects and checks hawkes.sound saved both.',
+        seconds: 200,
         tags: ['sound'],
       },
       {
@@ -2064,7 +2065,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     if (id === 'feel-audio') {
       levelsTotal = 1;
       const pulses = () => (window as unknown as { __phPulses?: number }).__phPulses ?? 0;
-      for (const n of [1, 2, 6]) {
+      for (const n of [1, 2, 5, 6]) {
         await enterLevel(n);
         t.scene(LEVELS[n - 1].name);
         t.event('level-start', LEVELS[n - 1].name);
@@ -2075,23 +2076,45 @@ export const installPhPlaytest = (probe: PhProbe) => {
           t.problem('bug', `${LEVELS[n - 1].name} has no audible music bed`);
         }
       }
-      // Level 6: wait for control, then Punch with a click.
+      // Level 6: wait for control, walk (footsteps), then Punch with a click.
       try {
         await t.until(() => controllable(), 60000, 'control on level 6');
+        setHeld('w');
+        try {
+          await t.until(() => probe.sound().footsteps, 4000, 'the footstep loop');
+          t.event('feedback', 'Footsteps: the walk loop plays while he moves');
+        } catch { t.problem('bug', 'walking made no footstep sound'); }
+        releaseAll();
+        await sleep(400);
+        if (probe.sound().footsteps) t.problem('bug', 'footsteps kept playing after he stopped');
         const before = pulses();
         input('fire', true);
         await sleep(300);
         if (pulses() > before) t.event('feedback', 'Punch: sound and screen pulse');
         else t.problem('bug', 'a click strike gave no screen pulse');
       } catch { t.problem('bug', 'level 6 never gave control'); }
-      // Sliders persist.
-      setSoundSettings({ music: 0.3, sfx: 0.6 });
-      await sleep(300);
+      // Sliders: open Pause, then Settings, and move the real Music and Effects sliders.
       try {
+        const byId = (name: string) => document.getElementById(name);
+        releaseAll();
+        await tapAt(byId('pauseBtn'), 'Pause');
+        await t.until(() => probe.sound().paused, 3000, 'Pause');
+        await tapAt(byId('pauseSettingsBtn'), 'Settings (Pause)');
+        await t.until(() => probe.sound().settingsOpen, 3000, 'Settings to open from Pause');
+        const slide = (el: HTMLInputElement, percent: number) => {
+          el.value = String(percent);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          t.add('interactions');
+        };
+        slide(byId('musicVolume') as HTMLInputElement, 30);
+        slide(byId('sfxVolume') as HTMLInputElement, 60);
+        await sleep(300);
         const saved = JSON.parse(localStorage.getItem(SOUND_KEY) ?? 'null');
-        if (saved && Math.abs(saved.music - 0.3) < 0.001 && Math.abs(saved.sfx - 0.6) < 0.001) t.event('setting-saved', JSON.stringify(saved));
+        if (saved && Math.abs(saved.music - 0.3) < 0.001 && Math.abs(saved.sfx - 0.6) < 0.001) t.event('setting-saved', `Music 30%, Effects 60%: ${JSON.stringify(saved)}`);
         else t.problem('bug', `volumes not saved: ${JSON.stringify(saved)}`);
-      } catch { t.problem('bug', 'volumes not saved'); }
+        await tapAt(byId('settingsDoneBtn'), 'Done');
+      } catch (e) { t.problem('bug', `the volume sliders could not be used from Pause: ${e instanceof Error ? e.message : e}`); }
       return;
     }
 
