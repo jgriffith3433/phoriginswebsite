@@ -50,6 +50,7 @@ import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
 import { createMinimap } from './game/minimap';
 import { createScreenFade } from './game/fade';
+import { createLostWatcher, safeSpotNear } from './game/returnToObjective';
 import { createPerfMonitor } from './game/perfMonitor';
 import { createAutoAim } from './game/autoAim';
 import { installPhPlaytest } from './playtest/phPlaytest';
@@ -2329,6 +2330,8 @@ const beginGame = () => {
     syncSkipButton();
   }
   analytics?.levelStarted();
+  checkpoint = { x: state.player.x, z: state.player.z };
+  lostWatcher.reset();
   void waitFrames(3).then(() => {
     revealFromBlack(() => state.running);
   });
@@ -3262,7 +3265,8 @@ window.addEventListener('keydown', (event) => {
   }
   if (key === 'r') {
     event.preventDefault();
-    if (state.running && messageBox.classList.contains('hidden')) reloadWeapon();
+    if (lostWatcher.lost()) returnToObjective();
+    else if (state.running && messageBox.classList.contains('hidden')) reloadWeapon();
   }
   if (key === 'e') {
     event.preventDefault();
@@ -3640,6 +3644,66 @@ const setPaused = (on: boolean) => {
     lockGameplayPointer();
   }
 };
+
+// "Lost? Return to objective" (src/game/returnToObjective.ts): after 60 s of real play with no progress a prompt
+// shows (R or a tap), and Pause always offers the same move. Pierce is placed on safe ground beside the live objective.
+const lostHint = document.getElementById('lostHint') as HTMLButtonElement | null;
+const pauseReturnBtn = document.getElementById('pauseReturnBtn') as HTMLButtonElement | null;
+const scriptedNow = () => (home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing());
+/** Where the last objective with a position was, or where this level began: the fallback when the objective has none. */
+let checkpoint: { x: number; z: number } | null = null;
+let returning = false;
+const lostWatcher = createLostWatcher({
+  playing: () => state.running && !paused && !settingsOpen() && messageBox.classList.contains('hidden') && !state.inCutscene
+    && !scriptedNow() && !panelsOpen() && !levelSealed() && document.visibilityState === 'visible',
+  objective: () => `${(objectiveHud?.querySelector('.objective-kicker') as HTMLElement | null)?.textContent ?? ''}|${objectiveText?.textContent ?? ''}`,
+  player: () => ({ x: state.player.x, z: state.player.z }),
+  target: () => {
+    const target = objectiveMarker.getTarget();
+    return target && objectiveMarker.isVisible() ? { x: target.x, z: target.z } : null;
+  },
+}, (lost) => {
+  if (lostHint) lostHint.hidden = !lost;
+  if (lost) analytics?.feature('lost-prompt', state.level);
+});
+window.setInterval(() => {
+  if (!state.running) return;
+  const target = objectiveMarker.getTarget();
+  if (target && objectiveMarker.isVisible()) checkpoint = { x: target.x, z: target.z };
+  lostWatcher.tick();
+}, 1000);
+
+const returnToObjective = () => {
+  if (returning || !state.running || state.inCutscene || levelSealed() || scriptedNow()) return;
+  if (!messageBox.classList.contains('hidden')) return;
+  returning = true;
+  const from = { x: state.player.x, z: state.player.z };
+  if (paused) setPaused(false);
+  if (settingsOpen()) closeSettings();
+  const target = objectiveMarker.getTarget();
+  const aim = target && objectiveMarker.isVisible() ? { x: target.x, z: target.z } : checkpoint;
+  const kicker = (objectiveHud?.querySelector('.objective-kicker') as HTMLElement | null)?.textContent?.trim() ?? '';
+  analytics?.recovered(`${kicker}: ${objectiveText?.textContent?.trim() ?? ''}`.slice(0, 120), Boolean(target), from);
+  lostWatcher.reset();
+  screenFade.to(1, 0.3);
+  window.setTimeout(() => {
+    const spot = aim ? safeSpotNear(scene, aim, from) : null;
+    if (spot) {
+      const yaw = aim ? Math.atan2(aim.x - spot.x, aim.z - spot.z) : state.characterYaw;
+      placePierce(spot.x, spot.z, yaw);
+    }
+    clearInputState();
+    screenFade.to(0, 0.5);
+    returning = false;
+  }, 380);
+};
+lostHint?.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  unlockAudio();
+  returnToObjective();
+});
+pauseReturnBtn?.addEventListener('click', () => returnToObjective());
 
 settingsBtn.addEventListener('click', () => openSettings());
 document.getElementById('pauseSettingsBtn')?.addEventListener('click', () => openSettings());
@@ -4117,13 +4181,15 @@ window.addEventListener('resize', () => {
 });
 
 /** Playtest setup: lay the page out as a 390x844 phone, centred and scaled to fit a desktop viewport. */
-const setPhoneFrame = (on: boolean) => {
+const setPhoneFrame = (on: boolean, landscape = false) => {
   phoneFramed = on;
   if (on) {
-    const scale = Math.min(1, window.innerHeight / 844, window.innerWidth / 390);
-    Object.assign(root.style, { width: '390px', height: '844px', margin: '0 auto', transform: `scale(${scale})`, transformOrigin: 'center center' });
+    const w = landscape ? 844 : 390;
+    const h = landscape ? 390 : 844;
+    const scale = Math.min(1, window.innerHeight / h, window.innerWidth / w);
+    Object.assign(root.style, { width: `${w}px`, height: `${h}px`, margin: '0 auto', transform: `scale(${scale})`, transformOrigin: 'center center' });
     document.body.dataset.device = 'mobile';
-    document.body.dataset.orientation = 'portrait';
+    document.body.dataset.orientation = landscape ? 'landscape' : 'portrait';
     document.body.dataset.touch = 'true';
     root.classList.add('is-mobile');
     root.style.setProperty('--ui-scale', '0.96');
@@ -4244,6 +4310,7 @@ installPhPlaytest({
   morning: () => (isMorningLevel() ? morning.story() : null),
   ending: () => endingSong?.src || null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
+  lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;
     applyHurt(Math.max(1, state.health), 'playtest');

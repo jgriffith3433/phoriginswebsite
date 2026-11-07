@@ -207,6 +207,10 @@ export const createGameAnalytics = (probe: AnalyticsProbe) => {
       closeCard();
       sdk().screen('title');
     },
+    /** "Return to objective" used (the Lost? prompt or Pause): where Pierce was and whether the objective had a position. */
+    recovered: (objective: string, positioned: boolean, from: { x: number; z: number }) => {
+      sdk().track('recovered', { level: String(open?.id ?? probe.level().id), objective, positioned, x: round(from.x), z: round(from.z), ...(open ? { area: lastArea } : {}) });
+    },
     cutscenePlay: (id: string) => sdk().video(id, 'play', 0, { level: open?.id }),
     cutsceneEnd: (id: string, at: number, skipped: boolean) => sdk().video(id, skipped ? 'skip' : 'complete', at, { level: open?.id }),
     /** Skip on a scripted scene: the watcher sends the skip when the scene ends. */

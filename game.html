@@ -394,6 +394,11 @@
         color: #f0d48a;
       }
 
+      .lost-hint {
+        top: calc(50% - 96px);
+        max-width: calc(100% - 24px);
+      }
+
       .interact-hint.stacked {
         top: calc(50% + 132px);
       }
@@ -1671,6 +1676,7 @@
       body:has(.message:not(.hidden)) .objective-hud,
       body:has(.message:not(.hidden)) .action-hint,
       body:has(.message:not(.hidden)) .interact-hint,
+      body:has(.message:not(.hidden)) .lost-hint,
       body:has(.message:not(.hidden)) .reload-hint,
       body:has(.message:not(.hidden)) .phone-panel,
       body:has(.message:not(.hidden)) .phone-toast {
@@ -2893,6 +2899,7 @@
       <div id="crosshair" aria-hidden="true"></div>
       <button type="button" id="reloadHint" class="reload-hint" hidden>Reload<kbd> — R</kbd></button>
       <button type="button" id="actionHint" class="action-hint" hidden>Join meeting<kbd> — E</kbd></button>
+      <button type="button" id="lostHint" class="action-hint lost-hint" hidden>Lost? Return to objective<kbd> — R</kbd></button>
       <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
       <button type="button" id="skipCutscene" class="skip-cutscene" hidden>Skip</button>
       <div id="objectiveHud" class="objective-hud" aria-live="polite">
@@ -3079,6 +3086,7 @@
           <div class="button-row">
             <button class="primary" id="resumeBtn" type="button">Resume</button>
             <button class="secondary" id="pauseSettingsBtn" type="button">Settings</button>
+            <button class="secondary" id="pauseReturnBtn" type="button">Return to objective</button>
           </div>
         </div>
       </div>

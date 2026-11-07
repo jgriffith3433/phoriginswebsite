@@ -70,7 +70,9 @@ export type PhProbe = {
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
   counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
-  phoneFrame: (on: boolean) => void;
+  phoneFrame: (on: boolean, landscape?: boolean) => void;
+  /** The Lost? prompt (src/game/returnToObjective.ts): shown, seconds without progress, and a move under way. */
+  lost: () => { prompt: boolean; idle: number; returning: boolean };
   /** Tap to play, the AudioContext, Pause and Settings (studio sound standard). */
   sound: () => {
     prompt: boolean; context: string; paused: boolean; settingsOpen: boolean;
@@ -412,6 +414,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         seconds: SMOKE_SECONDS,
         tags: ['smoke', 'level'],
       })),
+      {
+        id: 'stuck-recovery',
+        title: 'Idle 60 s in level 1: "Lost? Return to objective" shows and puts Pierce beside the objective; Pause always offers it; tappable at 390x844 and 844x390',
+        description: 'Starts level 1 with Start, opens Pause at once and checks Return to objective is there. Then stands still: no key, no mouse. After 60 s of play with no progress the Lost? prompt must appear (logged with the seconds). Presses R (a tap on the prompt in the phone passes, hit-tested so a covered prompt fails), waits out the fade and checks Pierce is within 5 m of the objective marker, on walkable ground, and the prompt is gone. Pause > Return to objective is used once the same way. The prompt is checked on screen and clear of the touch buttons at 390x844 and again at 844x390.',
+        seconds: 420,
+        tags: ['menus', 'ui'],
+      },
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
         id: 'sound-settings',
@@ -1419,6 +1428,104 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.event('tap-to-play', 'prompt tapped');
     };
 
+    // ---- stuck-recovery: idle, the Lost? prompt, Return to objective (key, tap, Pause), at three viewports
+    const stuckRecoveryRun = async () => {
+      levelsTotal = 1;
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const gap = () => {
+        const target = probe.objective().target;
+        const p = probe.player();
+        return target ? Math.hypot(p.x - target.x, p.z - target.z) : NaN;
+      };
+      const visible = (el: HTMLElement | null) => !!el && !el.hidden && getComputedStyle(el).visibility !== 'hidden' && el.getBoundingClientRect().width > 0;
+      const clearOfControls = (vp: string) => {
+        const hint = byId('lostHint');
+        if (!hint) return;
+        const r = hint.getBoundingClientRect();
+        const onScreen = r.left >= 0 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight + 1;
+        if (!onScreen) t.problem('bug', `${vp}: the Lost? prompt leaves the screen (${Math.round(r.left)},${Math.round(r.top)} to ${Math.round(r.right)},${Math.round(r.bottom)})`);
+        if (r.height < 36) t.problem('bug', `${vp}: the Lost? prompt is ${Math.round(r.height)} px tall, too small to tap`);
+        const covered = [...document.querySelectorAll<HTMLElement>('.controls button, .controls .stick, #pauseBtn, #objectiveHud')].filter((el) => {
+          const b = el.getBoundingClientRect();
+          return visible(el) && b.width > 0 && !(b.right < r.left || b.left > r.right || b.bottom < r.top || b.top > r.bottom);
+        });
+        for (const el of covered) t.problem('bug', `${vp}: the Lost? prompt overlaps #${el.id || el.className}`);
+        t.event('prompt-layout', `${vp}: prompt ${Math.round(r.width)}x${Math.round(r.height)} at ${Math.round(r.left)},${Math.round(r.top)}; ${covered.length} overlaps`);
+      };
+      const recover = async (vp: string, how: 'key' | 'tap' | 'pause') => {
+        const before = gap();
+        const from = probe.player();
+        if (how === 'pause') {
+          await tapAt(byId('pauseBtn'), 'Pause');
+          await t.until(() => probe.sound().paused, 3000, 'Pause');
+          if (!visible(byId('pauseReturnBtn'))) t.problem('bug', `${vp}: Pause has no Return to objective`);
+          await tapAt(byId('pauseReturnBtn'), 'Return to objective (Pause)');
+        } else if (how === 'tap') await tapAt(byId('lostHint'), 'Lost? Return to objective');
+        else await tap('r', 'Return to objective');
+        await t.until(() => probe.lost().returning, 3000, 'the move to start');
+        await t.until(() => !probe.lost().returning, 5000, 'the move to finish');
+        await sleep(700);
+        const after = gap();
+        const p = probe.player();
+        t.event('recovered', `${vp} via ${how}: ${Number.isFinite(before) ? before.toFixed(1) : '?'} m -> ${Number.isFinite(after) ? after.toFixed(1) : 'no marker'} m from the objective (moved ${Math.hypot(p.x - from.x, p.z - from.z).toFixed(1)} m)`);
+        if (Number.isFinite(after) && after > 5) t.problem('bug', `${vp}: Return to objective left Pierce ${after.toFixed(1)} m from the objective`);
+        if (Number.isFinite(after) && Number.isFinite(before) && before > 5 && after >= before) t.problem('bug', `${vp}: Return to objective did not bring Pierce closer (${before.toFixed(1)} m -> ${after.toFixed(1)} m)`);
+        if (probe.lost().prompt) t.problem('bug', `${vp}: the Lost? prompt is still up after returning`);
+        t.add('recoveries');
+      };
+      const idlePass = async (vp: string, how: 'key' | 'tap' | 'pause') => {
+        await t.until(() => controllable() && probe.objective().visible, 60000, 'control and an objective');
+        if (probe.menu().open) throw new Error('a card is up');
+        t.scene(`Idle (${vp})`);
+        const t0 = performance.now();
+        releaseAll();
+        // Nothing is pressed: not a key, not a stick. The prompt must come on its own.
+        await t.until(() => probe.lost().prompt, 150000, 'the Lost? prompt');
+        const secs = (performance.now() - t0) / 1000;
+        t.event('lost-prompt', `${vp}: after ${secs.toFixed(0)} s idle (game counted ${probe.lost().idle} s)`);
+        t.metric(`lostPromptSeconds${vp}`, Math.round(secs));
+        if (secs < 55) t.problem('bug', `${vp}: the Lost? prompt came after only ${secs.toFixed(0)} s`);
+        await sleep(400);
+        clearOfControls(vp);
+        t.scene(`Lost? prompt (${vp})`);
+        await sleep(1200);
+        await recover(vp, how);
+        t.scene(`Returned (${vp})`);
+        await sleep(1200);
+      };
+
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('Title');
+      await sleep(600);
+      await enterLevel(1);
+      await t.until(() => !(byId('pauseBtn') as HTMLButtonElement).hidden, 30000, 'the Pause button');
+      // Pause always offers it, before any 60 s have passed.
+      await tapAt(byId('pauseBtn'), 'Pause');
+      await t.until(() => probe.sound().paused, 3000, 'Pause');
+      t.scene('Paused');
+      if (visible(byId('pauseReturnBtn'))) t.event('pause-return', 'Pause offers Return to objective from the first second');
+      else t.problem('bug', 'Pause has no Return to objective');
+      await sleep(800);
+      await tapAt(byId('resumeBtn'), 'Resume');
+      await t.until(() => !probe.sound().paused, 3000, 'Resume');
+      t.progress(0.1);
+
+      await idlePass(`${innerWidth}x${innerHeight}`, 'key');
+      t.progress(0.4);
+      probe.phoneFrame(true);
+      t.event('setup', 'phone layout 390x844');
+      await sleep(1200);
+      await idlePass('390x844', 'tap');
+      t.progress(0.65);
+      probe.phoneFrame(true, true);
+      t.event('setup', 'phone layout 844x390');
+      await sleep(1200);
+      await idlePass('844x390', 'pause');
+      probe.phoneFrame(false);
+      t.progress(1);
+      t.finish('done');
+    };
+
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
     const b3RetryRun = async () => {
       levelsTotal = 1;
@@ -2093,6 +2200,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
       return;
     }
     await t.until(() => probe.ready(), 90000, 'game ready');
+    if (id === 'stuck-recovery') {
+      await stuckRecoveryRun();
+      return;
+    }
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
       return;
