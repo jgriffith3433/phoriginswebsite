@@ -70,7 +70,9 @@ export type PhProbe = {
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
   counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
-  phoneFrame: (on: boolean) => void;
+  phoneFrame: (on: boolean, landscape?: boolean) => void;
+  /** The Lost? prompt (src/game/returnToObjective.ts): shown, seconds without progress, and a move under way. */
+  lost: () => { prompt: boolean; idle: number; returning: boolean };
   /** Tap to play, the AudioContext, Pause and Settings (studio sound standard). */
   sound: () => {
     prompt: boolean; context: string; paused: boolean; settingsOpen: boolean;
@@ -102,6 +104,15 @@ const LEVELS = [
   { n: 5, lib: 'going-home', name: 'Level 5: Going Home' },
   { n: 6, lib: 'the-station', name: 'Level 6: The Station' },
 ];
+
+const LEVEL_NAMES = ['The Apex Peak', 'B3', 'The Return', 'The Desk', 'Going Home', 'The Station', 'The Train', 'The Morning'];
+/** A per-level smoke run has about four minutes of headless play (~1 fps). */
+const SMOKE_SECONDS = 240;
+/** No objective progress for this long ends a smoke run `stuck`, naming the live objective. */
+const SMOKE_STUCK_MS = 30000;
+/** A cutscene in a smoke run is skipped after this many seconds (rides use FULL_SKIP_AFTER). */
+const SMOKE_SKIP_AFTER = 10;
+class SmokeStuck extends Error {}
 
 /** Usual timeline lengths, seconds. A scripted scene (lobby, desk, station opening) has no timeline file. */
 const SCRIPTED_LIMIT = 150;
@@ -397,6 +408,19 @@ export const installPhPlaytest = (probe: PhProbe) => {
     scenarios: [
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
+      ...LEVEL_NAMES.map((name, i) => ({
+        id: `smoke-l${i + 1}`,
+        title: `Smoke, level ${i + 1} (${name}): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress`,
+        seconds: SMOKE_SECONDS,
+        tags: ['smoke', 'level'],
+      })),
+      {
+        id: 'stuck-recovery',
+        title: 'Idle 60 s in level 1: "Lost? Return to objective" shows and puts Pierce beside the objective; Pause always offers it; tappable at 390x844 and 844x390',
+        description: 'Starts level 1 with Start, opens Pause at once and checks Return to objective is there. Then stands still: no key, no mouse. After 60 s of play with no progress the Lost? prompt must appear (logged with the seconds). Presses R (a tap on the prompt in the phone passes, hit-tested so a covered prompt fails), waits out the fade and checks Pierce is within 5 m of the objective marker, on walkable ground, and the prompt is gone. Pause > Return to objective is used once the same way. The prompt is checked on screen and clear of the touch buttons at 390x844 and again at 844x390.',
+        seconds: 420,
+        tags: ['menus', 'ui'],
+      },
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
         id: 'sound-settings',
@@ -557,6 +581,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.log(`click ${label}`);
     };
     const full = id === 'full';
+    const smokeN = Number(/^smoke-l([1-8])$/.exec(id)?.[1] ?? 0);
+    const smoke = smokeN > 0;
+    // Levels 1-6 are walked by playLevel, so their scripted scenes (lobby, desk, station) can be skipped too.
+    // Levels 7 and 8 run the story scripts, which listen to their own opening, so only timelines are skipped there.
+    const smokeSkipScripted = smoke && smokeN <= 6;
+    const smokeT0 = performance.now();
+    const watch = { key: '', at: performance.now(), x: 0, z: 0, line: '' };
+    const poke = () => { watch.at = performance.now(); };
     const speed = Math.max(1, Number(options.speed) || 1);
     let rng = (Number(options.seed) || 1) >>> 0 || 1;
     const random = () => { rng ^= rng << 13; rng >>>= 0; rng ^= rng >> 17; rng ^= rng << 5; rng >>>= 0; return rng / 4294967296; };
@@ -623,7 +655,8 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (nowId && (!scene || scene.id !== nowId)) {
         if (scene) endScene();
         const limit = cut ? cut.duration * 1.25 + 8 : SCRIPTED_LIMIT;
-        const skipAfter = full ? FULL_SKIP_AFTER[nowId] : undefined;
+        const skipAfter = full ? FULL_SKIP_AFTER[nowId]
+          : smoke && (cut || smokeSkipScripted) ? (FULL_SKIP_AFTER[nowId] ?? SMOKE_SKIP_AFTER) : undefined;
         const bySpeed = speed > 1 && cut ? cut.duration / speed : undefined;
         scene = { id: nowId, t0: performance.now(), limit, skipAt: Math.min(skipAfter ?? Infinity, bySpeed ?? Infinity), last: -1, skipped: false };
         t.add('cutscenes');
@@ -671,6 +704,29 @@ export const installPhPlaytest = (probe: PhProbe) => {
       } else lastPos = null;
     };
 
+    // Smoke runs: no objective progress for 30 s ends the run stuck. Progress is a new objective, a scene or a
+    // call playing, a new line, a card up, or Pierce 3 m from where the clock last reset.
+    const watchProgress = () => {
+      if (!smoke) return;
+      const now = performance.now();
+      const obj = probe.objective();
+      const p = probe.player();
+      const sub = probe.subtitle().text.trim();
+      const ph = probe.phone();
+      const key = `${probe.level().libraryId}|${obj.title}|${obj.text}|${probe.phase()}`;
+      const busy = !probe.running() || probe.menu().open || probe.cutscene() || probe.scripted() || ph.busy || ph.incoming;
+      const talked = sub !== watch.line;
+      watch.line = sub;
+      if (key !== watch.key || busy || talked || Math.hypot(p.x - watch.x, p.z - watch.z) > 3) {
+        watch.key = key; watch.x = p.x; watch.z = p.z; watch.at = now;
+        return;
+      }
+      if (now - watch.at > SMOKE_STUCK_MS) {
+        const name = `${obj.title ? `${obj.title}: ` : ''}${obj.text}`.trim() || '(no objective)';
+        throw new SmokeStuck(`stuck: no objective progress for 30 s on ${probe.level().name}, objective "${name}", phase ${probe.phase() || '-'}, at (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+      }
+    };
+
     const endScene = () => {
       if (!scene) return;
       const secs = (performance.now() - scene.t0) / 1000;
@@ -680,7 +736,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       mark();
     };
 
-    const tick = async () => { await frame(); observe(); };
+    const tick = async () => { await frame(); observe(); watchProgress(); };
 
     // ---- camera and walking
     const measureLook = async () => {
@@ -887,6 +943,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
         const err = face(heading);
         if ((locked || Math.abs(err) < 0.18) && performance.now() - lastShot > 380) {
           lastShot = performance.now();
+          poke();
           clickCanvas();
           t.add('shots');
           t.add('interactions');
@@ -1369,6 +1426,104 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await tapAt(document.getElementById('tapToPlay'), 'Tap to play');
       await t.until(() => !probe.sound().prompt, 5000, 'the Tap to play prompt to go');
       t.event('tap-to-play', 'prompt tapped');
+    };
+
+    // ---- stuck-recovery: idle, the Lost? prompt, Return to objective (key, tap, Pause), at three viewports
+    const stuckRecoveryRun = async () => {
+      levelsTotal = 1;
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const gap = () => {
+        const target = probe.objective().target;
+        const p = probe.player();
+        return target ? Math.hypot(p.x - target.x, p.z - target.z) : NaN;
+      };
+      const visible = (el: HTMLElement | null) => !!el && !el.hidden && getComputedStyle(el).visibility !== 'hidden' && el.getBoundingClientRect().width > 0;
+      const clearOfControls = (vp: string) => {
+        const hint = byId('lostHint');
+        if (!hint) return;
+        const r = hint.getBoundingClientRect();
+        const onScreen = r.left >= 0 && r.right <= innerWidth + 1 && r.top >= 0 && r.bottom <= innerHeight + 1;
+        if (!onScreen) t.problem('bug', `${vp}: the Lost? prompt leaves the screen (${Math.round(r.left)},${Math.round(r.top)} to ${Math.round(r.right)},${Math.round(r.bottom)})`);
+        if (r.height < 36) t.problem('bug', `${vp}: the Lost? prompt is ${Math.round(r.height)} px tall, too small to tap`);
+        const covered = [...document.querySelectorAll<HTMLElement>('.controls button, .controls .stick, #pauseBtn, #objectiveHud')].filter((el) => {
+          const b = el.getBoundingClientRect();
+          return visible(el) && b.width > 0 && !(b.right < r.left || b.left > r.right || b.bottom < r.top || b.top > r.bottom);
+        });
+        for (const el of covered) t.problem('bug', `${vp}: the Lost? prompt overlaps #${el.id || el.className}`);
+        t.event('prompt-layout', `${vp}: prompt ${Math.round(r.width)}x${Math.round(r.height)} at ${Math.round(r.left)},${Math.round(r.top)}; ${covered.length} overlaps`);
+      };
+      const recover = async (vp: string, how: 'key' | 'tap' | 'pause') => {
+        const before = gap();
+        const from = probe.player();
+        if (how === 'pause') {
+          await tapAt(byId('pauseBtn'), 'Pause');
+          await t.until(() => probe.sound().paused, 3000, 'Pause');
+          if (!visible(byId('pauseReturnBtn'))) t.problem('bug', `${vp}: Pause has no Return to objective`);
+          await tapAt(byId('pauseReturnBtn'), 'Return to objective (Pause)');
+        } else if (how === 'tap') await tapAt(byId('lostHint'), 'Lost? Return to objective');
+        else await tap('r', 'Return to objective');
+        await t.until(() => probe.lost().returning, 3000, 'the move to start');
+        await t.until(() => !probe.lost().returning, 5000, 'the move to finish');
+        await sleep(700);
+        const after = gap();
+        const p = probe.player();
+        t.event('recovered', `${vp} via ${how}: ${Number.isFinite(before) ? before.toFixed(1) : '?'} m -> ${Number.isFinite(after) ? after.toFixed(1) : 'no marker'} m from the objective (moved ${Math.hypot(p.x - from.x, p.z - from.z).toFixed(1)} m)`);
+        if (Number.isFinite(after) && after > 5) t.problem('bug', `${vp}: Return to objective left Pierce ${after.toFixed(1)} m from the objective`);
+        if (Number.isFinite(after) && Number.isFinite(before) && before > 5 && after >= before) t.problem('bug', `${vp}: Return to objective did not bring Pierce closer (${before.toFixed(1)} m -> ${after.toFixed(1)} m)`);
+        if (probe.lost().prompt) t.problem('bug', `${vp}: the Lost? prompt is still up after returning`);
+        t.add('recoveries');
+      };
+      const idlePass = async (vp: string, how: 'key' | 'tap' | 'pause') => {
+        await t.until(() => controllable() && probe.objective().visible, 60000, 'control and an objective');
+        if (probe.menu().open) throw new Error('a card is up');
+        t.scene(`Idle (${vp})`);
+        const t0 = performance.now();
+        releaseAll();
+        // Nothing is pressed: not a key, not a stick. The prompt must come on its own.
+        await t.until(() => probe.lost().prompt, 150000, 'the Lost? prompt');
+        const secs = (performance.now() - t0) / 1000;
+        t.event('lost-prompt', `${vp}: after ${secs.toFixed(0)} s idle (game counted ${probe.lost().idle} s)`);
+        t.metric(`lostPromptSeconds${vp}`, Math.round(secs));
+        if (secs < 55) t.problem('bug', `${vp}: the Lost? prompt came after only ${secs.toFixed(0)} s`);
+        await sleep(400);
+        clearOfControls(vp);
+        t.scene(`Lost? prompt (${vp})`);
+        await sleep(1200);
+        await recover(vp, how);
+        t.scene(`Returned (${vp})`);
+        await sleep(1200);
+      };
+
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('Title');
+      await sleep(600);
+      await enterLevel(1);
+      await t.until(() => !(byId('pauseBtn') as HTMLButtonElement).hidden, 30000, 'the Pause button');
+      // Pause always offers it, before any 60 s have passed.
+      await tapAt(byId('pauseBtn'), 'Pause');
+      await t.until(() => probe.sound().paused, 3000, 'Pause');
+      t.scene('Paused');
+      if (visible(byId('pauseReturnBtn'))) t.event('pause-return', 'Pause offers Return to objective from the first second');
+      else t.problem('bug', 'Pause has no Return to objective');
+      await sleep(800);
+      await tapAt(byId('resumeBtn'), 'Resume');
+      await t.until(() => !probe.sound().paused, 3000, 'Resume');
+      t.progress(0.1);
+
+      await idlePass(`${innerWidth}x${innerHeight}`, 'key');
+      t.progress(0.4);
+      probe.phoneFrame(true);
+      t.event('setup', 'phone layout 390x844');
+      await sleep(1200);
+      await idlePass('390x844', 'tap');
+      t.progress(0.65);
+      probe.phoneFrame(true, true);
+      t.event('setup', 'phone layout 844x390');
+      await sleep(1200);
+      await idlePass('844x390', 'pause');
+      probe.phoneFrame(false);
+      t.progress(1);
+      t.finish('done');
     };
 
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
@@ -2045,6 +2200,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
       return;
     }
     await t.until(() => probe.ready(), 90000, 'game ready');
+    if (id === 'stuck-recovery') {
+      await stuckRecoveryRun();
+      return;
+    }
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
       return;
@@ -2481,6 +2640,39 @@ export const installPhPlaytest = (probe: PhProbe) => {
       const outcome = await earlyDownB3();
       t.progress(1);
       t.finish(outcome);
+      return;
+    }
+
+    if (smoke) {
+      levelsTotal = 1;
+      const finishLevelRun = (outcome: Outcome) => {
+        const secs = (performance.now() - smokeT0) / 1000;
+        t.metric(`smokeL${smokeN}Seconds`, Math.round(secs));
+        t.event('smoke-end', `level ${smokeN} ${outcome} in ${secs.toFixed(0)} s (budget ${SMOKE_SECONDS} s)`);
+        if (secs > SMOKE_SECONDS) t.problem('bug', `smoke level ${smokeN} took ${secs.toFixed(0)} s, over its ${SMOKE_SECONDS} s budget`);
+        t.progress(1);
+        t.finish(outcome);
+      };
+      try {
+        let outcome: Outcome;
+        if (smokeN === 8) {
+          outcome = await morningRun();
+        } else if (smokeN === 7) {
+          t.event('setup', 'start level 7, The Train, directly (test shortcut)');
+          await probe.setupHidden('the-train');
+          outcome = await trainStoryRun(true);
+        } else {
+          await enterLevel(smokeN);
+          outcome = await playLevel(smokeN);
+        }
+        finishLevelRun(outcome);
+      } catch (e) {
+        if (!(e instanceof SmokeStuck)) throw e;
+        releaseAll();
+        t.problem('bug', e.message);
+        t.event('stuck', e.message);
+        finishLevelRun('stuck');
+      }
       return;
     }
 
