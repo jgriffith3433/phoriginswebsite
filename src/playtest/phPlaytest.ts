@@ -397,7 +397,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     scenarios: [
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
-      { id: 'full', title: 'Levels 1–7 in order, cutscenes included (long rides skipped after 16 s)', seconds: 1100, tags: ['full'] },
+      { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
         id: 'sound-settings',
         title: 'Tap to play unlocks sound, Settings from the title and from Pause, a setting that survives a reload',
@@ -1676,7 +1676,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (!inOrder) t.problem('bug', `the train opening lines did not play in order: ${heard.join(' | ')}`);
       t.event('check', `opening: the old body ${sawBody ? 'stood at the front of the car' : 'was NOT seen'}${bodyLeft ? ' and walked out through the front end door' : ''}`);
       if (!sawBody || !bodyLeft) t.problem('bug', 'the old body was not seen leaving car 1 in the opening');
-      // `full` is already on level 7 of 7; an absolute fraction would rewind the bar.
+      // `full` is already on level 7 of 8; an absolute fraction would rewind the bar.
       if (full) mark();
       else t.progress(arrived ? 0.5 : 0.2);
 
@@ -2201,15 +2201,17 @@ export const installPhPlaytest = (probe: PhProbe) => {
     }
 
     if (id === 'full') {
-      levelsTotal = 7;
+      levelsTotal = 8;
       await enterLevel(1);
-      for (let n = 1; n <= 7; n++) {
+      for (let n = 1; n <= 8; n++) {
         levelIndex = n - 1;
-        // Level 7 is the train story (opening, cars, stop, Hale, the door, End Level). Continue from
-        // level 6 has already started it. playLevel walks a marker; the train's beats are trainStoryRun.
-        const outcome = n === 7 ? await trainStoryRun(true) : await playLevel(n);
+        // Level 7 is the train story (opening, cars, stop, Hale, the door, End Level) and level 8 is The
+        // Morning (bed, TV, Voss, the door). Continue from the previous card has already started each.
+        // playLevel walks a marker; the story levels have their own runs, shared with level-7 / level-8.
+        const outcome = n === 8 ? await morningRun(true) : n === 7 ? await trainStoryRun(true) : await playLevel(n);
         if (outcome !== 'won') { t.finish(outcome); return; }
-        if (n < 7) {
+        t.event('full-progress', `level ${n} of 8 finished`);
+        if (n < 8) {
           await sleep(2500);
           const menu = probe.menu();
           if (!menu.start) throw new Error(`no Continue on the level ${n} card`);
@@ -2219,6 +2221,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
             if (performance.now() > until) throw new Error(`timed out waiting for level ${n + 1} after Continue`);
             await tick();
           }
+          if (n === 7) t.event('continue', `Level 7's Continue entered ${probe.level().name}`);
         }
       }
       t.progress(1);
