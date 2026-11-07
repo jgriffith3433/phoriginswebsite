@@ -2668,6 +2668,8 @@ const holdSealedPlayer = (delta: number) => {
 
 /** Longest frame, in seconds, that moves Pierce on foot. */
 const MAX_MOVE_DELTA = 0.1;
+/** Longest real frame, in seconds, that is walked in full (as several MAX_MOVE_DELTA steps). */
+const MAX_MOVE_FRAME = 0.6;
 
 /**
  * The office levels are closed rooms on authored floor slabs. If one frame's walk took Pierce from a slab to open air
@@ -2763,11 +2765,17 @@ const updatePlayer = (delta: number) => {
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
     const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
-    // A stalled frame (a slow GPU, a shader compile) must not carry him metres in one step: he slows instead of tunnelling a wall corner.
-    const step = Math.min(delta, MAX_MOVE_DELTA);
-    const before = { x: state.player.x, z: state.player.z };
-    movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * step, desiredMove.z * speed * step);
-    keepInsideFloors(before);
+    // A stalled frame (a slow GPU, a shader compile) must not carry him metres in one step and tunnel a wall corner,
+    // but it must not slow him either (a 2 fps run then walks at a tenth of speed). Spend the frame in steps of at most
+    // MAX_MOVE_DELTA, each collided and floor-checked, up to MAX_MOVE_FRAME of real time.
+    let left = Math.min(delta, MAX_MOVE_FRAME);
+    while (left > 1e-4) {
+      const step = Math.min(left, MAX_MOVE_DELTA);
+      left -= step;
+      const before = { x: state.player.x, z: state.player.z };
+      movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * step, desiredMove.z * speed * step);
+      keepInsideFloors(before);
+    }
   } else {
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
   }
