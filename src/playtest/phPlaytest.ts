@@ -103,6 +103,15 @@ const LEVELS = [
   { n: 6, lib: 'the-station', name: 'Level 6: The Station' },
 ];
 
+const LEVEL_NAMES = ['The Apex Peak', 'B3', 'The Return', 'The Desk', 'Going Home', 'The Station', 'The Train', 'The Morning'];
+/** A per-level smoke run has about four minutes of headless play (~1 fps). */
+const SMOKE_SECONDS = 240;
+/** No objective progress for this long ends a smoke run `stuck`, naming the live objective. */
+const SMOKE_STUCK_MS = 30000;
+/** A cutscene in a smoke run is skipped after this many seconds (rides use FULL_SKIP_AFTER). */
+const SMOKE_SKIP_AFTER = 10;
+class SmokeStuck extends Error {}
+
 /** Usual timeline lengths, seconds. A scripted scene (lobby, desk, station opening) has no timeline file. */
 const SCRIPTED_LIMIT = 150;
 /** In `full`, these long rides are skipped after this many seconds. Levels 1–6 stay near ten minutes; level 7 is the train after them. */
@@ -397,6 +406,12 @@ export const installPhPlaytest = (probe: PhProbe) => {
     scenarios: [
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
+      ...LEVEL_NAMES.map((name, i) => ({
+        id: `smoke-l${i + 1}`,
+        title: `Smoke, level ${i + 1} (${name}): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress`,
+        seconds: SMOKE_SECONDS,
+        tags: ['smoke', 'level'],
+      })),
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
         id: 'sound-settings',
@@ -557,6 +572,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.log(`click ${label}`);
     };
     const full = id === 'full';
+    const smokeN = Number(/^smoke-l([1-8])$/.exec(id)?.[1] ?? 0);
+    const smoke = smokeN > 0;
+    // Levels 1-6 are walked by playLevel, so their scripted scenes (lobby, desk, station) can be skipped too.
+    // Levels 7 and 8 run the story scripts, which listen to their own opening, so only timelines are skipped there.
+    const smokeSkipScripted = smoke && smokeN <= 6;
+    const smokeT0 = performance.now();
+    const watch = { key: '', at: performance.now(), x: 0, z: 0, line: '' };
+    const poke = () => { watch.at = performance.now(); };
     const speed = Math.max(1, Number(options.speed) || 1);
     let rng = (Number(options.seed) || 1) >>> 0 || 1;
     const random = () => { rng ^= rng << 13; rng >>>= 0; rng ^= rng >> 17; rng ^= rng << 5; rng >>>= 0; return rng / 4294967296; };
@@ -623,7 +646,8 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (nowId && (!scene || scene.id !== nowId)) {
         if (scene) endScene();
         const limit = cut ? cut.duration * 1.25 + 8 : SCRIPTED_LIMIT;
-        const skipAfter = full ? FULL_SKIP_AFTER[nowId] : undefined;
+        const skipAfter = full ? FULL_SKIP_AFTER[nowId]
+          : smoke && (cut || smokeSkipScripted) ? (FULL_SKIP_AFTER[nowId] ?? SMOKE_SKIP_AFTER) : undefined;
         const bySpeed = speed > 1 && cut ? cut.duration / speed : undefined;
         scene = { id: nowId, t0: performance.now(), limit, skipAt: Math.min(skipAfter ?? Infinity, bySpeed ?? Infinity), last: -1, skipped: false };
         t.add('cutscenes');
@@ -671,6 +695,29 @@ export const installPhPlaytest = (probe: PhProbe) => {
       } else lastPos = null;
     };
 
+    // Smoke runs: no objective progress for 30 s ends the run stuck. Progress is a new objective, a scene or a
+    // call playing, a new line, a card up, or Pierce 3 m from where the clock last reset.
+    const watchProgress = () => {
+      if (!smoke) return;
+      const now = performance.now();
+      const obj = probe.objective();
+      const p = probe.player();
+      const sub = probe.subtitle().text.trim();
+      const ph = probe.phone();
+      const key = `${probe.level().libraryId}|${obj.title}|${obj.text}|${probe.phase()}`;
+      const busy = !probe.running() || probe.menu().open || probe.cutscene() || probe.scripted() || ph.busy || ph.incoming;
+      const talked = sub !== watch.line;
+      watch.line = sub;
+      if (key !== watch.key || busy || talked || Math.hypot(p.x - watch.x, p.z - watch.z) > 3) {
+        watch.key = key; watch.x = p.x; watch.z = p.z; watch.at = now;
+        return;
+      }
+      if (now - watch.at > SMOKE_STUCK_MS) {
+        const name = `${obj.title ? `${obj.title}: ` : ''}${obj.text}`.trim() || '(no objective)';
+        throw new SmokeStuck(`stuck: no objective progress for 30 s on ${probe.level().name}, objective "${name}", phase ${probe.phase() || '-'}, at (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+      }
+    };
+
     const endScene = () => {
       if (!scene) return;
       const secs = (performance.now() - scene.t0) / 1000;
@@ -680,7 +727,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       mark();
     };
 
-    const tick = async () => { await frame(); observe(); };
+    const tick = async () => { await frame(); observe(); watchProgress(); };
 
     // ---- camera and walking
     const measureLook = async () => {
@@ -887,6 +934,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
         const err = face(heading);
         if ((locked || Math.abs(err) < 0.18) && performance.now() - lastShot > 380) {
           lastShot = performance.now();
+          poke();
           clickCanvas();
           t.add('shots');
           t.add('interactions');
@@ -2481,6 +2529,39 @@ export const installPhPlaytest = (probe: PhProbe) => {
       const outcome = await earlyDownB3();
       t.progress(1);
       t.finish(outcome);
+      return;
+    }
+
+    if (smoke) {
+      levelsTotal = 1;
+      const finishLevelRun = (outcome: Outcome) => {
+        const secs = (performance.now() - smokeT0) / 1000;
+        t.metric(`smokeL${smokeN}Seconds`, Math.round(secs));
+        t.event('smoke-end', `level ${smokeN} ${outcome} in ${secs.toFixed(0)} s (budget ${SMOKE_SECONDS} s)`);
+        if (secs > SMOKE_SECONDS) t.problem('bug', `smoke level ${smokeN} took ${secs.toFixed(0)} s, over its ${SMOKE_SECONDS} s budget`);
+        t.progress(1);
+        t.finish(outcome);
+      };
+      try {
+        let outcome: Outcome;
+        if (smokeN === 8) {
+          outcome = await morningRun();
+        } else if (smokeN === 7) {
+          t.event('setup', 'start level 7, The Train, directly (test shortcut)');
+          await probe.setupHidden('the-train');
+          outcome = await trainStoryRun(true);
+        } else {
+          await enterLevel(smokeN);
+          outcome = await playLevel(smokeN);
+        }
+        finishLevelRun(outcome);
+      } catch (e) {
+        if (!(e instanceof SmokeStuck)) throw e;
+        releaseAll();
+        t.problem('bug', e.message);
+        t.event('stuck', e.message);
+        finishLevelRun('stuck');
+      }
       return;
     }
 
