@@ -48,6 +48,7 @@ import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseCli
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
+import { createObjectiveWaypoint } from './game/objectiveWaypoint';
 import { createMinimap } from './game/minimap';
 import { createScreenFade } from './game/fade';
 import { createLostWatcher, safeSpotNear } from './game/returnToObjective';
@@ -3645,6 +3646,19 @@ const setPaused = (on: boolean) => {
   }
 };
 
+// Objective waypoint (src/game/objectiveWaypoint.ts): drawn after each frame so it uses this frame's camera.
+const objectiveWaypoint = createObjectiveWaypoint(root, engine, scene, camera, (out) => {
+  const target = objectiveMarker.getTarget();
+  out.active = Boolean(target) && objectiveMarker.isVisible() && state.running && !paused && !state.inCutscene
+    && messageBox.classList.contains('hidden') && !settingsOpen() && !scriptedNow()
+    && Boolean(objectiveHud?.classList.contains('visible'));
+  if (!out.active || !target) return;
+  out.world = objectiveMarker.worldPosition();
+  out.name = objectiveText?.textContent ?? '';
+  out.distance = objectiveMarker.distanceTo(state.player.x, state.player.z);
+});
+scene.onAfterRenderObservable.add(objectiveWaypoint.update);
+
 // "Lost? Return to objective" (src/game/returnToObjective.ts): after 60 s of real play with no progress a prompt
 // shows (R or a tap), and Pause always offers the same move. Pierce is placed on safe ground beside the live objective.
 const lostHint = document.getElementById('lostHint') as HTMLButtonElement | null;
@@ -4310,6 +4324,7 @@ installPhPlaytest({
   morning: () => (isMorningLevel() ? morning.story() : null),
   ending: () => endingSong?.src || null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
+  waypoint: () => objectiveWaypoint.view(),
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;

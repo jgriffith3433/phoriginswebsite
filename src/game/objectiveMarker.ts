@@ -81,10 +81,12 @@ export const createObjectiveMarker = (scene: BABYLON.Scene) => {
     return Math.hypot(target.x - x, target.z - z);
   };
 
+  /** The diamond's live world position (a reference; do not mutate). */
+  const worldPosition = () => root.position;
   const getTarget = () => target;
   const isVisible = () => visible;
 
-  return { setTarget, hide, show, update, distanceTo, getTarget, isVisible };
+  return { setTarget, hide, show, update, distanceTo, getTarget, isVisible, worldPosition };
 };
 
 export type ObjectiveMarker = ReturnType<typeof createObjectiveMarker>;
