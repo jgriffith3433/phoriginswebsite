@@ -2253,252 +2253,342 @@
       "type": "bark",
       "speaker": "Commuter",
       "text": "Last uptown's late again.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.station.01.ogg",
       "performance": "tired",
-      "note": "Station commuter remark"
+      "note": "Station commuter remark",
+      "audioText": "Last uptown's late again.",
+      "audioPerformance": "tired",
+      "audioVoice": "TxGEqnHWrfWFTfGW9XjX"
     },
     {
       "id": "bark.station.02",
       "type": "bark",
       "speaker": "Traveler",
       "text": "They closed the whole block around Hawkes Tower.",
-      "audio": "",
-      "note": "Station commuter remark"
+      "audio": "/assets/audio/vo/bark.station.02.ogg",
+      "note": "Station commuter remark",
+      "audioText": "They closed the whole block around Hawkes Tower.",
+      "audioPerformance": "default",
+      "audioVoice": "EXAVITQu4vr4xnSDxMaL"
     },
     {
       "id": "bark.station.03",
       "type": "bark",
       "speaker": "Commuter",
       "text": "Don't stand so close to the edge.",
-      "audio": "",
-      "note": "Station commuter remark"
+      "audio": "/assets/audio/vo/bark.station.03.ogg",
+      "note": "Station commuter remark",
+      "audioText": "Don't stand so close to the edge.",
+      "audioPerformance": "default",
+      "audioVoice": "TxGEqnHWrfWFTfGW9XjX"
     },
     {
       "id": "bark.station.04",
       "type": "bark",
       "speaker": "Traveler",
       "text": "My phone's been dead since the stairs.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.station.04.ogg",
       "performance": "tired",
-      "note": "Station commuter remark"
+      "note": "Station commuter remark",
+      "audioText": "My phone's been dead since the stairs.",
+      "audioPerformance": "tired",
+      "audioVoice": "EXAVITQu4vr4xnSDxMaL"
     },
     {
       "id": "bark.station.05",
       "type": "bark",
       "speaker": "Commuter",
       "text": "Sirens all night up there. Nobody's saying why.",
-      "audio": "",
-      "note": "Station commuter remark"
+      "audio": "/assets/audio/vo/bark.station.05.ogg",
+      "note": "Station commuter remark",
+      "audioText": "Sirens all night up there. Nobody's saying why.",
+      "audioPerformance": "default",
+      "audioVoice": "TxGEqnHWrfWFTfGW9XjX"
     },
     {
       "id": "bark.station.06",
       "type": "bark",
       "speaker": "Traveler",
       "text": "Is he alright? He looks like he's been sick.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.station.06.ogg",
       "performance": "whispers",
-      "note": "Station commuter remark, about Pierce (quiet)"
+      "note": "Station commuter remark, about Pierce (quiet)",
+      "audioText": "Is he alright? He looks like he's been sick.",
+      "audioPerformance": "whispers",
+      "audioVoice": "EXAVITQu4vr4xnSDxMaL"
     },
     {
       "id": "bark.station.07",
       "type": "bark",
       "speaker": "Commuter",
       "text": "Keep your head down and your bag closed.",
-      "audio": "",
-      "note": "Station commuter remark"
+      "audio": "/assets/audio/vo/bark.station.07.ogg",
+      "note": "Station commuter remark",
+      "audioText": "Keep your head down and your bag closed.",
+      "audioPerformance": "default",
+      "audioVoice": "TxGEqnHWrfWFTfGW9XjX"
     },
     {
       "id": "bark.station.08",
       "type": "bark",
       "speaker": "Traveler",
       "text": "Two minutes, the board says. It always says two minutes.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.station.08.ogg",
       "performance": "sarcastic",
-      "note": "Station commuter remark"
+      "note": "Station commuter remark",
+      "audioText": "Two minutes, the board says. It always says two minutes.",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "EXAVITQu4vr4xnSDxMaL"
     },
     {
       "id": "pa.station.01",
       "type": "bark",
       "speaker": "Platform PA",
       "text": "Attention on the platform. The next uptown train is two minutes away.",
-      "audio": "",
-      "note": "Station PA, after sfx.station.pa-chime"
+      "audio": "/assets/audio/vo/pa.station.01.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "Attention on the platform. The next uptown train is two minutes away.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
     },
     {
       "id": "pa.station.02",
       "type": "bark",
       "speaker": "Platform PA",
       "text": "Please stand behind the yellow line.",
-      "audio": "",
-      "note": "Station PA, after sfx.station.pa-chime"
+      "audio": "/assets/audio/vo/pa.station.02.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "Please stand behind the yellow line.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
     },
     {
       "id": "pa.station.03",
       "type": "bark",
       "speaker": "Platform PA",
       "text": "Due to police activity, trains will not stop at Tower Street.",
-      "audio": "",
-      "note": "Station PA, after sfx.station.pa-chime"
+      "audio": "/assets/audio/vo/pa.station.03.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "Due to police activity, trains will not stop at Tower Street.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
     },
     {
       "id": "bark.train.r01",
       "type": "bark",
       "speaker": "Rider",
       "text": "Don't look at him. Just don't.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.train.r01.ogg",
       "performance": "whispers",
-      "note": "Train rider remark, about Pierce (quiet)"
+      "note": "Train rider remark, about Pierce (quiet)",
+      "audioText": "Don't look at him. Just don't.",
+      "audioPerformance": "whispers",
+      "audioVoice": "bIHbv24MWmeRgasZH58o"
     },
     {
       "id": "bark.train.r02",
       "type": "bark",
       "speaker": "Night shift",
       "text": "Twelve hours on, and they still want me in at six.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.train.r02.ogg",
       "performance": "tired",
-      "note": "Train rider remark"
+      "note": "Train rider remark",
+      "audioText": "Twelve hours on, and they still want me in at six.",
+      "audioPerformance": "tired",
+      "audioVoice": "FGY2WhTYpPnrIDTdsKH5"
     },
     {
       "id": "bark.train.r03",
       "type": "bark",
       "speaker": "Rider",
       "text": "Somebody spilled something back there. I'm not checking.",
-      "audio": "",
-      "note": "Train rider remark"
+      "audio": "/assets/audio/vo/bark.train.r03.ogg",
+      "note": "Train rider remark",
+      "audioText": "Somebody spilled something back there. I'm not checking.",
+      "audioPerformance": "default",
+      "audioVoice": "bIHbv24MWmeRgasZH58o"
     },
     {
       "id": "bark.train.r04",
       "type": "bark",
       "speaker": "Night shift",
       "text": "Whole tower's lit up like they're still working.",
-      "audio": "",
-      "note": "Train rider remark"
+      "audio": "/assets/audio/vo/bark.train.r04.ogg",
+      "note": "Train rider remark",
+      "audioText": "Whole tower's lit up like they're still working.",
+      "audioPerformance": "default",
+      "audioVoice": "FGY2WhTYpPnrIDTdsKH5"
     },
     {
       "id": "bark.train.r05",
       "type": "bark",
       "speaker": "Rider",
       "text": "Hold the pole. This driver brakes hard.",
-      "audio": "",
-      "note": "Train rider remark"
+      "audio": "/assets/audio/vo/bark.train.r05.ogg",
+      "note": "Train rider remark",
+      "audioText": "Hold the pole. This driver brakes hard.",
+      "audioPerformance": "default",
+      "audioVoice": "bIHbv24MWmeRgasZH58o"
     },
     {
       "id": "bark.train.r06",
       "type": "bark",
       "speaker": "Night shift",
       "text": "Wake me at the river.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.train.r06.ogg",
       "performance": "tired",
-      "note": "Train rider remark"
+      "note": "Train rider remark",
+      "audioText": "Wake me at the river.",
+      "audioPerformance": "tired",
+      "audioVoice": "FGY2WhTYpPnrIDTdsKH5"
     },
     {
       "id": "bark.train.r07",
       "type": "bark",
       "speaker": "Rider",
       "text": "You alright? You don't look alright.",
-      "audio": "",
-      "note": "Train rider remark, to Pierce"
+      "audio": "/assets/audio/vo/bark.train.r07.ogg",
+      "note": "Train rider remark, to Pierce",
+      "audioText": "You alright? You don't look alright.",
+      "audioPerformance": "default",
+      "audioVoice": "bIHbv24MWmeRgasZH58o"
     },
     {
       "id": "bark.train.r08",
       "type": "bark",
       "speaker": "Night shift",
       "text": "Every night the same faces. I don't know any of them.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.train.r08.ogg",
       "performance": "tired",
-      "note": "Train rider remark"
+      "note": "Train rider remark",
+      "audioText": "Every night the same faces. I don't know any of them.",
+      "audioPerformance": "tired",
+      "audioVoice": "FGY2WhTYpPnrIDTdsKH5"
     },
     {
       "id": "pa.train.01",
       "type": "bark",
       "speaker": "Conductor",
       "text": "Uptown local. Next stop, Riverside. Stand clear of the closing doors.",
-      "audio": "",
-      "note": "Train conductor over the car speakers"
+      "audio": "/assets/audio/vo/pa.train.01.ogg",
+      "note": "Train conductor over the car speakers",
+      "audioText": "Uptown local. Next stop, Riverside. Stand clear of the closing doors.",
+      "audioPerformance": "default",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
     },
     {
       "id": "pa.train.02",
       "type": "bark",
       "speaker": "Conductor",
       "text": "We are being held by the dispatcher. Thank you for your patience.",
-      "audio": "",
+      "audio": "/assets/audio/vo/pa.train.02.ogg",
       "performance": "tired",
-      "note": "Train conductor over the car speakers"
+      "note": "Train conductor over the car speakers",
+      "audioText": "We are being held by the dispatcher. Thank you for your patience.",
+      "audioPerformance": "tired",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
     },
     {
       "id": "bark.apex.01",
       "type": "bark",
       "speaker": "Board member",
       "text": "Fifteen minutes past. Does he think we bill by the hour?",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.apex.01.ogg",
       "performance": "sarcastic",
-      "note": "Apex board waiting for Pierce"
+      "note": "Apex board waiting for Pierce",
+      "audioText": "Fifteen minutes past. Does he think we bill by the hour?",
+      "audioPerformance": "sarcastic",
+      "audioVoice": "JBFqnCBsd6RMkjVDRZzb"
     },
     {
       "id": "bark.apex.02",
       "type": "bark",
       "speaker": "Treasurer",
       "text": "The quarter is clean. That's all this room needs to hear.",
-      "audio": "",
-      "note": "Apex board waiting for Pierce"
+      "audio": "/assets/audio/vo/bark.apex.02.ogg",
+      "note": "Apex board waiting for Pierce",
+      "audioText": "The quarter is clean. That's all this room needs to hear.",
+      "audioPerformance": "default",
+      "audioVoice": "pFZP5JQG7iQjIQuC4Bku"
     },
     {
       "id": "bark.apex.03",
       "type": "bark",
       "speaker": "Board member",
       "text": "Hale wants a vote tonight. On what, she won't say.",
-      "audio": "",
-      "note": "Apex board waiting for Pierce"
+      "audio": "/assets/audio/vo/bark.apex.03.ogg",
+      "note": "Apex board waiting for Pierce",
+      "audioText": "Hale wants a vote tonight. On what, she won't say.",
+      "audioPerformance": "default",
+      "audioVoice": "JBFqnCBsd6RMkjVDRZzb"
     },
     {
       "id": "bark.apex.04",
       "type": "bark",
       "speaker": "Treasurer",
       "text": "Nobody asks about B3. Nobody minutes it.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.apex.04.ogg",
       "performance": "whispers",
-      "note": "Apex board waiting for Pierce"
+      "note": "Apex board waiting for Pierce",
+      "audioText": "Nobody asks about B3. Nobody minutes it.",
+      "audioPerformance": "whispers",
+      "audioVoice": "pFZP5JQG7iQjIQuC4Bku"
     },
     {
       "id": "bark.apex.05",
       "type": "bark",
       "speaker": "Board member",
       "text": "Sit. He likes to make an entrance.",
-      "audio": "",
-      "note": "Apex board waiting for Pierce"
+      "audio": "/assets/audio/vo/bark.apex.05.ogg",
+      "note": "Apex board waiting for Pierce",
+      "audioText": "Sit. He likes to make an entrance.",
+      "audioPerformance": "default",
+      "audioVoice": "JBFqnCBsd6RMkjVDRZzb"
     },
     {
       "id": "bark.apex.06",
       "type": "bark",
       "speaker": "Treasurer",
       "text": "Zurich is on the call. Smile for Zurich.",
-      "audio": "",
-      "note": "Apex board waiting for Pierce"
+      "audio": "/assets/audio/vo/bark.apex.06.ogg",
+      "note": "Apex board waiting for Pierce",
+      "audioText": "Zurich is on the call. Smile for Zurich.",
+      "audioPerformance": "default",
+      "audioVoice": "pFZP5JQG7iQjIQuC4Bku"
     },
     {
       "id": "bark.desk.01",
       "type": "bark",
       "speaker": "Security radio",
       "text": "Fifty-eight's lights are on again. Somebody's up there.",
-      "audio": "",
-      "note": "The Desk: security radio, first"
+      "audio": "/assets/audio/vo/bark.desk.01.ogg",
+      "note": "The Desk: security radio, first",
+      "audioText": "Fifty-eight's lights are on again. Somebody's up there.",
+      "audioPerformance": "default",
+      "audioVoice": "IRHApOXLvnW57QJPQH2P"
     },
     {
       "id": "bark.desk.02",
       "type": "bark",
       "speaker": "Security radio",
       "text": "Leave it. It's his floor. Nobody goes up unless he calls.",
-      "audio": "",
-      "note": "The Desk: security radio, second"
+      "audio": "/assets/audio/vo/bark.desk.02.ogg",
+      "note": "The Desk: security radio, second",
+      "audioText": "Leave it. It's his floor. Nobody goes up unless he calls.",
+      "audioPerformance": "default",
+      "audioVoice": "IRHApOXLvnW57QJPQH2P"
     },
     {
       "id": "bark.desk.03",
       "type": "bark",
       "speaker": "Security radio",
       "text": "Copy. Logging it as nothing.",
-      "audio": "",
+      "audio": "/assets/audio/vo/bark.desk.03.ogg",
       "performance": "tired",
-      "note": "The Desk: security radio, third"
+      "note": "The Desk: security radio, third",
+      "audioText": "Copy. Logging it as nothing.",
+      "audioPerformance": "tired",
+      "audioVoice": "IRHApOXLvnW57QJPQH2P"
     },
     {
       "id": "objective.home.station",
@@ -5421,32 +5511,44 @@
       "type": "dialogue",
       "speaker": "Morning News",
       "text": "Hawkes Biomedical has removed its founder as chairman.",
-      "audio": "",
-      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)"
+      "audio": "/assets/audio/vo/news.morning.01.ogg",
+      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)",
+      "audioText": "Hawkes Biomedical has removed its founder as chairman.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal"
     },
     {
       "id": "news.morning.02",
       "type": "dialogue",
       "speaker": "Morning News",
       "text": "The board says Pierce Hawkes walked out of last night's meeting.",
-      "audio": "",
-      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)"
+      "audio": "/assets/audio/vo/news.morning.02.ogg",
+      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)",
+      "audioText": "The board says Pierce Hawkes walked out of last night's meeting.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal"
     },
     {
       "id": "news.morning.03",
       "type": "dialogue",
       "speaker": "Morning News",
       "text": "Director Hale is interim chairman. Voss backed the vote.",
-      "audio": "",
-      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)"
+      "audio": "/assets/audio/vo/news.morning.03.ogg",
+      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)",
+      "audioText": "Director Hale is interim chairman. Voss backed the vote.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal"
     },
     {
       "id": "news.morning.04",
       "type": "dialogue",
       "speaker": "Morning News",
       "text": "Police were at Hawkes Tower overnight. No one was hurt.",
-      "audio": "",
-      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)"
+      "audio": "/assets/audio/vo/news.morning.04.ogg",
+      "note": "Level 8 TV lower third, read by the anchor (public-safe: no B3, vat or creature)",
+      "audioText": "Police were at Hawkes Tower overnight. No one was hurt.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal"
     },
     {
       "id": "news.morning.tick.1",
