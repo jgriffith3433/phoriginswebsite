@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
+import './meshopt';
 
 /** glTF default is ALL — that starts PistolIdle/Aim with Idle and the last clip wins the bind pose. */
 BABYLON.SceneLoader.OnPluginActivatedObservable.add((plugin) => {
