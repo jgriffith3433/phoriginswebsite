@@ -937,6 +937,8 @@ const aimPoints: BABYLON.Vector3[] = [];
 const shotDirection = new BABYLON.Vector3();
 let aimSuppress = 0;
 let aimEscape = 0;
+/** Meshes the playtest feel sensor's floor and camera rays look through (effects, markers, triggers, the sky). */
+const FEEL_SKIP = /skybox|impact|mark|trigger|drip|decal|pickup|label|particle|flash|beam|shadow-?caster/i;
 const LOS_SKIP = /floor|ground|ceil|creature|phone|pistol|skybox|impact|mark|trigger|drip|eye|player|decal|pickup|label/i;
 const autoAim = createAutoAim(scene, (mesh) => {
   if (mesh === playerCollider || mesh === muzzleFlash.mesh) return true;
@@ -4428,6 +4430,18 @@ installPhPlaytest({
   newGameButton: newGameBtn,
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
+  place: (x, z, yaw) => placePierce(x, z, yaw),
+  // The feel sensor's rays skip Pierce himself (capsule, figure, gun, phone), effects, pickups and markers.
+  feel: {
+    collider: playerCollider,
+    grounded: () => state.player.grounded,
+    isSolid: (mesh) => {
+      if (mesh === playerCollider || mesh === muzzleFlash.mesh || mesh.isDescendantOf(playerAvatar.group)) return false;
+      const meta = mesh.metadata as { pickup?: unknown } | undefined;
+      if (meta?.pickup) return false;
+      return !FEEL_SKIP.test(mesh.name);
+    },
+  },
   setupHidden: (libraryId) => {
     const level = getLevels().find((entry) => entry.libraryId === libraryId);
     return level ? startAtLevel(level.id, true, true, true) : Promise.resolve();

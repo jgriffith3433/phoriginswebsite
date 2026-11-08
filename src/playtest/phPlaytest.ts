@@ -45,6 +45,10 @@ export type PhProbe = {
   skipButton: HTMLButtonElement | null;
   /** Test shortcut for setup: start a level directly, as Continue does. */
   setupLevel: (id: number) => Promise<void>;
+  /** Test shortcut for a feel replay: stand Pierce at (x, z) facing yaw (radians), as the game's own respawns do. */
+  place?: (x: number, z: number, yaw: number) => void;
+  /** The feel sensor's view of Pierce: his capsule, whether he stands on something, which meshes count as solid. */
+  feel?: { collider: BABYLON.AbstractMesh; grounded: () => boolean; isSolid: (mesh: BABYLON.AbstractMesh) => boolean };
   /** Test shortcut (`train`): start a hidden (`comingSoon`) level by library id, as `?beat=train` does. */
   setupHidden: (libraryId: string) => Promise<void>;
   /** The rows Load Level shows, as rendered into its list (titles only). */
@@ -577,6 +581,15 @@ export const installPhPlaytest = (probe: PhProbe) => {
     ],
     isReady: () => probe.ready(),
     stallSeconds: 75,
+    // The feel sensor (hawkes-feel.js): Pierce's capsule while he's the player's to move; during cutscenes, scripted
+    // openings and menus only frame hitches count. His position is the capsule's center, so the eye is just above it.
+    feel: probe.feel ? {
+      active: () => probe.running() && !probe.cutscene() && !probe.scripted() && !probe.menu().open,
+      player: () => probe.feel!.collider,
+      grounded: () => probe.feel!.grounded(),
+      isSolid: (mesh: BABYLON.AbstractMesh) => probe.feel!.isSolid(mesh),
+      headHeight: 0.15,
+    } : undefined,
     input,
     stop: () => { token++; releaseAll(); },
     async start(id: string, options: RunOptions, t: Tracker) {
@@ -2460,6 +2473,64 @@ export const installPhPlaytest = (probe: PhProbe) => {
       levelIndex = 1;
       return trainStoryRun(true);
     };
+
+    // ---- a feel replay: options.spot is a place the feel sensor flagged (falling through the floor, stuck, a camera
+    // snap, a collision shove). Any scenario run with a spot plays a short probe there instead of the whole scenario,
+    // so the recheck after a fix plays that exact place in seconds. The level comes from the scenario id (level-N,
+    // smoke-lN) or options.at (a level number or library id), else level 1. Setup shortcuts (named): the level
+    // started directly, Pierce stood at the spot. Real input: WASD each way, Shift to run, Space to jump.
+    if (t.spot && probe.place) {
+      const spot = t.spot;
+      const fromId = Number(/^(?:level-|smoke-l)([1-8])$/.exec(id)?.[1] ?? 0);
+      const at = t.at ?? '';
+      const fromAt = Number(at) || LEVELS.find((l) => l.lib === at)?.n || 0;
+      const n = fromId || fromAt || 1;
+      levelsTotal = 1;
+      await enterLevel(n);
+      t.scene(probe.level().name);
+      t.event('level-start', probe.level().name);
+      const ready = performance.now() + 60000;
+      while (!controllable() && performance.now() < ready) {
+        if (probe.cutscene() && probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(400);
+      }
+      if (!controllable()) {
+        t.problem('bug', `spot replay: Pierce never became controllable on ${probe.level().name}`);
+        return;
+      }
+      t.cut();
+      probe.place(spot.x, spot.z, spot.yaw != null ? (spot.yaw * Math.PI) / 180 : probe.player().yaw);
+      const p0 = probe.player();
+      t.event('spot', `asked ${spot.x.toFixed(1)},${spot.y.toFixed(1)},${spot.z.toFixed(1)} on ${probe.level().name}; stood at ${p0.x.toFixed(1)},${p0.z.toFixed(1)}`);
+      t.progress(0.2);
+      await sleep(800);
+      const legs = ['w', 'd', 's', 'a'];
+      for (let i = 0; i < legs.length; i++) {
+        setHeld(legs[i]);
+        await sleep(1100);
+        setHeld('');
+        await sleep(250);
+        t.progress(0.2 + (0.5 * (i + 1)) / legs.length);
+      }
+      sendKey('keydown', 'Shift');
+      setHeld('w');
+      await sleep(1200);
+      setHeld('');
+      sendKey('keyup', 'Shift');
+      for (const k of ['w', 's']) {
+        setHeld(k);
+        await sleep(200);
+        await tap(' ', 'jump');
+        await sleep(900);
+        setHeld('');
+        await sleep(300);
+      }
+      const p1 = probe.player();
+      t.metric('spotDrift', Math.round(Math.hypot(p1.x - spot.x, p1.z - spot.z) * 10) / 10);
+      t.event('spot-probe', `ended at ${p1.x.toFixed(1)},${p1.y.toFixed(1)},${p1.z.toFixed(1)}`);
+      t.progress(1);
+      return;
+    }
 
     // ---- scenarios
     if (id === 'analytics' && !window.hawkesAnalytics?.version) {
