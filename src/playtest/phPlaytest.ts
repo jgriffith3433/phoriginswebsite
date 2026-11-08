@@ -73,6 +73,11 @@ export type PhProbe = {
   phoneFrame: (on: boolean, landscape?: boolean) => void;
   /** The Lost? prompt (src/game/returnToObjective.ts): shown, seconds without progress, and a move under way. */
   lost: () => { prompt: boolean; idle: number; returning: boolean };
+  /** The objective waypoint (src/game/objectiveWaypoint.ts): drawn or not, edge-clamped, its text and its box on screen. */
+  waypoint: () => {
+    shown: boolean; clamped: boolean; x: number; y: number; angle: number; name: string; distance: number;
+    rect: { left: number; top: number; right: number; bottom: number } | null;
+  };
   /** Tap to play, the AudioContext, Pause and Settings (studio sound standard). */
   sound: () => {
     prompt: boolean; context: string; paused: boolean; settingsOpen: boolean;
@@ -442,6 +447,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen.',
         seconds: 150,
         tags: ['menus'],
+      },
+      {
+        id: 'objective-marker',
+        title: 'The objective waypoint shows name and distance, clamps to the screen edge with an arrow, hides in scenes and menus, and stays clear of the touch controls',
+        description: 'Level 1 at the real viewport, then laid out as 390x844 and 844x390 phones. Waits for control, checks the waypoint shows the live objective name and its distance, then turns the camera with touch drags until the waypoint is on screen and until it is clamped to the edge with an arrow. On every step it checks the box stays inside the screen and clear of the sticks, buttons and Pause. Opens Pause (hidden), then walks to the board seat and starts the board scene (hidden), and finally downs Pierce for the Defeat card (hidden).',
+        seconds: 240,
+        tags: ['hud'],
       },
       {
         id: 'load-error',
@@ -1526,6 +1538,153 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.finish('done');
     };
 
+    // ---- objective-marker: the HUD waypoint over the live objective, edge clamp, hiding, clear of touch controls
+    const objectiveMarkerRun = async () => {
+      levelsTotal = 1;
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const hit = (a: { left: number; top: number; right: number; bottom: number }, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls button, .left-stick-zone, .right-stick-zone, #pauseBtn, #phoneBtn, .ability-readout, .inventory-hud')]
+        .filter((el) => !el.hidden && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0);
+      const seenBad = new Set<string>();
+      /** The box is on screen and over none of the controls. */
+      const checkBox = (vp: string, mobile: boolean) => {
+        const w = probe.waypoint();
+        if (!w.shown || !w.rect) return;
+        const r = w.rect;
+        const rootRect = (byId('game-root') ?? document.body).getBoundingClientRect();
+        if (r.left < rootRect.left - 1 || r.right > rootRect.right + 1 || r.top < rootRect.top - 1 || r.bottom > rootRect.bottom + 1) {
+          const key = `${vp}-out`;
+          if (!seenBad.has(key)) { seenBad.add(key); t.problem('bug', `${vp}: the waypoint leaves the screen (${Math.round(r.left)},${Math.round(r.top)} to ${Math.round(r.right)},${Math.round(r.bottom)})`); }
+        }
+        for (const el of touchBoxes()) {
+          if (!mobile && !el.matches('#pauseBtn, .ability-readout, .inventory-hud')) continue;
+          if (hit(r, el.getBoundingClientRect())) {
+            const key = `${vp}-${el.id || el.className}`;
+            if (!seenBad.has(key)) { seenBad.add(key); t.problem('bug', `${vp}: the waypoint covers #${el.id || el.className} (waypoint ${Math.round(r.left)},${Math.round(r.top)}-${Math.round(r.right)},${Math.round(r.bottom)})`); }
+          }
+        }
+      };
+      const answer = async () => {
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); }
+      };
+
+      const pass = async (vp: string, mobile: boolean) => {
+        t.scene(`Waypoint (${vp})`);
+        await t.until(() => controllable() && probe.objective().visible && !!probe.objective().target, 90000, 'control and an objective marker');
+        await t.until(() => probe.waypoint().shown, 10000, 'the waypoint to show');
+        let w = probe.waypoint();
+        const obj = probe.objective();
+        const p = probe.player();
+        const real = Math.hypot(p.x - obj.target!.x, p.z - obj.target!.z);
+        t.event('waypoint', `${vp}: "${w.name}" ${w.distance} m, ${w.clamped ? 'clamped' : 'on screen'} (objective "${obj.text}", ${real.toFixed(1)} m)`);
+        if (w.name.trim() !== obj.text.trim()) t.problem('bug', `${vp}: waypoint says "${w.name}", the objective says "${obj.text}"`);
+        if (Math.abs(w.distance - real) > 3) t.problem('bug', `${vp}: waypoint distance ${w.distance} m, real distance ${real.toFixed(1)} m`);
+        // Turn the camera with touch drags: look for both the on-screen and the edge-clamped states.
+        let onScreen = !w.clamped ? w : null;
+        let edge = w.clamped ? w : null;
+        for (let i = 0; i < 90 && !(onScreen && edge); i++) {
+          dragLook(16);
+          await frame();
+          await frame();
+          await answer();
+          w = probe.waypoint();
+          if (!w.shown) continue;
+          checkBox(vp, mobile);
+          if (w.clamped && !edge) {
+            edge = w;
+            t.event('waypoint-edge', `${vp}: clamped at ${w.x},${w.y}, arrow ${w.angle} deg`);
+            t.scene(`Edge-clamped (${vp})`);
+            await sleep(800);
+          }
+          if (!w.clamped && !onScreen) {
+            onScreen = w;
+            t.event('waypoint-onscreen', `${vp}: over the objective at ${w.x},${w.y}`);
+            t.scene(`On screen (${vp})`);
+            await sleep(800);
+          }
+        }
+        if (!onScreen) t.problem('bug', `${vp}: the waypoint never showed over the objective while the camera turned`);
+        if (!edge) t.problem('bug', `${vp}: the waypoint never clamped to the screen edge while the camera turned`);
+        else if (!(byId('objectiveWaypoint')?.classList.contains('edge'))) t.problem('bug', `${vp}: edge-clamped waypoint has no arrow`);
+        // Sweep once more all the way round, checking the box against the controls at every angle.
+        for (let i = 0; i < 40; i++) {
+          dragLook(20);
+          await frame();
+          checkBox(vp, mobile);
+        }
+        // Pause hides it.
+        await tapAt(byId('pauseBtn'), 'Pause');
+        await t.until(() => probe.sound().paused, 3000, 'Pause');
+        await sleep(400);
+        if (probe.waypoint().shown) t.problem('bug', `${vp}: the waypoint still shows under Pause`);
+        else t.event('waypoint-hidden', `${vp}: hidden in Pause`);
+        await tapAt(byId('resumeBtn'), 'Resume');
+        await t.until(() => !probe.sound().paused, 3000, 'Resume');
+        await t.until(() => probe.waypoint().shown, 5000, 'the waypoint after Resume');
+        t.add('waypointPasses');
+      };
+
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('Title');
+      await sleep(600);
+      await enterLevel(1);
+      await measureLook();
+      t.progress(0.1);
+      await pass(`${innerWidth}x${innerHeight}`, false);
+      t.progress(0.3);
+      probe.phoneFrame(true);
+      t.event('setup', 'phone layout 390x844');
+      await sleep(1200);
+      await pass('390x844', true);
+      t.progress(0.5);
+      probe.phoneFrame(true, true);
+      t.event('setup', 'phone layout 844x390');
+      await sleep(1200);
+      await pass('844x390', true);
+      probe.phoneFrame(false);
+      await sleep(800);
+      t.progress(0.65);
+
+      // The board scene hides it: walk to the head chair with real input and press Join meeting.
+      t.scene('Board scene');
+      const until = performance.now() + 120000;
+      let sceneSeen = false;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()) { sceneSeen = true; break; }
+        if (!controllable()) continue;
+        await answer();
+        if (probe.phone().busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) { releaseAll(); if (await once('e', 1500, label)) t.event('action', label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      if (!sceneSeen) t.problem('bug', 'objective-marker: the board scene did not start');
+      else {
+        await sleep(1500);
+        if (probe.waypoint().shown) t.problem('bug', `the waypoint still shows during the ${probe.cutscene()?.id ?? 'cutscene'} scene`);
+        else t.event('waypoint-hidden', `hidden during ${probe.cutscene()?.id ?? 'the scene'}`);
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(1500);
+      }
+      t.progress(0.85);
+
+      // The Defeat card hides it too.
+      if (probe.forceDefeat()) {
+        t.event('defeat', 'test shortcut');
+        await t.until(() => probe.menu().title === 'Defeat', 30000, 'the Defeat card');
+        await sleep(1200);
+        t.scene('Defeat card');
+        if (probe.waypoint().shown) t.problem('bug', 'the waypoint still shows on the Defeat card');
+        else t.event('waypoint-hidden', 'hidden on the Defeat card');
+      }
+      t.progress(1);
+      t.finish(sceneSeen ? 'done' : 'stuck');
+    };
+
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
     const b3RetryRun = async () => {
       levelsTotal = 1;
@@ -2206,6 +2365,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
     }
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
+      return;
+    }
+    if (id === 'objective-marker') {
+      await objectiveMarkerRun();
       return;
     }
     if (id === 'ui-style') {

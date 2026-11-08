@@ -682,6 +682,79 @@
         margin-top: 4px;
       }
 
+
+      /* Objective waypoint (src/game/objectiveWaypoint.ts): a diamond over the objective, clamped to the screen edge. */
+      .objective-waypoint {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 5;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+        display: none;
+        font-family: var(--hb-mono);
+      }
+      .objective-waypoint.on { display: block; }
+      .waypoint-diamond {
+        position: absolute;
+        left: -7px;
+        top: -7px;
+        width: 14px;
+        height: 14px;
+        transform: rotate(45deg) scale(0.8);
+        background: var(--hb-gold);
+        border: 1px solid var(--hb-ink);
+        box-shadow: 0 0 0 1px var(--hb-gold-hi), 0 0 12px rgba(201, 168, 106, 0.7);
+      }
+      .waypoint-label {
+        position: absolute;
+        left: 0;
+        top: 14px;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 150px;
+        padding: 2px 8px;
+        background: rgba(10, 16, 22, 0.62);
+        border: 1px solid var(--panel-border);
+        border-radius: 2px;
+        color: var(--hb-gold-hi);
+        text-shadow: 0 1px 2px #000;
+        white-space: nowrap;
+      }
+      .waypoint-name {
+        max-width: 134px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+      }
+      .waypoint-dist { font-size: 11px; letter-spacing: 0.08em; opacity: 0.85; }
+      .waypoint-arrow {
+        position: absolute;
+        left: -9px;
+        top: -9px;
+        width: 18px;
+        height: 18px;
+        display: none;
+      }
+      .waypoint-arrow::before {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 1px;
+        border-left: 9px solid var(--hb-gold);
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8));
+      }
+      .objective-waypoint.edge .waypoint-arrow { display: block; }
+      .objective-waypoint.edge .waypoint-diamond { transform: rotate(45deg) scale(0.65); }
+      body:has(.message:not(.hidden)) .objective-waypoint { visibility: hidden; }
+
       .alarm-flash {
         position: absolute;
         inset: 0;
@@ -2906,6 +2979,11 @@
         <span class="objective-kicker">Objective</span>
         <span id="objectiveText" class="objective-text"></span>
         <span id="objectiveDist" class="objective-dist"></span>
+      </div>
+      <div id="objectiveWaypoint" class="objective-waypoint" aria-hidden="true">
+        <span class="waypoint-arrow"></span>
+        <span class="waypoint-diamond"></span>
+        <span class="waypoint-label"><span class="waypoint-name"></span><span class="waypoint-dist"></span></span>
       </div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <div id="hitFlash" class="hit-flash" aria-hidden="true"></div>
