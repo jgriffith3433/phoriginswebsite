@@ -27,6 +27,28 @@ const casing = (k: Kit, x: number, z: number, n: { x: number; z: number }) => {
   k.box(x + n.x * out, 2.12, z + n.z * out, 0.66, 0.1, 0.03, t);
 };
 
+/**
+ * Restroom doorway (opening x 17.2-18.7 in the hall 2 south wall, z 29.56-29.8, header from y 2.72).
+ * The authored jambs, open door leaf, handle and wall plate are hidden (collision stays): they were bare
+ * beige boxes that read as a cream slab in the corridor, and the plate floated 8 cm off the wall. The kit
+ * draws walnut casing and a brown leaf like the other doors, plasters the header, and hangs the sign on it.
+ */
+const restroomDoorway = (k: Kit) => {
+  k.set(IS.WOOD, 0.2, 0.12, 0.07);
+  for (const x of [17.16, 18.74]) k.box(x, 0, 29.68, 0.05, 2.72, 0.15, W);
+  k.box(17.95, 2.6, 29.68, 0.84, 0.12, 0.15, W);
+  // Open leaf, square to the wall, inside the restroom (authored position).
+  k.box(17.345, 0, 29.02, 0.0225, 2.1, 0.44, W);
+  k.set(IS.METAL, 0.62, 0.64, 0.66);
+  k.box(17.39, 0.96, 29.32, 0.02, 0.12, 0.015, W);
+  // Header faces: plaster on the hall side, tile on the restroom side.
+  k.set(IS.OFFICE_WALL, 1, 1, 1, 0, 0.15);
+  k.g.quad([17.2, 2.72, 29.805], [18.7, 2.72, 29.805], [18.7, 3.2, 29.805], [17.2, 3.2, 29.805], [0, 0, 1], [[17.2, 2.72], [18.7, 2.72], [18.7, 3.2], [17.2, 3.2]]);
+  k.set(IS.BATH_TILE, 1, 1, 1);
+  k.g.quad([18.7, 2.72, 29.555], [17.2, 2.72, 29.555], [17.2, 3.2, 29.555], [18.7, 3.2, 29.555], [0, 0, -1], [[18.7, 2.72], [17.2, 2.72], [17.2, 3.2], [18.7, 3.2]]);
+  plaque(k, 'restroom', 17.95, 2.84, 29.8, 0.7, 0.2, S);
+};
+
 export const apexPlan: InteriorPlan = {
   lightGain: 1.9,
   rooms: [
@@ -37,7 +59,7 @@ export const apexPlan: InteriorPlan = {
     { id: 'bath', minX: 15.6, maxX: 20.4, minZ: 25.5, maxZ: 29.56, wall: IS.BATH_TILE, floor: IS.SMALL_TILE, ceil: IS.ACOUSTIC },
   ],
   skip: /^(lift-|floor-lift|office-wall-n|board-glass|office-glass|bath-stall|bath-door|bath-jamb|trim-|ceil-lift)/,
-  hide: /^(trim-|carpet-|fixture-light-lift)/,
+  hide: /^(trim-|carpet-|fixture-light-lift|bath-jamb|bath-door|bath-handle|bath-plaque)/,
   keepClear: [
     { x: 0, z: 4.1, r: 1.5 },
     { x: 48, z: 46.2, r: 1.2 },
@@ -81,8 +103,7 @@ export const apexPlan: InteriorPlan = {
     for (const x of [4.6, 12, 20, 28, 34]) sconce(k, x, 2.05, 34.26, N);
     for (const x of [10, 26.2]) sconce(k, x, 2.05, 29.8, S);
     rug(k, 2.99, 29.01, 31.2, 32.8, 0.32, 0.1, 0.09, 0.022);
-    plaque(k, 'restroom', 17.95, 2.42, 29.8, 0.7, 0.2, N);
-    plaque(k, 'restroom', 17.95, 2.42, 29.8, 0.7, 0.2, S);
+    restroomDoorway(k);
     extinguisher(k, 34.6, 29.8, S);
     plant(k, 34.6, 33.7, 1.05);
 
