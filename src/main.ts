@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders';
 
 import { configureResponsiveUI, detectDevice } from './game/mobile';
+import { capTextureSize, pickMemoryTier } from './game/memoryTier';
 import { clearEnemies, type Enemy, spawnEnemy, updateEnemyAI } from './game/enemies';
 import {
   clearNpcs,
@@ -193,15 +194,32 @@ root.appendChild(canvas);
  * a render size capped near a megapixel. `?quality=high` or `?quality=low` overrides it for a check.
  */
 const qualityParam = new URLSearchParams(location.search).get('quality');
-const lowPowerGraphics = qualityParam === 'low' || (qualityParam !== 'high' && (() => {
+const memoryTier = pickMemoryTier(detectDevice().isTouch);
+document.body.dataset.memory = memoryTier.tier;
+const lowPowerGraphics = qualityParam === 'low' || (qualityParam !== 'high' && (memoryTier.tier === 'low' || (() => {
   const device = detectDevice();
   return device.isTouch && (device.isMobile || device.isTablet);
-})());
+})()));
 const engine = new BABYLON.Engine(canvas, !lowPowerGraphics, {
   preserveDrawingBuffer: !lowPowerGraphics,
   stencil: true,
   powerPreference: lowPowerGraphics ? 'default' : 'high-performance',
 });
+// The low-memory tier caps texture size: Babylon downscales any image bigger than the caps on load. The caps are
+// rebuilt when a lost context is restored, so the clamp is applied again right after that rebuild starts.
+const textureCap = memoryTier.textureCap;
+capTextureSize(engine, textureCap);
+{
+  const gl = engine as unknown as { _initGLContext?: () => unknown };
+  const init = gl._initGLContext?.bind(engine);
+  if (init && textureCap !== null) {
+    gl._initGLContext = () => {
+      const result = init();
+      capTextureSize(engine, textureCap);
+      return result;
+    };
+  }
+}
 const LOW_POWER_PIXELS = 1_000_000;
 const applyRenderScale = () => {
   if (!lowPowerGraphics) return;
@@ -209,15 +227,68 @@ const applyRenderScale = () => {
   engine.setHardwareScalingLevel(Math.max(1, Math.sqrt(pixels / LOW_POWER_PIXELS)));
 };
 applyRenderScale();
-// A lost WebGL context leaves a frozen or crawling canvas. Show the load-error card with Retry instead, and log it
-// so a bug report carries it.
+// A lost WebGL context (a phone reclaiming the GPU, a driver reset) freezes the canvas. Babylon already calls
+// preventDefault on the loss and rebuilds buffers, shaders and textures when the browser restores the context.
+// Here the game holds still behind a short "Recovering…" overlay, resumes the level on restore, and restarts the
+// current level (a fresh load, as Start does) if the rebuild did not take or the context never comes back.
+const recoveringBox = document.getElementById('recovering');
+const RECOVER_MIN_MS = 700;
+const RECOVER_GIVE_UP_MS = 10000;
+let contextLost = false;
+let contextLostAt = 0;
+let contextGiveUp: ReturnType<typeof setTimeout> | null = null;
+const contextStats = { losses: 0, restored: 0, restarted: 0 };
+const glIsLost = () => {
+  const gl = (engine as unknown as { _gl?: WebGLRenderingContext })._gl;
+  return !gl || gl.isContextLost();
+};
+const clearGiveUp = () => { if (contextGiveUp) { clearTimeout(contextGiveUp); contextGiveUp = null; } };
+const endRecovery = () => {
+  contextLost = false;
+  clearGiveUp();
+  if (recoveringBox) recoveringBox.hidden = true;
+  if (!paused) {
+    releaseAllAudio();
+    releaseClips();
+  }
+};
+const restartAfterLoss = () => {
+  contextStats.restarted += 1;
+  console.warn('PH Origins: the graphics rebuild failed; restarting the level.');
+  endRecovery();
+  if (glIsLost()) { showLoadError('graphics'); return; }
+  void startAtLevel(state.level, false, true, true, false);
+};
 engine.onContextLostObservable.add(() => {
-  console.error('PH Origins: the WebGL context was lost (the graphics reset); showing Retry.');
-  if (pauseMenu) pauseMenu.hidden = true;
-  showLoadError('graphics');
+  console.warn('PH Origins: the WebGL context was lost; holding the game while it recovers.');
+  contextStats.losses += 1;
+  contextLost = true;
+  contextLostAt = performance.now();
+  clearInputState();
+  state.fireHeld = false;
+  audio.setWalk(false);
+  holdAllAudio();
+  holdClips();
+  if (recoveringBox) recoveringBox.hidden = false;
+  clearGiveUp();
+  contextGiveUp = setTimeout(() => {
+    if (!contextLost) return;
+    if (glIsLost()) { endRecovery(); showLoadError('graphics'); } else restartAfterLoss();
+  }, RECOVER_GIVE_UP_MS);
 });
 engine.onContextRestoredObservable.add(() => {
-  console.warn('PH Origins: the WebGL context came back; Retry reloads the game.');
+  contextStats.restored += 1;
+  console.warn('PH Origins: the WebGL context came back; resuming.');
+  // Babylon has rebuilt its resources. Draw a frame to prove it, keep the message up long enough to read.
+  let ok = !glIsLost();
+  if (ok) {
+    try { scene.render(); } catch (error) { console.warn('PH Origins: render after restore failed', error); ok = false; }
+  }
+  const wait = Math.max(0, RECOVER_MIN_MS - (performance.now() - contextLostAt));
+  setTimeout(() => {
+    if (!contextLost) return;
+    if (ok && !glIsLost()) endRecovery(); else restartAfterLoss();
+  }, wait);
 });
 const scene = new BABYLON.Scene(engine);
 if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) (window as unknown as { __phScene?: BABYLON.Scene }).__phScene = scene;
@@ -3828,6 +3899,7 @@ const syncSkipButton = () => {
 };
 
 const renderLoop = () => {
+  if (contextLost) return;
   pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden'));
   if (paused) {
     // Hold the frame: no story, camera or cutscene time passes until Resume.
@@ -4343,6 +4415,36 @@ installPhPlaytest({
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   waypoint: () => objectiveWaypoint.view(),
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
+  graphics: () => ({
+    memoryTier: memoryTier.tier,
+    deviceMemory: memoryTier.deviceMemory,
+    textureCap: memoryTier.textureCap,
+    maxTextureSize: engine.getCaps().maxTextureSize,
+    lowPower: lowPowerGraphics,
+    reason: memoryTier.reason,
+  }),
+  contextLoss: {
+    lose: () => {
+      const gl = (engine as unknown as { _gl?: WebGLRenderingContext })._gl;
+      const ext = gl?.getExtension('WEBGL_lose_context');
+      if (!ext || glIsLost()) return false;
+      ext.loseContext();
+      return true;
+    },
+    restore: () => {
+      const gl = (engine as unknown as { _gl?: WebGLRenderingContext })._gl;
+      const ext = gl?.getExtension('WEBGL_lose_context');
+      if (!ext) return false;
+      ext.restoreContext();
+      return true;
+    },
+    status: () => ({
+      lost: contextLost,
+      overlay: Boolean(recoveringBox && !recoveringBox.hidden),
+      overlayText: recoveringBox?.textContent?.trim() ?? '',
+      ...contextStats,
+    }),
+  },
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;
     applyHurt(Math.max(1, state.health), 'playtest');

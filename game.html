@@ -2201,6 +2201,26 @@
       }
 
       /* Pause and Settings sit over the level and the title card alike. */
+      .recovering {
+        position: absolute;
+        inset: 0;
+        z-index: 115;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(4, 6, 9, 0.78);
+        pointer-events: none;
+      }
+      .recovering[hidden] { display: none; }
+      .recovering div {
+        padding: 14px 28px;
+        border: 1px solid var(--hb-gold);
+        background: rgba(8, 10, 14, 0.92);
+        color: var(--hb-gold);
+        font: 600 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+      }
       .pause-btn {
         position: absolute;
         top: calc(var(--safe-top) + 14px);
@@ -3227,6 +3247,8 @@
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />
         </div>
       </div>
+
+      <div class="recovering" id="recovering" hidden role="status" aria-live="polite"><div>Recovering&hellip;</div></div>
 
       <button type="button" id="pauseBtn" class="pause-btn" hidden aria-label="Pause">&#10074;&#10074;</button>
 

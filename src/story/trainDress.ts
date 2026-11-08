@@ -731,6 +731,7 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       const q = new URLSearchParams(window.location.search).get('quality');
       if (q === 'low') return true;
       if (q === 'high') return false;
+      if (document.body?.dataset?.memory === 'low') return true;
       const dev = document.body?.dataset?.device;
       if (dev === 'mobile' || dev === 'tablet') return true;
       const p = detectDevice();
