@@ -3215,6 +3215,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (r.width < innerWidth - 1 || r.height < innerHeight - 1) t.problem('bug', `the Tap to play prompt does not fill the screen ${where} (${Math.round(r.width)}x${Math.round(r.height)} of ${innerWidth}x${innerHeight})`);
       t.event('prompt-shown', `${where}, ${innerWidth}x${innerHeight} ${innerWidth > innerHeight ? 'landscape' : 'portrait'}`);
     };
+    const prompt0Text = () => byId('tapToPlay')?.firstElementChild as HTMLElement | null;
     const checkRunning = async (where: string) => {
       try {
         await t.until(() => probe.sound().context === 'running', 5000, 'the AudioContext to run');
@@ -3238,6 +3239,12 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await sleep(1200);
       await tapToPlay();
       await checkRunning('after the first tap');
+      // The splash text must not ghost over the title card's rows while the splash fades out.
+      await sleep(60);
+      const splashText = prompt0Text();
+      if (splashText && Number(getComputedStyle(splashText).opacity) > 0.05) {
+        t.problem('bug', 'the Tap to play splash text is still visible over the title card after the tap');
+      } else t.event('splash-text-gone', 'text hidden while the splash backdrop fades');
       t.progress(0.15);
 
       t.scene('Title');
