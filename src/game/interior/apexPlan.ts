@@ -28,6 +28,7 @@ const casing = (k: Kit, x: number, z: number, n: { x: number; z: number }) => {
 };
 
 export const apexPlan: InteriorPlan = {
+  lightGain: 1.3,
   rooms: [
     { id: 'hall1', minX: -2.2, maxX: 2.2, minZ: -1, maxZ: 34.25, wall: IS.OFFICE_WALL, wallVar: 0.15, floor: IS.CARPET, floorVar: 0, ceil: IS.ACOUSTIC },
     { id: 'hall2', minX: 2.2, maxX: 35.3, minZ: 29.8, maxZ: 34.26, wall: IS.OFFICE_WALL, wallVar: 0.15, floor: IS.CARPET, floorVar: 0, ceil: IS.ACOUSTIC },
