@@ -9,8 +9,21 @@ export const PLAYER_MESH_Y_OFFSET = 1.6;
 
 export const playerMeshY = (playerY: number) => playerY - PLAYER_MESH_Y_OFFSET;
 
+/** Collider ellipsoid: half-height and centre offset below the capsule centre. */
+const ELLIPSOID_HALF_Y = 1.05;
+const ELLIPSOID_OFFSET_Y = -0.5;
+/**
+ * The ellipsoid's bottom sits this far above the feet. On the y=0 floor the PLAYER_STAND_Y clamp
+ * keeps that gap; on any raised surface the collider would rest on it and sink the feet 5 cm, so a
+ * landing or floor snap lifts him by the same gap.
+ */
+const FOOT_CLEARANCE = PLAYER_MESH_Y_OFFSET - (ELLIPSOID_HALF_Y - ELLIPSOID_OFFSET_Y);
+
 /** Delay after jump press before vertical velocity is applied. */
 export const JUMP_WINDUP = 0.1;
+
+/** Upward speed at takeoff (m/s). */
+export const JUMP_SPEED = 7;
 
 /** Rounds the sidearm holds. An ammo box refills this. */
 export const CLIP_SIZE = 8;
@@ -36,7 +49,7 @@ export const requestJump = (player: PlayerState) => {
 export const applyJump = (player: PlayerState) => {
   if (!player.grounded) return false;
   player.jumpWindup = 0;
-  player.velocityY = 7;
+  player.velocityY = JUMP_SPEED;
   player.grounded = false;
   return true;
 };
@@ -93,12 +106,14 @@ export const updateVerticalMotion = (
     if (blocked && player.velocityY < 0) {
       player.velocityY = 0;
       player.grounded = true;
+      player.y += FOOT_CLEARANCE;
     } else if (blocked && player.velocityY > 0) {
       player.velocityY = 0;
     }
   } else {
     const { blocked } = moveVertical(player, collider, -0.14);
     if (!blocked) player.grounded = false;
+    else player.y += FOOT_CLEARANCE;
   }
   if (player.y <= PLAYER_STAND_Y) {
     player.y = PLAYER_STAND_Y;
@@ -120,8 +135,8 @@ export const createPlayerCollider = (scene: BABYLON.Scene) => {
   mesh.isPickable = false;
   mesh.checkCollisions = true;
   // Reach down to chair/desk height (~0.4) without sitting in the floor.
-  mesh.ellipsoid = new BABYLON.Vector3(0.4, 1.05, 0.4);
-  mesh.ellipsoidOffset = new BABYLON.Vector3(0, -0.5, 0);
+  mesh.ellipsoid = new BABYLON.Vector3(0.4, ELLIPSOID_HALF_Y, 0.4);
+  mesh.ellipsoidOffset = new BABYLON.Vector3(0, ELLIPSOID_OFFSET_Y, 0);
   return mesh;
 };
 

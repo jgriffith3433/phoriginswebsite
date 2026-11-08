@@ -11,6 +11,7 @@ import {
   type Npc,
 } from './game/npcs';
 import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
+import { createJumpPoser } from './game/jumpPose';
 import { clearImpactMarks, stampBulletMark } from './game/impacts';
 import { ITEM_CAP, addItem, createInventoryState, consumeItem, inventorySummary, itemCount, roomFor } from './game/inventory';
 import { getLevelDefinition, getLevels, getPlayableLevelCount, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
@@ -2781,9 +2782,17 @@ const keepInsideFloors = (before: { x: number; z: number }) => {
   playerCollider.position.set(before.x, state.player.y, before.z);
 };
 
+/** Smoothed horizontal speed the walk loop matches, so the planted foot stays planted. */
+let groundSpeed = 0;
+const jumpPose = createJumpPoser();
+/** Last pose and input the avatar was given, for the playtest probe. */
+let lastJumpPose: number | null = null;
+let lastMoving = false;
+
 const updatePlayer = (delta: number) => {
   if (levelSealed()) {
     holdSealedPlayer(delta);
+    playerAvatar.setStride(null);
     return { moving: false, moveHeading: null };
   }
   tickShadowRun(delta);
@@ -2842,6 +2851,7 @@ const updatePlayer = (delta: number) => {
   moveZ += -state.movementVector.y;
 
   const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
+  const strideFrom = { x: state.player.x, z: state.player.z };
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
     const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
@@ -2903,11 +2913,18 @@ const updatePlayer = (delta: number) => {
     1 - Math.exp(-(followCamera.isLooking() ? 22 : 24) * Math.min(delta, 0.05)),
   );
 
-  const jumpAnim = !state.player.grounded || state.player.jumpWindup > 0;
+  const travelled = Math.hypot(state.player.x - strideFrom.x, state.player.z - strideFrom.z);
+  const instantSpeed = travelled / Math.max(1e-3, Math.min(delta, MAX_MOVE_FRAME));
+  groundSpeed += (instantSpeed - groundSpeed) * (1 - Math.exp(-12 * Math.min(delta, 0.1)));
+  const pose = shadowFlying ? jumpPose.reset() : jumpPose.step(state.player, delta, moving);
+  const jumpAnim = pose !== null;
   const sprinting = moving && shadowRunActive();
   playerAvatar.setSprinting(sprinting);
   playerAvatar.setLocomotion(moving, shadowFlying ? true : !jumpAnim);
-  playerAvatar.setPace(1);
+  playerAvatar.setJumpPose(pose);
+  lastJumpPose = pose;
+  lastMoving = moving;
+  playerAvatar.setStride(moving && !jumpAnim ? groundSpeed : null);
   audio.setWalk(
     moving
     && !jumpAnim
@@ -4370,6 +4387,15 @@ installPhPlaytest({
     ammo: itemCount(state.inventory, 'ammo'),
     medkits: itemCount(state.inventory, 'medkit'),
     weaponDrawn: state.player.weaponDrawn,
+  }),
+  motion: () => ({
+    grounded: state.player.grounded,
+    velocityY: state.player.velocityY,
+    airTime: jumpPose.airTime(),
+    jumpPose: lastJumpPose,
+    groundSpeed,
+    moving: lastMoving,
+    ...playerAvatar.locomotion(),
   }),
   cameraYaw: () => followCamera.getYaw(),
   objective: () => {
