@@ -255,7 +255,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
   // ---------- Floors ----------
   if (style > 19.5 && style < 20.5) {
     // Commercial carpet: tufts and a quiet geometric pattern.
-    vec3 base = mix(vec3(0.14, 0.17, 0.22), vec3(0.18, 0.15, 0.14), variant);
+    vec3 base = mix(vec3(0.26, 0.3, 0.38), vec3(0.3, 0.25, 0.23), variant);
     vec2 q = p / 0.6;
     vec2 f = fract(q) - 0.5;
     float pat = smoothstep(0.03, 0.0, abs(abs(f.x) + abs(f.y) - 0.35));
@@ -423,6 +423,8 @@ void main(void) {
   float bump;
   surface(floor(vStyle.x + 0.5), vStyle.y, vUV, n, albedo, gloss, emis, bump);
   vec3 diffuse = mix(hemiGround, hemiSky, n.y * 0.5 + 0.5) + (hemiSky + hemiGround) * 0.22;
+  // Floor bounce: a surface facing down (ceilings) still catches light thrown back by the floor.
+  diffuse += hemiSky * 0.18 * clamp(-n.y, 0.0, 1.0);
   vec3 spec = vec3(0.0);
   for (int i = 0; i < ${MAX_INTERIOR_LIGHTS}; i++) {
     vec4 lp = lPos[i];
