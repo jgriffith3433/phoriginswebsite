@@ -224,6 +224,31 @@ export const createThirdPersonCamera = (
     return best;
   };
 
+  const pushOut = new BABYLON.Vector3();
+  const feelDir = new BABYLON.Vector3();
+  const FEEL_DIRS = 8;
+  /** Fills pushOut with the horizontal shove that keeps `pos` a lens-width off nearby walls. */
+  const clearancePush = (pos: BABYLON.Vector3, ignore: Set<BABYLON.AbstractMesh>) => {
+    const reach = Math.max(cfg.collisionRadius, cfg.minZ * 3);
+    pushOut.set(0, 0, 0);
+    let any = false;
+    for (let i = 0; i < FEEL_DIRS; i++) {
+      const a = (i / FEEL_DIRS) * Math.PI * 2;
+      feelDir.set(Math.sin(a), 0, Math.cos(a));
+      const hit = pickAlong(pos, feelDir, reach, ignore);
+      if (hit?.hit && typeof hit.distance === 'number' && hit.distance < reach) {
+        const push = reach - hit.distance;
+        pushOut.x -= feelDir.x * push;
+        pushOut.z -= feelDir.z * push;
+        any = true;
+      }
+    }
+    // Opposite walls (a narrow gap) cancel out; cap the move so it never throws the lens far.
+    const len = Math.hypot(pushOut.x, pushOut.z);
+    if (len > reach) pushOut.scaleInPlace(reach / len);
+    return any;
+  };
+
   /** World Y of the first ceiling/overhang above a point; boom rays barely change Y under a flat slab. */
   const ceilingWorldY = (x: number, y: number, z: number, ignore: Set<BABYLON.AbstractMesh>) => {
     probeOrigin.set(x, y, z);
@@ -377,6 +402,15 @@ export const createThirdPersonCamera = (
     const floorY = floorWorldY(smoothedPos.x, pivot.y + 0.25, smoothedPos.z, ignore);
     const minCamY = floorY + ceilingClearance;
     if (smoothedPos.y < minCamY) smoothedPos.y = minCamY;
+
+    // The boom is a line, so a camera that runs parallel to a wall (a hall corner, a
+    // doorway jamb) can still sit against it with the wall filling the lens. Feel
+    // outward from the final position in the horizontal plane and step off anything
+    // closer than the near-plane's reach.
+    if (clearancePush(smoothedPos, ignore)) {
+      smoothedPos.x += pushOut.x;
+      smoothedPos.z += pushOut.z;
+    }
 
     camera.position.copyFrom(smoothedPos);
     camera.setTarget(lookAt);
