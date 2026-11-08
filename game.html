@@ -1438,6 +1438,12 @@
         display: none;
       }
 
+      /* the panel owns the column while open (its max-height assumes that): the Q/G/H/F stack
+         would otherwise be pushed up over the health bar and the pause button */
+      .inventory-hud.open > .phone-hint {
+        display: none;
+      }
+
       .inventory-hud.open .inventory-panel {
         display: flex;
         /* never grow up into the health bar or objective card: scroll instead */
