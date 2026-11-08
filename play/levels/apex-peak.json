@@ -1160,7 +1160,7 @@
       "name": "Elevator Floor Panel",
       "x": 44,
       "y": 2.68,
-      "z": 23.52,
+      "z": 23.86,
       "scale": {
         "x": 1.86,
         "y": 0.58,
@@ -1177,7 +1177,7 @@
       "name": "Floor Readout",
       "x": 44.18,
       "y": 2.78,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.78,
         "y": 0.24,
@@ -1194,7 +1194,7 @@
       "name": "Elevator Down Arrow",
       "x": 43.28,
       "y": 2.78,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.24,
@@ -1211,7 +1211,7 @@
       "name": "Floor 58",
       "x": 43.42,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1228,7 +1228,7 @@
       "name": "Floor 40",
       "x": 43.64,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1245,7 +1245,7 @@
       "name": "Floor 20",
       "x": 43.86,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1262,7 +1262,7 @@
       "name": "Floor L",
       "x": 44.08,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1279,7 +1279,7 @@
       "name": "Floor B1",
       "x": 44.3,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1296,7 +1296,7 @@
       "name": "Floor B2",
       "x": 44.52,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1313,7 +1313,7 @@
       "name": "Floor B3",
       "x": 44.74,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1470,7 +1470,7 @@
       "kind": "model",
       "name": "Hall 1 Light A Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 6,
       "rotation": {
         "x": 0,
@@ -1492,7 +1492,7 @@
       "kind": "model",
       "name": "Hall 1 Light B Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 16,
       "rotation": {
         "x": 0,
@@ -1514,7 +1514,7 @@
       "kind": "model",
       "name": "Hall 1 Light C Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 26,
       "rotation": {
         "x": 0,
@@ -1536,7 +1536,7 @@
       "kind": "model",
       "name": "Hall 2 Light A Fixture",
       "x": 12,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1558,7 +1558,7 @@
       "kind": "model",
       "name": "Hall 2 Light B Fixture",
       "x": 24,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1580,7 +1580,7 @@
       "kind": "model",
       "name": "Boardroom Light Fixture",
       "x": 44.2,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1602,7 +1602,7 @@
       "kind": "model",
       "name": "Office Light Fixture",
       "x": 48,
-      "y": 3.05,
+      "y": 3.109,
       "z": 43.5,
       "rotation": {
         "x": 0,
@@ -3578,7 +3578,7 @@
       "assetId": "structure-pillar",
       "kind": "pillar",
       "name": "Faucet Spout 1",
-      "x": 20.05,
+      "x": 20.095,
       "y": 1,
       "z": 27.78,
       "rotation": {
@@ -3601,7 +3601,7 @@
       "assetId": "structure-pillar",
       "kind": "pillar",
       "name": "Faucet Spout 2",
-      "x": 20.05,
+      "x": 20.095,
       "y": 1,
       "z": 28.52,
       "rotation": {
@@ -3841,7 +3841,8 @@
       "z": -4.531632423400879,
       "data": {
         "radius": 100,
-        "audio": "/assets/audio/room-tone.mp3",
+        "audio": "/assets/audio/ambient/office-night.ogg",
+        "fallback": "/assets/audio/room-tone.mp3",
         "loop": true,
         "fadeSeconds": 2,
         "volume": 0.14

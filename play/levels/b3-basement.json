@@ -195,7 +195,7 @@
       "name": "Elevator Floor Panel",
       "x": 44,
       "y": 2.68,
-      "z": 23.52,
+      "z": 23.86,
       "scale": {
         "x": 1.86,
         "y": 0.58,
@@ -212,7 +212,7 @@
       "name": "Floor Readout",
       "x": 44.18,
       "y": 2.78,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.78,
         "y": 0.24,
@@ -229,7 +229,7 @@
       "name": "Elevator Down Arrow",
       "x": 43.28,
       "y": 2.78,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.24,
@@ -246,7 +246,7 @@
       "name": "Floor 58",
       "x": 43.42,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -263,7 +263,7 @@
       "name": "Floor 40",
       "x": 43.64,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -280,7 +280,7 @@
       "name": "Floor 20",
       "x": 43.86,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -297,7 +297,7 @@
       "name": "Floor L",
       "x": 44.08,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -314,7 +314,7 @@
       "name": "Floor B1",
       "x": 44.3,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -331,7 +331,7 @@
       "name": "Floor B2",
       "x": 44.52,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -348,7 +348,7 @@
       "name": "Floor B3",
       "x": 44.74,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1846,7 +1846,7 @@
       "materialId": "mat-b3-pipe",
       "position": {
         "x": 4.4,
-        "y": 2.35,
+        "y": 3.15,
         "z": 24.2
       },
       "rotation": {
@@ -1871,7 +1871,7 @@
       "materialId": "mat-b3-pipe",
       "position": {
         "x": 8,
-        "y": 2.35,
+        "y": 3.15,
         "z": 24.2
       },
       "rotation": {
@@ -1896,7 +1896,7 @@
       "materialId": "mat-b3-pipe",
       "position": {
         "x": 11.2,
-        "y": 2.35,
+        "y": 3.15,
         "z": 24.2
       },
       "rotation": {
@@ -3016,7 +3016,7 @@
       "materialId": "mat-b3-wire",
       "position": {
         "x": 60.2,
-        "y": 0.95,
+        "y": 1.05,
         "z": 40.2
       },
       "rotation": {
@@ -3277,6 +3277,431 @@
         "x": 0.1,
         "y": 0.7,
         "z": 5.2
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-cell-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 22,
+        "y": 3.325,
+        "z": 42.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.35,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-cell-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 22,
+        "y": 3.325,
+        "z": 45.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.35,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-cell-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 22,
+        "y": 3.325,
+        "z": 47.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.35,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-cell-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 22,
+        "y": 3.325,
+        "z": 50.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.35,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 32.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 35.0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 37.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-3",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 40.2
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-4",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 42.8
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-5",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 45.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-6",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 48.0
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-hanger-transform-7",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Transform Pipe Hanger",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 50.2,
+        "y": 3.35,
+        "z": 50.4
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.03,
+        "y": 0.3,
+        "z": 0.03
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-light-cell-rod-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Light Rod",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 30.8,
+        "y": 2.985,
+        "z": 40.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.02,
+        "y": 1.03,
+        "z": 0.02
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-light-cell-rod-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Cell Light Rod",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 31.2,
+        "y": 2.985,
+        "z": 40.75
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.02,
+        "y": 1.03,
+        "z": 0.02
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-stair-post-0",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stair Rail Post",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 57.3,
+        "y": 0.4,
+        "z": 45.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.06,
+        "y": 0.8,
+        "z": 0.06
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-stair-post-1",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stair Rail Post",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 57.3,
+        "y": 0.4,
+        "z": 47.6
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.06,
+        "y": 0.8,
+        "z": 0.06
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "b3-decal-stair-post-2",
+      "assetId": "structure-wall",
+      "kind": "wall",
+      "name": "Stair Rail Post",
+      "materialId": "mat-b3-pipe",
+      "position": {
+        "x": 57.3,
+        "y": 0.4,
+        "z": 50.1
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 0.06,
+        "y": 0.8,
+        "z": 0.06
       },
       "components": [
         "Transform"
@@ -5057,7 +5482,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 44,
-        "y": 3.23,
+        "y": 3.456,
         "z": 27.2
       },
       "rotation": {
@@ -5113,7 +5538,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 44,
-        "y": 3.23,
+        "y": 3.456,
         "z": 33.2
       },
       "rotation": {
@@ -5169,7 +5594,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 40,
-        "y": 3.23,
+        "y": 3.456,
         "z": 38
       },
       "rotation": {
@@ -5225,7 +5650,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 26,
-        "y": 3.23,
+        "y": 3.456,
         "z": 38
       },
       "rotation": {
@@ -5281,7 +5706,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 44.5,
-        "y": 3.23,
+        "y": 3.456,
         "z": 38
       },
       "rotation": {
@@ -5953,7 +6378,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 14,
-        "y": 3.23,
+        "y": 3.456,
         "z": 54.65
       },
       "rotation": {
@@ -6009,7 +6434,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 34,
-        "y": 3.23,
+        "y": 3.456,
         "z": 54.65
       },
       "rotation": {
@@ -6065,7 +6490,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 52,
-        "y": 3.23,
+        "y": 3.456,
         "z": 54.65
       },
       "rotation": {
@@ -6121,7 +6546,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 54,
-        "y": 3.23,
+        "y": 3.456,
         "z": 36
       },
       "rotation": {
@@ -6177,7 +6602,7 @@
       "materialId": "mat-b3-lamp",
       "position": {
         "x": 56,
-        "y": 3.23,
+        "y": 3.456,
         "z": 46
       },
       "rotation": {
@@ -6312,7 +6737,7 @@
       "kind": "model",
       "name": "Hall Light A Fixture",
       "x": 44,
-      "y": 3.05,
+      "y": 3.329,
       "z": 27.2,
       "rotation": {
         "x": 0,
@@ -6334,7 +6759,7 @@
       "kind": "model",
       "name": "Hall Light B Fixture",
       "x": 44,
-      "y": 3.05,
+      "y": 3.329,
       "z": 33.2,
       "rotation": {
         "x": 0,
@@ -6356,7 +6781,7 @@
       "kind": "model",
       "name": "Hall B Light A Fixture",
       "x": 40,
-      "y": 3.05,
+      "y": 3.329,
       "z": 38,
       "rotation": {
         "x": 0,
@@ -6378,7 +6803,7 @@
       "kind": "model",
       "name": "Hall B Light B Fixture",
       "x": 26,
-      "y": 3.05,
+      "y": 3.329,
       "z": 38,
       "rotation": {
         "x": 0,
@@ -6400,7 +6825,7 @@
       "kind": "model",
       "name": "Junction Light Fixture",
       "x": 44.5,
-      "y": 3.05,
+      "y": 3.329,
       "z": 38,
       "rotation": {
         "x": 0,
@@ -6642,7 +7067,7 @@
       "kind": "model",
       "name": "Corridor Light A Fixture",
       "x": 14,
-      "y": 3.05,
+      "y": 3.329,
       "z": 54.65,
       "rotation": {
         "x": 0,
@@ -6664,7 +7089,7 @@
       "kind": "model",
       "name": "Corridor Light B Fixture",
       "x": 34,
-      "y": 3.05,
+      "y": 3.329,
       "z": 54.65,
       "rotation": {
         "x": 0,
@@ -6686,7 +7111,7 @@
       "kind": "model",
       "name": "Corridor Light C Fixture",
       "x": 52,
-      "y": 3.05,
+      "y": 3.329,
       "z": 54.65,
       "rotation": {
         "x": 0,
@@ -6708,7 +7133,7 @@
       "kind": "model",
       "name": "Transform Light Fixture",
       "x": 54,
-      "y": 3.05,
+      "y": 3.329,
       "z": 36,
       "rotation": {
         "x": 0,
@@ -6730,7 +7155,7 @@
       "kind": "model",
       "name": "Transform Light B Fixture",
       "x": 56,
-      "y": 3.05,
+      "y": 3.329,
       "z": 46,
       "rotation": {
         "x": 0,
