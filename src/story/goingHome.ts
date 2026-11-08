@@ -453,7 +453,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       const name = abilityLabel(other);
       host.setObjective(
         lineSpeaker('objective.home.switch', 'Switch'),
-        lineText('objective.home.switch', 'Switch to {name} with Tab or Switch Ability, then use it on a passerby. Stay in Shadow mode.').split('{name}').join(name),
+        lineText('objective.home.switch', 'Tab switches to {name}. Use it on a passerby in Shadow mode.').split('{name}').join(name),
         null,
       );
       return;

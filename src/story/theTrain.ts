@@ -9,7 +9,7 @@ import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
-import { deathScream, STREET_SFX } from './streetAudio';
+import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
 
 /**
  * Level 7, The Train. Continue after The Station enters it. End Level is offered only from `finish`,
@@ -160,6 +160,8 @@ export const createTheTrain = (host: TheTrainHost) => {
   const riders: Rider[] = [];
   const beads: BABYLON.Mesh[] = [];
   let shadowOn = false;
+  /** Seconds to the next rider's remark when Pierce walks close. */
+  let barkIn = 8;
   let handsOut = false;
   let tether: Rider | null = null;
   let tetherMove = { x: 0, z: 0 };
@@ -948,6 +950,19 @@ export const createTheTrain = (host: TheTrainHost) => {
       }
       sceneTime += stepDt;
       carTime += stepDt;
+      barkIn -= stepDt;
+      if (barkIn <= 0 && !shadowOn && !tether) {
+        const at = host.player();
+        const near = riders.filter((rider) => !rider.down
+          && Math.hypot(rider.mesh.position.x - at.x, rider.mesh.position.z - at.z) < 3.5);
+        if (near.length) {
+          const pool = STREET_BARKS.flat();
+          const copy = streetCopy(pool[Math.floor(Math.random() * pool.length)]);
+          host.showLine('Rider', copy.text);
+          host.playFile(copy.url, 0.55);
+          barkIn = 16 + Math.random() * 10;
+        } else barkIn = 1.5;
+      }
       shockLeft = Math.max(0, shockLeft - stepDt);
       meleeLeft = Math.max(0, meleeLeft - stepDt);
       watchLeft = Math.max(0, watchLeft - stepDt);

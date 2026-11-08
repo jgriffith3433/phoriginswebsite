@@ -6,7 +6,7 @@ import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
-import { deathScream, STREET_SFX } from './streetAudio';
+import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
 
 export type TheStationHost = {
   scene: BABYLON.Scene;
@@ -199,6 +199,10 @@ export const createTheStation = (host: TheStationHost) => {
   let yelled = false;
   let strikeAt = -1;
   let boardAt = -1;
+  /** Seconds to the next train heard through the tunnel (the platform's bed is only room tone). */
+  let passIn = 14;
+  /** Seconds to the next commuter's remark when Pierce walks close (the platform talks about the tower too). */
+  let barkIn = 6;
   let castWait = 0;
 
   const face = (person: Person, yaw: number) => {
@@ -380,6 +384,8 @@ export const createTheStation = (host: TheStationHost) => {
     yelled = false;
     strikeAt = -1;
     boardAt = -1;
+    passIn = 14;
+    barkIn = 6;
     castWait = 0;
     shadeMat = new BABYLON.StandardMaterial('station-shade-wisp-mat', host.scene);
     shadeMat.diffuseColor = new BABYLON.Color3(0.01, 0.01, 0.015);
@@ -461,7 +467,10 @@ export const createTheStation = (host: TheStationHost) => {
       else putFigure(man, manAt.x, manAt.z, manAt.yaw, true);
       if (twinAt.done) hideFigure(twin);
       else putFigure(twin, twinAt.x, twinAt.z, twinAt.yaw, true);
-      if (manAt.done && twinAt.done && leaveAt < 0) leaveAt = sceneTime + 0.45;
+      if (manAt.done && twinAt.done && leaveAt < 0) {
+        leaveAt = sceneTime + 0.45;
+        host.playFile('/assets/audio/train/doors-close.ogg', 0.55);
+      }
       if (leaveAt >= 0 && sceneTime >= leaveAt) {
         handoff();
         return;
@@ -901,6 +910,24 @@ export const createTheStation = (host: TheStationHost) => {
             host.ringCall('hale-board');
           }
         }
+      }
+      barkIn -= stepDt;
+      if (barkIn <= 0 && !shadowOn && !tether) {
+        const at = host.player();
+        const near = people.filter((person) => !person.down && !person.fleeing
+          && Math.hypot(person.mesh.position.x - at.x, person.mesh.position.z - at.z) < 5);
+        if (near.length) {
+          const pool = STREET_BARKS.flat();
+          const copy = streetCopy(pool[Math.floor(Math.random() * pool.length)]);
+          host.showLine('Commuter', copy.text);
+          host.playFile(copy.url, 0.6);
+          barkIn = 14 + Math.random() * 8;
+        } else barkIn = 1.5;
+      }
+      passIn -= stepDt;
+      if (passIn <= 0) {
+        passIn = 45 + Math.random() * 30;
+        host.playFile('/assets/audio/train/rumble.ogg', 0.16);
       }
       shockLeft = Math.max(0, shockLeft - stepDt);
       meleeLeft = Math.max(0, meleeLeft - stepDt);

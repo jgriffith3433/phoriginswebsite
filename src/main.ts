@@ -976,6 +976,7 @@ const SFX = {
   objective: '/assets/audio/sfx/objective.ogg',
   levelComplete: '/assets/audio/sfx/level-complete.ogg',
   shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
+  click: '/assets/audio/sfx/flashlight.ogg',
 } as const;
 const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-morning' ? MORNING_ENDING_TRACK : getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
 let walkLoop: ClipHandle | null = null;
@@ -1052,7 +1053,12 @@ const audio = {
   jump() { this.play(SFX.jump, 0.42); },
   draw() { this.play(SFX.draw, 0.55); },
   holster() { this.play(SFX.holster, 0.55); },
-  pickup() { this.tone(780, 0.12, 'sine', 0.06); },
+  /** Taking a supply: the magazine seating for ammo, the bag strap for a medkit (was a bare sine beep). */
+  pickup(item: InventoryItemType | 'reward' = 'reward') { this.play(item === 'medkit' ? SFX.holster : SFX.reload, 0.5); },
+  /** Already full: a dull knock, not the hurt grunt it used to borrow. */
+  refuse() { this.tone(180, 0.09, 'triangle', 0.05); },
+  /** Pressing E on a story action (bed, door, television, desk) clicks under the finger. */
+  interact() { this.play(SFX.click, 0.3); },
   start() { this.play(SFX.start, 0.7); },
   win() {
     stopEndingSong();
@@ -2989,12 +2995,12 @@ const takeSupply = (pickup: (typeof pickups)[number]) => {
   const taken = addItem(state.inventory, pickup.item, pickup.amount);
   if (taken <= 0) {
     showReloadNote(`${SUPPLY_LABEL[pickup.item]} full`);
-    audio.hit();
+    audio.refuse();
     return;
   }
   pickup.active = false;
   pickup.mesh.setEnabled(false);
-  audio.pickup();
+  audio.pickup(pickup.item);
   actionPulse('pickup');
   updateHud();
 };
@@ -3062,6 +3068,7 @@ const storyAction = (): string | null => {
 const confirmStoryAction = () => {
   if (!storyAction()) return false;
   unlockAudio();
+  audio.interact();
   if (pendingEnd) {
     presentLevelEnd();
     syncActionHint();
