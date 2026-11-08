@@ -67,7 +67,7 @@ export const createObjectiveWaypoint = (
     const mobile = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
     // The touch sticks and buttons end here (the inventory sits on the same line).
     if (!mobile) return 110 + LABEL_H;
-    return (h > root.clientWidth ? 236 : 148) + LABEL_H;
+    return (h > root.clientWidth ? 236 : 176) + LABEL_H;
   };
 
   const update = () => {

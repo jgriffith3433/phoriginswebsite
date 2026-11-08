@@ -2201,6 +2201,26 @@
       }
 
       /* Pause and Settings sit over the level and the title card alike. */
+      .recovering {
+        position: absolute;
+        inset: 0;
+        z-index: 115;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(4, 6, 9, 0.78);
+        pointer-events: none;
+      }
+      .recovering[hidden] { display: none; }
+      .recovering div {
+        padding: 14px 28px;
+        border: 1px solid var(--hb-gold);
+        background: rgba(8, 10, 14, 0.92);
+        color: var(--hb-gold);
+        font: 600 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+      }
       .pause-btn {
         position: absolute;
         top: calc(var(--safe-top) + 14px);
@@ -3013,6 +3033,65 @@
       .overlay-card button.primary { background: var(--hb-gold); color: var(--hb-ink); border: 1px solid var(--hb-gold); border-radius: 2px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
       .overlay-card button.secondary { border-radius: 2px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; background: rgba(236, 230, 216, 0.04); border: 1px solid var(--hb-line-strong); color: var(--hb-paper); }
       body[data-device='mobile'] .phone-hint, body[data-device='tablet'] .phone-hint { min-width: 0; }
+
+      /* ---- Touch layout (390x844, 844x390, 667x375): no two controls overlap, each is 44 px or more, and
+         everything sits inside the safe area. Keyed on body[data-device] and [data-orientation] (not media
+         queries) so the playtest's phoneFrame lays out the same way. The Interact button sits beside Fire and
+         Jump, left of the camera stick, and only while a hint is live (same action as E). ---- */
+      .action-btn.interact { display: none; }
+      body:is([data-device='mobile'], [data-device='tablet']) .right-controls { position: relative; }
+      body:is([data-device='mobile'], [data-device='tablet']) .action-btn.interact:not([hidden]) {
+        display: block;
+        position: absolute;
+        right: 142px;
+        top: 76px;
+        width: 56px;
+        height: 56px;
+        font: 700 14px/1 var(--hb-sans, inherit);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        border-radius: 2px;
+        border: 1px solid var(--hb-line-strong);
+        border-top: 2px solid var(--hb-gold);
+        background: rgba(10, 16, 22, 0.86);
+        color: var(--hb-gold-hi);
+      }
+      /* The Interact button takes over the centre pills on touch; Reload and Lost move clear of the stack. */
+      body:is([data-device='mobile'], [data-device='tablet']) .action-hint:not(.lost-hint),
+      body:is([data-device='mobile'], [data-device='tablet']) .interact-hint { display: none; }
+      body:is([data-device='mobile'], [data-device='tablet']) .reload-hint { top: calc(50% - 40px); }
+      body:is([data-device='mobile'], [data-device='tablet']) .phone-hint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-close { min-height: 44px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) {
+        right: max(12px, env(safe-area-inset-right, 0px));
+        bottom: calc(var(--safe-bottom) + 236px);
+        gap: 8px;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .missions-hud {
+        left: max(12px, env(safe-area-inset-left, 0px));
+        bottom: calc(var(--safe-bottom) + 228px);
+      }
+      /* Landscape: the hint buttons form a grid between the move stick and the right-hand cluster. */
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .controls { bottom: calc(var(--safe-bottom) + 10px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) {
+        right: auto;
+        left: calc(max(12px, env(safe-area-inset-left, 0px)) + 148px);
+        bottom: calc(var(--safe-bottom) + 10px);
+        display: grid;
+        grid-template-columns: repeat(3, 90px);
+        gap: 6px;
+        align-items: stretch;
+        justify-items: stretch;
+      }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) .phone-hint {
+        min-width: 0; padding: 4px 6px; font-size: 11px; letter-spacing: 0.08em; line-height: 1.1; text-align: center;
+      }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud.open { right: auto; left: calc(max(12px, env(safe-area-inset-left, 0px)) + 148px); bottom: calc(var(--safe-bottom) + 10px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud.open .inventory-panel {
+        max-height: calc(100dvh - var(--safe-bottom) - var(--safe-top) - 80px);
+      }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .missions-hud { bottom: calc(var(--safe-bottom) + 156px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .ability-readout { bottom: calc(var(--safe-bottom) + 178px); }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
@@ -3172,6 +3251,7 @@
               <div class="stick-knob" id="rightStickKnob"></div>
             </div>
           </div>
+          <button class="action-btn interact" id="interactBtn" hidden aria-label="Interact">Use</button>
           <div class="right-action-zone" aria-label="Action buttons">
             <button class="action-btn" id="phoneBtn" aria-label="Phone">☎</button>
             <button class="action-btn fire" id="fireBtn" aria-label="Fire weapon">✦</button>
@@ -3227,6 +3307,8 @@
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />
         </div>
       </div>
+
+      <div class="recovering" id="recovering" hidden role="status" aria-live="polite"><div>Recovering&hellip;</div></div>
 
       <button type="button" id="pauseBtn" class="pause-btn" hidden aria-label="Pause">&#10074;&#10074;</button>
 

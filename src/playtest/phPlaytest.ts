@@ -65,12 +65,20 @@ export type PhProbe = {
   ending: () => string | null;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
   failNextLoad: (kind: 'error' | 'hang') => void;
+  /** The memory tier and texture cap (also in hawkesPlaytest.state().graphics). */
+  graphics: () => GraphicsInfo;
+  /** Test setup (`context-loss`): lose and restore the WebGL context with WEBGL_lose_context; what the recovery shows. */
+  contextLoss: {
+    lose: () => boolean;
+    restore: () => boolean;
+    status: () => { lost: boolean; overlay: boolean; overlayText: string; restarted: number; restored: number; lost_?: never };
+  };
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
   counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
-  phoneFrame: (on: boolean, landscape?: boolean) => void;
+  phoneFrame: (on: boolean, landscape?: boolean, size?: { w: number; h: number }) => void;
   /** Phone screen mode (src/game/screenMode.ts): the portrait prompt, fullscreen. `asTouch` is setup: act as a touch device. */
   screenMode: {
     prompt: () => { showing: boolean; text: string };
@@ -95,6 +103,11 @@ export type PhProbe = {
     /** The walk (footstep) loop is playing. */
     footsteps: boolean;
   };
+};
+
+export type GraphicsInfo = {
+  memoryTier: 'low' | 'standard'; deviceMemory: number | null; textureCap: number | null;
+  maxTextureSize: number; lowPower: boolean; reason: string;
 };
 
 export type SceneCounts = {
@@ -451,9 +464,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
       },
       {
         id: 'ui-style',
-        title: 'Menu, HUD, pause, settings and end cards share fonts and colours, and nothing is clipped at 1280x720 and 390x844',
-        description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen.',
-        seconds: 150,
+        title: 'Menu, HUD, pause, settings and end cards share fonts and colours, nothing is clipped, and no touch control overlaps another or is under 44 px at 390x844, 844x390 and 667x375',
+        description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen. On the phone layout it then lays the page out at 390x844, 844x390 and 667x375, shows every conditional touch control (Interact, ability, shadow, lost, reload), and fails if any two touch controls overlap, any is under 44 px, or any leaves the safe area.',
+        seconds: 170,
         tags: ['menus'],
       },
       {
@@ -490,6 +503,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Opens level 1 with the Start button, then levels 2 to 8 (test shortcut, as Continue does). Each level must open on a chapter title card (Chapter N, the level name, one story line). The bot logs the card, checks it is not a copy of an earlier card and shows no placeholder text (raw ids, {braces}, undefined, TODO, lorem), waits for it to be fully up, presses one key (Space) and checks the card is gone within 1.5 s and the level is running. Metrics: chapterCards, chapterSkipSeconds. Problems: no card, a duplicate card, placeholder text, a card that needs more than one press.',
         seconds: 420,
         tags: ['level', 'ui'],
+      },
+      {
+        id: 'context-loss',
+        title: 'Level 1: lose the WebGL context, Recovering shows, the level resumes; memory tier and level change counts',
+        description: 'Reports the memory tier and texture cap (state().graphics: tier, deviceMemory, textureCap, maxTextureSize; ?memory=low forces the low tier). Starts level 1 with the Start button, gets control, walks (real keys). Then loses the WebGL context with WEBGL_lose_context: the Recovering overlay must show, the context is restored, the overlay must go within 15 s with no load-error card, and Pierce must walk again (real keys). Then level 1 to level 2 and back (test shortcut, as Continue does): the scene counts (meshes, materials, textures, animation groups) are logged at each stop and must not grow once level 1 is back, so the previous level was freed. Metrics: textureCap, maxTextureSize, recoverSeconds, level1Meshes, level2Meshes, level1Textures, level2Textures, level1Again*.',
+        seconds: 300,
+        tags: ['graphics', 'level'],
       },
       {
         id: 'b3-retry',
@@ -578,7 +598,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
   api.state = () => {
     let counts: SceneCounts | null = null;
     try { counts = probe.counts(); } catch { /* scene not up yet */ }
-    return { ...baseState(), counts };
+    let graphics: GraphicsInfo | null = null;
+    try { graphics = probe.graphics(); } catch { /* scene not up yet */ }
+    return { ...baseState(), counts, graphics };
   };
 
   // ------------------------------------------------------------ run
@@ -2798,6 +2820,100 @@ export const installPhPlaytest = (probe: PhProbe) => {
       return;
     }
 
+    if (id === 'context-loss') {
+      levelsTotal = 1;
+      const g = probe.graphics();
+      t.event('graphics', `memory tier ${g.memoryTier} (${g.reason}), deviceMemory ${g.deviceMemory ?? 'unknown'}, texture cap ${g.textureCap ?? 'none'}, engine max texture ${g.maxTextureSize}, low power ${g.lowPower}`);
+      t.metric('textureCap', g.textureCap ?? 0);
+      t.metric('maxTextureSize', g.maxTextureSize);
+      if (g.memoryTier === 'low' && g.maxTextureSize > 1024) t.problem('bug', `low memory tier but textures are not capped (max ${g.maxTextureSize})`);
+      const settled = async () => {
+        let last = '';
+        let since = performance.now();
+        const until = performance.now() + 60000;
+        while (performance.now() < until) {
+          await sleep(500);
+          const c = probe.counts();
+          const key = `${c.meshes}/${c.materials}/${c.textures}/${c.animationGroups}`;
+          if (key !== last) { last = key; since = performance.now(); } else if (performance.now() - since >= 3000) break;
+        }
+        return probe.counts();
+      };
+      const control = async (what: string) => {
+        const until = performance.now() + 120000;
+        while (!controllable()) {
+          if (performance.now() > until) throw new Error(`timed out waiting for ${what}`);
+          if (probe.cutscene() && probe.skipButton && !probe.skipButton.hidden) { press(probe.skipButton, 'Skip'); await sleep(800); }
+          if (probe.phone().incoming) await once('f', 1500, 'answer call');
+          await tick();
+        }
+      };
+      const walk = async (what: string) => {
+        const from = probe.player();
+        setHeld('w');
+        await sleep(2500);
+        releaseAll();
+        const to = probe.player();
+        const moved = Math.hypot(to.x - from.x, to.z - from.z);
+        t.event('walk', `${what}: moved ${moved.toFixed(2)} m`);
+        return moved;
+      };
+      t.scene(LEVELS[0].name);
+      await enterLevel(1);
+      await control('level 1 control');
+      t.event('level-start', LEVELS[0].name);
+      const before = await walk('before the loss');
+      if (before < 0.3) t.problem('bug', 'Pierce did not walk before the context loss');
+      const one = await settled();
+      t.metric('level1Meshes', one.meshes);
+      t.metric('level1Textures', one.textures);
+
+      // ---- lose and restore the context
+      const lostAt = performance.now();
+      if (!probe.contextLoss.lose()) t.problem('bug', 'WEBGL_lose_context is not available, so the context could not be lost');
+      else {
+        t.event('context', 'WebGL context lost (WEBGL_lose_context)');
+        try {
+          await t.until(() => probe.contextLoss.status().overlay, 5000, 'the Recovering overlay');
+          t.event('context', `overlay: "${probe.contextLoss.status().overlayText}"`);
+          if (!/recovering/i.test(probe.contextLoss.status().overlayText)) t.problem('bug', 'the overlay does not say Recovering');
+        } catch { t.problem('bug', 'losing the WebGL context showed no Recovering message'); }
+        await sleep(1200);
+        probe.contextLoss.restore();
+        t.event('context', 'WebGL context restored (WEBGL_lose_context)');
+        try {
+          await t.until(() => !probe.contextLoss.status().overlay && !probe.contextLoss.status().lost, 15000, 'the level to resume');
+          const secs = (performance.now() - lostAt) / 1000;
+          t.metric('recoverSeconds', Math.round(secs * 10) / 10);
+          t.event('context', `level resumed ${secs.toFixed(1)} s after the loss${probe.contextLoss.status().restarted ? ' (restarted from the level start)' : ''}`);
+        } catch { t.problem('bug', 'the Recovering message never cleared after the context came back'); }
+        if (probe.menu().open && /start|retry|reload/i.test(probe.menu().start ?? '')) t.event('context', `card showing after recovery: ${probe.menu().title}`);
+        await control('control after recovery');
+        const after = await walk('after the recovery');
+        if (after < 0.3) t.problem('bug', 'Pierce could not walk after the context came back');
+      }
+
+      // ---- level change frees the previous level
+      t.scene(LEVELS[1].name);
+      await enterLevel(2);
+      await control('level 2 control');
+      const two = await settled();
+      t.metric('level2Meshes', two.meshes);
+      t.metric('level2Textures', two.textures);
+      t.event('counts', `level 1: meshes ${one.meshes}, materials ${one.materials}, textures ${one.textures}, animation groups ${one.animationGroups}; level 2: meshes ${two.meshes}, materials ${two.materials}, textures ${two.textures}, animation groups ${two.animationGroups}`);
+      t.scene(LEVELS[0].name);
+      await enterLevel(1);
+      await control('level 1 again');
+      const again = await settled();
+      t.metric('level1AgainMeshes', again.meshes);
+      t.metric('level1AgainTextures', again.textures);
+      t.event('counts', `level 1 again: meshes ${again.meshes}, materials ${again.materials}, textures ${again.textures}, animation groups ${again.animationGroups}`);
+      for (const key of ['meshes', 'materials', 'textures', 'animationGroups'] as const) {
+        if (again[key] > one[key] * 1.05 + 10) t.problem('bug', `${key} grew from ${one[key]} to ${again[key]} after level 1 -> 2 -> 1: the previous level was not freed`);
+      }
+      return;
+    }
+
     if (id === 'b3-retry') {
       await b3RetryRun();
       return;
@@ -3142,7 +3258,55 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.add('uiScreens');
     };
 
-    const pass = async (vp: string) => {
+    /** Touch layout: every touch control (and the HUD readouts beside them) at one phone size. */
+    const TOUCH_CONTROLS = ['interactBtn', 'fireBtn', 'jumpBtn', 'phoneBtn', 'leftStickZone', 'rightStickZone', 'pauseBtn', 'missionsHint',
+      'sidearmHint', 'abilityHint', 'shadowHint', 'lightHint', 'medkitHint', 'phoneHint', 'inventoryHint', 'reloadHint', 'lostHint'];
+    const TOUCH_HUD = ['objectiveHud', 'abilityReadout'];
+    const touchAudit = async (w: number, h: number) => {
+      const vp = `${w}x${h}`;
+      probe.phoneFrame(true, w > h, { w, h });
+      await sleep(900);
+      t.scene(`Touch layout (${vp})`);
+      // Worst case: every conditional control showing at once (layout only, nothing is pressed).
+      const forced = ['interactBtn', 'abilityHint', 'shadowHint', 'lostHint', 'reloadHint', 'abilityReadout']
+        .map((id) => byId(id)).filter((el): el is HTMLElement => !!el && el.hidden);
+      for (const el of forced) el.hidden = false;
+      await sleep(300);
+      const rootBox = root.getBoundingClientRect();
+      const k = rootBox.width / (root as HTMLElement).offsetWidth || 1;
+      const probeEl = document.createElement('div');
+      probeEl.style.cssText = 'position:absolute;inset:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+      root.appendChild(probeEl);
+      const cs = getComputedStyle(probeEl);
+      const inset = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+      probeEl.remove();
+      type Box = { id: string; l: number; t: number; r: number; b: number; control: boolean };
+      const boxes: Box[] = [];
+      for (const id of [...TOUCH_CONTROLS, ...TOUCH_HUD]) {
+        const el = byId(id);
+        if (!el) { t.problem('bug', `${vp}: #${id} is missing`); continue; }
+        const st = getComputedStyle(el);
+        if (st.display === 'none' || st.visibility === 'hidden' || el.hidden) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) continue;
+        boxes.push({ id, l: (r.left - rootBox.left) / k, t: (r.top - rootBox.top) / k, r: (r.right - rootBox.left) / k, b: (r.bottom - rootBox.top) / k, control: TOUCH_CONTROLS.includes(id) });
+      }
+      let bad = 0;
+      for (const b of boxes) {
+        if (b.control && (b.r - b.l < 43.5 || b.b - b.t < 43.5)) { bad++; t.problem('bug', `${vp}: #${b.id} is ${Math.round(b.r - b.l)}x${Math.round(b.b - b.t)} px, under 44`); }
+        if (b.l < inset.l - 0.5 || b.t < inset.t - 0.5 || b.r > w - inset.r + 0.5 || b.b > h - inset.b + 0.5) { bad++; t.problem('bug', `${vp}: #${b.id} leaves the safe area`); }
+      }
+      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i], c = boxes[j];
+        if (!a.control && !c.control) continue;
+        if (a.l < c.r - 0.5 && c.l < a.r - 0.5 && a.t < c.b - 0.5 && c.t < a.b - 0.5) { bad++; t.problem('bug', `${vp}: #${a.id} overlaps #${c.id}`); }
+      }
+      for (const el of forced) el.hidden = true;
+      t.event('touch-layout', `${vp}: ${boxes.filter((b) => b.control).length} touch controls checked, ${bad} problems, safe inset ${inset.t}/${inset.r}/${inset.b}/${inset.l}`);
+      t.add('touchLayouts');
+    };
+
+    const pass = async (vp: string, touch = false) => {
       if (probe.menu().title === 'PH Origins') {
         t.scene(`Title (${vp})`);
         await sleep(800);
@@ -3164,6 +3328,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await t.until(() => !!byId('objectiveHud')?.classList.contains('visible'), 30000, 'the objective');
       await sleep(1500);
       audit('HUD', vp);
+      if (touch) {
+        await touchAudit(390, 844);
+        await touchAudit(844, 390);
+        await touchAudit(667, 375);
+        probe.phoneFrame(true);
+        await sleep(900);
+      }
       await tapAt(byId('pauseBtn'), 'Pause');
       await t.until(() => probe.sound().paused, 3000, 'Pause');
       t.scene(`Paused (${vp})`);
@@ -3191,7 +3362,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     probe.phoneFrame(true);
     t.event('setup', 'phone layout 390x844');
     await sleep(1500);
-    await pass('390x844');
+    await pass('390x844', true);
     probe.phoneFrame(false);
     t.progress(1);
     t.finish('done');
