@@ -120,6 +120,42 @@
     "police": {
       "name": "Police",
       "voiceId": "IRHApOXLvnW57QJPQH2P"
+    },
+    "anchor": {
+      "name": "Morning News anchor",
+      "voiceId": "cjVigY5qzO86Huf0OWal"
+    },
+    "commuter": {
+      "name": "Commuter",
+      "voiceId": "TxGEqnHWrfWFTfGW9XjX"
+    },
+    "traveler": {
+      "name": "Traveler",
+      "voiceId": "EXAVITQu4vr4xnSDxMaL"
+    },
+    "platform-pa": {
+      "name": "Platform PA",
+      "voiceId": "XrExE9yKIg1WjnnlVkGX"
+    },
+    "rider": {
+      "name": "Rider",
+      "voiceId": "pqHfZKP75CVOyRZM6pYB"
+    },
+    "night-shift": {
+      "name": "Night shift",
+      "voiceId": "FGY2WhTYpPnrIDTdsKH5"
+    },
+    "conductor": {
+      "name": "Conductor",
+      "voiceId": "iP95p4xoKVk53GoZ742B"
+    },
+    "board-member": {
+      "name": "Board member",
+      "voiceId": "JBFqnCBsd6RMkjVDRZzb"
+    },
+    "treasurer": {
+      "name": "Treasurer",
+      "voiceId": "pFZP5JQG7iQjIQuC4Bku"
     }
   },
   "speakers": {
@@ -133,6 +169,16 @@
     "passerby": "passerby",
     "pedestrian": "passerby",
     "shopkeeper": "passerby",
-    "police": "police"
+    "police": "police",
+    "morning news": "anchor",
+    "commuter": "commuter",
+    "traveler": "traveler",
+    "platform pa": "platform-pa",
+    "rider": "rider",
+    "night shift": "night-shift",
+    "conductor": "conductor",
+    "board member": "board-member",
+    "treasurer": "treasurer",
+    "security radio": "police"
   }
 }

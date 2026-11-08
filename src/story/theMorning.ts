@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { PLACE_SFX } from './placeVoices';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 
@@ -478,6 +479,7 @@ export const createTheMorning = (host: MorningHost) => {
         setMorning(false);
         setTv(false, 'off');
         host.placePierce(LIE.x, LIE.z, LIE.yaw);
+        host.playFile(PLACE_SFX.bed, 0.5);
       }
       host.lie(true, LIE.x, LIE.y, LIE.z, LIE.yaw);
       host.frameCamera({ x: 4.9, y: 1.45, z: -0.9 }, { x: 7.0, y: 0.75, z: BED.z });
@@ -499,6 +501,7 @@ export const createTheMorning = (host: MorningHost) => {
       } else if (time > 13.2 && !flags.has('tv')) {
         flags.add('tv');
         setTv(true, 'static');
+        host.playFile(PLACE_SFX.tvStatic, 0.3);
       }
     }
     if (time > 15) endSleep();
@@ -517,10 +520,11 @@ export const createTheMorning = (host: MorningHost) => {
       host.placePierce(WATCH.x, WATCH.z, Math.PI);
       host.playClip('rebornidle', true);
       setTv(true, 'static');
+      host.playFile(PLACE_SFX.newsSting, 0.4);
     }
     host.frameCamera({ x: 4.5, y: 1.55, z: 1.2 }, { x: TV.x, y: 1.3, z: TV.z });
-    // Captions in order; the first one lands after a second of static.
-    let at = 1.2;
+    // Captions in order; the first one lands as the programme's opening sting ends.
+    let at = 2.4;
     let shown = -1;
     for (let i = 0; i < NEWS_CAPTIONS.length; i++) {
       if (time >= at) shown = i;
@@ -531,6 +535,9 @@ export const createTheMorning = (host: MorningHost) => {
       captionsShown = shown + 1;
       still = NEWS_STILLS[shown];
       host.showLine(lineSpeaker(NEWS_CAPTIONS[shown], 'Morning News'), caption(shown));
+      // Each lower third is read by the anchor once its take exists.
+      const read = lineAudio(NEWS_CAPTIONS[shown]);
+      if (read) host.playFile(read, 0.85);
     }
     if (time >= total && !flags.has('without')) {
       flags.add('without');
@@ -550,6 +557,10 @@ export const createTheMorning = (host: MorningHost) => {
     }
     host.frameCamera({ x: 2.6, y: 1.55, z: 0.4 }, { x: DOOR.x, y: 1.2, z: DOOR.z });
     // The door swings open into the room as he says it.
+    if (time >= 0.5 && !flags.has('door-sound')) {
+      flags.add('door-sound');
+      host.playFile(PLACE_SFX.door, 0.6);
+    }
     if (door) {
       const t = Math.min(1, Math.max(0, (time - 0.5) / 1.4));
       door.rotation.y = DOOR_SWING * t * t * (3 - 2 * t);

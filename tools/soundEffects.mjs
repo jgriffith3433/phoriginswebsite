@@ -16,7 +16,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { HawkesGen } from './hawkesgen.mjs';
 
-const gen = new HawkesGen({ project: 'phorigins' });
+const gen = new HawkesGen({ project: process.env.HAWKESGEN_PROJECT || 'phorigins' });
 
 const MODEL = 'eleven_text_to_sound_v2';
 const MP3_FORMAT = 'mp3_44100_128';

@@ -3,6 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import { mountBathroomMirror, type BathroomMirror } from './bathroomMirror';
+import { DESK_RADIO, placeLine } from './placeVoices';
 
 export type DeskHost = {
   scene: BABYLON.Scene;
@@ -33,6 +34,8 @@ export type DeskHost = {
 const MIRROR = { x: 19.05, z: 28.15, yaw: Math.PI / 2 };
 const DESK = { x: 48.05, z: 41.22, yaw: 0 };
 const CAB = { x: 44.15, z: 25.55, yaw: Math.PI };
+/** Night security on the radio, in the gaps between Pierce's lines (seconds into the walk). Skipped until voiced. */
+const RADIO_AT = [15.5, 21.5, 52] as const;
 
 const ACCEPT = '/assets/audio/cutscenes/going-home/04-pierce-accept.wav';
 const NATURE = '/assets/audio/cutscenes/going-home/05-pierce-nature.wav';
@@ -109,6 +112,7 @@ export const createTheDesk = (host: DeskHost) => {
   let saidStill = false;
   let swept = false;
   let saidGoing = false;
+  let radioSaid = 0;
   let shake = 0;
   let bathroomMirror: BathroomMirror | null = null;
   const sheets: Sheet[] = [];
@@ -214,6 +218,7 @@ export const createTheDesk = (host: DeskHost) => {
     saidStill = false;
     swept = false;
     saidGoing = false;
+    radioSaid = 0;
     shake = 0;
     host.fade(1, 0);
     host.fade(0, 1.6);
@@ -278,6 +283,7 @@ export const createTheDesk = (host: DeskHost) => {
       saidStill = false;
       swept = false;
       saidGoing = false;
+      radioSaid = 0;
       shake = 0;
       host.setCarry(carryItems('desk', CARRY));
       host.holdScene(false);
@@ -325,6 +331,10 @@ export const createTheDesk = (host: DeskHost) => {
       } else if (!saidGoing && time >= 43.4) {
         saidGoing = true;
         say(lineSpeaker('dialogue.desk.going', 'Pierce Hawkes'), lineText('dialogue.desk.going'), lineAudio('dialogue.desk.going', GOING), 0.92, 4.2);
+      } else if (radioSaid < RADIO_AT.length && time >= RADIO_AT[radioSaid] && (lineUntil === 0 || time > lineUntil)) {
+        const said = placeLine(DESK_RADIO[radioSaid]);
+        radioSaid += 1;
+        if (said) say(said.speaker, said.text, said.url, 0.5, 4.2);
       } else if (lineUntil > 0 && time > lineUntil) {
         lineUntil = 0;
         host.showLine('', '');

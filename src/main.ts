@@ -47,6 +47,7 @@ import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import { soundFallback } from './game/soundFallback';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
@@ -976,8 +977,19 @@ const SFX = {
   objective: '/assets/audio/sfx/objective.ogg',
   levelComplete: '/assets/audio/sfx/level-complete.ogg',
   shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
-  click: '/assets/audio/sfx/flashlight.ogg',
+  /** Pressing E on a story action; falls back to the flashlight click until the file is made (soundFallback.ts). */
+  click: '/assets/audio/sfx/interact.ogg',
+  pickup: '/assets/audio/sfx/pickup.ogg',
+  walkConcrete: '/assets/audio/sfx/walk-concrete.ogg',
+  walkHard: '/assets/audio/sfx/walk-hard.ogg',
 } as const;
+/** Footsteps by floor: concrete on the street, the platform and B3; a hard floor in the apartment and the train; office carpet elsewhere. */
+const walkSound = () => {
+  const id = getLevelDefinition(state.level).libraryId;
+  if (id === 'going-home' || id === 'the-station' || id === 'b3-basement') return SFX.walkConcrete;
+  if (id === 'the-morning' || id === 'the-train') return SFX.walkHard;
+  return SFX.walk;
+};
 const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-morning' ? MORNING_ENDING_TRACK : getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
 let walkLoop: ClipHandle | null = null;
 let walkWanted = false;
@@ -1034,8 +1046,10 @@ const audio = {
     if (!this.enabled) return;
     this.ensure();
     const level = mixVolume(url, volume);
-    if (playClip(url, level)) return;
-    playElementOnce(url, level);
+    const fallback = soundFallback(url);
+    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume)); } : undefined;
+    if (playClip(url, level, { onError })) return;
+    playElementOnce(fallback ?? url, level);
   },
   setWalk(playing: boolean) {
     walkWanted = Boolean(playing && this.enabled);
@@ -1046,7 +1060,16 @@ const audio = {
     }
     if (walkLoop && !walkLoop.done()) return;
     this.ensure();
-    walkLoop = playClip(SFX.walk, mixVolume(SFX.walk, 0.28), { loop: true });
+    const url = walkSound();
+    const fallback = soundFallback(url);
+    const loop: ClipHandle | null = playClip(url, mixVolume(url, 0.28), {
+      loop: true,
+      onError: fallback ? () => {
+        if (walkLoop !== loop || !walkWanted) return;
+        walkLoop = playClip(fallback, mixVolume(fallback, 0.28), { loop: true });
+      } : undefined,
+    });
+    walkLoop = loop;
   },
   hit() { this.play(SFX.hurt, 0.45); },
   shoot() { this.play(SFX.shot, 0.78); },
@@ -1054,7 +1077,7 @@ const audio = {
   draw() { this.play(SFX.draw, 0.55); },
   holster() { this.play(SFX.holster, 0.55); },
   /** Taking a supply: the magazine seating for ammo, the bag strap for a medkit (was a bare sine beep). */
-  pickup(item: InventoryItemType | 'reward' = 'reward') { this.play(item === 'medkit' ? SFX.holster : SFX.reload, 0.5); },
+  pickup(item: InventoryItemType | 'reward' = 'reward') { this.play(item === 'ammo' ? SFX.reload : SFX.pickup, 0.5); },
   /** Already full: a dull knock, not the hurt grunt it used to borrow. */
   refuse() { this.tone(180, 0.09, 'triangle', 0.05); },
   /** Pressing E on a story action (bed, door, television, desk) clicks under the finger. */

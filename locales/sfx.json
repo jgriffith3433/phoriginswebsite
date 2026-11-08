@@ -607,6 +607,135 @@
       "influence": 0.65,
       "volume": 0.31,
       "note": "Police."
+    },
+    {
+      "id": "sfx.room.office-night",
+      "group": "room",
+      "text": "Seamless loop of an empty corporate office floor at night: steady air conditioning hum, faint fluorescent buzz, distant city traffic muffled through tall glass windows, no voices, no music.",
+      "audio": "/assets/audio/ambient/office-night.ogg",
+      "loop": true,
+      "duration": 30,
+      "influence": 0.55,
+      "volume": 0.14,
+      "note": "Apex Peak and The Desk: the floor bed (falls back to room-tone.mp3)."
+    },
+    {
+      "id": "sfx.room.street-night",
+      "group": "room",
+      "text": "Seamless loop of a city street at night: distant traffic wash, a far siren now and then, light wind between buildings, faint footsteps far off, no close voices, no music.",
+      "audio": "/assets/audio/ambient/street-night.ogg",
+      "loop": true,
+      "duration": 30,
+      "influence": 0.55,
+      "volume": 0.12,
+      "note": "Going Home: the street bed (falls back to room-tone.mp3)."
+    },
+    {
+      "id": "sfx.room.platform",
+      "group": "room",
+      "text": "Seamless loop of an underground subway platform at night: low tunnel rumble, fluorescent light hum, dripping water, distant echoing footsteps, no announcements, no voices, no music.",
+      "audio": "/assets/audio/ambient/platform.ogg",
+      "loop": true,
+      "duration": 30,
+      "influence": 0.55,
+      "volume": 0.1,
+      "note": "The Station: the platform bed (falls back to room-tone.mp3)."
+    },
+    {
+      "id": "sfx.morning.door",
+      "group": "home",
+      "text": "One-shot old apartment front door: the latch clicks and the heavy wooden door swings open on creaking hinges, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/home/door-open.ogg",
+      "influence": 0.6,
+      "volume": 0.6,
+      "note": "The Morning: the front door swings open on Leave."
+    },
+    {
+      "id": "sfx.morning.bed",
+      "group": "home",
+      "text": "One-shot man lying down on an old bed, mattress springs creak and the sheets rustle, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/home/bed-creak.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "The Morning: Pierce lies down on Sleep."
+    },
+    {
+      "id": "sfx.morning.tv-static",
+      "group": "home",
+      "text": "One-shot old television switching on: a click, a burst of white noise static and a high CRT whine, no voices, no music.",
+      "audio": "/assets/audio/sfx/home/tv-static.ogg",
+      "influence": 0.6,
+      "volume": 0.35,
+      "note": "The Morning: the television comes on in static."
+    },
+    {
+      "id": "sfx.morning.news-sting",
+      "group": "home",
+      "text": "Short morning news broadcast opening sting: bright synth stab, timpani hit and a rising brass swell, heard through a television speaker, no voices.",
+      "audio": "/assets/audio/sfx/home/news-sting.ogg",
+      "duration": 3,
+      "influence": 0.6,
+      "volume": 0.4,
+      "note": "The Morning: the news programme opens."
+    },
+    {
+      "id": "sfx.ui.interact",
+      "group": "ui",
+      "text": "One-shot soft tactile click of pressing a physical button, subtle and short, no music.",
+      "audio": "/assets/audio/sfx/interact.ogg",
+      "influence": 0.6,
+      "volume": 0.3,
+      "note": "E on a story action (bed, door, television, desk). Was the flashlight click."
+    },
+    {
+      "id": "sfx.ui.pickup",
+      "group": "ui",
+      "text": "One-shot picking up a small pouch and tucking it into a jacket, quick fabric rustle and a soft zip, close foley, no music.",
+      "audio": "/assets/audio/sfx/pickup.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Taking a medkit or a reward. Ammo keeps the magazine sound."
+    },
+    {
+      "id": "sfx.station.train-pass",
+      "group": "station",
+      "text": "One-shot subway train rushing through a tunnel past a platform without stopping: roar builds, wheels clatter on the rails, wind, then it fades away, no horn, no voices, no music.",
+      "audio": "/assets/audio/sfx/station/train-pass.ogg",
+      "duration": 8,
+      "influence": 0.6,
+      "volume": 0.3,
+      "note": "The Station: a train passes through now and then."
+    },
+    {
+      "id": "sfx.station.pa-chime",
+      "group": "station",
+      "text": "One-shot three-tone public address chime in a large tiled subway station, echoing, no voices, no music.",
+      "audio": "/assets/audio/sfx/station/pa-chime.ogg",
+      "influence": 0.6,
+      "volume": 0.45,
+      "note": "The Station: before a platform announcement."
+    },
+    {
+      "id": "sfx.player.walk-concrete",
+      "group": "player",
+      "text": "Seamless loop of three leather dress-shoe steps on gritty concrete pavement, steady pace, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/walk-concrete.ogg",
+      "loop": true,
+      "duration": 2.4,
+      "influence": 0.65,
+      "volume": 0.28,
+      "note": "Footsteps on street, station and B3 concrete. The game loops this file."
+    },
+    {
+      "id": "sfx.player.walk-hard",
+      "group": "player",
+      "text": "Seamless loop of three leather dress-shoe steps on a hard wooden floor, steady pace, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/walk-hard.ogg",
+      "loop": true,
+      "duration": 2.4,
+      "influence": 0.65,
+      "volume": 0.28,
+      "note": "Footsteps in the apartment and on the train floor. The game loops this file."
     }
   ]
 }
