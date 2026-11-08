@@ -1728,7 +1728,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       levelsTotal = 1;
       const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
       const hit = (a: { left: number; top: number; right: number; bottom: number }, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-      const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls button, .left-stick-zone, .right-stick-zone, #pauseBtn, #phoneBtn, .ability-readout, .inventory-hud')]
+      const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls button, .left-stick-zone, .right-stick-zone, #pauseBtn, #phoneBtn, .ability-readout, .inventory-hud, .missions-hud, .missions-panel')]
         .filter((el) => !el.hidden && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0);
       const seenBad = new Set<string>();
       /** The box is on screen and over none of the controls. */
@@ -1797,6 +1797,19 @@ export const installPhPlaytest = (probe: PhProbe) => {
           dragLook(20);
           await frame();
           checkBox(vp, mobile);
+        }
+        // With the Missions panel open the label must stay clear of it too (it covers the centre on a phone).
+        if (mobile) {
+          await tapAt(byId('missionsHint'), 'Missions');
+          await sleep(300);
+          for (let i = 0; i < 40; i++) {
+            dragLook(20);
+            await frame();
+            checkBox(`${vp} (Missions open)`, mobile);
+          }
+          t.event('waypoint-missions', `${vp}: swept the camera with Missions open`);
+          await tapAt(byId('missionsClose'), 'Close missions');
+          await sleep(300);
         }
         // Pause hides it.
         await tapAt(byId('pauseBtn'), 'Pause');

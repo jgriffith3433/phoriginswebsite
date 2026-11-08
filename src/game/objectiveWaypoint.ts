@@ -23,6 +23,8 @@ const EDGE = 86;
 const TOP = 64;
 /** The label hangs this far under the diamond. */
 const LABEL_H = 52;
+/** Touch portrait: clear of the right-hand hotkey column (buttons start about 125 px from the edge). */
+const TOUCH_RIGHT = 130;
 
 export const createObjectiveWaypoint = (
   root: HTMLElement,
@@ -36,6 +38,8 @@ export const createObjectiveWaypoint = (
   const distEl = el?.querySelector('.waypoint-dist') as HTMLElement | null;
   const arrowEl = el?.querySelector('.waypoint-arrow') as HTMLElement | null;
 
+  const missionsHud = document.getElementById('missionsHud');
+  const missionsPanel = document.getElementById('missionsPanel');
   const info: WaypointState = { active: false, world: null, name: '', distance: 0 };
   const projected = new BABYLON.Vector3();
   const identity = BABYLON.Matrix.Identity();
@@ -67,7 +71,20 @@ export const createObjectiveWaypoint = (
     const mobile = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
     // The touch sticks and buttons end here (the inventory sits on the same line).
     if (!mobile) return 110 + LABEL_H;
-    return (h > root.clientWidth ? 236 : 176) + LABEL_H;
+    // Portrait: the Missions button sits at 228 px and is 44 px tall, so the label must end above it.
+    const base = (h > root.clientWidth ? 280 : 176) + LABEL_H;
+    // An open Missions panel covers the left and centre; stay above its top edge.
+    if (missionsHud?.classList.contains('open') && missionsPanel) {
+      const top = missionsPanel.getBoundingClientRect().top - root.getBoundingClientRect().top;
+      return Math.max(base, h - top + LABEL_H + 8);
+    }
+    return base;
+  };
+
+  /** Right reserve on touch portrait: the hotkey column (Sidearm ... Inventory) is about 120 px wide. */
+  const rightInset = (h: number) => {
+    const mobile = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+    return mobile && h > root.clientWidth ? TOUCH_RIGHT : EDGE;
   };
 
   const update = () => {
@@ -102,7 +119,7 @@ export const createObjectiveWaypoint = (
       y = cy - (y - cy);
     }
     const safeLeft = EDGE;
-    const safeRight = w - EDGE;
+    const safeRight = w - rightInset(h);
     const safeTop = TOP + safeInsetTop;
     const safeBottom = h - bottomInset(h);
     const inside = !behind && x >= safeLeft && x <= safeRight && y >= safeTop && y <= safeBottom;
