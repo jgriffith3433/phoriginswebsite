@@ -212,7 +212,7 @@ export const synthesizeLine = async (root, { id, speaker, text, audio, performan
   const recorded = tag ? String(performance).trim() : 'default';
 
   const job = await gen.run('audio.voice', {
-    params: { text: spoken, voice: voice.voiceId, model: MODEL, format: PCM_FORMAT },
+    params: { text: spoken, voice: voice.voiceId, model: MODEL, format: PCM_FORMAT, provider: 'elevenlabs' },
     labels: { line: id, speaker },
     timeoutMs: 5 * 60 * 1000,
   });
@@ -239,7 +239,7 @@ export const lineRequest = (root, { speaker, text, performance, voiceId }) => {
   const voice = chosenVoice(root, speaker, voiceId);
   if (!line || !voice) return null;
   const tag = performanceTag(root, performance);
-  return { tool: 'audio.voice', params: { text: tag ? `[${tag}] ${line}` : line, voice: voice.voiceId, model: MODEL, format: PCM_FORMAT } };
+  return { tool: 'audio.voice', params: { text: tag ? `[${tag}] ${line}` : line, voice: voice.voiceId, model: MODEL, format: PCM_FORMAT, provider: 'elevenlabs' } };
 };
 
 /** Saves a take made from lineRequest (raw 22.05 kHz pcm) exactly as synthesizeLine would. */

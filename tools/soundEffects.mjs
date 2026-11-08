@@ -234,7 +234,7 @@ export const synthesizeEffect = async (root, { id, text, audio, loop, duration, 
   const seamless = loop === true;
   const seconds = clampDuration(duration);
   const weight = clampInfluence(influence);
-  const params = { text: description, model: MODEL, format: MP3_FORMAT, influence: weight, loop: seamless };
+  const params = { text: description, model: MODEL, format: MP3_FORMAT, influence: weight, loop: seamless, provider: 'elevenlabs' };
   if (seconds != null) params.duration = seconds;
   const job = await gen.run('audio.sfx', { params, labels: { sfx: id }, timeoutMs: 5 * 60 * 1000 });
   const response = { buffer: Buffer.from(await gen.bytes(job.outputs[0].asset)) };
@@ -249,7 +249,7 @@ export const effectRequest = ({ text, loop, duration, influence }) => {
   const description = String(text ?? '').trim();
   if (!description) return null;
   const seconds = clampDuration(duration);
-  const params = { text: description, model: MODEL, format: MP3_FORMAT, influence: clampInfluence(influence), loop: loop === true };
+  const params = { text: description, model: MODEL, format: MP3_FORMAT, influence: clampInfluence(influence), loop: loop === true, provider: 'elevenlabs' };
   if (seconds != null) params.duration = seconds;
   return { tool: 'audio.sfx', params };
 };
