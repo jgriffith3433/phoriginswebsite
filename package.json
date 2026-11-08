@@ -11,13 +11,18 @@
     "convert:fbx": "node tools/convert-fbx-to-glb.mjs",
     "bake:anims": "node tools/bake-player-anims.mjs",
     "textures": "node tools/process-textures.mjs",
-    "check:leaks": "node tools/levelLeakCheck.mjs"
+    "check:leaks": "node tools/levelLeakCheck.mjs",
+    "models:compress": "node tools/compress-models.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",
     "@babylonjs/loaders": "^7.0.0"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "meshoptimizer": "^0.21.0",
     "typescript": "^5.6.3",
     "vite": "^5.4.10"
   }

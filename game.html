@@ -682,6 +682,79 @@
         margin-top: 4px;
       }
 
+
+      /* Objective waypoint (src/game/objectiveWaypoint.ts): a diamond over the objective, clamped to the screen edge. */
+      .objective-waypoint {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 5;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+        display: none;
+        font-family: var(--hb-mono);
+      }
+      .objective-waypoint.on { display: block; }
+      .waypoint-diamond {
+        position: absolute;
+        left: -7px;
+        top: -7px;
+        width: 14px;
+        height: 14px;
+        transform: rotate(45deg) scale(0.8);
+        background: var(--hb-gold);
+        border: 1px solid var(--hb-ink);
+        box-shadow: 0 0 0 1px var(--hb-gold-hi), 0 0 12px rgba(201, 168, 106, 0.7);
+      }
+      .waypoint-label {
+        position: absolute;
+        left: 0;
+        top: 14px;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 150px;
+        padding: 2px 8px;
+        background: rgba(10, 16, 22, 0.62);
+        border: 1px solid var(--panel-border);
+        border-radius: 2px;
+        color: var(--hb-gold-hi);
+        text-shadow: 0 1px 2px #000;
+        white-space: nowrap;
+      }
+      .waypoint-name {
+        max-width: 134px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+      }
+      .waypoint-dist { font-size: 11px; letter-spacing: 0.08em; opacity: 0.85; }
+      .waypoint-arrow {
+        position: absolute;
+        left: -9px;
+        top: -9px;
+        width: 18px;
+        height: 18px;
+        display: none;
+      }
+      .waypoint-arrow::before {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 1px;
+        border-left: 9px solid var(--hb-gold);
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8));
+      }
+      .objective-waypoint.edge .waypoint-arrow { display: block; }
+      .objective-waypoint.edge .waypoint-diamond { transform: rotate(45deg) scale(0.65); }
+      body:has(.message:not(.hidden)) .objective-waypoint { visibility: hidden; }
+
       .alarm-flash {
         position: absolute;
         inset: 0;
@@ -2771,6 +2844,80 @@
       }
       .tap-note { font-size: 14px; letter-spacing: 0.08em; color: var(--hb-dim); }
 
+      /* Turn your phone sideways: touch devices held in portrait (src/game/screenMode.ts). Over the tap prompt, below nothing. */
+      .turn-phone {
+        position: fixed;
+        inset: 0;
+        z-index: 110;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(env(safe-area-inset-top, 0px) + 24px) calc(env(safe-area-inset-right, 0px) + 24px) calc(env(safe-area-inset-bottom, 0px) + 24px) calc(env(safe-area-inset-left, 0px) + 24px);
+        background:
+          repeating-linear-gradient(90deg, rgba(201, 168, 106, 0.03) 0 1px, transparent 1px 64px),
+          radial-gradient(ellipse at 50% 42%, rgba(16, 26, 36, 0.98) 0%, rgba(3, 6, 10, 0.998) 72%);
+        color: var(--hb-paper);
+        text-align: center;
+        font-family: var(--hb-sans);
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .turn-phone[hidden] { display: none; }
+      .turn-panel { max-width: 320px; }
+      .turn-phone .eyebrow { color: var(--hb-gold); font-weight: 600; letter-spacing: 0.4em; font-size: 12px; }
+      .turn-icon { display: block; width: 64px; height: 64px; margin: 18px auto 14px; color: var(--hb-gold); animation: turn-tilt 3.2s ease-in-out infinite; }
+      .turn-icon svg { display: block; width: 100%; height: 100%; }
+      .turn-phone h1 {
+        margin: 0 0 10px;
+        font-family: var(--hb-serif);
+        font-weight: 600;
+        font-size: 26px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--hb-paper);
+      }
+      .turn-note { margin: 0 0 26px; font-size: 14px; letter-spacing: 0.08em; color: var(--hb-dim); }
+      .turn-anyway {
+        background: none;
+        border: 0;
+        padding: 10px 8px;
+        font: 600 12px var(--hb-sans);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--hb-dim);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+        cursor: pointer;
+      }
+      @keyframes turn-tilt {
+        0%, 25% { transform: rotate(0deg); }
+        55%, 85% { transform: rotate(-90deg); }
+        100% { transform: rotate(0deg); }
+      }
+      @media (prefers-reduced-motion: reduce) { .turn-icon { animation: none; } }
+
+      /* Landscape on a phone, fullscreen or not: keep the HUD clear of the notch and the home bar. */
+      body[data-device='mobile'] #game-root,
+      body[data-device='tablet'] #game-root {
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      body[data-device='mobile'] .hud,
+      body[data-device='tablet'] .hud {
+        left: max(16px, env(safe-area-inset-left, 0px));
+        right: max(16px, env(safe-area-inset-right, 0px));
+      }
+      body[data-device='mobile'] .pause-btn,
+      body[data-device='tablet'] .pause-btn { right: max(10px, env(safe-area-inset-right, 0px)); }
+      body[data-device='mobile'] .skip-cutscene,
+      body[data-device='tablet'] .skip-cutscene { right: calc(max(10px, env(safe-area-inset-right, 0px)) + 56px); }
+      body[data-device='mobile'] .message,
+      body[data-device='tablet'] .message {
+        padding-left: max(12px, env(safe-area-inset-left, 0px));
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+      }
+
       /* Phones: the card fills the width, rows are thumb-sized, and a short landscape screen lays the actions out in two columns. */
       @media (max-width: 600px) {
         .message { padding-left: 12px; padding-right: 12px; }
@@ -2906,6 +3053,11 @@
         <span class="objective-kicker">Objective</span>
         <span id="objectiveText" class="objective-text"></span>
         <span id="objectiveDist" class="objective-dist"></span>
+      </div>
+      <div id="objectiveWaypoint" class="objective-waypoint" aria-hidden="true">
+        <span class="waypoint-arrow"></span>
+        <span class="waypoint-diamond"></span>
+        <span class="waypoint-label"><span class="waypoint-name"></span><span class="waypoint-dist"></span></span>
       </div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <div id="hitFlash" class="hit-flash" aria-hidden="true"></div>
@@ -3086,6 +3238,7 @@
           <div class="button-row">
             <button class="primary" id="resumeBtn" type="button">Resume</button>
             <button class="secondary" id="pauseSettingsBtn" type="button">Settings</button>
+            <button class="secondary" id="fullscreenBtn" type="button" role="switch" aria-checked="false" hidden>Fullscreen: Off</button>
             <button class="secondary" id="pauseReturnBtn" type="button">Return to objective</button>
           </div>
         </div>
@@ -3123,6 +3276,15 @@
         <h1>PH Origins</h1>
         <p class="tap-cta">Tap to play</p>
         <p class="tap-note">Sound on. Headphones help.</p>
+      </div>
+    </div>
+    <div class="turn-phone" id="turnPhone" role="alertdialog" aria-labelledby="turnPhoneTitle" hidden>
+      <div class="turn-panel">
+        <div class="eyebrow">Hawkes Tower</div>
+        <span class="turn-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><rect x="21" y="8" width="22" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M29 12h6" stroke="currentColor" stroke-width="2"/><path d="M12 52c10 8 30 8 40 0M47 46l5 6-7 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h1 id="turnPhoneTitle">Turn your phone sideways</h1>
+        <p class="turn-note">The night plays wide.</p>
+        <button type="button" class="turn-anyway" id="turnPhoneAnyway">Play in portrait anyway</button>
       </div>
     </div>
     <script>

@@ -25,6 +25,23 @@ g.fetch = async (url: string) => {
   const data = readFileSync(path);
   return { ok: true, status: 200, json: async () => JSON.parse(data.toString()), arrayBuffer: async () => data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) };
 };
+// Compressed GLBs (EXT_meshopt_compression, tools/compress-models.mjs): the page loads meshoptimizer's decoder as
+// a script; here it comes from node_modules.
+const { MeshoptDecoder } = await import('meshoptimizer');
+// Node has no Worker, which Babylon's decode path asks for: decode on this thread instead.
+g.MeshoptDecoder = {
+  ready: MeshoptDecoder.ready,
+  supported: MeshoptDecoder.supported,
+  useWorkers() {},
+  decodeGltfBuffer: MeshoptDecoder.decodeGltfBuffer,
+  async decodeGltfBufferAsync(count: number, stride: number, source: Uint8Array, mode: string, filter?: string) {
+    const target = new Uint8Array(count * stride);
+    MeshoptDecoder.decodeGltfBuffer(target, count, stride, source, mode as any, filter as any);
+    return target;
+  },
+};
+const loadScript = BABYLON.Tools.LoadBabylonScriptAsync.bind(BABYLON.Tools);
+(BABYLON.Tools as any).LoadBabylonScriptAsync = (url: string) => (/meshopt_decoder/.test(url) ? Promise.resolve() : loadScript(url));
 const { loadSceneFromJsonFile } = await import('../../src/game/sceneData');
 const engine = new BABYLON.NullEngine();
 const scene = new BABYLON.Scene(engine);

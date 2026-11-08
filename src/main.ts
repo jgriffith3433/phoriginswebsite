@@ -48,12 +48,14 @@ import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseCli
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
+import { createObjectiveWaypoint } from './game/objectiveWaypoint';
 import { createMinimap } from './game/minimap';
 import { createScreenFade } from './game/fade';
 import { createLostWatcher, safeSpotNear } from './game/returnToObjective';
 import { createPerfMonitor } from './game/perfMonitor';
 import { createAutoAim } from './game/autoAim';
 import { installPhPlaytest } from './playtest/phPlaytest';
+import { createFullscreen, createOrientationGuard, screenAttempts, setTestTouch } from './game/screenMode';
 import { createGameAnalytics, type GameAnalytics } from './game/analytics';
 import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSettings';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
@@ -3517,6 +3519,7 @@ startBtn.addEventListener('click', () => {
   // Retry on the error card reloads the page (its own handler in game.html).
   if (cardLeaving || chapterCard.showing() || loadFailed()) return;
   unlockAudio();
+  fullscreen.enterForPlay();
   const mode = menuMode();
   if (mode === 'level-complete') {
     lockPlayPointer();
@@ -3566,6 +3569,7 @@ const warmSounds = () => {
 };
 if (tapState) tapState.onTap = warmSounds;
 if (tapState?.tapped) warmSounds();
+const fullscreen = createFullscreen(root, () => { renderFullscreen(); });
 const tapPromptShowing = () => Boolean(tapPrompt && !tapPrompt.hidden && !tapPrompt.classList.contains('gone'));
 
 const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
@@ -3645,6 +3649,19 @@ const setPaused = (on: boolean) => {
   }
 };
 
+// Objective waypoint (src/game/objectiveWaypoint.ts): drawn after each frame so it uses this frame's camera.
+const objectiveWaypoint = createObjectiveWaypoint(root, engine, scene, camera, (out) => {
+  const target = objectiveMarker.getTarget();
+  out.active = Boolean(target) && objectiveMarker.isVisible() && state.running && !paused && !state.inCutscene
+    && messageBox.classList.contains('hidden') && !settingsOpen() && !scriptedNow()
+    && Boolean(objectiveHud?.classList.contains('visible'));
+  if (!out.active || !target) return;
+  out.world = objectiveMarker.worldPosition();
+  out.name = objectiveText?.textContent ?? '';
+  out.distance = objectiveMarker.distanceTo(state.player.x, state.player.z);
+});
+scene.onAfterRenderObservable.add(objectiveWaypoint.update);
+
 // "Lost? Return to objective" (src/game/returnToObjective.ts): after 60 s of real play with no progress a prompt
 // shows (R or a tap), and Pause always offers the same move. Pierce is placed on safe ground beside the live objective.
 const lostHint = document.getElementById('lostHint') as HTMLButtonElement | null;
@@ -3704,6 +3721,20 @@ lostHint?.addEventListener('pointerdown', (event) => {
   returnToObjective();
 });
 pauseReturnBtn?.addEventListener('click', () => returnToObjective());
+
+// Phone screen mode (src/game/screenMode.ts): a Fullscreen switch in Pause where the API exists, and the portrait prompt.
+const fullscreenBtn = document.getElementById('fullscreenBtn') as HTMLButtonElement | null;
+const renderFullscreen = () => {
+  if (!fullscreenBtn) return;
+  const on = fullscreen.active();
+  fullscreenBtn.hidden = !fullscreen.supported();
+  fullscreenBtn.setAttribute('aria-checked', String(on));
+  fullscreenBtn.textContent = `Fullscreen: ${on ? 'On' : 'Off'}`;
+  engine.resize();
+};
+fullscreenBtn?.addEventListener('click', () => fullscreen.toggle());
+renderFullscreen();
+const orientationGuard = createOrientationGuard(() => setPaused(true));
 
 settingsBtn.addEventListener('click', () => openSettings());
 document.getElementById('pauseSettingsBtn')?.addEventListener('click', () => openSettings());
@@ -4310,6 +4341,7 @@ installPhPlaytest({
   morning: () => (isMorningLevel() ? morning.story() : null),
   ending: () => endingSong?.src || null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
+  waypoint: () => objectiveWaypoint.view(),
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;
@@ -4332,6 +4364,13 @@ installPhPlaytest({
     fps: Math.round(engine.getFps() * 10) / 10,
   }),
   phoneFrame: setPhoneFrame,
+  screenMode: {
+    prompt: () => ({ showing: Boolean(orientationGuard?.showing()), text: document.getElementById('turnPhone')?.textContent?.replace(/\s+/g, ' ').trim() ?? '' }),
+    asTouch: (on: boolean) => { setTestTouch(on); orientationGuard?.force(on); },
+    refresh: () => orientationGuard?.refresh(),
+    fullscreen: () => ({ supported: fullscreen.supported(), active: fullscreen.active() }),
+    attempts: () => ({ ...screenAttempts }),
+  },
   sound: () => ({
     prompt: tapPromptShowing(),
     context: audioContextState(),

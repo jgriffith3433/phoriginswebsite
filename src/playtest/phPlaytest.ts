@@ -71,8 +71,21 @@ export type PhProbe = {
   counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
   phoneFrame: (on: boolean, landscape?: boolean) => void;
+  /** Phone screen mode (src/game/screenMode.ts): the portrait prompt, fullscreen. `asTouch` is setup: act as a touch device. */
+  screenMode: {
+    prompt: () => { showing: boolean; text: string };
+    asTouch: (on: boolean) => void;
+    refresh: () => void;
+    fullscreen: () => { supported: boolean; active: boolean };
+    attempts: () => { fullscreen: number; lock: number };
+  };
   /** The Lost? prompt (src/game/returnToObjective.ts): shown, seconds without progress, and a move under way. */
   lost: () => { prompt: boolean; idle: number; returning: boolean };
+  /** The objective waypoint (src/game/objectiveWaypoint.ts): drawn or not, edge-clamped, its text and its box on screen. */
+  waypoint: () => {
+    shown: boolean; clamped: boolean; x: number; y: number; angle: number; name: string; distance: number;
+    rect: { left: number; top: number; right: number; bottom: number } | null;
+  };
   /** Tap to play, the AudioContext, Pause and Settings (studio sound standard). */
   sound: () => {
     prompt: boolean; context: string; paused: boolean; settingsOpen: boolean;
@@ -442,6 +455,20 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen.',
         seconds: 150,
         tags: ['menus'],
+      },
+      {
+        id: 'screen-mode',
+        title: 'Turn your phone sideways in portrait (dismissable), Start asks for fullscreen and the landscape lock, Pause has a Fullscreen switch, desktop is unchanged',
+        description: 'Desktop first: no portrait prompt, the Pause card has no effect on play. Then lays the page out as a 390x844 touch phone (setup): the "Turn your phone sideways" screen fills the viewport over the title card. Turns the phone to 844x390 (the screen goes), back to portrait (it returns), then taps "Play in portrait anyway" (it goes and stays away). Presses Start on the touch layout and logs whether fullscreen and the landscape lock were asked for and what the browser did (headless browsers may refuse; that is not a failure). Opens Pause, checks the Fullscreen switch is there and taps it twice.',
+        seconds: 90,
+        tags: ['menus', 'ui'],
+      },
+      {
+        id: 'objective-marker',
+        title: 'The objective waypoint shows name and distance, clamps to the screen edge with an arrow, hides in scenes and menus, and stays clear of the touch controls',
+        description: 'Level 1 at the real viewport, then laid out as 390x844 and 844x390 phones. Waits for control, checks the waypoint shows the live objective name and its distance, then turns the camera with touch drags until the waypoint is on screen and until it is clamped to the edge with an arrow. On every step it checks the box stays inside the screen and clear of the sticks, buttons and Pause. Opens Pause (hidden), then walks to the board seat and starts the board scene (hidden), and finally downs Pierce for the Defeat card (hidden).',
+        seconds: 240,
+        tags: ['hud'],
       },
       {
         id: 'load-error',
@@ -1526,6 +1553,236 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.finish('done');
     };
 
+    // ---- screen-mode: the portrait prompt, fullscreen on Start, the Pause switch
+    const screenModeRun = async () => {
+      levelsTotal = 1;
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const sm = probe.screenMode;
+      const shown = () => sm.prompt().showing;
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('Title');
+      // Desktop: nothing changes.
+      if (shown()) t.problem('bug', 'the portrait prompt shows on a desktop');
+      else t.event('desktop', `no portrait prompt at ${innerWidth}x${innerHeight}`);
+
+      // Touch phone held upright.
+      probe.phoneFrame(true);
+      sm.asTouch(true);
+      await sleep(500);
+      if (!shown()) t.problem('bug', 'a touch phone held in portrait shows no "Turn your phone sideways" screen');
+      else {
+        const text = sm.prompt().text;
+        const r = byId('turnPhone')!.getBoundingClientRect();
+        if (!/Turn your phone sideways/i.test(text)) t.problem('bug', `the portrait screen says "${text}"`);
+        if (r.width < innerWidth - 1 || r.height < innerHeight - 1) t.problem('bug', 'the portrait screen does not fill the viewport');
+        if (!/Play in portrait anyway/i.test(text)) t.problem('bug', 'the portrait screen has no "Play in portrait anyway" link');
+        t.event('portrait-prompt', `shown at 390x844: ${text}`);
+      }
+      t.scene('Turn your phone sideways');
+      await sleep(800);
+      probe.phoneFrame(true, true);
+      sm.refresh();
+      await sleep(500);
+      if (shown()) t.problem('bug', 'the portrait screen stays up in landscape');
+      else t.event('landscape', 'turned sideways: the screen is gone');
+      t.scene('Title');
+      await sleep(600);
+      probe.phoneFrame(true);
+      sm.refresh();
+      await sleep(400);
+      if (!shown()) t.problem('bug', 'the portrait screen did not come back in portrait');
+      else t.event('portrait-again', 'upright again: the screen is back');
+      await tapAt(byId('turnPhoneAnyway'), 'Play in portrait anyway');
+      await sleep(300);
+      sm.refresh();
+      if (shown()) t.problem('bug', '"Play in portrait anyway" did not dismiss the screen');
+      else t.event('dismissed', 'Play in portrait anyway: the screen is gone for the session');
+      await sleep(600);
+
+      // Start on a touch device asks for fullscreen, then the landscape lock.
+      const before = sm.attempts();
+      const start = byId('startBtn');
+      let guard = 0;
+      while (probe.menu().startEnabled === false && guard++ < 600) await sleep(100);
+      await tapAt(start, 'Start');
+      await sleep(600);
+      const after = sm.attempts();
+      t.event('start-fullscreen', `Start asked for fullscreen ${after.fullscreen - before.fullscreen}x and the landscape lock ${after.lock - before.lock}x; fullscreen is ${sm.fullscreen().active ? 'on' : 'off'}`);
+      if (after.fullscreen === before.fullscreen && sm.fullscreen().supported) t.problem('bug', 'Start on a touch device did not ask for fullscreen');
+      await waitControl('level 1 to start');
+      t.scene('Level 1');
+
+      // Pause: a Fullscreen switch where the API exists.
+      await tapAt(byId('pauseBtn'), 'Pause');
+      await t.until(() => probe.sound().paused, 3000, 'Pause');
+      t.scene('Paused');
+      const btn = byId('fullscreenBtn') as HTMLButtonElement | null;
+      if (!sm.fullscreen().supported) t.event('fullscreen-api', 'this browser has no fullscreen API: the switch is hidden');
+      else if (!btn || btn.hidden) t.problem('bug', 'Pause has no Fullscreen switch though the browser can do it');
+      else {
+        t.event('fullscreen-switch', `Pause shows "${btn.textContent}"`);
+        await tapAt(btn, 'Fullscreen');
+        await sleep(800);
+        t.event('fullscreen-on', `after the tap: "${btn.textContent}", fullscreen ${sm.fullscreen().active ? 'on' : 'off'}`);
+        await tapAt(btn, 'Fullscreen');
+        await sleep(800);
+        t.event('fullscreen-off', `after the second tap: "${btn.textContent}", fullscreen ${sm.fullscreen().active ? 'on' : 'off'}`);
+      }
+      await tapAt(byId('resumeBtn'), 'Resume');
+      await t.until(() => !probe.sound().paused, 3000, 'Resume');
+      sm.asTouch(false);
+      probe.phoneFrame(false);
+      t.progress(1);
+      t.finish('done');
+    };
+
+    // ---- objective-marker: the HUD waypoint over the live objective, edge clamp, hiding, clear of touch controls
+    const objectiveMarkerRun = async () => {
+      levelsTotal = 1;
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const hit = (a: { left: number; top: number; right: number; bottom: number }, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls button, .left-stick-zone, .right-stick-zone, #pauseBtn, #phoneBtn, .ability-readout, .inventory-hud')]
+        .filter((el) => !el.hidden && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0);
+      const seenBad = new Set<string>();
+      /** The box is on screen and over none of the controls. */
+      const checkBox = (vp: string, mobile: boolean) => {
+        const w = probe.waypoint();
+        if (!w.shown || !w.rect) return;
+        const r = w.rect;
+        const rootRect = (byId('game-root') ?? document.body).getBoundingClientRect();
+        if (r.left < rootRect.left - 1 || r.right > rootRect.right + 1 || r.top < rootRect.top - 1 || r.bottom > rootRect.bottom + 1) {
+          const key = `${vp}-out`;
+          if (!seenBad.has(key)) { seenBad.add(key); t.problem('bug', `${vp}: the waypoint leaves the screen (${Math.round(r.left)},${Math.round(r.top)} to ${Math.round(r.right)},${Math.round(r.bottom)})`); }
+        }
+        for (const el of touchBoxes()) {
+          if (!mobile && !el.matches('#pauseBtn, .ability-readout, .inventory-hud')) continue;
+          if (hit(r, el.getBoundingClientRect())) {
+            const key = `${vp}-${el.id || el.className}`;
+            if (!seenBad.has(key)) { seenBad.add(key); t.problem('bug', `${vp}: the waypoint covers #${el.id || el.className} (waypoint ${Math.round(r.left)},${Math.round(r.top)}-${Math.round(r.right)},${Math.round(r.bottom)})`); }
+          }
+        }
+      };
+      const answer = async () => {
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); }
+      };
+
+      const pass = async (vp: string, mobile: boolean) => {
+        t.scene(`Waypoint (${vp})`);
+        await t.until(() => controllable() && probe.objective().visible && !!probe.objective().target, 90000, 'control and an objective marker');
+        await t.until(() => probe.waypoint().shown, 10000, 'the waypoint to show');
+        let w = probe.waypoint();
+        const obj = probe.objective();
+        const p = probe.player();
+        const real = Math.hypot(p.x - obj.target!.x, p.z - obj.target!.z);
+        t.event('waypoint', `${vp}: "${w.name}" ${w.distance} m, ${w.clamped ? 'clamped' : 'on screen'} (objective "${obj.text}", ${real.toFixed(1)} m)`);
+        if (w.name.trim() !== obj.text.trim()) t.problem('bug', `${vp}: waypoint says "${w.name}", the objective says "${obj.text}"`);
+        if (Math.abs(w.distance - real) > 3) t.problem('bug', `${vp}: waypoint distance ${w.distance} m, real distance ${real.toFixed(1)} m`);
+        // Turn the camera with touch drags: look for both the on-screen and the edge-clamped states.
+        let onScreen = !w.clamped ? w : null;
+        let edge = w.clamped ? w : null;
+        for (let i = 0; i < 90 && !(onScreen && edge); i++) {
+          dragLook(16);
+          await frame();
+          await frame();
+          await answer();
+          w = probe.waypoint();
+          if (!w.shown) continue;
+          checkBox(vp, mobile);
+          if (w.clamped && !edge) {
+            edge = w;
+            t.event('waypoint-edge', `${vp}: clamped at ${w.x},${w.y}, arrow ${w.angle} deg`);
+            t.scene(`Edge-clamped (${vp})`);
+            await sleep(800);
+          }
+          if (!w.clamped && !onScreen) {
+            onScreen = w;
+            t.event('waypoint-onscreen', `${vp}: over the objective at ${w.x},${w.y}`);
+            t.scene(`On screen (${vp})`);
+            await sleep(800);
+          }
+        }
+        if (!onScreen) t.problem('bug', `${vp}: the waypoint never showed over the objective while the camera turned`);
+        if (!edge) t.problem('bug', `${vp}: the waypoint never clamped to the screen edge while the camera turned`);
+        else if (!(byId('objectiveWaypoint')?.classList.contains('edge'))) t.problem('bug', `${vp}: edge-clamped waypoint has no arrow`);
+        // Sweep once more all the way round, checking the box against the controls at every angle.
+        for (let i = 0; i < 40; i++) {
+          dragLook(20);
+          await frame();
+          checkBox(vp, mobile);
+        }
+        // Pause hides it.
+        await tapAt(byId('pauseBtn'), 'Pause');
+        await t.until(() => probe.sound().paused, 3000, 'Pause');
+        await sleep(400);
+        if (probe.waypoint().shown) t.problem('bug', `${vp}: the waypoint still shows under Pause`);
+        else t.event('waypoint-hidden', `${vp}: hidden in Pause`);
+        await tapAt(byId('resumeBtn'), 'Resume');
+        await t.until(() => !probe.sound().paused, 3000, 'Resume');
+        await t.until(() => probe.waypoint().shown, 5000, 'the waypoint after Resume');
+        t.add('waypointPasses');
+      };
+
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('Title');
+      await sleep(600);
+      await enterLevel(1);
+      await measureLook();
+      t.progress(0.1);
+      await pass(`${innerWidth}x${innerHeight}`, false);
+      t.progress(0.3);
+      probe.phoneFrame(true);
+      t.event('setup', 'phone layout 390x844');
+      await sleep(1200);
+      await pass('390x844', true);
+      t.progress(0.5);
+      probe.phoneFrame(true, true);
+      t.event('setup', 'phone layout 844x390');
+      await sleep(1200);
+      await pass('844x390', true);
+      probe.phoneFrame(false);
+      await sleep(800);
+      t.progress(0.65);
+
+      // The board scene hides it: walk to the head chair with real input and press Join meeting.
+      t.scene('Board scene');
+      const until = performance.now() + 120000;
+      let sceneSeen = false;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()) { sceneSeen = true; break; }
+        if (!controllable()) continue;
+        await answer();
+        if (probe.phone().busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) { releaseAll(); if (await once('e', 1500, label)) t.event('action', label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      if (!sceneSeen) t.problem('bug', 'objective-marker: the board scene did not start');
+      else {
+        await sleep(1500);
+        if (probe.waypoint().shown) t.problem('bug', `the waypoint still shows during the ${probe.cutscene()?.id ?? 'cutscene'} scene`);
+        else t.event('waypoint-hidden', `hidden during ${probe.cutscene()?.id ?? 'the scene'}`);
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(1500);
+      }
+      t.progress(0.85);
+
+      // The Defeat card hides it too.
+      if (probe.forceDefeat()) {
+        t.event('defeat', 'test shortcut');
+        await t.until(() => probe.menu().title === 'Defeat', 30000, 'the Defeat card');
+        await sleep(1200);
+        t.scene('Defeat card');
+        if (probe.waypoint().shown) t.problem('bug', 'the waypoint still shows on the Defeat card');
+        else t.event('waypoint-hidden', 'hidden on the Defeat card');
+      }
+      t.progress(1);
+      t.finish(sceneSeen ? 'done' : 'stuck');
+    };
+
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
     const b3RetryRun = async () => {
       levelsTotal = 1;
@@ -2206,6 +2463,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
     }
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
+      return;
+    }
+    if (id === 'screen-mode') {
+      await screenModeRun();
+      return;
+    }
+    if (id === 'objective-marker') {
+      await objectiveMarkerRun();
       return;
     }
     if (id === 'ui-style') {
