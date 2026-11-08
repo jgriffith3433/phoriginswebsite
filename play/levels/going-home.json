@@ -704,7 +704,7 @@
       "kind": "model",
       "name": "lobby-light-a",
       "x": -2.2,
-      "y": 3.132,
+      "y": 3.05,
       "z": 6,
       "rotation": {
         "x": 0,
@@ -726,7 +726,7 @@
       "kind": "model",
       "name": "lobby-light-b",
       "x": 2.2,
-      "y": 3.132,
+      "y": 3.05,
       "z": 12,
       "rotation": {
         "x": 0,
