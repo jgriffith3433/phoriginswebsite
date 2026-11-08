@@ -195,11 +195,33 @@ export const createThirdPersonCamera = (
     offsetDir.scaleInPlace(1 / maxDist);
     const skin = Math.min(0.45, maxDist * 0.2);
     probeOrigin.copyFrom(origin).addInPlace(offsetDir.scale(skin));
-    const hit = pickAlong(probeOrigin, offsetDir, Math.max(0.01, maxDist - skin), ignore);
+    const rayLen = Math.max(0.01, maxDist - skin);
+    let best = maxDist;
+    const hit = pickAlong(probeOrigin, offsetDir, rayLen, ignore);
     if (hit?.hit && typeof hit.distance === 'number') {
-      return clampValue(hit.distance + skin - cfg.collisionRadius, cfg.minDistance, maxDist);
+      best = clampValue(hit.distance + skin - cfg.collisionRadius, cfg.minDistance, maxDist);
     }
-    return maxDist;
+    // The boom is a line, the lens is not: a door jamb or wall end that stands
+    // beside the line (hall doorways) can still fill the view. Probe two parallel
+    // rays to either side so the camera stops short of anything within its radius.
+    const sideX = -offsetDir.z;
+    const sideZ = offsetDir.x;
+    const sideLen = Math.hypot(sideX, sideZ);
+    if (sideLen > 0.01) {
+      const r = cfg.collisionRadius * 0.85;
+      const ox = (sideX / sideLen) * r;
+      const oz = (sideZ / sideLen) * r;
+      for (const sign of [1, -1]) {
+        probeOrigin.copyFrom(origin).addInPlace(offsetDir.scale(skin));
+        probeOrigin.x += ox * sign;
+        probeOrigin.z += oz * sign;
+        const side = pickAlong(probeOrigin, offsetDir, rayLen, ignore);
+        if (side?.hit && typeof side.distance === 'number') {
+          best = Math.min(best, clampValue(side.distance + skin - 0.05, cfg.minDistance, maxDist));
+        }
+      }
+    }
+    return best;
   };
 
   /** World Y of the first ceiling/overhang above a point; boom rays barely change Y under a flat slab. */
