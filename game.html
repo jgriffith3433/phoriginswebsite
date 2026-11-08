@@ -2160,6 +2160,16 @@
         opacity: 0;
       }
 
+      /* Only the dark backdrop fades slowly. The splash text goes at once, so the wordmark, "Tap to play" and the
+         sound note never ghost over the menu rows while the title card comes up underneath. */
+      .tap-to-play > div {
+        transition: opacity 0.08s linear;
+      }
+
+      .tap-to-play.gone > div {
+        opacity: 0;
+      }
+
       .tap-to-play[hidden] {
         display: none;
       }
