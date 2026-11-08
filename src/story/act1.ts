@@ -3,7 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { mountBathroomMirror, type BathroomMirror } from './bathroomMirror';
 import { mixVolume, playClip, type ClipHandle } from '../game/sfxMix';
 import type { CutsceneVec3 } from '../game/cutscenes';
-import { createCharacterAvatar, findClip } from '../game/playerAvatar';
+import { createCharacterAvatar, findClip, strideRatio } from '../game/playerAvatar';
 import { TRANSFORM_HERO_ASSET_ID, PLAYER_ASSET_ID } from '../game/modelLoader';
 import {
   remainingDepartingNpcs,
@@ -2252,7 +2252,7 @@ export const createAct1 = (host: ActHost) => {
       host.placePierce(along.x, along.z, along.yaw);
       if (vatClip !== 'walk') {
         const rate = vatPathLen / VAT_ARRIVE;
-        host.playClip('walk', true, Math.min(1.55, Math.max(0.7, rate / 1.45)));
+        host.playClip('walk', true, strideRatio('walk', rate));
         vatClip = 'walk';
       }
       frameOn(along.x, along.z, along.yaw);

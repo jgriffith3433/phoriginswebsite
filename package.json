@@ -13,8 +13,11 @@
     "textures": "node tools/process-textures.mjs",
     "check:leaks": "node tools/levelLeakCheck.mjs",
     "models:compress": "node tools/compress-models.mjs",
-    "check:scene": "node tools/sceneAudit.mjs && node tools/clean-models.mjs --check",
-    "models:clean": "node tools/clean-models.mjs"
+    "check:scene": "node tools/sceneAudit.mjs && node tools/clean-models.mjs --check && node tools/clipStride.mjs --check",
+    "models:clean": "node tools/clean-models.mjs",
+    "models:stride": "node tools/clipStride.mjs",
+    "check:anim": "node tools/animCheck.mjs",
+    "test": "npm run check:scene && npm run check:anim && npm run check:leaks"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",

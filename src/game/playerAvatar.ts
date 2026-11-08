@@ -8,12 +8,27 @@ import {
   lookupClipTrim,
   type ClipTrimsFile,
 } from './clipTrims';
+import { JUMP_KEYS, strideRatio } from './stride';
 import { PLAYER_ASSET_ID, getAssetLibrary, jointSuffix, loadGlbByAssetId, resolveModelPath } from './modelLoader';
+
+export { JUMP_KEYS, STRIDE_MPS, strideRatio } from './stride';
 
 export type PlayerAvatar = {
   group: BABYLON.TransformNode;
   setLocomotion: (moving: boolean, grounded: boolean) => void;
   setPace: (rate: number) => void;
+  /**
+   * Ground speed in m/s the walk/run loop should match so the planted foot does not slide.
+   * null leaves the loop at the speed it was started with (cutscenes pass their own rate).
+   */
+  setStride: (metresPerSecond: number | null) => void;
+  /**
+   * Hold the jump clip at a pose that follows the physics instead of the clip's own clock:
+   * 0 crouch, 1 takeoff, 2 apex, 3 touchdown, 4 settled. null releases it.
+   */
+  setJumpPose: (pose: number | null) => void;
+  /** What the rig is playing now, for the playtest's animation trace. */
+  locomotion: () => { clip: string | null; rate: number; cinematic: boolean };
   setSprinting: (sprinting: boolean) => void;
   setArmed: (armed: boolean) => void;
   playClip: (keyword: string, loop?: boolean, speedRatio?: number, onEnded?: () => void) => boolean;
@@ -182,6 +197,14 @@ export const createCharacterAvatar = (
   let disposed = false;
   let shown = true;
   let cinematic = false;
+  let stride: number | null = null;
+  // NPCs: measure the rig's own ground speed each frame. The player's loop sets it explicitly.
+  let autoStride = true;
+  let strideFrame = -1;
+  let strideTime = 0;
+  let strideX = 0;
+  let strideZ = 0;
+  let jumpPose: number | null = null;
   let overlaying = false;
   let overlayArmed = false;
   let overlayClip: BABYLON.AnimationGroup | null = null;
@@ -455,6 +478,7 @@ export const createCharacterAvatar = (
   };
 
   const setLocomotion = (moving: boolean, grounded: boolean) => {
+    if (autoStride && shown) measureStride(moving);
     wantsMoving = moving;
     wantsGrounded = grounded;
     if (!shown) return;
@@ -464,6 +488,8 @@ export const createCharacterAvatar = (
     }
     if (cinematic) return;
     applyLocomotion();
+    applyJumpPose();
+    applyStride();
   };
 
   const setSprinting = (next: boolean) => {
@@ -472,6 +498,57 @@ export const createCharacterAvatar = (
     sprinting = resolved;
     if (current === 'walk' || current === 'run') current = null;
     if (!cinematic) applyLocomotion();
+  };
+
+  const applyStride = () => {
+    if (stride === null) return;
+    const pairs: [BABYLON.AnimationGroup | null, string][] = [[walkGroup, 'walk'], [runGroup, 'run'], [pistolWalkGroup, 'pistolwalk']];
+    for (const [clip, name] of pairs) {
+      if (clip?.isPlaying) clip.speedRatio = strideRatio(name, stride);
+    }
+  };
+
+  const applyJumpPose = () => {
+    if (jumpPose === null || cinematic) return;
+    const jump = activeJump();
+    if (!jump?.isPlaying) return;
+    const keys = JUMP_KEYS[armed && pistolJumpGroup ? 'pistoljump' : 'jump'];
+    const u = Math.min(4, Math.max(0, jumpPose));
+    const i = Math.min(3, Math.floor(u));
+    const seconds = keys[i] + (keys[i + 1] - keys[i]) * (u - i);
+    jump.goToFrame(Math.min(jump.to, jump.from + seconds * clipFps(jump)));
+  };
+
+  const measureStride = (moving: boolean) => {
+    const frame = scene.getFrameId();
+    if (frame === strideFrame) return;
+    const now = performance.now();
+    const at = group.getAbsolutePosition();
+    const dt = (now - strideTime) / 1000;
+    const dist = Math.hypot(at.x - strideX, at.z - strideZ);
+    const fresh = strideFrame >= 0 && frame === strideFrame + 1 && dt > 0 && dt < 0.25 && dist < 1.5;
+    strideFrame = frame;
+    strideTime = now;
+    strideX = at.x;
+    strideZ = at.z;
+    if (!moving) {
+      stride = null;
+      return;
+    }
+    if (!fresh) return;
+    const speed = dist / dt;
+    stride = stride === null ? speed : stride + (speed - stride) * Math.min(1, dt * 10);
+  };
+
+  const setStride = (metresPerSecond: number | null) => {
+    autoStride = false;
+    stride = metresPerSecond === null || !Number.isFinite(metresPerSecond) ? null : Math.max(0, metresPerSecond);
+    applyStride();
+  };
+
+  const setJumpPose = (pose: number | null) => {
+    jumpPose = pose;
+    applyJumpPose();
   };
 
   const setPace = (rate: number) => {
@@ -597,6 +674,8 @@ export const createCharacterAvatar = (
     if (seq !== overlaySeq) return true;
     resetTrackWeights(clip, 1);
     current = token;
+    // A cutscene that passes its own rate keeps it; a plain loop matches the walker's ground speed.
+    if (loop && speedRatio === 1) applyStride();
     if (isOverlay) syncOverlayLocomotion();
     return true;
   };
@@ -742,6 +821,16 @@ export const createCharacterAvatar = (
     group,
     setLocomotion,
     setPace,
+    setStride,
+    setJumpPose,
+    locomotion: () => {
+      const name = current;
+      const clip = name === 'walk' ? walkGroup
+        : name === 'run' ? runGroup
+          : name === 'pistolwalk' ? pistolWalkGroup
+            : null;
+      return { clip: name, rate: clip?.isPlaying ? clip.speedRatio : 1, cinematic };
+    },
     setSprinting,
     setArmed,
     playClip,
