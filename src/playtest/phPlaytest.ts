@@ -65,6 +65,14 @@ export type PhProbe = {
   ending: () => string | null;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
   failNextLoad: (kind: 'error' | 'hang') => void;
+  /** The memory tier and texture cap (also in hawkesPlaytest.state().graphics). */
+  graphics: () => GraphicsInfo;
+  /** Test setup (`context-loss`): lose and restore the WebGL context with WEBGL_lose_context; what the recovery shows. */
+  contextLoss: {
+    lose: () => boolean;
+    restore: () => boolean;
+    status: () => { lost: boolean; overlay: boolean; overlayText: string; restarted: number; restored: number; lost_?: never };
+  };
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
@@ -95,6 +103,11 @@ export type PhProbe = {
     /** The walk (footstep) loop is playing. */
     footsteps: boolean;
   };
+};
+
+export type GraphicsInfo = {
+  memoryTier: 'low' | 'standard'; deviceMemory: number | null; textureCap: number | null;
+  maxTextureSize: number; lowPower: boolean; reason: string;
 };
 
 export type SceneCounts = {
@@ -492,6 +505,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['level', 'ui'],
       },
       {
+        id: 'context-loss',
+        title: 'Level 1: lose the WebGL context, Recovering shows, the level resumes; memory tier and level change counts',
+        description: 'Reports the memory tier and texture cap (state().graphics: tier, deviceMemory, textureCap, maxTextureSize; ?memory=low forces the low tier). Starts level 1 with the Start button, gets control, walks (real keys). Then loses the WebGL context with WEBGL_lose_context: the Recovering overlay must show, the context is restored, the overlay must go within 15 s with no load-error card, and Pierce must walk again (real keys). Then level 1 to level 2 and back (test shortcut, as Continue does): the scene counts (meshes, materials, textures, animation groups) are logged at each stop and must not grow once level 1 is back, so the previous level was freed. Metrics: textureCap, maxTextureSize, recoverSeconds, level1Meshes, level2Meshes, level1Textures, level2Textures, level1Again*.',
+        seconds: 300,
+        tags: ['graphics', 'level'],
+      },
+      {
         id: 'b3-retry',
         title: 'B3: die and press Start five times; meshes, materials, textures, skeletons, clips and lights stay flat',
         description: `Starts level 2 (test shortcut), waits for the scene to settle and reads the scene counts (also in hawkesPlaytest.state().counts). Then ${RETRIES} times: Pierce is downed (test shortcut, as a bite would), Defeat shows, Start retries the level, the scene settles, and the counts are read again. Metrics: each count after the first retry and after the last, and their growth. A count that keeps growing across retries is a bug. Headless WebGL is about 1 fps, so each stage reports progress.`,
@@ -578,7 +598,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
   api.state = () => {
     let counts: SceneCounts | null = null;
     try { counts = probe.counts(); } catch { /* scene not up yet */ }
-    return { ...baseState(), counts };
+    let graphics: GraphicsInfo | null = null;
+    try { graphics = probe.graphics(); } catch { /* scene not up yet */ }
+    return { ...baseState(), counts, graphics };
   };
 
   // ------------------------------------------------------------ run
@@ -2795,6 +2817,100 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.metric('chapterSkipSeconds', Math.round((skipTotal / 8) * 100) / 100);
       t.progress(1);
       t.finish('done');
+      return;
+    }
+
+    if (id === 'context-loss') {
+      levelsTotal = 1;
+      const g = probe.graphics();
+      t.event('graphics', `memory tier ${g.memoryTier} (${g.reason}), deviceMemory ${g.deviceMemory ?? 'unknown'}, texture cap ${g.textureCap ?? 'none'}, engine max texture ${g.maxTextureSize}, low power ${g.lowPower}`);
+      t.metric('textureCap', g.textureCap ?? 0);
+      t.metric('maxTextureSize', g.maxTextureSize);
+      if (g.memoryTier === 'low' && g.maxTextureSize > 1024) t.problem('bug', `low memory tier but textures are not capped (max ${g.maxTextureSize})`);
+      const settled = async () => {
+        let last = '';
+        let since = performance.now();
+        const until = performance.now() + 60000;
+        while (performance.now() < until) {
+          await sleep(500);
+          const c = probe.counts();
+          const key = `${c.meshes}/${c.materials}/${c.textures}/${c.animationGroups}`;
+          if (key !== last) { last = key; since = performance.now(); } else if (performance.now() - since >= 3000) break;
+        }
+        return probe.counts();
+      };
+      const control = async (what: string) => {
+        const until = performance.now() + 120000;
+        while (!controllable()) {
+          if (performance.now() > until) throw new Error(`timed out waiting for ${what}`);
+          if (probe.cutscene() && probe.skipButton && !probe.skipButton.hidden) { press(probe.skipButton, 'Skip'); await sleep(800); }
+          if (probe.phone().incoming) await once('f', 1500, 'answer call');
+          await tick();
+        }
+      };
+      const walk = async (what: string) => {
+        const from = probe.player();
+        setHeld('w');
+        await sleep(2500);
+        releaseAll();
+        const to = probe.player();
+        const moved = Math.hypot(to.x - from.x, to.z - from.z);
+        t.event('walk', `${what}: moved ${moved.toFixed(2)} m`);
+        return moved;
+      };
+      t.scene(LEVELS[0].name);
+      await enterLevel(1);
+      await control('level 1 control');
+      t.event('level-start', LEVELS[0].name);
+      const before = await walk('before the loss');
+      if (before < 0.3) t.problem('bug', 'Pierce did not walk before the context loss');
+      const one = await settled();
+      t.metric('level1Meshes', one.meshes);
+      t.metric('level1Textures', one.textures);
+
+      // ---- lose and restore the context
+      const lostAt = performance.now();
+      if (!probe.contextLoss.lose()) t.problem('bug', 'WEBGL_lose_context is not available, so the context could not be lost');
+      else {
+        t.event('context', 'WebGL context lost (WEBGL_lose_context)');
+        try {
+          await t.until(() => probe.contextLoss.status().overlay, 5000, 'the Recovering overlay');
+          t.event('context', `overlay: "${probe.contextLoss.status().overlayText}"`);
+          if (!/recovering/i.test(probe.contextLoss.status().overlayText)) t.problem('bug', 'the overlay does not say Recovering');
+        } catch { t.problem('bug', 'losing the WebGL context showed no Recovering message'); }
+        await sleep(1200);
+        probe.contextLoss.restore();
+        t.event('context', 'WebGL context restored (WEBGL_lose_context)');
+        try {
+          await t.until(() => !probe.contextLoss.status().overlay && !probe.contextLoss.status().lost, 15000, 'the level to resume');
+          const secs = (performance.now() - lostAt) / 1000;
+          t.metric('recoverSeconds', Math.round(secs * 10) / 10);
+          t.event('context', `level resumed ${secs.toFixed(1)} s after the loss${probe.contextLoss.status().restarted ? ' (restarted from the level start)' : ''}`);
+        } catch { t.problem('bug', 'the Recovering message never cleared after the context came back'); }
+        if (probe.menu().open && /start|retry|reload/i.test(probe.menu().start ?? '')) t.event('context', `card showing after recovery: ${probe.menu().title}`);
+        await control('control after recovery');
+        const after = await walk('after the recovery');
+        if (after < 0.3) t.problem('bug', 'Pierce could not walk after the context came back');
+      }
+
+      // ---- level change frees the previous level
+      t.scene(LEVELS[1].name);
+      await enterLevel(2);
+      await control('level 2 control');
+      const two = await settled();
+      t.metric('level2Meshes', two.meshes);
+      t.metric('level2Textures', two.textures);
+      t.event('counts', `level 1: meshes ${one.meshes}, materials ${one.materials}, textures ${one.textures}, animation groups ${one.animationGroups}; level 2: meshes ${two.meshes}, materials ${two.materials}, textures ${two.textures}, animation groups ${two.animationGroups}`);
+      t.scene(LEVELS[0].name);
+      await enterLevel(1);
+      await control('level 1 again');
+      const again = await settled();
+      t.metric('level1AgainMeshes', again.meshes);
+      t.metric('level1AgainTextures', again.textures);
+      t.event('counts', `level 1 again: meshes ${again.meshes}, materials ${again.materials}, textures ${again.textures}, animation groups ${again.animationGroups}`);
+      for (const key of ['meshes', 'materials', 'textures', 'animationGroups'] as const) {
+        if (again[key] > one[key] * 1.05 + 10) t.problem('bug', `${key} grew from ${one[key]} to ${again[key]} after level 1 -> 2 -> 1: the previous level was not freed`);
+      }
       return;
     }
 
