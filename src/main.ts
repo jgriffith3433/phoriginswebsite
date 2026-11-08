@@ -146,6 +146,8 @@ const weaponSlotName = document.getElementById('weaponSlotName') as HTMLElement 
 const weaponSlotState = document.getElementById('weaponSlotState') as HTMLSpanElement | null;
 const reloadHint = document.getElementById('reloadHint') as HTMLButtonElement | null;
 const interactHint = document.getElementById('interactHint') as HTMLButtonElement | null;
+/** Touch Interact button in the action cluster: the same action as the E key, shown only while a hint is live. */
+const interactBtn = document.getElementById('interactBtn') as HTMLButtonElement | null;
 const actionHint = document.getElementById('actionHint') as HTMLButtonElement | null;
 const objectiveHud = document.getElementById('objectiveHud') as HTMLDivElement | null;
 const objectiveText = document.getElementById('objectiveText') as HTMLSpanElement | null;
@@ -3060,6 +3062,19 @@ const syncActionHint = () => {
   actionHint.hidden = !label;
   if (label) actionHint.innerHTML = `${label}<kbd> — E</kbd>`;
   interactHint?.classList.toggle('stacked', Boolean(label));
+  syncInteractBtn();
+};
+
+/** Live while the story offers an action, or a supply with room is in reach; hidden otherwise (CSS keeps it off desktop). */
+const syncInteractBtn = () => {
+  if (!interactBtn) return;
+  let label = state.running && !state.inCutscene && !panelsOpen() && messageBox.classList.contains('hidden') ? storyAction() : '';
+  if (!label && state.running && !state.inCutscene && !panelsOpen() && messageBox.classList.contains('hidden')) {
+    const pickup = nearestSupply();
+    if (pickup && roomFor(state.inventory, pickup.item) > 0) label = SUPPLY_LABEL[pickup.item];
+  }
+  interactBtn.hidden = !label;
+  if (label) interactBtn.setAttribute('aria-label', label);
 };
 
 const syncInteractHint = () => {
@@ -3067,11 +3082,13 @@ const syncInteractHint = () => {
   const pickup = state.running && !state.inCutscene && !panelsOpen() ? nearestSupply() : null;
   if (!pickup) {
     interactHint.hidden = true;
+    syncInteractBtn();
     return;
   }
   const label = SUPPLY_LABEL[pickup.item];
   interactHint.hidden = false;
   interactHint.innerHTML = roomFor(state.inventory, pickup.item) > 0 ? `${label}<kbd> — E</kbd>` : `${label} full`;
+  syncInteractBtn();
 };
 
 const showReloadNote = (text: string, seconds = 1.6) => {
@@ -3367,6 +3384,15 @@ actionHint?.addEventListener('pointerdown', (event) => {
   event.stopPropagation();
   unlockAudio();
   confirmStoryAction();
+});
+interactBtn?.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  unlockAudio();
+  if (confirmStoryAction()) return;
+  const pickup = nearestSupply();
+  if (pickup && state.running && !state.inCutscene && !panelsOpen() && messageBox.classList.contains('hidden')) takeSupply(pickup);
+  syncInteractBtn();
 });
 interactHint?.addEventListener('pointerdown', (event) => {
   event.preventDefault();
@@ -4284,11 +4310,12 @@ window.addEventListener('resize', () => {
 });
 
 /** Playtest setup: lay the page out as a 390x844 phone, centred and scaled to fit a desktop viewport. */
-const setPhoneFrame = (on: boolean, landscape = false) => {
+const setPhoneFrame = (on: boolean, landscape = false, size?: { w: number; h: number }) => {
   phoneFramed = on;
   if (on) {
-    const w = landscape ? 844 : 390;
-    const h = landscape ? 390 : 844;
+    const w = size?.w ?? (landscape ? 844 : 390);
+    const h = size?.h ?? (landscape ? 390 : 844);
+    landscape = w > h;
     const scale = Math.min(1, window.innerHeight / h, window.innerWidth / w);
     Object.assign(root.style, { width: `${w}px`, height: `${h}px`, margin: '0 auto', transform: `scale(${scale})`, transformOrigin: 'center center' });
     document.body.dataset.device = 'mobile';

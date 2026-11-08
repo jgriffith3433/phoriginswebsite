@@ -78,7 +78,7 @@ export type PhProbe = {
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
   counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
-  phoneFrame: (on: boolean, landscape?: boolean) => void;
+  phoneFrame: (on: boolean, landscape?: boolean, size?: { w: number; h: number }) => void;
   /** Phone screen mode (src/game/screenMode.ts): the portrait prompt, fullscreen. `asTouch` is setup: act as a touch device. */
   screenMode: {
     prompt: () => { showing: boolean; text: string };
@@ -464,9 +464,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
       },
       {
         id: 'ui-style',
-        title: 'Menu, HUD, pause, settings and end cards share fonts and colours, and nothing is clipped at 1280x720 and 390x844',
-        description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen.',
-        seconds: 150,
+        title: 'Menu, HUD, pause, settings and end cards share fonts and colours, nothing is clipped, and no touch control overlaps another or is under 44 px at 390x844, 844x390 and 667x375',
+        description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen. On the phone layout it then lays the page out at 390x844, 844x390 and 667x375, shows every conditional touch control (Interact, ability, shadow, lost, reload), and fails if any two touch controls overlap, any is under 44 px, or any leaves the safe area.',
+        seconds: 170,
         tags: ['menus'],
       },
       {
@@ -3258,7 +3258,55 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.add('uiScreens');
     };
 
-    const pass = async (vp: string) => {
+    /** Touch layout: every touch control (and the HUD readouts beside them) at one phone size. */
+    const TOUCH_CONTROLS = ['interactBtn', 'fireBtn', 'jumpBtn', 'phoneBtn', 'leftStickZone', 'rightStickZone', 'pauseBtn', 'missionsHint',
+      'sidearmHint', 'abilityHint', 'shadowHint', 'lightHint', 'medkitHint', 'phoneHint', 'inventoryHint', 'reloadHint', 'lostHint'];
+    const TOUCH_HUD = ['objectiveHud', 'abilityReadout'];
+    const touchAudit = async (w: number, h: number) => {
+      const vp = `${w}x${h}`;
+      probe.phoneFrame(true, w > h, { w, h });
+      await sleep(900);
+      t.scene(`Touch layout (${vp})`);
+      // Worst case: every conditional control showing at once (layout only, nothing is pressed).
+      const forced = ['interactBtn', 'abilityHint', 'shadowHint', 'lostHint', 'reloadHint', 'abilityReadout']
+        .map((id) => byId(id)).filter((el): el is HTMLElement => !!el && el.hidden);
+      for (const el of forced) el.hidden = false;
+      await sleep(300);
+      const rootBox = root.getBoundingClientRect();
+      const k = rootBox.width / (root as HTMLElement).offsetWidth || 1;
+      const probeEl = document.createElement('div');
+      probeEl.style.cssText = 'position:absolute;inset:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+      root.appendChild(probeEl);
+      const cs = getComputedStyle(probeEl);
+      const inset = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+      probeEl.remove();
+      type Box = { id: string; l: number; t: number; r: number; b: number; control: boolean };
+      const boxes: Box[] = [];
+      for (const id of [...TOUCH_CONTROLS, ...TOUCH_HUD]) {
+        const el = byId(id);
+        if (!el) { t.problem('bug', `${vp}: #${id} is missing`); continue; }
+        const st = getComputedStyle(el);
+        if (st.display === 'none' || st.visibility === 'hidden' || el.hidden) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 1 || r.height < 1) continue;
+        boxes.push({ id, l: (r.left - rootBox.left) / k, t: (r.top - rootBox.top) / k, r: (r.right - rootBox.left) / k, b: (r.bottom - rootBox.top) / k, control: TOUCH_CONTROLS.includes(id) });
+      }
+      let bad = 0;
+      for (const b of boxes) {
+        if (b.control && (b.r - b.l < 43.5 || b.b - b.t < 43.5)) { bad++; t.problem('bug', `${vp}: #${b.id} is ${Math.round(b.r - b.l)}x${Math.round(b.b - b.t)} px, under 44`); }
+        if (b.l < inset.l - 0.5 || b.t < inset.t - 0.5 || b.r > w - inset.r + 0.5 || b.b > h - inset.b + 0.5) { bad++; t.problem('bug', `${vp}: #${b.id} leaves the safe area`); }
+      }
+      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i], c = boxes[j];
+        if (!a.control && !c.control) continue;
+        if (a.l < c.r - 0.5 && c.l < a.r - 0.5 && a.t < c.b - 0.5 && c.t < a.b - 0.5) { bad++; t.problem('bug', `${vp}: #${a.id} overlaps #${c.id}`); }
+      }
+      for (const el of forced) el.hidden = true;
+      t.event('touch-layout', `${vp}: ${boxes.filter((b) => b.control).length} touch controls checked, ${bad} problems, safe inset ${inset.t}/${inset.r}/${inset.b}/${inset.l}`);
+      t.add('touchLayouts');
+    };
+
+    const pass = async (vp: string, touch = false) => {
       if (probe.menu().title === 'PH Origins') {
         t.scene(`Title (${vp})`);
         await sleep(800);
@@ -3280,6 +3328,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await t.until(() => !!byId('objectiveHud')?.classList.contains('visible'), 30000, 'the objective');
       await sleep(1500);
       audit('HUD', vp);
+      if (touch) {
+        await touchAudit(390, 844);
+        await touchAudit(844, 390);
+        await touchAudit(667, 375);
+        probe.phoneFrame(true);
+        await sleep(900);
+      }
       await tapAt(byId('pauseBtn'), 'Pause');
       await t.until(() => probe.sound().paused, 3000, 'Pause');
       t.scene(`Paused (${vp})`);
@@ -3307,7 +3362,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     probe.phoneFrame(true);
     t.event('setup', 'phone layout 390x844');
     await sleep(1500);
-    await pass('390x844');
+    await pass('390x844', true);
     probe.phoneFrame(false);
     t.progress(1);
     t.finish('done');
