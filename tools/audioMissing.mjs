@@ -6,6 +6,10 @@
  *   npm run audio:missing -- --dry          list what would be made and a rough cost, spend nothing
  *   npm run audio:missing -- --limit 10     make at most 10 clips
  *   npm run audio:missing -- --only sfx.morning.door,bark.station.01
+ *   npm run audio:missing -- --requests     print the Gen request for each missing clip (JSON), spend nothing
+ *   npm run audio:missing -- --from <dir>   save takes made elsewhere instead of calling Gen: <dir>/<clip id> (any
+ *                                           extension) is the raw output of that clip's request (pcm for a line,
+ *                                           mp3 for an effect), saved with the same records as Generate
  *
  * Hawkes Gen is found from HAWKESGEN_URL / HAWKESGEN_KEY or ~/.hawkes/client.json; HAWKESGEN_PROJECT overrides the
  * project id (default phorigins). Each voice line or effect is one ElevenLabs call (a few cents; the 30 s beds cost
@@ -23,6 +27,8 @@ const value = (name) => {
   return at >= 0 ? args[at + 1] : undefined;
 };
 const dry = flag('dry');
+const requests = flag('requests');
+const fromDir = value('from') ? path.resolve(value('from')) : null;
 const limit = Number(value('limit') ?? Infinity);
 const onlyList = value('only');
 const only = onlyList ? new Set(onlyList.split(',').map((id) => id.trim()).filter(Boolean)) : null;
@@ -50,15 +56,33 @@ const jobs = [
 const estimate = jobs.reduce((sum, job) => sum + (job.kind === 'line'
   ? 0.03 + String(job.line.text).length * 0.0003
   : 0.03 + (job.effect.duration ?? 4) * 0.004), 0);
-console.log(`${jobs.length} clip(s) to make (${lines.length} line(s), ${effects.length} effect(s) missing), roughly $${estimate.toFixed(2)}:`);
+// With --requests stdout is the JSON alone, so the listing goes to stderr.
+const say = (text) => (requests ? console.error(text) : console.log(text));
+say(`${jobs.length} clip(s) to make (${lines.length} line(s), ${effects.length} effect(s) missing), roughly $${estimate.toFixed(2)}:`);
 for (const job of jobs) {
   const what = job.kind === 'line' ? `line ${job.id}  ${job.line.speaker}: ${job.line.text}` : `sfx  ${job.id}  ${job.effect.audio}`;
-  console.log(`  ${what}`);
+  say(`  ${what}`);
 }
 if (dry || jobs.length === 0) process.exit(0);
 
-const { synthesizeLine, voiceForSpeaker } = await import('./voiceLines.mjs');
-const { synthesizeEffect } = await import('./soundEffects.mjs');
+const { importLine, lineRequest, synthesizeLine, voiceForSpeaker } = await import('./voiceLines.mjs');
+const { effectRequest, importEffect, synthesizeEffect } = await import('./soundEffects.mjs');
+
+if (requests) {
+  const list = jobs.map((job) => ({
+    id: job.id,
+    ...(job.kind === 'line' ? lineRequest(root, job.line) : effectRequest(job.effect)),
+  }));
+  fs.writeFileSync(1, `${JSON.stringify(list, null, 2)}\n`);
+  process.exit(0);
+}
+
+/** A take made elsewhere for this clip: <dir>/<id> or <dir>/<id>.<ext>. */
+const takeFile = (id) => {
+  if (!fromDir || !fs.existsSync(fromDir)) return null;
+  const name = fs.readdirSync(fromDir).find((file) => file === id || (file.startsWith(`${id}.`) && /^\.[a-z0-9]+$/i.test(file.slice(id.length))));
+  return name ? path.join(fromDir, name) : null;
+};
 
 for (const job of jobs) {
   if (job.kind === 'line' && !voiceForSpeaker(root, job.line.speaker)) {
@@ -72,7 +96,17 @@ const failed = [];
 const saveLocale = () => fs.writeFileSync(enPath, `${JSON.stringify(en, null, 2)}\n`);
 for (const job of jobs) {
   try {
-    if (job.kind === 'line') {
+    const take = fromDir ? takeFile(job.id) : null;
+    if (fromDir && !take) {
+      console.log(`no take for ${job.id} in ${fromDir}, skipped`);
+      continue;
+    }
+    if (job.kind === 'line' && take) {
+      Object.assign(job.line, await importLine(root, job.line, fs.readFileSync(take)));
+      saveLocale();
+    } else if (take) {
+      await importEffect(root, job.effect, fs.readFileSync(take));
+    } else if (job.kind === 'line') {
       const { line } = job;
       const result = await synthesizeLine(root, {
         id: line.id,
