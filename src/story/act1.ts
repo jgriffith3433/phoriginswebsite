@@ -917,15 +917,14 @@ export const createAct1 = (host: ActHost) => {
     boardTalkIn -= delta;
     if (boardTalkIn > 0) return;
     const here = host.playerXZ();
-    if (Math.hypot(here.x - BOARD_TABLE.x, here.z - BOARD_TABLE.z) > 9) {
-      boardTalkIn = 1.5;
-      return;
-    }
+    const away = Math.hypot(here.x - BOARD_TABLE.x, here.z - BOARD_TABLE.z);
+    // Down the hall the board is heard through the doors, quieter and more often, so the long walk is never silent.
+    const hall = away > 9;
     const said = boardLine();
-    boardTalkIn = 11 + Math.random() * 7;
+    boardTalkIn = hall ? 6 + Math.random() * 2 : 11 + Math.random() * 7;
     if (!said) return;
     host.showLine(said.speaker, said.text);
-    host.playFile(said.url, 0.5);
+    host.playFile(said.url, hall ? Math.max(0.16, 0.5 - (away - 9) * 0.008) : 0.5);
     boardLineLeft = 3.6;
   };
 
