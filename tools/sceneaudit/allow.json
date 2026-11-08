@@ -18,30 +18,6 @@
     "reason": "Glow silhouette of the creature in the cell, sprawled across the floor; no collision."
   },
   {
-    "level": "b3-basement",
-    "rule": "floating",
-    "what": "^pipe-(cell|transform)$",
-    "reason": "Open item: overhead pipe runs hang 20-25 cm under the ceiling with no hangers. Add brackets or raise them."
-  },
-  {
-    "level": "b3-basement",
-    "rule": "floating",
-    "what": "^b3-decal-light-cell$",
-    "reason": "Open item: the cell's light lens hangs in the open under the cage light. Needs a fixture or a move to the ceiling."
-  },
-  {
-    "level": "*",
-    "rule": "floating",
-    "what": "^lift-ind-panel$",
-    "reason": "Open item: the floor indicator hangs 40 cm in front of the lift doors. Moving it changes the lift cutscene framing; needs a look in a browser."
-  },
-  {
-    "level": "*",
-    "rule": "floating",
-    "what": "^stair-rail(-s)?$",
-    "reason": "Open item: stair handrails have no posts. Add posts down to the steps."
-  },
-  {
     "level": "*",
     "rule": "coplanar",
     "what": "^(b3-crate-transform-[ab]|station-city-trash|station-newsstand)/.* <> \\1/",

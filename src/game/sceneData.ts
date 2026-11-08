@@ -383,7 +383,7 @@ const createLiftGlyphMesh = (
   const plane = BABYLON.MeshBuilder.CreatePlane(asset.name ?? asset.id, { width: 1, height: 1 }, scene);
   plane.position = position;
   plane.rotation = rotation.clone();
-  // Panel sits on the north cab wall (z≈23.44). Pierce/camera look +Z at it, and a plane's readable (front) side
+  // Panel sits on the cab's door header (z≈23.81). Pierce/camera look +Z at it, and a plane's readable (front) side
   // faces -Z, toward the cab: no yaw and no mirrored bitmap (quality rule 1). Back faces are culled so the glyph
   // never shows mirrored.
   plane.scaling = new BABYLON.Vector3(Math.max(0.04, Math.abs(scale.x)), Math.max(0.04, scale.y), 1);
