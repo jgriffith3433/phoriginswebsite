@@ -26,9 +26,11 @@ export const createScreenFade = (veil: HTMLElement): ScreenFade => {
     rate = Math.abs(target - opacity) / duration;
   };
 
+  // The veil runs on the clock, not on frame count: a slow GPU (a frame of 0.3 s or more) must not stretch a 1.5 s
+  // fade into many seconds of black. The cap (1 s) keeps a Pause or a hidden tab from skipping the whole fade.
   const update = (delta: number) => {
     if (rate <= 0 || opacity === target) return;
-    const step = rate * Math.min(0.1, Math.max(0, delta));
+    const step = rate * Math.min(1, Math.max(0, delta));
     if (Math.abs(target - opacity) <= step) {
       opacity = target;
       rate = 0;
