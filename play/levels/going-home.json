@@ -704,7 +704,7 @@
       "kind": "model",
       "name": "lobby-light-a",
       "x": -2.2,
-      "y": 3.05,
+      "y": 3.132,
       "z": 6,
       "rotation": {
         "x": 0,
@@ -726,7 +726,7 @@
       "kind": "model",
       "name": "lobby-light-b",
       "x": 2.2,
-      "y": 3.05,
+      "y": 3.132,
       "z": 12,
       "rotation": {
         "x": 0,
@@ -802,7 +802,8 @@
       "y": 0,
       "z": 40,
       "data": {
-        "audio": "/assets/audio/room-tone.mp3",
+        "audio": "/assets/audio/ambient/street-night.ogg",
+        "fallback": "/assets/audio/room-tone.mp3",
         "radius": 520,
         "volume": 0.12,
         "loop": true,
