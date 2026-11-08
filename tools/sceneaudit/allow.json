@@ -44,7 +44,7 @@
   {
     "level": "*",
     "rule": "coplanar",
-    "what": "^(b3-crate-[a-z-]+|b3-gurney-[ab]|office-desk|station-city-trash|station-column-\\d+|station-kiosk|station-newsstand|station-stile-[a-f]|station-train-[ew])/.* <> \\1/",
-    "reason": "Open item: these generated models (b3-crate, b3-gurney, office desk, station column, stile, kiosk, train, trash, newsstand) carry overlapping inner shells drawn two-sided, so faces inside one model share a depth. Exact duplicates are gone (npm run models:clean); the rest needs a mesh clean-up in Blender or a regenerated model. New overlaps between objects still fail."
+    "what": "^(b3-crate-transform-[ab]|station-city-trash|station-newsstand)/.* <> \\1/",
+    "reason": "Open item: what npm run models:clean can't cut without opening a hole: two crate bottom layers, and faces of the trash can and newsstand that cross each other at a slight angle. Small and low; regenerating those models clears it. New overlaps still fail."
   }
 ]
