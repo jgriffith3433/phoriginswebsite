@@ -62,6 +62,11 @@ export const apexPlan: InteriorPlan = {
     extinguisher(k, 2.2, 1.0, E);
     bench(k, -2.2, 2.4, 1.3, W);
 
+    // Restroom doorway: the authored floors are hidden and each overlay stops at its room, so the
+    // wall-thickness strip under the door (x 17.2-18.7, z 29.56-29.8) had no floor and showed the city.
+    k.set(IS.SMALL_TILE, 1, 1, 1);
+    k.g.quad([17.21, 0.015, 29.56], [18.69, 0.015, 29.56], [18.69, 0.015, 29.8], [17.21, 0.015, 29.8], [0, 1, 0], [[17.21, 29.56], [18.69, 29.56], [18.69, 29.8], [17.21, 29.8]]);
+
     // Runner rugs where the authored runners lie (those GLBs are hidden). Above the carpet overlay.
     rug(k, -0.8, 0.8, 0.99, 31.01, 0.32, 0.1, 0.09, 0.022);
 
