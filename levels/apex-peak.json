@@ -1470,7 +1470,7 @@
       "kind": "model",
       "name": "Hall 1 Light A Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 6,
       "rotation": {
         "x": 0,
@@ -1492,7 +1492,7 @@
       "kind": "model",
       "name": "Hall 1 Light B Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 16,
       "rotation": {
         "x": 0,
@@ -1514,7 +1514,7 @@
       "kind": "model",
       "name": "Hall 1 Light C Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 26,
       "rotation": {
         "x": 0,
@@ -1536,7 +1536,7 @@
       "kind": "model",
       "name": "Hall 2 Light A Fixture",
       "x": 12,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1558,7 +1558,7 @@
       "kind": "model",
       "name": "Hall 2 Light B Fixture",
       "x": 24,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1580,7 +1580,7 @@
       "kind": "model",
       "name": "Boardroom Light Fixture",
       "x": 44.2,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1602,7 +1602,7 @@
       "kind": "model",
       "name": "Office Light Fixture",
       "x": 48,
-      "y": 3.05,
+      "y": 3.109,
       "z": 43.5,
       "rotation": {
         "x": 0,
@@ -3578,7 +3578,7 @@
       "assetId": "structure-pillar",
       "kind": "pillar",
       "name": "Faucet Spout 1",
-      "x": 20.05,
+      "x": 20.095,
       "y": 1,
       "z": 27.78,
       "rotation": {
@@ -3601,7 +3601,7 @@
       "assetId": "structure-pillar",
       "kind": "pillar",
       "name": "Faucet Spout 2",
-      "x": 20.05,
+      "x": 20.095,
       "y": 1,
       "z": 28.52,
       "rotation": {

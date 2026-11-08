@@ -455,9 +455,10 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
   const sidePanel = (s: number, cx: number, y0: number, w: number, h: number, r: Rect, glow: number, inset = 0.01) => {
     const z = s * (HW - inset);
     const n: V3 = [0, 0, -s];
-    // Seen from inside, +x is the viewer's right on the -z wall (looking -z... toward s = -1) and left on +z.
-    const left = s < 0 ? cx - w / 2 : cx + w / 2;
-    const right = s < 0 ? cx + w / 2 : cx - w / 2;
+    // Seen from the front (looking along -n, Babylon's left-handed axes) the viewer's right is (-n.z, 0, n.x) = (s, 0, 0),
+    // the same tangent as the station and interior panels. Getting this backwards mirrors every ad and map (rule 1).
+    const left = cx - s * w / 2;
+    const right = cx + s * w / 2;
     surf(SURF.TEX, glow);
     g.quad([left, y0, z], [right, y0, z], [right, y0 + h, z], [left, y0 + h, z], n, [[r.u0, r.v0], [r.u1, r.v0], [r.u1, r.v1], [r.u0, r.v1]]);
   };
@@ -465,8 +466,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
   const endPanel = (x: number, cz: number, y0: number, w: number, h: number, r: Rect, glow: number) => {
     const into = x < (CAR.x0 + CAR.x1) / 2 ? 1 : -1;
     const n: V3 = [into, 0, 0];
-    const left = into > 0 ? cz + w / 2 : cz - w / 2;
-    const right = into > 0 ? cz - w / 2 : cz + w / 2;
+    // Viewer's right is (-n.z, 0, n.x) = (0, 0, into).
+    const left = cz - into * w / 2;
+    const right = cz + into * w / 2;
     const px = x + into * 0.012;
     surf(SURF.TEX, glow);
     g.quad([px, y0, left], [px, y0, right], [px, y0 + h, right], [px, y0 + h, left], n, [[r.u0, r.v0], [r.u1, r.v0], [r.u1, r.v1], [r.u0, r.v1]]);
