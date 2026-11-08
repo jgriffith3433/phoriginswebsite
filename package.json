@@ -17,7 +17,8 @@
     "models:clean": "node tools/clean-models.mjs",
     "models:stride": "node tools/clipStride.mjs",
     "check:anim": "node tools/animCheck.mjs",
-    "test": "npm run check:scene && npm run check:anim && npm run check:leaks"
+    "test": "npm run check:scene && npm run check:anim && npm run check:leaks",
+    "audio:missing": "node tools/audioMissing.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",

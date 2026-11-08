@@ -3841,7 +3841,8 @@
       "z": -4.531632423400879,
       "data": {
         "radius": 100,
-        "audio": "/assets/audio/room-tone.mp3",
+        "audio": "/assets/audio/ambient/office-night.ogg",
+        "fallback": "/assets/audio/room-tone.mp3",
         "loop": true,
         "fadeSeconds": 2,
         "volume": 0.14

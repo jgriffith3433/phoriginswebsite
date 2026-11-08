@@ -1506,7 +1506,8 @@
       "y": 0,
       "z": -1,
       "data": {
-        "audio": "/assets/audio/room-tone.mp3",
+        "audio": "/assets/audio/ambient/platform.ogg",
+        "fallback": "/assets/audio/room-tone.mp3",
         "radius": 90,
         "volume": 0.1,
         "loop": true,

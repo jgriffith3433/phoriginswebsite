@@ -7,6 +7,7 @@ import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
+import { createLinePool, PLACE_SFX, STATION_BARKS, STATION_PA, type PlaceLine } from './placeVoices';
 
 export type TheStationHost = {
   scene: BABYLON.Scene;
@@ -203,6 +204,14 @@ export const createTheStation = (host: TheStationHost) => {
   let passIn = 14;
   /** Seconds to the next commuter's remark when Pierce walks close (the platform talks about the tower too). */
   let barkIn = 6;
+  /** Seconds to the next platform announcement; `paLineAt` is when its words follow the chime. */
+  let paIn = 20;
+  let paLineIn = -1;
+  let paNext: PlaceLine | null = null;
+  /** Seconds a remark's or announcement's subtitle stays up. */
+  let remarkLeft = 0;
+  const commuterLine = createLinePool(STATION_BARKS);
+  const paLine = createLinePool(STATION_PA);
   let castWait = 0;
 
   const face = (person: Person, yaw: number) => {
@@ -386,6 +395,10 @@ export const createTheStation = (host: TheStationHost) => {
     boardAt = -1;
     passIn = 14;
     barkIn = 6;
+    paIn = 20;
+    paLineIn = -1;
+    paNext = null;
+    remarkLeft = 0;
     castWait = 0;
     shadeMat = new BABYLON.StandardMaterial('station-shade-wisp-mat', host.scene);
     shadeMat.diffuseColor = new BABYLON.Color3(0.01, 0.01, 0.015);
@@ -917,17 +930,43 @@ export const createTheStation = (host: TheStationHost) => {
         const near = people.filter((person) => !person.down && !person.fleeing
           && Math.hypot(person.mesh.position.x - at.x, person.mesh.position.z - at.z) < 5);
         if (near.length) {
+          // The platform's own remarks once they are voiced; the street's until then.
+          const own = commuterLine();
           const pool = STREET_BARKS.flat();
-          const copy = streetCopy(pool[Math.floor(Math.random() * pool.length)]);
-          host.showLine('Commuter', copy.text);
+          const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
+          host.showLine(own?.speaker || 'Commuter', copy.text);
           host.playFile(copy.url, 0.6);
+          remarkLeft = 3.2;
           barkIn = 14 + Math.random() * 8;
         } else barkIn = 1.5;
       }
       passIn -= stepDt;
       if (passIn <= 0) {
         passIn = 45 + Math.random() * 30;
-        host.playFile('/assets/audio/train/rumble.ogg', 0.16);
+        host.playFile(PLACE_SFX.trainPass, 0.3);
+      }
+      // The PA: a chime, then a voiced announcement (skipped until the lines have clips).
+      paIn -= stepDt;
+      if (paIn <= 0) {
+        paIn = 50 + Math.random() * 25;
+        paNext = tether ? null : paLine();
+        if (paNext) {
+          host.playFile(PLACE_SFX.paChime, 0.45);
+          paLineIn = 1.4;
+        }
+      }
+      if (remarkLeft > 0) {
+        remarkLeft -= stepDt;
+        if (remarkLeft <= 0) host.showLine('', '');
+      }
+      if (paLineIn >= 0) {
+        paLineIn -= stepDt;
+        if (paLineIn < 0 && paNext) {
+          host.showLine(paNext.speaker, paNext.text);
+          host.playFile(paNext.url, 0.55);
+          remarkLeft = 4.4;
+          paNext = null;
+        }
       }
       shockLeft = Math.max(0, shockLeft - stepDt);
       meleeLeft = Math.max(0, meleeLeft - stepDt);

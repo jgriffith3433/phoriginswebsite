@@ -16,6 +16,12 @@ export const musicTriggerAudio = (trigger: SceneTrigger): string => {
   return String(data.audio ?? data.path ?? '').trim();
 };
 
+/** A bed's stand-in (`data.fallback`) while its own file is missing or fails to load. */
+export const musicTriggerFallback = (trigger: SceneTrigger): string => {
+  const data = trigger.data ?? {};
+  return String(data.fallback ?? '').trim();
+};
+
 const triggerRadius = (trigger: SceneTrigger, fallback = 1.7): number => {
   const radius = Number(trigger.data?.radius ?? fallback);
   return Number.isFinite(radius) && radius > 0 ? radius : fallback;
@@ -88,6 +94,8 @@ type MusicVoice = {
   target: number;
   fade: number;
   peak: number;
+  /** Takes off the error listener that swaps in `data.fallback`. */
+  dropFallback?: () => void;
 };
 
 export const createMusicTriggerPlayer = () => {
@@ -99,7 +107,10 @@ export const createMusicTriggerPlayer = () => {
   const voices = new Map<string, MusicVoice>();
 
   // Back to the pool: a reused gesture-primed element still starts on a phone with no finger down.
-  const stopVoice = (voice: MusicVoice) => releaseUnlockedAudio(voice.element);
+  const stopVoice = (voice: MusicVoice) => {
+    voice.dropFallback?.();
+    releaseUnlockedAudio(voice.element);
+  };
 
   const stopAll = () => {
     voices.forEach(stopVoice);
@@ -137,6 +148,18 @@ export const createMusicTriggerPlayer = () => {
       fade: triggerFadeSeconds(trigger),
       peak: triggerPeakVolume(trigger),
     };
+    const fallback = musicTriggerFallback(trigger);
+    if (fallback && fallback !== url) {
+      // The bed's own file is missing or broken: play the stand-in on the same primed element.
+      const swap = () => {
+        element.removeEventListener('error', swap);
+        if (voices.get(trigger.id) !== voice) return;
+        element.src = fallback;
+        if (voice.target > 0) void element.play().catch(() => {});
+      };
+      element.addEventListener('error', swap);
+      voice.dropFallback = () => element.removeEventListener('error', swap);
+    }
     voices.set(trigger.id, voice);
     return voice;
   };

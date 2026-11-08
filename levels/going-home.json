@@ -802,7 +802,8 @@
       "y": 0,
       "z": 40,
       "data": {
-        "audio": "/assets/audio/room-tone.mp3",
+        "audio": "/assets/audio/ambient/street-night.ogg",
+        "fallback": "/assets/audio/room-tone.mp3",
         "radius": 520,
         "volume": 0.12,
         "loop": true,

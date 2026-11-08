@@ -16,7 +16,7 @@ import path from 'node:path';
 
 const CHUNK_ID = 'phln';
 
-const gen = new HawkesGen({ project: 'phorigins' });
+const gen = new HawkesGen({ project: process.env.HAWKESGEN_PROJECT || 'phorigins' });
 
 const parseMeta = (raw) => {
   try {
