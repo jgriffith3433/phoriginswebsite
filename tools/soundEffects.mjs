@@ -238,9 +238,35 @@ export const synthesizeEffect = async (root, { id, text, audio, loop, duration, 
   if (seconds != null) params.duration = seconds;
   const job = await gen.run('audio.sfx', { params, labels: { sfx: id }, timeoutMs: 5 * 60 * 1000 });
   const response = { buffer: Buffer.from(await gen.bytes(job.outputs[0].asset)) };
-  if (response.buffer.length < 128) throw new Error('ElevenLabs returned an empty sound effect.');
+  return importEffect(root, { id, text, audio, loop, duration, influence }, response.buffer);
+};
+
+/**
+ * The Gen request an effect's take is made from (the same one synthesizeEffect sends), for a take made elsewhere
+ * and saved here with importEffect: run it as Hawkes Gen `audio.sfx`, keep the mp3 output.
+ */
+export const effectRequest = ({ text, loop, duration, influence }) => {
+  const description = String(text ?? '').trim();
+  if (!description) return null;
+  const seconds = clampDuration(duration);
+  const params = { text: description, model: MODEL, format: MP3_FORMAT, influence: clampInfluence(influence), loop: loop === true };
+  if (seconds != null) params.duration = seconds;
+  return { tool: 'audio.sfx', params };
+};
+
+/** Saves an effect's mp3 take (from effectRequest) exactly as synthesizeEffect would. */
+export const importEffect = async (root, { id, text, audio, loop, duration, influence }, mp3) => {
+  const description = String(text ?? '').trim();
+  if (!description) throw new Error('This effect has no description.');
+  const relative = outputPathFor(id, audio);
+  const abs = relative ? safeAssetPath(root, relative) : null;
+  if (!abs) throw new Error('Could not choose a path for this sound effect.');
+  const seamless = loop === true;
+  const seconds = clampDuration(duration);
+  const weight = clampInfluence(influence);
+  if (mp3.length < 128) throw new Error('ElevenLabs returned an empty sound effect.');
   const record = { text: description, loop: seamless, duration: seconds, influence: weight };
-  await encodeFile(response.buffer, abs, record);
+  await encodeFile(mp3, abs, record);
   return {
     audio: relative,
     audioText: description,

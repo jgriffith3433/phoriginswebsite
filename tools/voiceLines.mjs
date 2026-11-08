@@ -216,10 +216,38 @@ export const synthesizeLine = async (root, { id, speaker, text, audio, performan
     labels: { line: id, speaker },
     timeoutMs: 5 * 60 * 1000,
   });
-  const response = { buffer: Buffer.from(await gen.bytes(job.outputs[0].asset)) };
-  const pcm = response.buffer;
+  const pcm = Buffer.from(await gen.bytes(job.outputs[0].asset));
+  return saveLineTake(root, { id, audio, line, recorded, voiceId: voice.voiceId }, pcm);
+};
+
+const saveLineTake = async (root, { id, audio, line, recorded, voiceId }, pcm) => {
+  const relative = outputPathFor(id, audio);
+  const abs = relative ? safeAssetPath(root, relative) : null;
+  if (!abs) throw new Error('Could not choose an ogg path for this line.');
   if (pcm.length < 2) throw new Error('ElevenLabs returned an empty clip.');
   fs.mkdirSync(path.dirname(abs), { recursive: true });
-  await encodeOgg(pcmToWav(pcm), abs, { text: line, voiceId: voice.voiceId, performance: recorded });
-  return { audio: relative, audioText: line, audioPerformance: recorded, audioVoice: voice.voiceId };
+  await encodeOgg(pcmToWav(pcm), abs, { text: line, voiceId, performance: recorded });
+  return { audio: relative, audioText: line, audioPerformance: recorded, audioVoice: voiceId };
+};
+
+/**
+ * The Gen request a line's take is made from (the same one synthesizeLine sends), for a take made elsewhere and
+ * saved here with importLine: run it as Hawkes Gen `audio.voice`, keep the raw pcm output.
+ */
+export const lineRequest = (root, { speaker, text, performance, voiceId }) => {
+  const line = String(text ?? '').trim();
+  const voice = chosenVoice(root, speaker, voiceId);
+  if (!line || !voice) return null;
+  const tag = performanceTag(root, performance);
+  return { tool: 'audio.voice', params: { text: tag ? `[${tag}] ${line}` : line, voice: voice.voiceId, model: MODEL, format: PCM_FORMAT } };
+};
+
+/** Saves a take made from lineRequest (raw 22.05 kHz pcm) exactly as synthesizeLine would. */
+export const importLine = (root, { id, speaker, text, audio, performance, voiceId }, pcm) => {
+  const line = String(text ?? '').trim();
+  const voice = chosenVoice(root, speaker, voiceId);
+  if (!line || !voice) throw new Error(`No sentence or voice for ${id}.`);
+  const tag = performanceTag(root, performance);
+  const recorded = tag ? String(performance).trim() : 'default';
+  return saveLineTake(root, { id, audio, line, recorded, voiceId: voice.voiceId }, pcm);
 };
