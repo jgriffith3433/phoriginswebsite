@@ -2750,6 +2750,15 @@ export const installPhPlaytest = (probe: PhProbe) => {
               const other = rect(sel);
               if (other && hit(panel, other)) t.problem('bug', `the open Inventory panel overlaps the ${name} (panel ${Math.round(panel.left)},${Math.round(panel.top)}-${Math.round(panel.right)},${Math.round(panel.bottom)}; ${name} ${Math.round(other.left)},${Math.round(other.top)}-${Math.round(other.right)},${Math.round(other.bottom)})`);
             }
+            // the Q/G/H/F stack must not be pushed up over the health bar or the pause button
+            const health = rect('#healthBar');
+            for (const id of ['sidearmHint', 'abilityHint', 'shadowHint', 'lightHint', 'medkitHint', 'phoneHint']) {
+              const hint = rect('#' + id);
+              if (!hint) continue;
+              for (const [name, other] of [['health bar', health], ['pause button', rect('#pauseBtn')]] as const) {
+                if (other && hit(hint, other)) t.problem('bug', `with Inventory open the ${id} button sits on the ${name}`);
+              }
+            }
           }
           await sleep(2500);
           await tap('i', 'Inventory');
