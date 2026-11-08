@@ -68,6 +68,8 @@ const BED_SIDE = { x: 5.9, z: -0.45, yaw: Math.PI };
 const TV = { x: 3.2, z: -2.95 };
 const WATCH = { x: 3.2, z: -0.4 };
 const DOOR = { x: 1.2, z: 2.7 };
+/** How far the front door opens on Leave, in radians. */
+const DOOR_SWING = 1.3;
 /** Where the bot and the marker stand to use the door. */
 const LIE = { x: 5.75, y: 0.64, z: BED.z, yaw: Math.PI / 2 };
 
@@ -138,6 +140,8 @@ export const createTheMorning = (host: MorningHost) => {
   let tvTexture: BABYLON.DynamicTexture | null = null;
   let tvMaterial: BABYLON.StandardMaterial | null = null;
   let windowMaterial: BABYLON.StandardMaterial | null = null;
+  /** The front door, hinged on its west edge so Leave can swing it open. */
+  let door: BABYLON.Mesh | null = null;
   let led: BABYLON.StandardMaterial | null = null;
   const lamps: { light: BABYLON.Light; night: number; day: number }[] = [];
 
@@ -304,7 +308,16 @@ export const createTheMorning = (host: MorningHost) => {
     windowMaterial = mat(s, 'morning-window', 0.2, 0.3, 0.5, 1);
     owned.push(windowMaterial);
     box('morning-window', 0.02, 1.5, -0.4, 0.04, 1.2, 1.8, windowMaterial);
-    box('morning-door', DOOR.x, 1.05, 2.98, 1.0, 2.1, 0.06, mat(s, 'morning-door', 0.2, 0.16, 0.12));
+    door = box('morning-door', DOOR.x, 1.05, 2.98, 1.0, 2.1, 0.06, mat(s, 'morning-door', 0.2, 0.16, 0.12));
+    door.setPivotPoint(new BABYLON.Vector3(-0.5, 0, 0));
+    // The dark hall the open door shows, just off the wall's face behind it (the shell has no doorway).
+    const hall = BABYLON.MeshBuilder.CreatePlane('morning-door-hall', { width: 1.0, height: 2.1 }, s);
+    hall.position.set(DOOR.x, 1.05, 2.995);
+    const hallMat = mat(s, 'morning-door-hall', 0.015, 0.014, 0.013);
+    hallMat.disableLighting = true;
+    hall.material = hallMat;
+    hall.isPickable = false;
+    owned.push(hall);
     for (const light of s.lights) {
       if (light.name.startsWith('morning-lamp')) lamps.push({ light, night: 0.15, day: 0.9 });
     }
@@ -319,6 +332,7 @@ export const createTheMorning = (host: MorningHost) => {
       } else item.dispose();
     }
     owned.length = 0;
+    door = null;
     lamps.length = 0;
     tvTexture = null;
     tvMaterial = null;
@@ -529,11 +543,17 @@ export const createTheMorning = (host: MorningHost) => {
   const stepLeaving = () => {
     if (!flags.has('start')) {
       flags.add('start');
-      host.placePierce(DOOR.x, DOOR.z - 0.2, 0);
+      // Beside the door, clear of its swing (it opens into the room on its west hinge), facing it.
+      host.placePierce(DOOR.x + 0.8, DOOR.z - 0.35, -0.9);
       host.playClip('rebornidle', true);
       say(L_WALKS);
     }
     host.frameCamera({ x: 2.6, y: 1.55, z: 0.4 }, { x: DOOR.x, y: 1.2, z: DOOR.z });
+    // The door swings open into the room as he says it.
+    if (door) {
+      const t = Math.min(1, Math.max(0, (time - 0.5) / 1.4));
+      door.rotation.y = DOOR_SWING * t * t * (3 - 2 * t);
+    }
     if (time >= L_WALKS.hold + 0.6) finish();
   };
 
