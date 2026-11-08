@@ -3,12 +3,22 @@
 export type ScreenFade = {
   to: (amount: number, seconds?: number) => void;
   update: (delta: number) => void;
+  /** Run `fn` once the veil is fully clear (now, if it already is). Used to hold a story beat until the world shows. */
+  whenClear: (fn: () => void) => void;
 };
 
 export const createScreenFade = (veil: HTMLElement): ScreenFade => {
   let opacity = 1;
   let target = 1;
   let rate = 0;
+  let waiting: Array<() => void> = [];
+
+  const flush = () => {
+    if (opacity > 0 || waiting.length === 0) return;
+    const run = waiting;
+    waiting = [];
+    for (const fn of run) fn();
+  };
 
   const paint = () => {
     veil.style.opacity = opacity.toFixed(4);
@@ -21,6 +31,7 @@ export const createScreenFade = (veil: HTMLElement): ScreenFade => {
       opacity = target;
       rate = 0;
       paint();
+      flush();
       return;
     }
     rate = Math.abs(target - opacity) / duration;
@@ -38,8 +49,14 @@ export const createScreenFade = (veil: HTMLElement): ScreenFade => {
       opacity += Math.sign(target - opacity) * step;
     }
     paint();
+    flush();
+  };
+
+  const whenClear = (fn: () => void) => {
+    if (opacity <= 0 && target <= 0) fn();
+    else waiting.push(fn);
   };
 
   paint();
-  return { to, update };
+  return { to, update, whenClear };
 };
