@@ -260,12 +260,7 @@ export const paintLiftGlyph = (mesh: BABYLON.AbstractMesh | null | undefined, te
   ctx.textBaseline = 'middle';
   const size = text.length > 2 ? Math.floor(height * 0.5) : Math.floor(height * 0.64);
   ctx.font = `700 ${size}px Consolas, "Courier New", monospace`;
-  // Plane faces the cab (yaw 180). Flip the bitmap so glyphs read LTR from Pierce.
-  ctx.save();
-  ctx.translate(width, 0);
-  ctx.scale(-1, 1);
   ctx.fillText(text, width / 2, height / 2 + Math.floor(height * 0.04));
-  ctx.restore();
   texture.update();
 };
 
@@ -334,8 +329,6 @@ const createStencilSign = (
     ctx.fillStyle = '#3c4652';
   }
   ctx.save();
-  ctx.translate(width, 0);
-  ctx.scale(-1, 1);
   ctx.fillStyle = fill;
   for (let i = 0; i < 3; i += 1) {
     const x = 56 + i * 26;
@@ -362,11 +355,19 @@ const createStencilSign = (
   material.diffuseTexture = texture;
   material.emissiveTexture = texture;
   material.specularColor = new BABYLON.Color3(0.08, 0.08, 0.08);
-  material.backFaceCulling = false;
+  // Quality rule 1: never show text from behind. The sign is two faces back to back, each with the bitmap the
+  // right way round and back faces culled, so it reads correctly from either side (wall signs and door headers).
+  material.backFaceCulling = true;
   material.diffuseColor = new BABYLON.Color3(0.22, 0.24, 0.26);
   material.emissiveColor = new BABYLON.Color3(0.72, 0.74, 0.76);
   plane.material = material;
   plane.checkCollisions = false;
+  const reverse = BABYLON.MeshBuilder.CreatePlane(`${asset.id}-reverse`, { width: 1, height: 1 }, scene);
+  reverse.parent = plane;
+  reverse.rotation.y = Math.PI;
+  reverse.material = material;
+  reverse.isPickable = false;
+  reverse.checkCollisions = false;
   plane.metadata = { ...metadata, liftTexture: texture, liftLabel: label };
   return plane;
 };
@@ -382,9 +383,9 @@ const createLiftGlyphMesh = (
   const plane = BABYLON.MeshBuilder.CreatePlane(asset.name ?? asset.id, { width: 1, height: 1 }, scene);
   plane.position = position;
   plane.rotation = rotation.clone();
-  // Panel sits on the north cab wall (z≈23.44). Pierce/camera look +Z at it.
-  // Yaw 180 so the plane faces the cab. Glyph bitmap is flipped in paintLiftGlyph.
-  plane.rotation.y += Math.PI;
+  // Panel sits on the north cab wall (z≈23.44). Pierce/camera look +Z at it, and a plane's readable (front) side
+  // faces -Z, toward the cab: no yaw and no mirrored bitmap (quality rule 1). Back faces are culled so the glyph
+  // never shows mirrored.
   plane.scaling = new BABYLON.Vector3(Math.max(0.04, Math.abs(scale.x)), Math.max(0.04, scale.y), 1);
   const label = LIFT_GLYPH_FOR_ID[asset.id] ?? asset.id.replace(/^lift-ind-/, '');
   const wide = asset.id === 'lift-ind-readout';
@@ -403,7 +404,7 @@ const createLiftGlyphMesh = (
   material.emissiveTexture = texture;
   material.specularColor = BABYLON.Color3.Black();
   material.disableLighting = true;
-  material.backFaceCulling = false;
+  material.backFaceCulling = true;
   material.diffuseColor = new BABYLON.Color3(0.2, 0.22, 0.24);
   material.emissiveColor = new BABYLON.Color3(0.08, 0.09, 0.1);
   plane.material = material;
@@ -656,7 +657,8 @@ const createSupplyMesh = (
 
   const label = BABYLON.MeshBuilder.CreatePlane(`${asset.id}-label`, { width: ammo ? 0.28 : 0.16, height: ammo ? 0.1 : 0.16 }, scene);
   label.parent = root;
-  label.position.z = (ammo ? 0.15 : 0.13) + 0.004;
+  // Clear of the ammo stripe's face (0.155) so the two never share a depth (quality rule 2).
+  label.position.z = (ammo ? 0.15 : 0.13) + 0.009;
   // Plane front faces -Z. Spin it so the readable side points out of the box.
   label.rotation.y = Math.PI;
   const tex = paintSupplyLabel(scene, asset.id, (ctx) => {
@@ -684,7 +686,7 @@ const createSupplyMesh = (
   labelMat.emissiveColor = ammo ? new BABYLON.Color3(0.45, 0.32, 0.08) : new BABYLON.Color3(0.55, 0.12, 0.1);
   labelMat.specularColor = BABYLON.Color3.Black();
   labelMat.useAlphaFromDiffuseTexture = true;
-  labelMat.backFaceCulling = false;
+  labelMat.backFaceCulling = true; // never readable mirrored from inside the box (quality rule 1)
   label.material = labelMat;
   label.isPickable = false;
   label.checkCollisions = false;

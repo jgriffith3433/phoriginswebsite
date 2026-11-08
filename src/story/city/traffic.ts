@@ -99,8 +99,10 @@ export const createTraffic = (scene: BABYLON.Scene, world: CityWorld, count: num
       // Faces along x (front +x / rear -x). z spans width.
       positions.push(x, y - h, z - w, x, y - h, z + w, x, y + h, z + w, x, y + h, z - w);
       for (let i = 0; i < 4; i += 1) colors.push(c[0], c[1], c[2], 1);
-      if (nx > 0) indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
-      else indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      // Babylon's front faces are clockwise seen from the front (left-handed): a +x lamp is seen from +x looking -x,
+      // where +z is the viewer's left. These were wound the other way, so back-face culling hid every lamp (rule 3).
+      if (nx > 0) indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+      else indices.push(base, base + 2, base + 1, base, base + 3, base + 2);
     };
     for (const s of [-0.62, 0.62]) quad(2.27, 0.68, s, 1, 0.16, 0.06, [1.4, 1.35, 1.2]);
     for (const s of [-0.66, 0.66]) quad(-2.27, 0.72, s, -1, 0.17, 0.05, [1.3, 0.05, 0.03]);

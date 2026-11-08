@@ -47,7 +47,7 @@ export const createEditorViewport = (canvas: HTMLCanvasElement, callbacks: Viewp
 
   const camera = new BABYLON.UniversalCamera('editorCamera', new BABYLON.Vector3(0, 8, -22), scene);
   camera.setTarget(new BABYLON.Vector3(0, 0, 0));
-  camera.minZ = 0.05;
+  camera.minZ = 0.1; // quality rule 2: a nearer plane z-fights across the 600-1800 m far plane
   camera.maxZ = 600;
   camera.fov = 0.9;
   camera.speed = 0.6;

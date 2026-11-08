@@ -247,6 +247,9 @@
           start: function (id, options) {
             options = options || {};
             var q = new URLSearchParams({ playtest: String(id), seed: String(options.seed || 1), speed: String(options.speed || 1) });
+            // a start point and a feel replay's spot (a place the feel sensor flagged) go along to the game
+            if (options.at != null && options.at !== '') q.set('at', String(options.at));
+            if (options.spot) q.set('spot', String(options.spot));
             going = { id: String(id) };
             location.assign('./play/game.html?' + q.toString());
             return Promise.resolve();
