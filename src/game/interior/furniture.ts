@@ -68,7 +68,7 @@ export const rug = (k: Kit, minX: number, maxX: number, minZ: number, maxZ: numb
   k.g.quad([minX, y, minZ], [maxX, y, minZ], [maxX, y, maxZ], [minX, y, maxZ], [0, 1, 0], [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]]);
   k.set(IS.FABRIC, r * 0.55, g * 0.55, b * 0.55);
   const e = 0.12;
-  const y2 = y + 0.001;
+  const y2 = y + 0.003; // border over the rug: 1 mm shimmered at a distance (quality rule 2)
   for (const [a0, a1, b0, b1] of [[minX, maxX, minZ, minZ + e], [minX, maxX, maxZ - e, maxZ], [minX, minX + e, minZ, maxZ], [maxX - e, maxX, minZ, maxZ]]) {
     k.g.quad([a0, y2, b0], [a1, y2, b0], [a1, y2, b1], [a0, y2, b1], [0, 1, 0], [[a0, b0], [a1, b0], [a1, b1], [a0, b1]]);
   }

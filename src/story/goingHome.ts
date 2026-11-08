@@ -8,6 +8,7 @@ import type { Store, WalkPath } from './city/layout';
 import { pointAt } from './city/math2';
 import { createTraffic, type Traffic } from './city/traffic';
 import { createCityWorld, type CityWorld } from './city/world';
+import { CITY_NEAR } from './city/cityView';
 import { deathScream, SHOP_LINE, STREET_BARKS, STREET_SFX, STREET_TALKS, streetCopy as resolveStreet, type StreetLine } from './streetAudio';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
 
@@ -193,6 +194,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
   let traffic: Traffic | null = null;
   let stores: Store[] = [];
   let savedMaxZ = 0;
+  let savedMinZ = 0;
   let recycleWait = 0;
   let streetNoted = false;
   let chatterWait = 6;
@@ -771,6 +773,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
       stores = world.city.stores;
       savedMaxZ = host.camera.maxZ;
       host.camera.maxZ = 1800;
+      savedMinZ = host.camera.minZ;
+      host.camera.minZ = Math.max(host.camera.minZ, CITY_NEAR);
       spawnPerson('street-receptionist', 'asset-ch37-npc', 5.5, 4.55, -Math.PI / 2, 'desk');
       for (let i = 0; i < WALKERS; i += 1) {
         const spot = world.walkSpot(bootX, STREET.z, i < 4 ? 6 : 12, i < 8 ? 38 : 60);
@@ -827,7 +831,9 @@ export const createGoingHome = (host: GoingHomeHost) => {
       world = null;
       stores = [];
       if (savedMaxZ) host.camera.maxZ = savedMaxZ;
+      if (savedMinZ) host.camera.minZ = savedMinZ;
       savedMaxZ = 0;
+      savedMinZ = 0;
     },
     /** Visual floor height under a point (curbs, plazas, store floors). */
     lift: (x: number, z: number) => (world ? world.lift(x, z) : 0),

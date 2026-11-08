@@ -14,10 +14,14 @@ const OFFICE_CENTER = { x: 25, z: 23 };
 const TOWER_CENTER = { x: 0, z: 6.85 };
 const FLOOR_HEIGHT = 205;
 
+/** Near plane while a far-plane city is on screen (quality rule 2). */
+export const CITY_NEAR = 0.2;
+
 export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => {
   let world: CityWorld | null = null;
   let traffic: Traffic | null = null;
   let savedMaxZ = 0;
+  let savedMinZ = 0;
   const mobile = typeof document !== 'undefined' && document.body.dataset.device !== 'desktop';
 
   const syncSkybox = (highAltitude: boolean) => {
@@ -34,7 +38,9 @@ export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => 
     world?.dispose();
     world = null;
     if (savedMaxZ) camera.maxZ = savedMaxZ;
+    if (savedMinZ) camera.minZ = savedMinZ;
     savedMaxZ = 0;
+    savedMinZ = 0;
   };
 
   return {
@@ -61,6 +67,10 @@ export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => 
       traffic.mount(TOWER_CENTER.x, TOWER_CENTER.z + 40);
       savedMaxZ = camera.maxZ;
       camera.maxZ = Math.max(camera.maxZ, 2200);
+      // A 2.2 km far plane on a 0.12 m near plane leaves centimetres of depth precision across the city: z-fighting
+      // on distant facades (quality rule 2). A slightly further near plane buys most of it back.
+      savedMinZ = camera.minZ;
+      camera.minZ = Math.max(camera.minZ, CITY_NEAR);
       syncSkybox(true);
     },
     step: (dt: number) => {

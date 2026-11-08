@@ -16,12 +16,10 @@ export const importAssetFile = (
     capSimultaneousLights(scene);
     const imported = scene.meshes.filter((mesh) => mesh.name !== 'ground' && !mesh.name.startsWith('wall-') && !mesh.name.startsWith('enemy'));
     if (imported.length > 0) {
+      // Only top-level nodes move: a glTF file comes in under `__root__`, whose (1, 1, -1) scale converts its
+      // right-handed axes. Lifting a child out from under it mirrors the model inside out (quality rule 3).
       for (const mesh of imported) {
-        if (mesh.parent === null) {
-          mesh.parent = rootNode;
-        } else if (mesh.parent.name === 'root') {
-          mesh.parent = rootNode;
-        }
+        if (mesh.parent === null) mesh.parent = rootNode;
       }
 
       rootNode.scaling = new BABYLON.Vector3(0.7, 0.7, 0.7);
