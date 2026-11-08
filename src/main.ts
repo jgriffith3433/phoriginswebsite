@@ -55,6 +55,7 @@ import { createLostWatcher, safeSpotNear } from './game/returnToObjective';
 import { createPerfMonitor } from './game/perfMonitor';
 import { createAutoAim } from './game/autoAim';
 import { installPhPlaytest } from './playtest/phPlaytest';
+import { createFullscreen, createOrientationGuard, screenAttempts, setTestTouch } from './game/screenMode';
 import { createGameAnalytics, type GameAnalytics } from './game/analytics';
 import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSettings';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
@@ -3518,6 +3519,7 @@ startBtn.addEventListener('click', () => {
   // Retry on the error card reloads the page (its own handler in game.html).
   if (cardLeaving || chapterCard.showing() || loadFailed()) return;
   unlockAudio();
+  fullscreen.enterForPlay();
   const mode = menuMode();
   if (mode === 'level-complete') {
     lockPlayPointer();
@@ -3567,6 +3569,7 @@ const warmSounds = () => {
 };
 if (tapState) tapState.onTap = warmSounds;
 if (tapState?.tapped) warmSounds();
+const fullscreen = createFullscreen(root, () => { renderFullscreen(); });
 const tapPromptShowing = () => Boolean(tapPrompt && !tapPrompt.hidden && !tapPrompt.classList.contains('gone'));
 
 const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
@@ -3718,6 +3721,20 @@ lostHint?.addEventListener('pointerdown', (event) => {
   returnToObjective();
 });
 pauseReturnBtn?.addEventListener('click', () => returnToObjective());
+
+// Phone screen mode (src/game/screenMode.ts): a Fullscreen switch in Pause where the API exists, and the portrait prompt.
+const fullscreenBtn = document.getElementById('fullscreenBtn') as HTMLButtonElement | null;
+const renderFullscreen = () => {
+  if (!fullscreenBtn) return;
+  const on = fullscreen.active();
+  fullscreenBtn.hidden = !fullscreen.supported();
+  fullscreenBtn.setAttribute('aria-checked', String(on));
+  fullscreenBtn.textContent = `Fullscreen: ${on ? 'On' : 'Off'}`;
+  engine.resize();
+};
+fullscreenBtn?.addEventListener('click', () => fullscreen.toggle());
+renderFullscreen();
+const orientationGuard = createOrientationGuard(() => setPaused(true));
 
 settingsBtn.addEventListener('click', () => openSettings());
 document.getElementById('pauseSettingsBtn')?.addEventListener('click', () => openSettings());
@@ -4347,6 +4364,13 @@ installPhPlaytest({
     fps: Math.round(engine.getFps() * 10) / 10,
   }),
   phoneFrame: setPhoneFrame,
+  screenMode: {
+    prompt: () => ({ showing: Boolean(orientationGuard?.showing()), text: document.getElementById('turnPhone')?.textContent?.replace(/\s+/g, ' ').trim() ?? '' }),
+    asTouch: (on: boolean) => { setTestTouch(on); orientationGuard?.force(on); },
+    refresh: () => orientationGuard?.refresh(),
+    fullscreen: () => ({ supported: fullscreen.supported(), active: fullscreen.active() }),
+    attempts: () => ({ ...screenAttempts }),
+  },
   sound: () => ({
     prompt: tapPromptShowing(),
     context: audioContextState(),
