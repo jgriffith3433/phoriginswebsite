@@ -71,6 +71,14 @@ export type PhProbe = {
   counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
   phoneFrame: (on: boolean, landscape?: boolean) => void;
+  /** Phone screen mode (src/game/screenMode.ts): the portrait prompt, fullscreen. `asTouch` is setup: act as a touch device. */
+  screenMode: {
+    prompt: () => { showing: boolean; text: string };
+    asTouch: (on: boolean) => void;
+    refresh: () => void;
+    fullscreen: () => { supported: boolean; active: boolean };
+    attempts: () => { fullscreen: number; lock: number };
+  };
   /** The Lost? prompt (src/game/returnToObjective.ts): shown, seconds without progress, and a move under way. */
   lost: () => { prompt: boolean; idle: number; returning: boolean };
   /** The objective waypoint (src/game/objectiveWaypoint.ts): drawn or not, edge-clamped, its text and its box on screen. */
@@ -447,6 +455,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen.',
         seconds: 150,
         tags: ['menus'],
+      },
+      {
+        id: 'screen-mode',
+        title: 'Turn your phone sideways in portrait (dismissable), Start asks for fullscreen and the landscape lock, Pause has a Fullscreen switch, desktop is unchanged',
+        description: 'Desktop first: no portrait prompt, the Pause card has no effect on play. Then lays the page out as a 390x844 touch phone (setup): the "Turn your phone sideways" screen fills the viewport over the title card. Turns the phone to 844x390 (the screen goes), back to portrait (it returns), then taps "Play in portrait anyway" (it goes and stays away). Presses Start on the touch layout and logs whether fullscreen and the landscape lock were asked for and what the browser did (headless browsers may refuse; that is not a failure). Opens Pause, checks the Fullscreen switch is there and taps it twice.',
+        seconds: 90,
+        tags: ['menus', 'ui'],
       },
       {
         id: 'objective-marker',
@@ -1538,6 +1553,89 @@ export const installPhPlaytest = (probe: PhProbe) => {
       t.finish('done');
     };
 
+    // ---- screen-mode: the portrait prompt, fullscreen on Start, the Pause switch
+    const screenModeRun = async () => {
+      levelsTotal = 1;
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const sm = probe.screenMode;
+      const shown = () => sm.prompt().showing;
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('Title');
+      // Desktop: nothing changes.
+      if (shown()) t.problem('bug', 'the portrait prompt shows on a desktop');
+      else t.event('desktop', `no portrait prompt at ${innerWidth}x${innerHeight}`);
+
+      // Touch phone held upright.
+      probe.phoneFrame(true);
+      sm.asTouch(true);
+      await sleep(500);
+      if (!shown()) t.problem('bug', 'a touch phone held in portrait shows no "Turn your phone sideways" screen');
+      else {
+        const text = sm.prompt().text;
+        const r = byId('turnPhone')!.getBoundingClientRect();
+        if (!/Turn your phone sideways/i.test(text)) t.problem('bug', `the portrait screen says "${text}"`);
+        if (r.width < innerWidth - 1 || r.height < innerHeight - 1) t.problem('bug', 'the portrait screen does not fill the viewport');
+        if (!/Play in portrait anyway/i.test(text)) t.problem('bug', 'the portrait screen has no "Play in portrait anyway" link');
+        t.event('portrait-prompt', `shown at 390x844: ${text}`);
+      }
+      t.scene('Turn your phone sideways');
+      await sleep(800);
+      probe.phoneFrame(true, true);
+      sm.refresh();
+      await sleep(500);
+      if (shown()) t.problem('bug', 'the portrait screen stays up in landscape');
+      else t.event('landscape', 'turned sideways: the screen is gone');
+      t.scene('Title');
+      await sleep(600);
+      probe.phoneFrame(true);
+      sm.refresh();
+      await sleep(400);
+      if (!shown()) t.problem('bug', 'the portrait screen did not come back in portrait');
+      else t.event('portrait-again', 'upright again: the screen is back');
+      await tapAt(byId('turnPhoneAnyway'), 'Play in portrait anyway');
+      await sleep(300);
+      sm.refresh();
+      if (shown()) t.problem('bug', '"Play in portrait anyway" did not dismiss the screen');
+      else t.event('dismissed', 'Play in portrait anyway: the screen is gone for the session');
+      await sleep(600);
+
+      // Start on a touch device asks for fullscreen, then the landscape lock.
+      const before = sm.attempts();
+      const start = byId('startBtn');
+      let guard = 0;
+      while (probe.menu().startEnabled === false && guard++ < 600) await sleep(100);
+      await tapAt(start, 'Start');
+      await sleep(600);
+      const after = sm.attempts();
+      t.event('start-fullscreen', `Start asked for fullscreen ${after.fullscreen - before.fullscreen}x and the landscape lock ${after.lock - before.lock}x; fullscreen is ${sm.fullscreen().active ? 'on' : 'off'}`);
+      if (after.fullscreen === before.fullscreen && sm.fullscreen().supported) t.problem('bug', 'Start on a touch device did not ask for fullscreen');
+      await waitControl('level 1 to start');
+      t.scene('Level 1');
+
+      // Pause: a Fullscreen switch where the API exists.
+      await tapAt(byId('pauseBtn'), 'Pause');
+      await t.until(() => probe.sound().paused, 3000, 'Pause');
+      t.scene('Paused');
+      const btn = byId('fullscreenBtn') as HTMLButtonElement | null;
+      if (!sm.fullscreen().supported) t.event('fullscreen-api', 'this browser has no fullscreen API: the switch is hidden');
+      else if (!btn || btn.hidden) t.problem('bug', 'Pause has no Fullscreen switch though the browser can do it');
+      else {
+        t.event('fullscreen-switch', `Pause shows "${btn.textContent}"`);
+        await tapAt(btn, 'Fullscreen');
+        await sleep(800);
+        t.event('fullscreen-on', `after the tap: "${btn.textContent}", fullscreen ${sm.fullscreen().active ? 'on' : 'off'}`);
+        await tapAt(btn, 'Fullscreen');
+        await sleep(800);
+        t.event('fullscreen-off', `after the second tap: "${btn.textContent}", fullscreen ${sm.fullscreen().active ? 'on' : 'off'}`);
+      }
+      await tapAt(byId('resumeBtn'), 'Resume');
+      await t.until(() => !probe.sound().paused, 3000, 'Resume');
+      sm.asTouch(false);
+      probe.phoneFrame(false);
+      t.progress(1);
+      t.finish('done');
+    };
+
     // ---- objective-marker: the HUD waypoint over the live objective, edge clamp, hiding, clear of touch controls
     const objectiveMarkerRun = async () => {
       levelsTotal = 1;
@@ -2365,6 +2463,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
     }
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
+      return;
+    }
+    if (id === 'screen-mode') {
+      await screenModeRun();
       return;
     }
     if (id === 'objective-marker') {
