@@ -85,22 +85,19 @@ const L_MINE: Line = { id: 'dialogue.morning.mine', speaker: 'Pierce', hold: 2.2
 const L_BLOCKS: Line = { id: 'dialogue.morning.blocks', speaker: 'Pierce', hold: 4.2 };
 const L_WALKS: Line = { id: 'dialogue.morning.walks', speaker: 'Pierce', hold: 5.2 };
 
-const NEWS_CAPTIONS = [1, 2, 3, 4, 5, 6, 7].map((n) => `news.morning.${String(n).padStart(2, '0')}`);
-/** Which still each caption sits over: tower, portrait, tower, board, board, police, portrait. */
-const NEWS_STILLS = ['tower', 'portrait', 'tower', 'board', 'board', 'police', 'portrait'] as const;
+const NEWS_CAPTIONS = [1, 2, 3, 4].map((n) => `news.morning.${String(n).padStart(2, '0')}`);
+/** Which still each lower third sits over. The ticker on the set carries the rest, so the scene stays short. */
+const NEWS_STILLS = ['tower', 'portrait', 'board', 'police'] as const;
 const TICKERS = [1, 2, 3, 4].map((n) => `news.morning.tick.${n}`);
 const FALLBACK_NEWS = [
-  'Good morning. Hawkes Biomedical has a new chairman this morning, and its founder is out.',
-  'The board voted overnight to remove Pierce Hawkes as chairman.',
-  'Mr. Hawkes left a scheduled meeting at Hawkes Tower last evening and could not be reached.',
-  'Director Hale has been named interim chairman.',
-  'A second director, identified only as Voss, is reported to have supported the motion.',
-  'Police were called to Hawkes Tower last night. No one was hurt.',
-  'Pierce Hawkes, founder and, until last night, chairman of Hawkes Biomedical.',
+  'Hawkes Biomedical has removed its founder as chairman.',
+  "The board says Pierce Hawkes walked out of last night's meeting.",
+  'Director Hale is interim chairman. Voss backed the vote.',
+  'Police were at Hawkes Tower overnight. No one was hurt.',
 ];
 
 const caption = (index: number) => lineText(NEWS_CAPTIONS[index], FALLBACK_NEWS[index]);
-const holdFor = (text: string) => Math.max(3.6, text.length / 15 + 1.8);
+const holdFor = (text: string) => Math.max(3, text.length / 16 + 1.4);
 
 const mat = (scene: BABYLON.Scene, name: string, r: number, g: number, b: number, emissive = 0) => {
   const m = new BABYLON.StandardMaterial(name, scene);
@@ -420,7 +417,7 @@ export const createTheMorning = (host: MorningHost) => {
         flags.add('a');
         host.fade(1, 0);
         host.playFile('/assets/audio/train/rumble.ogg', 0.3);
-        host.showLine(lineText('text.morning.ride.title', 'The uptown 6'), lineText('text.morning.ride', 'The car keeps going after the unnamed stop. The map over the door lights one stop that was never on it.'));
+        host.showLine(lineText('text.morning.ride.title', 'The uptown 6'), lineText('text.morning.ride', 'The train runs past a stop that was never on the map.'));
       }
       if (time > 6 && !flags.has('b')) {
         flags.add('b');
@@ -440,7 +437,7 @@ export const createTheMorning = (host: MorningHost) => {
     } else {
       if (!flags.has('a')) {
         flags.add('a');
-        host.showLine(lineText('text.morning.walk.title', 'The walk up'), lineText('text.morning.walk', 'A dark street, wet and quiet. Two people cross it rather than pass him. The tower burns far off at the end of an avenue. He does not stop.'));
+        host.showLine(lineText('text.morning.walk.title', 'The walk up'), lineText('text.morning.walk', 'Two strangers cross the street rather than pass him.'));
       }
       if (time > 4 && !flags.has('b')) {
         flags.add('b');

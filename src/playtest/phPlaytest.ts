@@ -1,6 +1,7 @@
 import type * as BABYLON from '@babylonjs/core';
 import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
 import { missingClip, storyLines } from '../game/locale';
+import { STRIDE_MPS } from '../game/stride';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
 
@@ -21,6 +22,14 @@ export type PhProbe = {
   player: () => {
     x: number; y: number; z: number; yaw: number;
     health: number; clip: number; ammo: number; medkits: number; weaponDrawn: boolean;
+  };
+  /**
+   * Player physics against the clip on screen: grounded flag, vertical speed, seconds off the floor,
+   * the jump pose (null when walking/idle), smoothed ground speed, stick input, and the loop's clip and rate.
+   */
+  motion?: () => {
+    grounded: boolean; velocityY: number; airTime: number; jumpPose: number | null;
+    groundSpeed: number; moving: boolean; clip: string | null; rate: number; cinematic: boolean;
   };
   cameraYaw: () => number;
   objective: () => { target: { x: number; z: number } | null; title: string; text: string; visible: boolean };
@@ -661,6 +670,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
     let scene: { id: string; t0: number; limit: number; skipAt: number; last: number; skipped: boolean } | null = null;
     let lastPos: { x: number; z: number; y: number } | null = null;
     let fallen = false;
+    // Animation trace (quality rule 5): how long each mismatch between motion and clip has lasted.
+    const animHeld = { airOnFloor: 0, floorInAir: 0, slide: 0, idleMoving: 0 };
+    const animSeen = new Set<string>();
+    let animAt = 0;
     let levelIndex = 0;
     let levelsTotal = 1;
     let levelSteps = 0;
@@ -763,7 +776,46 @@ export const installPhPlaytest = (probe: PhProbe) => {
         }
         if (p.y > -1) fallen = false;
         lastPos = { x: p.x, z: p.z, y: p.y };
-      } else lastPos = null;
+        traceAnimation();
+      } else {
+        lastPos = null;
+        animAt = 0;
+      }
+    };
+
+    // Quality rule 5: the clip must agree with the physics. A jump pose held while standing, walking in mid-air,
+    // feet sliding (loop rate off the ground speed) or idling while moving, each for longer than a blend, is a bug.
+    const traceAnimation = () => {
+      const m = probe.motion?.();
+      const now = performance.now();
+      const dt = animAt ? Math.min(0.25, (now - animAt) / 1000) : 0;
+      animAt = now;
+      if (!m || m.cinematic || dt <= 0) return;
+      const hold = (key: keyof typeof animHeld, on: boolean, limit: number, message: () => string) => {
+        animHeld[key] = on ? animHeld[key] + dt : 0;
+        if (animHeld[key] < limit) return;
+        const tag = `${probe.level().libraryId}|${key}`;
+        t.add(`anim_${key}`);
+        if (animSeen.has(tag)) return;
+        animSeen.add(tag);
+        t.event('anim', message());
+        t.problem('bug', message());
+      };
+      const where = () => {
+        const p = probe.player();
+        return `on ${probe.level().name} at (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`;
+      };
+      hold('airOnFloor', m.grounded && m.jumpPose !== null && m.jumpPose < 3, 0.3,
+        () => `jump pose held while Pierce stands on the floor ${where()}`);
+      hold('floorInAir', !m.grounded && m.airTime > 0.3 && m.jumpPose === null, 0.2,
+        () => `Pierce walks or idles in mid-air (${m.airTime.toFixed(1)} s off the floor) ${where()}`);
+      const stride = m.clip ? STRIDE_MPS[m.clip] : undefined;
+      const want = stride && m.groundSpeed > 0.4 ? m.groundSpeed / stride : null;
+      const clamped = want !== null && (want > 2.55 || want < 0.4);
+      hold('slide', m.grounded && m.moving && want !== null && !clamped && Math.abs(m.rate - want) / want > 0.25, 0.5,
+        () => `feet slide: ${m.clip} plays at ${m.rate.toFixed(2)}x but ${m.groundSpeed.toFixed(2)} m/s needs ${want?.toFixed(2)}x ${where()}`);
+      hold('idleMoving', m.grounded && m.groundSpeed > 0.8 && m.jumpPose === null && (m.clip === 'idle' || m.clip === 'pistolidle'), 0.3,
+        () => `Pierce glides in his idle pose at ${m.groundSpeed.toFixed(1)} m/s ${where()}`);
     };
 
     // Smoke runs: no objective progress for 30 s ends the run stuck. Progress is a new objective, a scene or a

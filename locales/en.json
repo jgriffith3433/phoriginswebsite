@@ -1586,7 +1586,7 @@
       "id": "objective.lab",
       "type": "objective",
       "speaker": "Objective",
-      "text": "The halls are black past the lamps. G is the light. F opens the phone. Find the lab door.",
+      "text": "Find the lab door. G lights the dark, F opens the phone.",
       "audio": "",
       "note": "Objective lab. speaker is the short title."
     },
@@ -2284,7 +2284,7 @@
       "id": "objective.home.switch",
       "type": "objective",
       "speaker": "Switch",
-      "text": "Switch to {name} with Tab or Switch Ability, then use it on a passerby. Stay in Shadow mode.",
+      "text": "Tab switches to {name}. Use it on a passerby in Shadow mode.",
       "audio": "",
       "note": "Going Home tutorial, second ability. {name} is the other ability."
     },
@@ -5168,57 +5168,33 @@
       "id": "news.morning.01",
       "type": "text",
       "speaker": "Morning News",
-      "text": "Good morning. Hawkes Biomedical has a new chairman this morning, and its founder is out.",
+      "text": "Hawkes Biomedical has removed its founder as chairman.",
       "audio": "",
-      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+      "note": "Level 8 TV lower third, one short line per still (silent until anchor VO; public-safe: no B3, vat or creature)"
     },
     {
       "id": "news.morning.02",
       "type": "text",
       "speaker": "Morning News",
-      "text": "In a statement issued before dawn, the board said it had voted overnight to remove Pierce Hawkes as chairman, citing a breach of his duties to the board and to the company's investors.",
+      "text": "The board says Pierce Hawkes walked out of last night's meeting.",
       "audio": "",
-      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+      "note": "Level 8 TV lower third, one short line per still (silent until anchor VO; public-safe: no B3, vat or creature)"
     },
     {
       "id": "news.morning.03",
       "type": "text",
       "speaker": "Morning News",
-      "text": "The board said Mr. Hawkes left a scheduled meeting at Hawkes Tower last evening and could not be reached for the rest of the night.",
+      "text": "Director Hale is interim chairman. Voss backed the vote.",
       "audio": "",
-      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+      "note": "Level 8 TV lower third, one short line per still (silent until anchor VO; public-safe: no B3, vat or creature)"
     },
     {
       "id": "news.morning.04",
       "type": "text",
       "speaker": "Morning News",
-      "text": "Director Hale, who chaired the meeting, has been named interim chairman. She said the company is stable, and that the matters before the board are contained.",
+      "text": "Police were at Hawkes Tower overnight. No one was hurt.",
       "audio": "",
-      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
-    },
-    {
-      "id": "news.morning.05",
-      "type": "text",
-      "speaker": "Morning News",
-      "text": "A second director, identified only as Voss, is reported to have supported the motion.",
-      "audio": "",
-      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
-    },
-    {
-      "id": "news.morning.06",
-      "type": "text",
-      "speaker": "Morning News",
-      "text": "Police said they were called to Hawkes Tower last night after a report from building security. No one was hurt, and no arrests have been made.",
-      "audio": "",
-      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
-    },
-    {
-      "id": "news.morning.07",
-      "type": "text",
-      "speaker": "Morning News",
-      "text": "Pierce Hawkes, founder and, until last night, chairman of Hawkes Biomedical. We'll have more as it comes in.",
-      "audio": "",
-      "note": "Level 8 TV caption, anchor copy (silent; public-safe: no B3, vat or creature)"
+      "note": "Level 8 TV lower third, one short line per still (silent until anchor VO; public-safe: no B3, vat or creature)"
     },
     {
       "id": "news.morning.tick.1",
@@ -5368,7 +5344,7 @@
       "id": "text.morning.ride",
       "type": "text",
       "speaker": "Scene",
-      "text": "The car keeps going after the unnamed stop. The map over the door lights one stop that was never on it.",
+      "text": "The train runs past a stop that was never on the map.",
       "audio": "",
       "note": "Level 8, The Morning, beat sheet S0"
     },
@@ -5384,7 +5360,7 @@
       "id": "text.morning.walk",
       "type": "text",
       "speaker": "Scene",
-      "text": "A dark street, wet and quiet. Two people cross it rather than pass him. The tower burns far off at the end of an avenue. He does not stop.",
+      "text": "Two strangers cross the street rather than pass him.",
       "audio": "",
       "note": "Level 8, The Morning, beat sheet S1"
     },

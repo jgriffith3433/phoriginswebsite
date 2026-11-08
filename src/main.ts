@@ -11,6 +11,7 @@ import {
   type Npc,
 } from './game/npcs';
 import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
+import { createJumpPoser } from './game/jumpPose';
 import { clearImpactMarks, stampBulletMark } from './game/impacts';
 import { ITEM_CAP, addItem, createInventoryState, consumeItem, inventorySummary, itemCount, roomFor } from './game/inventory';
 import { getLevelDefinition, getLevels, getPlayableLevelCount, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
@@ -975,6 +976,7 @@ const SFX = {
   objective: '/assets/audio/sfx/objective.ogg',
   levelComplete: '/assets/audio/sfx/level-complete.ogg',
   shadowRun: '/assets/audio/sfx/street/shadow-run.ogg',
+  click: '/assets/audio/sfx/flashlight.ogg',
 } as const;
 const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-morning' ? MORNING_ENDING_TRACK : getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
 let walkLoop: ClipHandle | null = null;
@@ -1051,7 +1053,12 @@ const audio = {
   jump() { this.play(SFX.jump, 0.42); },
   draw() { this.play(SFX.draw, 0.55); },
   holster() { this.play(SFX.holster, 0.55); },
-  pickup() { this.tone(780, 0.12, 'sine', 0.06); },
+  /** Taking a supply: the magazine seating for ammo, the bag strap for a medkit (was a bare sine beep). */
+  pickup(item: InventoryItemType | 'reward' = 'reward') { this.play(item === 'medkit' ? SFX.holster : SFX.reload, 0.5); },
+  /** Already full: a dull knock, not the hurt grunt it used to borrow. */
+  refuse() { this.tone(180, 0.09, 'triangle', 0.05); },
+  /** Pressing E on a story action (bed, door, television, desk) clicks under the finger. */
+  interact() { this.play(SFX.click, 0.3); },
   start() { this.play(SFX.start, 0.7); },
   win() {
     stopEndingSong();
@@ -2781,9 +2788,17 @@ const keepInsideFloors = (before: { x: number; z: number }) => {
   playerCollider.position.set(before.x, state.player.y, before.z);
 };
 
+/** Smoothed horizontal speed the walk loop matches, so the planted foot stays planted. */
+let groundSpeed = 0;
+const jumpPose = createJumpPoser();
+/** Last pose and input the avatar was given, for the playtest probe. */
+let lastJumpPose: number | null = null;
+let lastMoving = false;
+
 const updatePlayer = (delta: number) => {
   if (levelSealed()) {
     holdSealedPlayer(delta);
+    playerAvatar.setStride(null);
     return { moving: false, moveHeading: null };
   }
   tickShadowRun(delta);
@@ -2842,6 +2857,7 @@ const updatePlayer = (delta: number) => {
   moveZ += -state.movementVector.y;
 
   const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
+  const strideFrom = { x: state.player.x, z: state.player.z };
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
     const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
@@ -2903,11 +2919,18 @@ const updatePlayer = (delta: number) => {
     1 - Math.exp(-(followCamera.isLooking() ? 22 : 24) * Math.min(delta, 0.05)),
   );
 
-  const jumpAnim = !state.player.grounded || state.player.jumpWindup > 0;
+  const travelled = Math.hypot(state.player.x - strideFrom.x, state.player.z - strideFrom.z);
+  const instantSpeed = travelled / Math.max(1e-3, Math.min(delta, MAX_MOVE_FRAME));
+  groundSpeed += (instantSpeed - groundSpeed) * (1 - Math.exp(-12 * Math.min(delta, 0.1)));
+  const pose = shadowFlying ? jumpPose.reset() : jumpPose.step(state.player, delta, moving);
+  const jumpAnim = pose !== null;
   const sprinting = moving && shadowRunActive();
   playerAvatar.setSprinting(sprinting);
   playerAvatar.setLocomotion(moving, shadowFlying ? true : !jumpAnim);
-  playerAvatar.setPace(1);
+  playerAvatar.setJumpPose(pose);
+  lastJumpPose = pose;
+  lastMoving = moving;
+  playerAvatar.setStride(moving && !jumpAnim ? groundSpeed : null);
   audio.setWalk(
     moving
     && !jumpAnim
@@ -2972,12 +2995,12 @@ const takeSupply = (pickup: (typeof pickups)[number]) => {
   const taken = addItem(state.inventory, pickup.item, pickup.amount);
   if (taken <= 0) {
     showReloadNote(`${SUPPLY_LABEL[pickup.item]} full`);
-    audio.hit();
+    audio.refuse();
     return;
   }
   pickup.active = false;
   pickup.mesh.setEnabled(false);
-  audio.pickup();
+  audio.pickup(pickup.item);
   actionPulse('pickup');
   updateHud();
 };
@@ -3045,6 +3068,7 @@ const storyAction = (): string | null => {
 const confirmStoryAction = () => {
   if (!storyAction()) return false;
   unlockAudio();
+  audio.interact();
   if (pendingEnd) {
     presentLevelEnd();
     syncActionHint();
@@ -4370,6 +4394,15 @@ installPhPlaytest({
     ammo: itemCount(state.inventory, 'ammo'),
     medkits: itemCount(state.inventory, 'medkit'),
     weaponDrawn: state.player.weaponDrawn,
+  }),
+  motion: () => ({
+    grounded: state.player.grounded,
+    velocityY: state.player.velocityY,
+    airTime: jumpPose.airTime(),
+    jumpPose: lastJumpPose,
+    groundSpeed,
+    moving: lastMoving,
+    ...playerAvatar.locomotion(),
   }),
   cameraYaw: () => followCamera.getYaw(),
   objective: () => {
