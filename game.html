@@ -754,6 +754,15 @@
       .objective-waypoint.edge .waypoint-arrow { display: block; }
       .objective-waypoint.edge .waypoint-diamond { transform: rotate(45deg) scale(0.65); }
       body:has(.message:not(.hidden)) .objective-waypoint { visibility: hidden; }
+      /* Phone: a bigger label that hangs to the left of the diamond, away from the hotkey column. */
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name,
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-dist { font-size: 14px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-label {
+        background: rgba(10, 16, 22, 0.82);
+        max-width: 160px;
+        transform: translateX(-70%);
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name { max-width: 144px; }
 
       .alarm-flash {
         position: absolute;
