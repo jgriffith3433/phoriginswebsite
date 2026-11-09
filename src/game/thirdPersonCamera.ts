@@ -412,6 +412,23 @@ export const createThirdPersonCamera = (
       smoothedPos.z += pushOut.z;
     }
 
+    // Last guard: the boom starts at the damped pivot, which trails the body round a
+    // hall corner, so the lens can swing behind the corner while the body is in the
+    // next hall. Cast from the body's real eye to the lens and stop short of any wall
+    // between them. Runs after the shove so nothing can push the lens back through.
+    probeOrigin.set(player.x, playerMeshY(player.y) + 1.5, player.z);
+    offsetDir.copyFrom(smoothedPos).subtractInPlace(probeOrigin);
+    const eyeSpan = offsetDir.length();
+    if (eyeSpan > 0.3) {
+      offsetDir.scaleInPlace(1 / eyeSpan);
+      const eyeHit = pickAlong(probeOrigin, offsetDir, eyeSpan, ignore);
+      if (eyeHit?.hit && typeof eyeHit.distance === 'number') {
+        const stop = Math.max(0.3, eyeHit.distance - cfg.collisionRadius);
+        smoothedPos.copyFrom(probeOrigin).addInPlace(offsetDir.scale(Math.min(stop, eyeSpan)));
+        currentDistance = Math.min(currentDistance, Math.max(cfg.minDistance, stop));
+      }
+    }
+
     camera.position.copyFrom(smoothedPos);
     camera.setTarget(lookAt);
     camera.upVector.set(0, 1, 0);
