@@ -2108,9 +2108,14 @@ act = createAct1({
   leaveHead: leavePlayerAtHeadChair,
   beginCutscene: beginNamedCutscene,
   ringCall: (id) => {
-    clearHands();
-    phone.ring(id);
-    updateHud();
+    const ring = () => {
+      clearHands();
+      phone.ring(id);
+      updateHud();
+    };
+    // The opening call must not connect over the black start veil (a blank frame behind the call card).
+    if (id === 'voss-late') screenFade.whenClear(ring);
+    else ring();
   },
   pushPhoneText: (id) => {
     phone.pushText(id);
