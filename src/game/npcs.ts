@@ -161,9 +161,15 @@ export const startBoardDeparture = (npcs: Npc[], sceneData: SceneData) => {
     npc.standing = false;
     npc.departDelay = index * 0.38;
     npc.waypointIndex = 0;
-    const z = npc.mesh.position.z;
+    const { x, z } = npc.mesh.position;
+    // Step out beside the chair, then walk the aisle outside the row of seats.
+    // A straight line west along the seat's own z went through the seated
+    // neighbours and their chairs.
+    const aisleZ = z < door.z ? z - 1.5 : z + 1.5;
     npc.waypoints = [
-      new BABYLON.Vector3(37.4, PLAYER_STAND_Y, z),
+      new BABYLON.Vector3(x - 1.1, PLAYER_STAND_Y, z),
+      new BABYLON.Vector3(x - 1.1, PLAYER_STAND_Y, aisleZ),
+      new BABYLON.Vector3(37.4, PLAYER_STAND_Y, aisleZ),
       new BABYLON.Vector3(door.x, PLAYER_STAND_Y, door.z),
       new BABYLON.Vector3(exit.x, PLAYER_STAND_Y, exit.z),
     ];
