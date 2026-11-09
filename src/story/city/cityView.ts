@@ -17,6 +17,9 @@ const FLOOR_HEIGHT = 205;
 /** Near plane while a far-plane city is on screen (quality rule 2). */
 export const CITY_NEAR = 0.2;
 
+/** Skybox brightness behind the office windows. */
+const SKY_LEVEL = 2.6;
+
 export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => {
   let world: CityWorld | null = null;
   let traffic: Traffic | null = null;
@@ -29,6 +32,11 @@ export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => 
     if (!sky) return;
     const drop = highAltitude && scene.activeCamera?.name !== 'menuCamera' ? -20 : 0;
     if (sky.position.y !== drop) sky.position.y = drop;
+    // Seen through the 58th-floor windows the night sky grades to pure black (a void behind the hall's far end and the
+    // boardroom's back wall). Lift the cube so the navy sky and skyline read; the street keeps its own level.
+    const cube = (sky.material as BABYLON.StandardMaterial | null)?.reflectionTexture;
+    const level = highAltitude ? SKY_LEVEL : 1;
+    if (cube && cube.level !== level) cube.level = level;
   };
 
   const dispose = () => {
