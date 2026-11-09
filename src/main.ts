@@ -419,11 +419,31 @@ let analytics: GameAnalytics | undefined;
 const waitAvatarReady = (avatar: PlayerAvatar) =>
   new Promise<void>((resolve) => avatar.whenReady(resolve));
 
-/** Hold black for a second, then fade clear over 1.5s. */
+/** Longest the veil waits for the scene's shaders (a slow GPU compiles for seconds; past this we reveal anyway). */
+const REVEAL_READY_MAX_MS = 8000;
+
+/**
+ * Hold black for a second, then fade clear over 1.5s. The veil also waits until every mesh's shader is compiled:
+ * Babylon skips a mesh whose effect is not ready, so lifting the veil early shows a pure black frame (clear colour)
+ * until the compile ends, and the opening call rings over it.
+ */
 const revealFromBlack = (alive: () => boolean) => {
-  window.setTimeout(() => {
+  let held = false;
+  let shown = false;
+  const show = () => {
+    if (shown) return;
+    shown = true;
     if (alive()) screenFade.to(0, 1.5);
+  };
+  window.setTimeout(() => {
+    held = true;
+    if (scene.isReady()) show();
   }, 1000);
+  // Ready before the hold ends: the timer above reveals. Ready after: this does.
+  scene.executeWhenReady(() => {
+    if (held) show();
+  });
+  window.setTimeout(show, REVEAL_READY_MAX_MS);
 };
 
 const waitFrames = (count: number) =>
