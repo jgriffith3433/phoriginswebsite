@@ -88,6 +88,7 @@ export const createThirdPersonCamera = (
   let yaw = 0;
   let pitch = 0.1;
   let cinematicPos: BABYLON.Vector3 | null = null;
+  let cinematicFresh = false;
   let cinematicLook: BABYLON.Vector3 | null = null;
   let desiredDistance = cfg.distance;
   let currentDistance = cfg.distance;
@@ -274,6 +275,16 @@ export const createThirdPersonCamera = (
   ) => {
     const clampedDt = Math.min(dt, 0.05);
     if (cinematicPos && cinematicLook) {
+      if (cinematicFresh) {
+        cinematicFresh = false;
+        // The first shot of a scene: if the straight flight from the follow camera to it runs through a wall,
+        // table or ceiling, cut there instead. Gliding through them shows the inside of geometry (a black frame).
+        const dist = BABYLON.Vector3.Distance(camera.position, cinematicPos);
+        if (dist > 0.5 && collideDistance(camera.position, cinematicPos, new Set(ignoreMeshes)) < dist - 0.05) {
+          camera.position.copyFrom(cinematicPos);
+          lookAt.copyFrom(cinematicLook);
+        }
+      }
       camera.position.x = expDamp(camera.position.x, cinematicPos.x, 4.2, clampedDt);
       camera.position.y = expDamp(camera.position.y, cinematicPos.y, 4.2, clampedDt);
       camera.position.z = expDamp(camera.position.z, cinematicPos.z, 4.2, clampedDt);
@@ -448,6 +459,7 @@ export const createThirdPersonCamera = (
   reset();
 
   const setCinematic = (position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }) => {
+    if (!cinematicPos) cinematicFresh = true;
     cinematicPos = new BABYLON.Vector3(position.x, position.y, position.z);
     cinematicLook = new BABYLON.Vector3(target.x, target.y, target.z);
   };
