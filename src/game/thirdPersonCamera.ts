@@ -236,7 +236,11 @@ export const createThirdPersonCamera = (
     // Two collision radii: a plaster wall 0.4 m off a lens that is turned a little toward it
     // still fills a third of the frame (reads as the camera pressed into the wall), so keep
     // clear of it by more than the near plane's reach.
-    const reach = Math.max(cfg.collisionRadius * 2, cfg.minZ * 3);
+    // A camera trailing Pierce along a hall wall at ~0.8 m put each passing door frame
+    // (casing and slab, proud of the plaster) a metre from the lens, filling a third of
+    // the view and reading as a door cutting through the wall. 2.6 radii (0.88 m) keeps
+    // doors at a distance; the shove grows from zero with the gap, so it never snaps.
+    const reach = Math.max(cfg.collisionRadius * 2.6, cfg.minZ * 3);
     pushOut.set(0, 0, 0);
     let any = false;
     for (let i = 0; i < FEEL_DIRS; i++) {
