@@ -1728,7 +1728,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       levelsTotal = 1;
       const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
       const hit = (a: { left: number; top: number; right: number; bottom: number }, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-      const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls button, .left-stick-zone, .right-stick-zone, #pauseBtn, #phoneBtn, .ability-readout, .inventory-hud')]
+      const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls button, .left-stick-zone, .right-stick-zone, #pauseBtn, #phoneBtn, .ability-readout, .inventory-hud, .missions-hud, .missions-panel')]
         .filter((el) => !el.hidden && getComputedStyle(el).visibility !== 'hidden' && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width > 0);
       const seenBad = new Set<string>();
       /** The box is on screen and over none of the controls. */
@@ -1797,6 +1797,19 @@ export const installPhPlaytest = (probe: PhProbe) => {
           dragLook(20);
           await frame();
           checkBox(vp, mobile);
+        }
+        // With the Missions panel open the label must stay clear of it too (it covers the centre on a phone).
+        if (mobile) {
+          await tapAt(byId('missionsHint'), 'Missions');
+          await sleep(300);
+          for (let i = 0; i < 40; i++) {
+            dragLook(20);
+            await frame();
+            checkBox(`${vp} (Missions open)`, mobile);
+          }
+          t.event('waypoint-missions', `${vp}: swept the camera with Missions open`);
+          await tapAt(byId('missionsClose'), 'Close missions');
+          await sleep(300);
         }
         // Pause hides it.
         await tapAt(byId('pauseBtn'), 'Pause');
@@ -2750,6 +2763,15 @@ export const installPhPlaytest = (probe: PhProbe) => {
               const other = rect(sel);
               if (other && hit(panel, other)) t.problem('bug', `the open Inventory panel overlaps the ${name} (panel ${Math.round(panel.left)},${Math.round(panel.top)}-${Math.round(panel.right)},${Math.round(panel.bottom)}; ${name} ${Math.round(other.left)},${Math.round(other.top)}-${Math.round(other.right)},${Math.round(other.bottom)})`);
             }
+            // the Q/G/H/F stack must not be pushed up over the health bar or the pause button
+            const health = rect('#healthBar');
+            for (const id of ['sidearmHint', 'abilityHint', 'shadowHint', 'lightHint', 'medkitHint', 'phoneHint']) {
+              const hint = rect('#' + id);
+              if (!hint) continue;
+              for (const [name, other] of [['health bar', health], ['pause button', rect('#pauseBtn')]] as const) {
+                if (other && hit(hint, other)) t.problem('bug', `with Inventory open the ${id} button sits on the ${name}`);
+              }
+            }
           }
           await sleep(2500);
           await tap('i', 'Inventory');
@@ -3215,6 +3237,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       if (r.width < innerWidth - 1 || r.height < innerHeight - 1) t.problem('bug', `the Tap to play prompt does not fill the screen ${where} (${Math.round(r.width)}x${Math.round(r.height)} of ${innerWidth}x${innerHeight})`);
       t.event('prompt-shown', `${where}, ${innerWidth}x${innerHeight} ${innerWidth > innerHeight ? 'landscape' : 'portrait'}`);
     };
+    const prompt0Text = () => byId('tapToPlay')?.firstElementChild as HTMLElement | null;
     const checkRunning = async (where: string) => {
       try {
         await t.until(() => probe.sound().context === 'running', 5000, 'the AudioContext to run');
@@ -3238,6 +3261,12 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await sleep(1200);
       await tapToPlay();
       await checkRunning('after the first tap');
+      // The splash text must not ghost over the title card's rows while the splash fades out.
+      await sleep(60);
+      const splashText = prompt0Text();
+      if (splashText && Number(getComputedStyle(splashText).opacity) > 0.05) {
+        t.problem('bug', 'the Tap to play splash text is still visible over the title card after the tap');
+      } else t.event('splash-text-gone', 'text hidden while the splash backdrop fades');
       t.progress(0.15);
 
       t.scene('Title');

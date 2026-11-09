@@ -558,7 +558,7 @@
       "kind": "texture",
       "name": "World Hologram",
       "x": 44.2,
-      "y": 1.55,
+      "y": 1.6,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1160,7 +1160,7 @@
       "name": "Elevator Floor Panel",
       "x": 44,
       "y": 2.68,
-      "z": 23.52,
+      "z": 23.86,
       "scale": {
         "x": 1.86,
         "y": 0.58,
@@ -1177,7 +1177,7 @@
       "name": "Floor Readout",
       "x": 44.18,
       "y": 2.78,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.78,
         "y": 0.24,
@@ -1194,7 +1194,7 @@
       "name": "Elevator Down Arrow",
       "x": 43.28,
       "y": 2.78,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.24,
@@ -1211,7 +1211,7 @@
       "name": "Floor 58",
       "x": 43.42,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1228,7 +1228,7 @@
       "name": "Floor 40",
       "x": 43.64,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1245,7 +1245,7 @@
       "name": "Floor 20",
       "x": 43.86,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1262,7 +1262,7 @@
       "name": "Floor L",
       "x": 44.08,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1279,7 +1279,7 @@
       "name": "Floor B1",
       "x": 44.3,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1296,7 +1296,7 @@
       "name": "Floor B2",
       "x": 44.52,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1313,7 +1313,7 @@
       "name": "Floor B3",
       "x": 44.74,
       "y": 2.48,
-      "z": 23.44,
+      "z": 23.81,
       "scale": {
         "x": 0.16,
         "y": 0.12,
@@ -1396,6 +1396,18 @@
       ]
     },
     {
+      "id": "light-h2-c",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Hall 2 Light C",
+      "x": 32,
+      "y": 3.05,
+      "z": 32,
+      "components": [
+        "Light"
+      ]
+    },
+    {
       "id": "light-board",
       "assetId": "asset-lantern-light",
       "kind": "light",
@@ -1470,7 +1482,7 @@
       "kind": "model",
       "name": "Hall 1 Light A Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 6,
       "rotation": {
         "x": 0,
@@ -1492,7 +1504,7 @@
       "kind": "model",
       "name": "Hall 1 Light B Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 16,
       "rotation": {
         "x": 0,
@@ -1514,7 +1526,7 @@
       "kind": "model",
       "name": "Hall 1 Light C Fixture",
       "x": 0,
-      "y": 3.05,
+      "y": 3.099,
       "z": 26,
       "rotation": {
         "x": 0,
@@ -1536,7 +1548,7 @@
       "kind": "model",
       "name": "Hall 2 Light A Fixture",
       "x": 12,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1558,7 +1570,29 @@
       "kind": "model",
       "name": "Hall 2 Light B Fixture",
       "x": 24,
-      "y": 3.05,
+      "y": 3.109,
+      "z": 32,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h2-c",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall 2 Light C Fixture",
+      "x": 32,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1580,7 +1614,7 @@
       "kind": "model",
       "name": "Boardroom Light Fixture",
       "x": 44.2,
-      "y": 3.05,
+      "y": 3.109,
       "z": 32,
       "rotation": {
         "x": 0,
@@ -1602,7 +1636,7 @@
       "kind": "model",
       "name": "Office Light Fixture",
       "x": 48,
-      "y": 3.05,
+      "y": 3.109,
       "z": 43.5,
       "rotation": {
         "x": 0,
@@ -1842,7 +1876,7 @@
       "assetId": "asset-office-door",
       "kind": "model",
       "name": "Hall Door W1",
-      "x": -2.125,
+      "x": -2.17,
       "y": 0,
       "z": 8,
       "rotation": {
@@ -1853,7 +1887,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -1864,7 +1898,7 @@
       "assetId": "asset-office-door",
       "kind": "model",
       "name": "Hall Door W2",
-      "x": -2.125,
+      "x": -2.17,
       "y": 0,
       "z": 18,
       "rotation": {
@@ -1875,7 +1909,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -1886,7 +1920,7 @@
       "assetId": "asset-office-door",
       "kind": "model",
       "name": "Hall Door W3",
-      "x": -2.13,
+      "x": -2.175,
       "y": 0,
       "z": 26,
       "rotation": {
@@ -1897,7 +1931,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -1913,7 +1947,7 @@
       "assetId": "asset-office-door",
       "kind": "model",
       "name": "Hall Door E1",
-      "x": 2.125,
+      "x": 2.17,
       "y": 0,
       "z": 6,
       "rotation": {
@@ -1924,7 +1958,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -1935,7 +1969,7 @@
       "assetId": "asset-office-door",
       "kind": "model",
       "name": "Hall Door E2",
-      "x": 2.125,
+      "x": 2.17,
       "y": 0,
       "z": 14,
       "rotation": {
@@ -1946,7 +1980,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -1957,7 +1991,7 @@
       "assetId": "asset-office-door",
       "kind": "model",
       "name": "Hall Door E3",
-      "x": 2.125,
+      "x": 2.17,
       "y": 0,
       "z": 22,
       "rotation": {
@@ -1968,7 +2002,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -1981,7 +2015,7 @@
       "name": "Hall Door S1",
       "x": 6,
       "y": 0,
-      "z": 29.875,
+      "z": 29.83,
       "rotation": {
         "x": 0,
         "y": 3.141592653589793,
@@ -1990,7 +2024,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -2003,7 +2037,7 @@
       "name": "Hall Door S2",
       "x": 14,
       "y": 0,
-      "z": 29.875,
+      "z": 29.83,
       "rotation": {
         "x": 0,
         "y": 3.141592653589793,
@@ -2012,7 +2046,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -2025,7 +2059,7 @@
       "name": "Hall Door S3",
       "x": 22,
       "y": 0,
-      "z": 29.875,
+      "z": 29.83,
       "rotation": {
         "x": 0,
         "y": 3.141592653589793,
@@ -2034,7 +2068,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -2047,7 +2081,7 @@
       "name": "Hall Door S4",
       "x": 30,
       "y": 0,
-      "z": 29.875,
+      "z": 29.83,
       "rotation": {
         "x": 0,
         "y": 3.141592653589793,
@@ -2056,7 +2090,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -2069,7 +2103,7 @@
       "name": "Hall Door N1",
       "x": 8,
       "y": 0,
-      "z": 34.19,
+      "z": 34.235,
       "rotation": {
         "x": 0,
         "y": 0,
@@ -2078,7 +2112,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -2091,7 +2125,7 @@
       "name": "Hall Door N2",
       "x": 16,
       "y": 0,
-      "z": 34.19,
+      "z": 34.235,
       "rotation": {
         "x": 0,
         "y": 0,
@@ -2100,7 +2134,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -2113,7 +2147,7 @@
       "name": "Hall Door N3",
       "x": 24,
       "y": 0,
-      "z": 34.19,
+      "z": 34.235,
       "rotation": {
         "x": 0,
         "y": 0,
@@ -2122,7 +2156,7 @@
       "scale": {
         "x": 1,
         "y": 1,
-        "z": 1
+        "z": 0.4
       },
       "components": [
         "Transform"
@@ -2336,7 +2370,7 @@
       "assetId": "asset-office-chair",
       "kind": "model",
       "name": "Waiting Chair A",
-      "x": 25.6,
+      "x": 27.2,
       "y": 0,
       "z": 30.4,
       "rotation": {
@@ -2358,7 +2392,7 @@
       "assetId": "asset-office-chair",
       "kind": "model",
       "name": "Waiting Chair B",
-      "x": 26.4,
+      "x": 28.0,
       "y": 0,
       "z": 30.4,
       "rotation": {
@@ -3578,7 +3612,7 @@
       "assetId": "structure-pillar",
       "kind": "pillar",
       "name": "Faucet Spout 1",
-      "x": 20.05,
+      "x": 20.095,
       "y": 1,
       "z": 27.78,
       "rotation": {
@@ -3601,7 +3635,7 @@
       "assetId": "structure-pillar",
       "kind": "pillar",
       "name": "Faucet Spout 2",
-      "x": 20.05,
+      "x": 20.095,
       "y": 1,
       "z": 28.52,
       "rotation": {
@@ -3841,7 +3875,8 @@
       "z": -4.531632423400879,
       "data": {
         "radius": 100,
-        "audio": "/assets/audio/room-tone.mp3",
+        "audio": "/assets/audio/ambient/office-night.ogg",
+        "fallback": "/assets/audio/room-tone.mp3",
         "loop": true,
         "fadeSeconds": 2,
         "volume": 0.14

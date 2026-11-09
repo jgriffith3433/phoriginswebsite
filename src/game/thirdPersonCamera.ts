@@ -88,6 +88,7 @@ export const createThirdPersonCamera = (
   let yaw = 0;
   let pitch = 0.1;
   let cinematicPos: BABYLON.Vector3 | null = null;
+  let cinematicFresh = false;
   let cinematicLook: BABYLON.Vector3 | null = null;
   let desiredDistance = cfg.distance;
   let currentDistance = cfg.distance;
@@ -101,6 +102,8 @@ export const createThirdPersonCamera = (
   let shoulderTarget = 0;
   let shoulderMix = 0;
   let toolClose = false;
+  /** How far the boom was squeezed by geometry last frame: 0 free, 1 on the minimum distance. */
+  let squeeze = 0;
 
   const pivot = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
   const lookAt = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
@@ -145,6 +148,7 @@ export const createThirdPersonCamera = (
     shoulderTarget = 0;
     shoulderMix = 0;
     toolClose = false;
+    squeeze = 0;
     callTarget = 0;
     callMix = 0;
     pivot.set(0, cfg.pivotHeight, 0);
@@ -156,11 +160,11 @@ export const createThirdPersonCamera = (
 
   const isLooking = () => lookInputTimer > 0 || Math.hypot(lookStickX, lookStickY) > 0.08;
 
-  const desiredOffset = (distance: number, into: BABYLON.Vector3) => {
-    const cosPitch = Math.cos(pitch);
+  const desiredOffset = (distance: number, into: BABYLON.Vector3, usePitch = pitch) => {
+    const cosPitch = Math.cos(usePitch);
     into.set(
       -Math.sin(yaw) * cosPitch * distance,
-      cfg.height + Math.sin(pitch) * distance,
+      cfg.height + Math.sin(usePitch) * distance,
       -Math.cos(yaw) * cosPitch * distance,
     );
     return into;
@@ -195,11 +199,58 @@ export const createThirdPersonCamera = (
     offsetDir.scaleInPlace(1 / maxDist);
     const skin = Math.min(0.45, maxDist * 0.2);
     probeOrigin.copyFrom(origin).addInPlace(offsetDir.scale(skin));
-    const hit = pickAlong(probeOrigin, offsetDir, Math.max(0.01, maxDist - skin), ignore);
+    const rayLen = Math.max(0.01, maxDist - skin);
+    let best = maxDist;
+    const hit = pickAlong(probeOrigin, offsetDir, rayLen, ignore);
     if (hit?.hit && typeof hit.distance === 'number') {
-      return clampValue(hit.distance + skin - cfg.collisionRadius, cfg.minDistance, maxDist);
+      best = clampValue(hit.distance + skin - cfg.collisionRadius, cfg.minDistance, maxDist);
     }
-    return maxDist;
+    // The boom is a line, the lens is not: a door jamb or wall end that stands
+    // beside the line (hall doorways) can still fill the view. Probe two parallel
+    // rays to either side so the camera stops short of anything within its radius.
+    const sideX = -offsetDir.z;
+    const sideZ = offsetDir.x;
+    const sideLen = Math.hypot(sideX, sideZ);
+    if (sideLen > 0.01) {
+      const r = cfg.collisionRadius * 0.85;
+      const ox = (sideX / sideLen) * r;
+      const oz = (sideZ / sideLen) * r;
+      for (const sign of [1, -1]) {
+        probeOrigin.copyFrom(origin).addInPlace(offsetDir.scale(skin));
+        probeOrigin.x += ox * sign;
+        probeOrigin.z += oz * sign;
+        const side = pickAlong(probeOrigin, offsetDir, rayLen, ignore);
+        if (side?.hit && typeof side.distance === 'number') {
+          best = Math.min(best, clampValue(side.distance + skin - 0.05, cfg.minDistance, maxDist));
+        }
+      }
+    }
+    return best;
+  };
+
+  const pushOut = new BABYLON.Vector3();
+  const feelDir = new BABYLON.Vector3();
+  const FEEL_DIRS = 8;
+  /** Fills pushOut with the horizontal shove that keeps `pos` a lens-width off nearby walls. */
+  const clearancePush = (pos: BABYLON.Vector3, ignore: Set<BABYLON.AbstractMesh>) => {
+    const reach = Math.max(cfg.collisionRadius, cfg.minZ * 3);
+    pushOut.set(0, 0, 0);
+    let any = false;
+    for (let i = 0; i < FEEL_DIRS; i++) {
+      const a = (i / FEEL_DIRS) * Math.PI * 2;
+      feelDir.set(Math.sin(a), 0, Math.cos(a));
+      const hit = pickAlong(pos, feelDir, reach, ignore);
+      if (hit?.hit && typeof hit.distance === 'number' && hit.distance < reach) {
+        const push = reach - hit.distance;
+        pushOut.x -= feelDir.x * push;
+        pushOut.z -= feelDir.z * push;
+        any = true;
+      }
+    }
+    // Opposite walls (a narrow gap) cancel out; cap the move so it never throws the lens far.
+    const len = Math.hypot(pushOut.x, pushOut.z);
+    if (len > reach) pushOut.scaleInPlace(reach / len);
+    return any;
   };
 
   /** World Y of the first ceiling/overhang above a point; boom rays barely change Y under a flat slab. */
@@ -227,6 +278,16 @@ export const createThirdPersonCamera = (
   ) => {
     const clampedDt = Math.min(dt, 0.05);
     if (cinematicPos && cinematicLook) {
+      if (cinematicFresh) {
+        cinematicFresh = false;
+        // The first shot of a scene: if the straight flight from the follow camera to it runs through a wall,
+        // table or ceiling, cut there instead. Gliding through them shows the inside of geometry (a black frame).
+        const dist = BABYLON.Vector3.Distance(camera.position, cinematicPos);
+        if (dist > 0.5 && collideDistance(camera.position, cinematicPos, new Set(ignoreMeshes)) < dist - 0.05) {
+          camera.position.copyFrom(cinematicPos);
+          lookAt.copyFrom(cinematicLook);
+        }
+      }
       camera.position.x = expDamp(camera.position.x, cinematicPos.x, 4.2, clampedDt);
       camera.position.y = expDamp(camera.position.y, cinematicPos.y, 4.2, clampedDt);
       camera.position.z = expDamp(camera.position.z, cinematicPos.z, 4.2, clampedDt);
@@ -252,7 +313,12 @@ export const createThirdPersonCamera = (
 
     if (cfg.enableMoveRecenter && moving && moveHeading !== null && !isLooking() && !holdAim) {
       recenterIdle += clampedDt;
-      if (recenterIdle >= cfg.recenterDelay) {
+      if (squeeze > 0.35) {
+        // Rounding a hall corner the boom points into the wall behind him and would sit
+        // on his collar. Swing behind him now, in proportion to how squeezed it is,
+        // instead of waiting out the usual recenter delay.
+        yaw = dampAngle(yaw, moveHeading, cfg.recenterStiffness + squeeze * 9, clampedDt);
+      } else if (recenterIdle >= cfg.recenterDelay) {
         yaw = dampAngle(yaw, moveHeading, cfg.recenterStiffness, clampedDt);
       }
     } else {
@@ -280,8 +346,6 @@ export const createThirdPersonCamera = (
     desiredOffset(aimDistance, desiredPos);
     desiredPos.addInPlace(pivot);
 
-    let blocked = collideDistance(pivot, desiredPos, ignore);
-
     const midX = (pivot.x + desiredPos.x) * 0.5;
     const midZ = (pivot.z + desiredPos.z) * 0.5;
     const ceilingY = Math.min(
@@ -290,7 +354,20 @@ export const createThirdPersonCamera = (
       ceilingWorldY(midX, pivot.y, midZ, ignore),
     );
     const maxCamY = ceilingY - ceilingClearance;
-    const pitchLift = Math.sin(pitch);
+    // Under a low ceiling, look-up pitch used to shorten the boom until the lens sat on
+    // the character's back. Slide the lens down the ceiling instead: lower the effective
+    // pitch so the camera keeps its distance and only drops lower behind him.
+    let effPitch = pitch;
+    if (Number.isFinite(maxCamY) && Math.sin(pitch) > 0.02) {
+      const capSin = (maxCamY - pivot.y - cfg.height) / aimDistance;
+      if (capSin < Math.sin(pitch)) effPitch = Math.asin(clampValue(capSin, 0, 1));
+      desiredOffset(aimDistance, desiredPos, effPitch);
+      desiredPos.addInPlace(pivot);
+    }
+
+    let blocked = collideDistance(pivot, desiredPos, ignore);
+
+    const pitchLift = Math.sin(effPitch);
     if (Number.isFinite(maxCamY) && pitchLift > 0.02) {
       const maxDistY = (maxCamY - pivot.y - cfg.height) / pitchLift;
       if (maxDistY < blocked) {
@@ -300,8 +377,9 @@ export const createThirdPersonCamera = (
 
     const stiffness = blocked < currentDistance - 0.02 ? cfg.collisionInStiffness : cfg.collisionOutStiffness;
     currentDistance = expDamp(currentDistance, Math.min(aimDistance, blocked), stiffness, clampedDt);
+    squeeze = clampValue((aimDistance * 0.7 - blocked) / Math.max(0.1, aimDistance * 0.7 - cfg.minDistance), 0, 1);
 
-    desiredOffset(currentDistance, smoothedPos);
+    desiredOffset(currentDistance, smoothedPos, effPitch);
     smoothedPos.addInPlace(pivot);
     if (smoothedPos.y > maxCamY) smoothedPos.y = maxCamY;
 
@@ -356,6 +434,32 @@ export const createThirdPersonCamera = (
     const minCamY = floorY + ceilingClearance;
     if (smoothedPos.y < minCamY) smoothedPos.y = minCamY;
 
+    // The boom is a line, so a camera that runs parallel to a wall (a hall corner, a
+    // doorway jamb) can still sit against it with the wall filling the lens. Feel
+    // outward from the final position in the horizontal plane and step off anything
+    // closer than the near-plane's reach.
+    if (clearancePush(smoothedPos, ignore)) {
+      smoothedPos.x += pushOut.x;
+      smoothedPos.z += pushOut.z;
+    }
+
+    // Last guard: the boom starts at the damped pivot, which trails the body round a
+    // hall corner, so the lens can swing behind the corner while the body is in the
+    // next hall. Cast from the body's real eye to the lens and stop short of any wall
+    // between them. Runs after the shove so nothing can push the lens back through.
+    probeOrigin.set(player.x, playerMeshY(player.y) + 1.5, player.z);
+    offsetDir.copyFrom(smoothedPos).subtractInPlace(probeOrigin);
+    const eyeSpan = offsetDir.length();
+    if (eyeSpan > 0.3) {
+      offsetDir.scaleInPlace(1 / eyeSpan);
+      const eyeHit = pickAlong(probeOrigin, offsetDir, eyeSpan, ignore);
+      if (eyeHit?.hit && typeof eyeHit.distance === 'number') {
+        const stop = Math.max(0.3, eyeHit.distance - cfg.collisionRadius);
+        smoothedPos.copyFrom(probeOrigin).addInPlace(offsetDir.scale(Math.min(stop, eyeSpan)));
+        currentDistance = Math.min(currentDistance, Math.max(cfg.minDistance, stop));
+      }
+    }
+
     camera.position.copyFrom(smoothedPos);
     camera.setTarget(lookAt);
     camera.upVector.set(0, 1, 0);
@@ -364,6 +468,7 @@ export const createThirdPersonCamera = (
   reset();
 
   const setCinematic = (position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }) => {
+    if (!cinematicPos) cinematicFresh = true;
     cinematicPos = new BABYLON.Vector3(position.x, position.y, position.z);
     cinematicLook = new BABYLON.Vector3(target.x, target.y, target.z);
   };

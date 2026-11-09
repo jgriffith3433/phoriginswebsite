@@ -394,6 +394,11 @@
         color: #f0d48a;
       }
 
+      .lost-hint {
+        top: calc(50% - 96px);
+        max-width: calc(100% - 24px);
+      }
+
       .interact-hint.stacked {
         top: calc(50% + 132px);
       }
@@ -676,6 +681,88 @@
         color: var(--muted);
         margin-top: 4px;
       }
+
+
+      /* Objective waypoint (src/game/objectiveWaypoint.ts): a diamond over the objective, clamped to the screen edge. */
+      .objective-waypoint {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 5;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+        display: none;
+        font-family: var(--hb-mono);
+      }
+      .objective-waypoint.on { display: block; }
+      .waypoint-diamond {
+        position: absolute;
+        left: -7px;
+        top: -7px;
+        width: 14px;
+        height: 14px;
+        transform: rotate(45deg) scale(0.8);
+        background: var(--hb-gold);
+        border: 1px solid var(--hb-ink);
+        box-shadow: 0 0 0 1px var(--hb-gold-hi), 0 0 12px rgba(201, 168, 106, 0.7);
+      }
+      .waypoint-label {
+        position: absolute;
+        left: 0;
+        top: 14px;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 150px;
+        padding: 2px 8px;
+        background: rgba(10, 16, 22, 0.62);
+        border: 1px solid var(--panel-border);
+        border-radius: 2px;
+        color: var(--hb-gold-hi);
+        text-shadow: 0 1px 2px #000;
+        white-space: nowrap;
+      }
+      .waypoint-name {
+        max-width: 134px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        font-weight: 600;
+      }
+      .waypoint-dist { font-size: 11px; letter-spacing: 0.08em; opacity: 0.85; }
+      .waypoint-arrow {
+        position: absolute;
+        left: -9px;
+        top: -9px;
+        width: 18px;
+        height: 18px;
+        display: none;
+      }
+      .waypoint-arrow::before {
+        content: '';
+        position: absolute;
+        left: 11px;
+        top: 1px;
+        border-left: 9px solid var(--hb-gold);
+        border-top: 8px solid transparent;
+        border-bottom: 8px solid transparent;
+        filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.8));
+      }
+      .objective-waypoint.edge .waypoint-arrow { display: block; }
+      .objective-waypoint.edge .waypoint-diamond { transform: rotate(45deg) scale(0.65); }
+      body:has(.message:not(.hidden)) .objective-waypoint { visibility: hidden; }
+      /* Phone: a bigger label that hangs to the left of the diamond, away from the hotkey column. */
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name,
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-dist { font-size: 14px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-label {
+        background: rgba(10, 16, 22, 0.82);
+        max-width: 160px;
+        transform: translateX(-70%);
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name { max-width: 144px; }
 
       .alarm-flash {
         position: absolute;
@@ -1360,6 +1447,12 @@
         display: none;
       }
 
+      /* the panel owns the column while open (its max-height assumes that): the Q/G/H/F stack
+         would otherwise be pushed up over the health bar and the pause button */
+      .inventory-hud.open > .phone-hint {
+        display: none;
+      }
+
       .inventory-hud.open .inventory-panel {
         display: flex;
         /* never grow up into the health bar or objective card: scroll instead */
@@ -1671,6 +1764,7 @@
       body:has(.message:not(.hidden)) .objective-hud,
       body:has(.message:not(.hidden)) .action-hint,
       body:has(.message:not(.hidden)) .interact-hint,
+      body:has(.message:not(.hidden)) .lost-hint,
       body:has(.message:not(.hidden)) .reload-hint,
       body:has(.message:not(.hidden)) .phone-panel,
       body:has(.message:not(.hidden)) .phone-toast {
@@ -2081,6 +2175,16 @@
         opacity: 0;
       }
 
+      /* Only the dark backdrop fades slowly. The splash text goes at once, so the wordmark, "Tap to play" and the
+         sound note never ghost over the menu rows while the title card comes up underneath. */
+      .tap-to-play > div {
+        transition: opacity 0.08s linear;
+      }
+
+      .tap-to-play.gone > div {
+        opacity: 0;
+      }
+
       .tap-to-play[hidden] {
         display: none;
       }
@@ -2122,6 +2226,26 @@
       }
 
       /* Pause and Settings sit over the level and the title card alike. */
+      .recovering {
+        position: absolute;
+        inset: 0;
+        z-index: 115;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(4, 6, 9, 0.78);
+        pointer-events: none;
+      }
+      .recovering[hidden] { display: none; }
+      .recovering div {
+        padding: 14px 28px;
+        border: 1px solid var(--hb-gold);
+        background: rgba(8, 10, 14, 0.92);
+        color: var(--hb-gold);
+        font: 600 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+      }
       .pause-btn {
         position: absolute;
         top: calc(var(--safe-top) + 14px);
@@ -2765,6 +2889,80 @@
       }
       .tap-note { font-size: 14px; letter-spacing: 0.08em; color: var(--hb-dim); }
 
+      /* Turn your phone sideways: touch devices held in portrait (src/game/screenMode.ts). Over the tap prompt, below nothing. */
+      .turn-phone {
+        position: fixed;
+        inset: 0;
+        z-index: 110;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(env(safe-area-inset-top, 0px) + 24px) calc(env(safe-area-inset-right, 0px) + 24px) calc(env(safe-area-inset-bottom, 0px) + 24px) calc(env(safe-area-inset-left, 0px) + 24px);
+        background:
+          repeating-linear-gradient(90deg, rgba(201, 168, 106, 0.03) 0 1px, transparent 1px 64px),
+          radial-gradient(ellipse at 50% 42%, rgba(16, 26, 36, 0.98) 0%, rgba(3, 6, 10, 0.998) 72%);
+        color: var(--hb-paper);
+        text-align: center;
+        font-family: var(--hb-sans);
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .turn-phone[hidden] { display: none; }
+      .turn-panel { max-width: 320px; }
+      .turn-phone .eyebrow { color: var(--hb-gold); font-weight: 600; letter-spacing: 0.4em; font-size: 12px; }
+      .turn-icon { display: block; width: 64px; height: 64px; margin: 18px auto 14px; color: var(--hb-gold); animation: turn-tilt 3.2s ease-in-out infinite; }
+      .turn-icon svg { display: block; width: 100%; height: 100%; }
+      .turn-phone h1 {
+        margin: 0 0 10px;
+        font-family: var(--hb-serif);
+        font-weight: 600;
+        font-size: 26px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--hb-paper);
+      }
+      .turn-note { margin: 0 0 26px; font-size: 14px; letter-spacing: 0.08em; color: var(--hb-dim); }
+      .turn-anyway {
+        background: none;
+        border: 0;
+        padding: 10px 8px;
+        font: 600 12px var(--hb-sans);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--hb-dim);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+        cursor: pointer;
+      }
+      @keyframes turn-tilt {
+        0%, 25% { transform: rotate(0deg); }
+        55%, 85% { transform: rotate(-90deg); }
+        100% { transform: rotate(0deg); }
+      }
+      @media (prefers-reduced-motion: reduce) { .turn-icon { animation: none; } }
+
+      /* Landscape on a phone, fullscreen or not: keep the HUD clear of the notch and the home bar. */
+      body[data-device='mobile'] #game-root,
+      body[data-device='tablet'] #game-root {
+        --safe-top: env(safe-area-inset-top, 0px);
+        --safe-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      body[data-device='mobile'] .hud,
+      body[data-device='tablet'] .hud {
+        left: max(16px, env(safe-area-inset-left, 0px));
+        right: max(16px, env(safe-area-inset-right, 0px));
+      }
+      body[data-device='mobile'] .pause-btn,
+      body[data-device='tablet'] .pause-btn { right: max(10px, env(safe-area-inset-right, 0px)); }
+      body[data-device='mobile'] .skip-cutscene,
+      body[data-device='tablet'] .skip-cutscene { right: calc(max(10px, env(safe-area-inset-right, 0px)) + 56px); }
+      body[data-device='mobile'] .message,
+      body[data-device='tablet'] .message {
+        padding-left: max(12px, env(safe-area-inset-left, 0px));
+        padding-right: max(12px, env(safe-area-inset-right, 0px));
+      }
+
       /* Phones: the card fills the width, rows are thumb-sized, and a short landscape screen lays the actions out in two columns. */
       @media (max-width: 600px) {
         .message { padding-left: 12px; padding-right: 12px; }
@@ -2860,10 +3058,69 @@
       .overlay-card button.primary { background: var(--hb-gold); color: var(--hb-ink); border: 1px solid var(--hb-gold); border-radius: 2px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
       .overlay-card button.secondary { border-radius: 2px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; background: rgba(236, 230, 216, 0.04); border: 1px solid var(--hb-line-strong); color: var(--hb-paper); }
       body[data-device='mobile'] .phone-hint, body[data-device='tablet'] .phone-hint { min-width: 0; }
+
+      /* ---- Touch layout (390x844, 844x390, 667x375): no two controls overlap, each is 44 px or more, and
+         everything sits inside the safe area. Keyed on body[data-device] and [data-orientation] (not media
+         queries) so the playtest's phoneFrame lays out the same way. The Interact button sits beside Fire and
+         Jump, left of the camera stick, and only while a hint is live (same action as E). ---- */
+      .action-btn.interact { display: none; }
+      body:is([data-device='mobile'], [data-device='tablet']) .right-controls { position: relative; }
+      body:is([data-device='mobile'], [data-device='tablet']) .action-btn.interact:not([hidden]) {
+        display: block;
+        position: absolute;
+        right: 142px;
+        top: 76px;
+        width: 56px;
+        height: 56px;
+        font: 700 14px/1 var(--hb-sans, inherit);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        border-radius: 2px;
+        border: 1px solid var(--hb-line-strong);
+        border-top: 2px solid var(--hb-gold);
+        background: rgba(10, 16, 22, 0.86);
+        color: var(--hb-gold-hi);
+      }
+      /* The Interact button takes over the centre pills on touch; Reload and Lost move clear of the stack. */
+      body:is([data-device='mobile'], [data-device='tablet']) .action-hint:not(.lost-hint),
+      body:is([data-device='mobile'], [data-device='tablet']) .interact-hint { display: none; }
+      body:is([data-device='mobile'], [data-device='tablet']) .reload-hint { top: calc(50% - 40px); }
+      body:is([data-device='mobile'], [data-device='tablet']) .phone-hint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-close { min-height: 44px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) {
+        right: max(12px, env(safe-area-inset-right, 0px));
+        bottom: calc(var(--safe-bottom) + 236px);
+        gap: 8px;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .missions-hud {
+        left: max(12px, env(safe-area-inset-left, 0px));
+        bottom: calc(var(--safe-bottom) + 228px);
+      }
+      /* Landscape: the hint buttons form a grid between the move stick and the right-hand cluster. */
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .controls { bottom: calc(var(--safe-bottom) + 10px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) {
+        right: auto;
+        left: calc(max(12px, env(safe-area-inset-left, 0px)) + 148px);
+        bottom: calc(var(--safe-bottom) + 10px);
+        display: grid;
+        grid-template-columns: repeat(3, 90px);
+        gap: 6px;
+        align-items: stretch;
+        justify-items: stretch;
+      }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) .phone-hint {
+        min-width: 0; padding: 4px 6px; font-size: 11px; letter-spacing: 0.08em; line-height: 1.1; text-align: center;
+      }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud.open { right: auto; left: calc(max(12px, env(safe-area-inset-left, 0px)) + 148px); bottom: calc(var(--safe-bottom) + 10px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud.open .inventory-panel {
+        max-height: calc(100dvh - var(--safe-bottom) - var(--safe-top) - 80px);
+      }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .missions-hud { bottom: calc(var(--safe-bottom) + 156px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .ability-readout { bottom: calc(var(--safe-bottom) + 178px); }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
-    <script type="module" crossorigin src="./assets/index-CDNPlsdl.js"></script>
+    <script type="module" crossorigin src="./assets/index-BpjP4Txd.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -2893,12 +3150,18 @@
       <div id="crosshair" aria-hidden="true"></div>
       <button type="button" id="reloadHint" class="reload-hint" hidden>Reload<kbd> — R</kbd></button>
       <button type="button" id="actionHint" class="action-hint" hidden>Join meeting<kbd> — E</kbd></button>
+      <button type="button" id="lostHint" class="action-hint lost-hint" hidden>Lost? Return to objective<kbd> — R</kbd></button>
       <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
       <button type="button" id="skipCutscene" class="skip-cutscene" hidden>Skip</button>
       <div id="objectiveHud" class="objective-hud" aria-live="polite">
         <span class="objective-kicker">Objective</span>
         <span id="objectiveText" class="objective-text"></span>
         <span id="objectiveDist" class="objective-dist"></span>
+      </div>
+      <div id="objectiveWaypoint" class="objective-waypoint" aria-hidden="true">
+        <span class="waypoint-arrow"></span>
+        <span class="waypoint-diamond"></span>
+        <span class="waypoint-label"><span class="waypoint-name"></span><span class="waypoint-dist"></span></span>
       </div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <div id="hitFlash" class="hit-flash" aria-hidden="true"></div>
@@ -3013,6 +3276,7 @@
               <div class="stick-knob" id="rightStickKnob"></div>
             </div>
           </div>
+          <button class="action-btn interact" id="interactBtn" hidden aria-label="Interact">Use</button>
           <div class="right-action-zone" aria-label="Action buttons">
             <button class="action-btn" id="phoneBtn" aria-label="Phone">☎</button>
             <button class="action-btn fire" id="fireBtn" aria-label="Fire weapon">✦</button>
@@ -3069,6 +3333,8 @@
         </div>
       </div>
 
+      <div class="recovering" id="recovering" hidden role="status" aria-live="polite"><div>Recovering&hellip;</div></div>
+
       <button type="button" id="pauseBtn" class="pause-btn" hidden aria-label="Pause">&#10074;&#10074;</button>
 
       <div class="overlay-card" id="pauseMenu" hidden role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
@@ -3079,6 +3345,8 @@
           <div class="button-row">
             <button class="primary" id="resumeBtn" type="button">Resume</button>
             <button class="secondary" id="pauseSettingsBtn" type="button">Settings</button>
+            <button class="secondary" id="fullscreenBtn" type="button" role="switch" aria-checked="false" hidden>Fullscreen: Off</button>
+            <button class="secondary" id="pauseReturnBtn" type="button">Return to objective</button>
           </div>
         </div>
       </div>
@@ -3115,6 +3383,15 @@
         <h1>PH Origins</h1>
         <p class="tap-cta">Tap to play</p>
         <p class="tap-note">Sound on. Headphones help.</p>
+      </div>
+    </div>
+    <div class="turn-phone" id="turnPhone" role="alertdialog" aria-labelledby="turnPhoneTitle" hidden>
+      <div class="turn-panel">
+        <div class="eyebrow">Hawkes Tower</div>
+        <span class="turn-icon" aria-hidden="true"><svg viewBox="0 0 64 64" focusable="false"><rect x="21" y="8" width="22" height="40" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M29 12h6" stroke="currentColor" stroke-width="2"/><path d="M12 52c10 8 30 8 40 0M47 46l5 6-7 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h1 id="turnPhoneTitle">Turn your phone sideways</h1>
+        <p class="turn-note">The night plays wide.</p>
+        <button type="button" class="turn-anyway" id="turnPhoneAnyway">Play in portrait anyway</button>
       </div>
     </div>
     <script>

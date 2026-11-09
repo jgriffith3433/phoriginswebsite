@@ -754,6 +754,15 @@
       .objective-waypoint.edge .waypoint-arrow { display: block; }
       .objective-waypoint.edge .waypoint-diamond { transform: rotate(45deg) scale(0.65); }
       body:has(.message:not(.hidden)) .objective-waypoint { visibility: hidden; }
+      /* Phone: a bigger label that hangs to the left of the diamond, away from the hotkey column. */
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name,
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-dist { font-size: 14px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-label {
+        background: rgba(10, 16, 22, 0.82);
+        max-width: 160px;
+        transform: translateX(-70%);
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name { max-width: 144px; }
 
       .alarm-flash {
         position: absolute;
@@ -1435,6 +1444,12 @@
       }
 
       .inventory-hud.open .inventory-hint {
+        display: none;
+      }
+
+      /* the panel owns the column while open (its max-height assumes that): the Q/G/H/F stack
+         would otherwise be pushed up over the health bar and the pause button */
+      .inventory-hud.open > .phone-hint {
         display: none;
       }
 
@@ -2157,6 +2172,16 @@
 
       /* It keeps catching taps while it fades, so the tap's own click never lands on the card below. */
       .tap-to-play.gone {
+        opacity: 0;
+      }
+
+      /* Only the dark backdrop fades slowly. The splash text goes at once, so the wordmark, "Tap to play" and the
+         sound note never ghost over the menu rows while the title card comes up underneath. */
+      .tap-to-play > div {
+        transition: opacity 0.08s linear;
+      }
+
+      .tap-to-play.gone > div {
         opacity: 0;
       }
 

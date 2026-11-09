@@ -10,6 +10,7 @@ import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
+import { createLinePool, TRAIN_BARKS, TRAIN_PA } from './placeVoices';
 
 /**
  * Level 7, The Train. Continue after The Station enters it. End Level is offered only from `finish`,
@@ -162,6 +163,10 @@ export const createTheTrain = (host: TheTrainHost) => {
   let shadowOn = false;
   /** Seconds to the next rider's remark when Pierce walks close. */
   let barkIn = 8;
+  /** Seconds to the conductor's next word over the car speakers. */
+  let conductorIn = 12;
+  const riderLine = createLinePool(TRAIN_BARKS);
+  const conductorLine = createLinePool(TRAIN_PA);
   let handsOut = false;
   let tether: Rider | null = null;
   let tetherMove = { x: 0, z: 0 };
@@ -956,12 +961,25 @@ export const createTheTrain = (host: TheTrainHost) => {
         const near = riders.filter((rider) => !rider.down
           && Math.hypot(rider.mesh.position.x - at.x, rider.mesh.position.z - at.z) < 3.5);
         if (near.length) {
+          // The riders' own remarks once they are voiced; the street's until then.
+          const own = riderLine();
           const pool = STREET_BARKS.flat();
-          const copy = streetCopy(pool[Math.floor(Math.random() * pool.length)]);
-          host.showLine('Rider', copy.text);
+          const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
+          host.showLine(own?.speaker || 'Rider', copy.text);
           host.playFile(copy.url, 0.55);
+          lineUntil = Math.max(lineUntil, sceneTime + 3.2);
           barkIn = 16 + Math.random() * 10;
         } else barkIn = 1.5;
+      }
+      conductorIn -= stepDt;
+      if (conductorIn <= 0) {
+        conductorIn = 55 + Math.random() * 30;
+        const said = tether ? null : conductorLine();
+        if (said) {
+          host.showLine(said.speaker, said.text);
+          host.playFile(said.url, 0.42);
+          lineUntil = Math.max(lineUntil, sceneTime + 4.2);
+        }
       }
       shockLeft = Math.max(0, shockLeft - stepDt);
       meleeLeft = Math.max(0, meleeLeft - stepDt);

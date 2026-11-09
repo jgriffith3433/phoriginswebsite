@@ -148,14 +148,19 @@ export const plant = (k: Kit, x: number, z: number, s = 1, pass = false) => {
 export const bench = (k: Kit, x: number, z: number, w: number, n: V2) => {
   const t = tangent(n);
   const c = along({ x, z }, t, 0, n, 0.25);
-  k.set(IS.FABRIC, 0.16, 0.18, 0.2);
-  k.box(c.x, 0.38, c.z, w / 2, 0.1, 0.22, t);
-  k.set(IS.METAL, 0.08, 0.08, 0.08);
+  // Walnut frame, four legs and a warm leather cushion, so it reads as a bench in the hall light
+  // (the old near-black slab with two plank legs read as unfinished geometry).
+  k.set(IS.WOOD, 0.3, 0.17, 0.09);
+  k.box(c.x, 0.32, c.z, w / 2, 0.06, 0.22, t);
   for (const s of [-1, 1]) {
-    const leg = along(c, t, s * (w / 2 - 0.08), n, 0);
-    k.box(leg.x, 0, leg.z, 0.03, 0.38, 0.2, t);
+    for (const d of [-1, 1]) {
+      const leg = along(c, t, s * (w / 2 - 0.06), n, d * 0.16);
+      k.box(leg.x, 0, leg.z, 0.025, 0.32, 0.025, t);
+    }
   }
-  k.solid(c.x, c.z, w / 2, 0.22, 0.5, t);
+  k.set(IS.FABRIC, 0.42, 0.27, 0.17);
+  k.box(c.x, 0.38, c.z, w / 2 - 0.02, 0.08, 0.2, t);
+  k.solid(c.x, c.z, w / 2, 0.22, 0.46, t);
 };
 
 // ---------------- Basement ----------------

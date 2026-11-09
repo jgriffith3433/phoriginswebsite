@@ -20,6 +20,7 @@ import { pointInsideTrigger } from '../game/triggers';
 import { carryItems, lineAudio, lineText, storyLine } from '../game/locale';
 
 import actCopy from './act1.json';
+import { APEX_BOARD, createLinePool } from './placeVoices';
 
 export type StoryCarry = { id: string; name: string; note: string };
 
@@ -207,6 +208,12 @@ export const createAct1 = (host: ActHost) => {
   let windowQueued = false;
   let callStarted = false;
   let lateStarted = false;
+  /** Apex Peak: the board talks among itself while it waits for Pierce to sit. */
+  let boardTalkIn = 4;
+  let boardLineLeft = 0;
+  const boardLine = createLinePool(APEX_BOARD);
+  /** The head of the board table (the seat walk-up). */
+  const BOARD_TABLE = { x: 49.4, z: 32 };
   let elevatorQueued = false;
   let windowLocked = false;
   let terminalLocked = false;
@@ -898,6 +905,27 @@ export const createAct1 = (host: ActHost) => {
     asideGap = 0;
     host.showLine('Pierce', lineText(line.id));
     host.playFile(lineAudio(line.id), 0.92);
+  };
+
+  /** While Pierce is on the way to his seat, a director or the treasurer remarks when he is in the room. */
+  const stepBoardTalk = (delta: number) => {
+    if (boardLineLeft > 0) {
+      boardLineLeft -= delta;
+      if (boardLineLeft <= 0 && !asideBusy()) host.showLine('', '');
+    }
+    if (phase !== 'seat' || !host.running() || host.inCutscene() || asideBusy()) return;
+    boardTalkIn -= delta;
+    if (boardTalkIn > 0) return;
+    const here = host.playerXZ();
+    const away = Math.hypot(here.x - BOARD_TABLE.x, here.z - BOARD_TABLE.z);
+    // Down the hall the board is heard through the doors, quieter and more often, so the long walk is never silent.
+    const hall = away > 9;
+    const said = boardLine();
+    boardTalkIn = hall ? 6 + Math.random() * 2 : 11 + Math.random() * 7;
+    if (!said) return;
+    host.showLine(said.speaker, said.text);
+    host.playFile(said.url, hall ? Math.max(0.16, 0.5 - (away - 9) * 0.008) : 0.5);
+    boardLineLeft = 3.6;
   };
 
   const queueAside = (lines: AsideLine[]) => {
@@ -2593,6 +2621,8 @@ export const createAct1 = (host: ActHost) => {
 
   const reset = () => {
     boardDeparting = false;
+    boardTalkIn = 4;
+    boardLineLeft = 0;
     windowQueued = false;
     callStarted = false;
     lateStarted = false;
@@ -3020,6 +3050,7 @@ export const createAct1 = (host: ActHost) => {
     fearLevel: () => dread,
     stepWorld: (delta: number) => {
       if (!host.isApex() && !host.isB3() && !host.isReturn()) return;
+      if (host.isApex()) stepBoardTalk(delta);
       if (phase === 'return-walk' && host.running() && !host.inCutscene()) {
         stepAside(delta);
         const here = host.playerXZ();
