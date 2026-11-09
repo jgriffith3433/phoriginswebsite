@@ -97,8 +97,12 @@ float band(float x, float a, float b) {
   return step(a, x) * step(x, b);
 }
 
+// Fine per-cell detail (grit, gum, noise octaves) is sub-pixel past a few tens of metres and turns into bright
+// speckle crawling over the ground, most of all from the 58th floor. Fade it to its mean with distance.
+float uDetail = 1.0;
+
 vec3 asphalt(vec2 wp, float n1, float n2, float n3) {
-  float grit = step(0.9, h21(floor(wp * 28.0))) * 0.035;
+  float grit = step(0.9, h21(floor(wp * 28.0))) * 0.035 * uDetail;
   float patchy = smoothstep(0.55, 0.75, vnoise(wp * 0.07 + 13.0)) * 0.018;
   float tone = 0.058 + n1 * 0.02 + n3 * 0.014 + grit - patchy;
   return vec3(tone * 0.98, tone, tone * 1.04);
@@ -107,9 +111,11 @@ vec3 asphalt(vec2 wp, float n1, float n2, float n3) {
 void main(void) {
   vec2 wp = vWorld.xz;
   float surf = floor(vInfo.x + 0.5);
+  float camDist = length(cameraPos - vWorld);
+  uDetail = 1.0 - smoothstep(20.0, 70.0, camDist);
   float n1 = vnoise(wp * 0.33);
-  float n2 = vnoise(wp * 1.9 + 7.1);
-  float n3 = vnoise(wp * 8.7 + 3.3);
+  float n2 = mix(0.5, vnoise(wp * 1.9 + 7.1), 1.0 - smoothstep(60.0, 200.0, camDist));
+  float n3 = mix(0.5, vnoise(wp * 8.7 + 3.3), uDetail);
   vec3 V = normalize(cameraPos - vWorld);
   vec3 albedo = vec3(0.2);
   float wet = 0.0;
@@ -206,7 +212,7 @@ void main(void) {
     albedo = mix(albedo, vec3(0.38, 0.38, 0.37), curbTop);
     float stain = smoothstep(0.62, 0.8, vnoise(wp * 0.6 + 9.0));
     albedo *= 1.0 - stain * 0.25;
-    float gum = step(0.985, h21(floor(wp * 9.0)));
+    float gum = step(0.985, h21(floor(wp * 9.0))) * uDetail;
     albedo *= 1.0 - gum * 0.4;
     wet = smoothstep(0.66, 0.8, vnoise(wp * 0.11 + 4.0)) * 0.5;
   } else if (surf < 3.5) {
@@ -234,7 +240,7 @@ void main(void) {
   } else if (surf < 6.5) {
     albedo = mix(vec3(0.035, 0.065, 0.025), vec3(0.065, 0.095, 0.035), n2) * (0.75 + 0.5 * n3);
   } else if (surf < 7.5) {
-    float tone = 0.16 + n3 * 0.06 + step(0.8, h21(floor(wp * 20.0))) * 0.05;
+    float tone = 0.16 + n3 * 0.06 + step(0.8, h21(floor(wp * 20.0))) * 0.05 * uDetail;
     albedo = vec3(tone * 1.1, tone, tone * 0.85);
   } else if (surf < 8.5) {
     // Pond.
