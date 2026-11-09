@@ -412,6 +412,17 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
       faces.push({ n: { x: 0, z: -1 }, at: min.z - OFF, from: min.x, to: max.x, alongX: true });
       faces.push({ n: { x: 0, z: 1 }, at: max.z + OFF, from: min.x, to: max.x, alongX: true });
     }
+    // End caps: a wall that stops in a room (the hall 1 east wall where hall 2 opens) shows its
+    // thickness to the camera. Left alone it was a bare, unlit-looking plaster strip next to the dressed face.
+    if (!pillar) {
+      if (thinX) {
+        faces.push({ n: { x: 0, z: -1 }, at: min.z - OFF, from: min.x, to: max.x, alongX: true });
+        faces.push({ n: { x: 0, z: 1 }, at: max.z + OFF, from: min.x, to: max.x, alongX: true });
+      } else {
+        faces.push({ n: { x: -1, z: 0 }, at: min.x - OFF, from: min.z, to: max.z, alongX: false });
+        faces.push({ n: { x: 1, z: 0 }, at: max.x + OFF, from: min.z, to: max.z, alongX: false });
+      }
+    }
     const y0 = Math.max(min.y, 0);
     const y1 = max.y;
     for (const f of faces) {
