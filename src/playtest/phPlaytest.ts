@@ -605,11 +605,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
     stop: () => { token++; releaseAll(); },
     async start(id: string, options: RunOptions, t: Tracker) {
       const my = ++token;
+      // The game's own moments (main.ts `revealFromBlack`) write into this run's event log.
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = (type, detail) => t.event(type, detail);
       const saved = snapshotSave();
       const watch = watchProblems(t);
       try {
         await run(id, options, t, my);
       } finally {
+        delete (window as unknown as { __phEmit?: unknown }).__phEmit;
         watch();
         releaseAll();
         restoreSave(saved);

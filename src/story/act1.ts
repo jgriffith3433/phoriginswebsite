@@ -768,7 +768,9 @@ export const createAct1 = (host: ActHost) => {
 
   const beginSeat = () => {
     if (!host.isApex()) return;
-    mountMirror();
+    // Level ready already mounted it under the title card (shaders compiled there). Start must not rebuild its
+    // render target and materials on the first frames.
+    if (!bathroomMirror) mountMirror();
     phase = 'seat';
     setOfficeAmmoVisible(false);
     setCarry('sidearm');
