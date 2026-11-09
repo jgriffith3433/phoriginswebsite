@@ -2614,6 +2614,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
       await new Promise(() => {}); // the page is going away
       return;
     }
+    // A player taps the splash at once; the tap never waits for the load. Scenarios that test the splash or lay the
+    // page out themselves tap it in their own run.
+    const ownsSplash = ['sound-settings', 'ui-style', 'load-error', 'screen-mode', 'stuck-recovery', 'objective-marker'];
+    if (!ownsSplash.includes(id) && probe.sound().prompt) await tapToPlay();
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'stuck-recovery') {
       await stuckRecoveryRun();
