@@ -17,8 +17,14 @@ const FLOOR_HEIGHT = 205;
 /** Near plane while a far-plane city is on screen (quality rule 2). */
 export const CITY_NEAR = 0.2;
 
-/** Skybox brightness behind the office windows. */
-const SKY_LEVEL = 2.6;
+/**
+ * Skybox behind the office windows. The cube's sky is near black (about 5, 10, 21 of 255 at the top), and the city
+ * under the glass only fills the last few degrees below the horizon, so the rest of the window read as a flat black
+ * void (smoke@live, boardroom). The cube is lifted, and a night-blue floor is added under it so the window is never
+ * black, even for the frames before the six faces have uploaded.
+ */
+const SKY_LEVEL = 4.2;
+const SKY_GLOW = new BABYLON.Color3(0.03, 0.05, 0.11);
 
 export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => {
   let world: CityWorld | null = null;
@@ -34,9 +40,14 @@ export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => 
     if (sky.position.y !== drop) sky.position.y = drop;
     // Seen through the 58th-floor windows the night sky grades to pure black (a void behind the hall's far end and the
     // boardroom's back wall). Lift the cube so the navy sky and skyline read; the street keeps its own level.
-    const cube = (sky.material as BABYLON.StandardMaterial | null)?.reflectionTexture;
+    const material = sky.material as BABYLON.StandardMaterial | null;
+    const cube = material?.reflectionTexture;
     const level = highAltitude ? SKY_LEVEL : 1;
     if (cube && cube.level !== level) cube.level = level;
+    if (material) {
+      const glow = highAltitude ? SKY_GLOW : BABYLON.Color3.Black();
+      if (!material.emissiveColor.equals(glow)) material.emissiveColor.copyFrom(glow);
+    }
   };
 
   const dispose = () => {
