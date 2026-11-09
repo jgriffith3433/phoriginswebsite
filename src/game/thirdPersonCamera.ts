@@ -102,6 +102,8 @@ export const createThirdPersonCamera = (
   let shoulderTarget = 0;
   let shoulderMix = 0;
   let toolClose = false;
+  /** How far the boom was squeezed by geometry last frame: 0 free, 1 on the minimum distance. */
+  let squeeze = 0;
 
   const pivot = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
   const lookAt = new BABYLON.Vector3(0, cfg.pivotHeight, 0);
@@ -146,6 +148,7 @@ export const createThirdPersonCamera = (
     shoulderTarget = 0;
     shoulderMix = 0;
     toolClose = false;
+    squeeze = 0;
     callTarget = 0;
     callMix = 0;
     pivot.set(0, cfg.pivotHeight, 0);
@@ -310,7 +313,12 @@ export const createThirdPersonCamera = (
 
     if (cfg.enableMoveRecenter && moving && moveHeading !== null && !isLooking() && !holdAim) {
       recenterIdle += clampedDt;
-      if (recenterIdle >= cfg.recenterDelay) {
+      if (squeeze > 0.35) {
+        // Rounding a hall corner the boom points into the wall behind him and would sit
+        // on his collar. Swing behind him now, in proportion to how squeezed it is,
+        // instead of waiting out the usual recenter delay.
+        yaw = dampAngle(yaw, moveHeading, cfg.recenterStiffness + squeeze * 9, clampedDt);
+      } else if (recenterIdle >= cfg.recenterDelay) {
         yaw = dampAngle(yaw, moveHeading, cfg.recenterStiffness, clampedDt);
       }
     } else {
@@ -369,6 +377,7 @@ export const createThirdPersonCamera = (
 
     const stiffness = blocked < currentDistance - 0.02 ? cfg.collisionInStiffness : cfg.collisionOutStiffness;
     currentDistance = expDamp(currentDistance, Math.min(aimDistance, blocked), stiffness, clampedDt);
+    squeeze = clampValue((aimDistance * 0.7 - blocked) / Math.max(0.1, aimDistance * 0.7 - cfg.minDistance), 0, 1);
 
     desiredOffset(currentDistance, smoothedPos, effPitch);
     smoothedPos.addInPlace(pivot);
