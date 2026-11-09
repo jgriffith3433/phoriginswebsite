@@ -395,6 +395,10 @@ export const installPhPlaytest = (probe: PhProbe) => {
       .map((m) => { const b = m.getBoundingInfo().boundingBox; return `${m.name} [${b.minimumWorld.x.toFixed(2)},${b.maximumWorld.x.toFixed(2)}]x[${b.minimumWorld.z.toFixed(2)},${b.maximumWorld.z.toFixed(2)}] y${b.minimumWorld.y.toFixed(2)}-${b.maximumWorld.y.toFixed(2)}`; });
   }
   let token = 0;
+  // False until this function has run to its end. `run` and `watchProblems` are consts declared below the
+  // installPlaytest call, and its `?playtest=` auto start calls `start` synchronously when isReady() is true, so
+  // answering true any earlier throws "Cannot access ... before initialization" at t=0.
+  let installed = false;
   const held = new Set<string>();
   let lookSens = 0; // radians per pixel of touch drag, measured on first use
 
@@ -588,7 +592,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['menus', 'site'],
       },
     ],
-    isReady: () => probe.ready(),
+    // The splash is the first thing a player can act on, so a run may start while it is up (the contract's auto start
+    // and a runner both wait on this). Each scenario taps it, then waits for probe.ready() itself.
+    isReady: () => installed && (probe.ready() || probe.sound().prompt),
     stallSeconds: 75,
     // The feel sensor (hawkes-feel.js): Pierce's capsule while he's the player's to move; during cutscenes, scripted
     // openings and menus only frame hitches count. His position is the capsule's center, so the eye is just above it.
@@ -603,11 +609,14 @@ export const installPhPlaytest = (probe: PhProbe) => {
     stop: () => { token++; releaseAll(); },
     async start(id: string, options: RunOptions, t: Tracker) {
       const my = ++token;
+      // The game's own moments (main.ts `revealFromBlack`) write into this run's event log.
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = (type, detail) => t.event(type, detail);
       const saved = snapshotSave();
       const watch = watchProblems(t);
       try {
         await run(id, options, t, my);
       } finally {
+        delete (window as unknown as { __phEmit?: unknown }).__phEmit;
         watch();
         releaseAll();
         restoreSave(saved);
@@ -3654,6 +3663,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
       window.removeEventListener('error', onMediaError, true);
     };
   };
+  installed = true;
 };
 
 // ---------------------------------------------------------------- save cookie
