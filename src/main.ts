@@ -429,7 +429,9 @@ const REVEAL_READY_MAX_MS = 8000;
  */
 const meshShadersReady = () => {
   for (const mesh of scene.meshes) {
-    if (!mesh.isEnabled() || !mesh.isVisible || mesh.getTotalVertices() === 0) continue;
+    // Hidden meshes count too (the avatars held back until idle plays, the handset, NPCs): their shaders would
+    // otherwise compile on the first frame they show, after the veil has lifted, as a hitch with a black view.
+    if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
     if (!mesh.isReady(true)) return false;
   }
   return true;
