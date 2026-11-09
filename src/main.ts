@@ -2844,6 +2844,14 @@ let lastJumpPose: number | null = null;
 let lastMoving = false;
 
 const updatePlayer = (delta: number) => {
+  // Any frame that does not walk him on foot (scene, call, link, hold) leaves no stride behind.
+  const walkedBefore = groundSpeed;
+  groundSpeed = 0;
+  const result = updatePlayerBody(delta, walkedBefore);
+  return result;
+};
+
+const updatePlayerBody = (delta: number, walkedBefore: number) => {
   if (levelSealed()) {
     holdSealedPlayer(delta);
     playerAvatar.setStride(null);
@@ -2906,6 +2914,7 @@ const updatePlayer = (delta: number) => {
 
   const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
   const strideFrom = { x: state.player.x, z: state.player.z };
+  groundSpeed = walkedBefore;
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
     const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
@@ -2968,7 +2977,11 @@ const updatePlayer = (delta: number) => {
   );
 
   const travelled = Math.hypot(state.player.x - strideFrom.x, state.player.z - strideFrom.z);
-  const instantSpeed = travelled / Math.max(1e-3, Math.min(delta, MAX_MOVE_FRAME));
+  // A snap (a collider pushing him out of a corner, a floor revert) is not walking: a step longer than the fastest
+  // legitimate speed allows is left out, so it cannot ride the smoothing into the idle pose as a glide.
+  const frameTime = Math.max(1e-3, Math.min(delta, MAX_MOVE_FRAME));
+  const maxStep = state.playerSpeed * SHADOW_RUN_SPEED * 1.5 * frameTime + 0.05;
+  const instantSpeed = travelled > maxStep || !moving ? 0 : travelled / frameTime;
   groundSpeed += (instantSpeed - groundSpeed) * (1 - Math.exp(-12 * Math.min(delta, 0.1)));
   const pose = shadowFlying ? jumpPose.reset() : jumpPose.step(state.player, delta, moving);
   const jumpAnim = pose !== null;
