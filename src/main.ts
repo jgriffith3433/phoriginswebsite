@@ -423,10 +423,33 @@ const waitAvatarReady = (avatar: PlayerAvatar) =>
 const REVEAL_READY_MAX_MS = 8000;
 
 /**
- * Hold black for a second, then fade clear over 1.5s. The veil also waits until every mesh's shader is compiled:
- * Babylon skips a mesh whose effect is not ready, so lifting the veil early shows a pure black frame (clear colour)
- * until the compile ends, and the opening call rings over it.
+ * True once every drawn mesh has its shader compiled. Babylon skips a mesh whose effect is not ready, so a veil lifted
+ * early shows the clear colour (pure black). This is deliberately not `scene.isReady()`: that also waits for pending
+ * data, and the streaming city under the office windows keeps that queue busy, so it ran to its time cap every time.
  */
+const meshShadersReady = () => {
+  for (const mesh of scene.meshes) {
+    if (!mesh.isEnabled() || !mesh.isVisible || mesh.getTotalVertices() === 0) continue;
+    if (!mesh.isReady(true)) return false;
+  }
+  return true;
+};
+
+/** Run `fn` once `meshShadersReady()` holds (checked every 4th rendered frame, so no timer polling). */
+const whenMeshShadersReady = (fn: () => void) => {
+  if (meshShadersReady()) {
+    fn();
+    return;
+  }
+  let frames = 0;
+  const observer = scene.onAfterRenderObservable.add(() => {
+    frames += 1;
+    if (frames % 4 !== 0 || !meshShadersReady()) return;
+    scene.onAfterRenderObservable.remove(observer);
+    fn();
+  });
+};
+
 const revealFromBlack = (alive: () => boolean) => {
   let held = false;
   let shown = false;
@@ -437,21 +460,21 @@ const revealFromBlack = (alive: () => boolean) => {
   };
   window.setTimeout(() => {
     held = true;
-    if (scene.isReady()) show();
+    if (meshShadersReady()) show();
   }, 1000);
   // Ready before the hold ends: the timer above reveals. Ready after: this does.
-  scene.executeWhenReady(() => {
+  whenMeshShadersReady(() => {
     if (held) show();
   });
   window.setTimeout(show, REVEAL_READY_MAX_MS);
 };
 
-/** Resolves once the scene's materials are compiled (`scene.isReady()`), or after `SHADERS_READY_MAX_MS`. */
+/** Resolves once the drawn meshes' materials are compiled, or after `SHADERS_READY_MAX_MS`. */
 const SHADERS_READY_MAX_MS = 15000;
 const whenShadersCompiled = () =>
   new Promise<void>((resolve) => {
     const timer = window.setTimeout(resolve, SHADERS_READY_MAX_MS);
-    scene.executeWhenReady(() => {
+    whenMeshShadersReady(() => {
       window.clearTimeout(timer);
       resolve();
     });
