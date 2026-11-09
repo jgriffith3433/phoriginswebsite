@@ -137,6 +137,37 @@ export const disposeWithOwnTextures = (material: BABYLON.Material) => {
   }
 };
 
+/** Waits (ms) before each retry of a texture request the host refused (a transient 503 on the CDN). */
+const TEXTURE_RETRY_DELAYS = [400, 1200, 3000];
+
+/**
+ * Makes a texture retry when its request fails, instead of leaving the mesh without that map (a normal map that 503'd
+ * once logged "missing texture" for the whole session). Each retry reloads with a cache-busting query, so a stored
+ * failure is not replayed, and gives up after the last delay. Call it again on every clone made while the file is still
+ * loading: clones share the cached GPU texture, but each one has to reload its own reference.
+ */
+const retryTextureOnError = <T extends BABYLON.Texture>(texture: T, url = texture.url ?? ''): T => {
+  let attempt = 0;
+  let disposed = false;
+  texture.onDisposeObservable.add(() => { disposed = true; });
+  const arm = () => {
+    texture._texture?.onErrorObservable.add(() => {
+      if (attempt >= TEXTURE_RETRY_DELAYS.length) {
+        console.warn(`Texture "${url}" failed to load after ${attempt} retries`);
+        return;
+      }
+      const delay = TEXTURE_RETRY_DELAYS[attempt++];
+      setTimeout(() => {
+        if (disposed) return;
+        texture.updateURL(`${url}${url.includes('?') ? '&' : '?'}retry=${attempt}`);
+        arm();
+      }, delay);
+    });
+  };
+  if (texture._texture && !texture._texture.isReady) arm();
+  return texture;
+};
+
 const cachedTexture = (scene: BABYLON.Scene, url: string): BABYLON.Texture => {
   let map = textureCache.get(scene);
   if (!map) {
@@ -152,6 +183,7 @@ const cachedTexture = (scene: BABYLON.Scene, url: string): BABYLON.Texture => {
     true,
     BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
   );
+  retryTextureOnError(texture, url);
   texture.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
   texture.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
   map.set(url, texture);
@@ -251,7 +283,7 @@ export const applyMaterialToMesh = (
   const tile = resolveMeshUvScale(asset, scale, def);
   // Clone per mesh so uScale/vScale never leak across objects that share materialId.
   const makeAlbedo = () => {
-    const albedo = cachedTexture(scene, def.albedo!).clone();
+    const albedo = retryTextureOnError(cachedTexture(scene, def.albedo!).clone());
     albedo.name = `${asset.id}:${materialId}:albedo`;
     albedo.uScale = tile.u;
     albedo.vScale = tile.v;
@@ -275,7 +307,7 @@ export const applyMaterialToMesh = (
     pbr.environmentIntensity = 0.28;
     pbr.metadata = { prop: true };
     if (def.normal) {
-      const normal = cachedTexture(scene, def.normal).clone();
+      const normal = retryTextureOnError(cachedTexture(scene, def.normal).clone());
       normal.name = `${asset.id}:${materialId}:normal`;
       normal.uScale = tile.u;
       normal.vScale = tile.v;
@@ -283,7 +315,7 @@ export const applyMaterialToMesh = (
       pbr.bumpTexture = normal;
     }
     if (def.roughnessMap) {
-      const rough = cachedTexture(scene, def.roughnessMap).clone();
+      const rough = retryTextureOnError(cachedTexture(scene, def.roughnessMap).clone());
       rough.name = `${asset.id}:${materialId}:rough`;
       rough.uScale = tile.u;
       rough.vScale = tile.v;
