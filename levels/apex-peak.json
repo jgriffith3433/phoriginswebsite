@@ -1396,6 +1396,18 @@
       ]
     },
     {
+      "id": "light-h2-c",
+      "assetId": "asset-lantern-light",
+      "kind": "light",
+      "name": "Hall 2 Light C",
+      "x": 32,
+      "y": 3.05,
+      "z": 32,
+      "components": [
+        "Light"
+      ]
+    },
+    {
       "id": "light-board",
       "assetId": "asset-lantern-light",
       "kind": "light",
@@ -1558,6 +1570,28 @@
       "kind": "model",
       "name": "Hall 2 Light B Fixture",
       "x": 24,
+      "y": 3.109,
+      "z": 32,
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "scale": {
+        "x": 1,
+        "y": 1,
+        "z": 1
+      },
+      "components": [
+        "Transform"
+      ]
+    },
+    {
+      "id": "fixture-light-h2-c",
+      "assetId": "asset-ceiling-troffer",
+      "kind": "model",
+      "name": "Hall 2 Light C Fixture",
+      "x": 32,
       "y": 3.109,
       "z": 32,
       "rotation": {
