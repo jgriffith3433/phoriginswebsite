@@ -233,7 +233,10 @@ export const createThirdPersonCamera = (
   const FEEL_DIRS = 8;
   /** Fills pushOut with the horizontal shove that keeps `pos` a lens-width off nearby walls. */
   const clearancePush = (pos: BABYLON.Vector3, ignore: Set<BABYLON.AbstractMesh>) => {
-    const reach = Math.max(cfg.collisionRadius, cfg.minZ * 3);
+    // Two collision radii: a plaster wall 0.4 m off a lens that is turned a little toward it
+    // still fills a third of the frame (reads as the camera pressed into the wall), so keep
+    // clear of it by more than the near plane's reach.
+    const reach = Math.max(cfg.collisionRadius * 2, cfg.minZ * 3);
     pushOut.set(0, 0, 0);
     let any = false;
     for (let i = 0; i < FEEL_DIRS; i++) {
