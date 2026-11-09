@@ -588,7 +588,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
         tags: ['menus', 'site'],
       },
     ],
-    isReady: () => probe.ready(),
+    // The splash is the first thing a player can act on, so a run may start while it is up (the contract's auto start
+    // and a runner both wait on this). Each scenario taps it, then waits for probe.ready() itself.
+    isReady: () => probe.ready() || probe.sound().prompt,
     stallSeconds: 75,
     // The feel sensor (hawkes-feel.js): Pierce's capsule while he's the player's to move; during cutscenes, scripted
     // openings and menus only frame hitches count. His position is the capsule's center, so the eye is just above it.
