@@ -240,7 +240,11 @@ export const createThirdPersonCamera = (
     // (casing and slab, proud of the plaster) a metre from the lens, filling a third of
     // the view and reading as a door cutting through the wall. 2.6 radii (0.88 m) keeps
     // doors at a distance; the shove grows from zero with the gap, so it never snaps.
-    const reach = Math.max(cfg.collisionRadius * 2.6, cfg.minZ * 3);
+    // Still, the follow lens on a hall run sat ~0.5 m off the door slab (the shove is a
+    // fraction of the shortfall once the other wall's rays pull back), so a door leaf
+    // filled the lower right of the view. 3.5 radii (1.19 m) keeps the lens a door's
+    // width off; the 4.4 m halls still leave the centre line free of any shove.
+    const reach = Math.max(cfg.collisionRadius * 3.5, cfg.minZ * 3);
     pushOut.set(0, 0, 0);
     let any = false;
     for (let i = 0; i < FEEL_DIRS; i++) {
