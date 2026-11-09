@@ -446,6 +446,17 @@ const revealFromBlack = (alive: () => boolean) => {
   window.setTimeout(show, REVEAL_READY_MAX_MS);
 };
 
+/** Resolves once the scene's materials are compiled (`scene.isReady()`), or after `SHADERS_READY_MAX_MS`. */
+const SHADERS_READY_MAX_MS = 15000;
+const whenShadersCompiled = () =>
+  new Promise<void>((resolve) => {
+    const timer = window.setTimeout(resolve, SHADERS_READY_MAX_MS);
+    scene.executeWhenReady(() => {
+      window.clearTimeout(timer);
+      resolve();
+    });
+  });
+
 const waitFrames = (count: number) =>
   new Promise<void>((resolve) => {
     let left = count;
@@ -773,6 +784,9 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       ...npcs.map((npc) => waitAvatarReady(npc.avatar)),
     ]);
     await waitFrames(3);
+    // Compile every shader now, under the title card, so Start never opens on a world Babylon is still skipping
+    // (a mesh whose effect is not ready is not drawn: pure black behind the HUD on a slow GPU).
+    if (mode === 'boot') await whenShadersCompiled();
     if (mode === 'arrive') {
       act.onOfficeArrived();
       dressedLevelId = 0;
