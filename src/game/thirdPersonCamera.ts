@@ -156,11 +156,11 @@ export const createThirdPersonCamera = (
 
   const isLooking = () => lookInputTimer > 0 || Math.hypot(lookStickX, lookStickY) > 0.08;
 
-  const desiredOffset = (distance: number, into: BABYLON.Vector3) => {
-    const cosPitch = Math.cos(pitch);
+  const desiredOffset = (distance: number, into: BABYLON.Vector3, usePitch = pitch) => {
+    const cosPitch = Math.cos(usePitch);
     into.set(
       -Math.sin(yaw) * cosPitch * distance,
-      cfg.height + Math.sin(pitch) * distance,
+      cfg.height + Math.sin(usePitch) * distance,
       -Math.cos(yaw) * cosPitch * distance,
     );
     return into;
@@ -327,8 +327,6 @@ export const createThirdPersonCamera = (
     desiredOffset(aimDistance, desiredPos);
     desiredPos.addInPlace(pivot);
 
-    let blocked = collideDistance(pivot, desiredPos, ignore);
-
     const midX = (pivot.x + desiredPos.x) * 0.5;
     const midZ = (pivot.z + desiredPos.z) * 0.5;
     const ceilingY = Math.min(
@@ -337,7 +335,20 @@ export const createThirdPersonCamera = (
       ceilingWorldY(midX, pivot.y, midZ, ignore),
     );
     const maxCamY = ceilingY - ceilingClearance;
-    const pitchLift = Math.sin(pitch);
+    // Under a low ceiling, look-up pitch used to shorten the boom until the lens sat on
+    // the character's back. Slide the lens down the ceiling instead: lower the effective
+    // pitch so the camera keeps its distance and only drops lower behind him.
+    let effPitch = pitch;
+    if (Number.isFinite(maxCamY) && Math.sin(pitch) > 0.02) {
+      const capSin = (maxCamY - pivot.y - cfg.height) / aimDistance;
+      if (capSin < Math.sin(pitch)) effPitch = Math.asin(clampValue(capSin, 0, 1));
+      desiredOffset(aimDistance, desiredPos, effPitch);
+      desiredPos.addInPlace(pivot);
+    }
+
+    let blocked = collideDistance(pivot, desiredPos, ignore);
+
+    const pitchLift = Math.sin(effPitch);
     if (Number.isFinite(maxCamY) && pitchLift > 0.02) {
       const maxDistY = (maxCamY - pivot.y - cfg.height) / pitchLift;
       if (maxDistY < blocked) {
@@ -348,7 +359,7 @@ export const createThirdPersonCamera = (
     const stiffness = blocked < currentDistance - 0.02 ? cfg.collisionInStiffness : cfg.collisionOutStiffness;
     currentDistance = expDamp(currentDistance, Math.min(aimDistance, blocked), stiffness, clampedDt);
 
-    desiredOffset(currentDistance, smoothedPos);
+    desiredOffset(currentDistance, smoothedPos, effPitch);
     smoothedPos.addInPlace(pivot);
     if (smoothedPos.y > maxCamY) smoothedPos.y = maxCamY;
 
