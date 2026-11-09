@@ -452,35 +452,86 @@ const whenMeshShadersReady = (fn: () => void) => {
   });
 };
 
-const revealFromBlack = (alive: () => boolean) => {
+/** When `beginGame` last ran (0 before the first Start): the reveal event's clock. */
+let beginGameAt = 0;
+
+/** Names of the meshes whose shader is still compiling (first 20). Empty when `meshShadersReady()` holds. */
+const meshesNotReady = () => {
+  const names: string[] = [];
+  for (const mesh of scene.meshes) {
+    if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
+    if (!mesh.isReady(true)) {
+      names.push(mesh.name);
+      if (names.length >= 20) break;
+    }
+  }
+  return names;
+};
+
+const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start') => {
   let held = false;
   let shown = false;
-  const show = () => {
+  const calledAt = performance.now();
+  const show = (reason: 'ready' | 'cap') => {
     if (shown) return;
     shown = true;
-    if (alive()) screenFade.to(0, 1.5);
+    if (!alive()) return;
+    // Reported to the playtest (event `reveal`) and the console: which path lifted the veil, and which meshes were
+    // still compiling when the cap lifted it.
+    const detail = {
+      ms: Math.round(performance.now() - (source === 'start' && beginGameAt > 0 ? beginGameAt : calledAt)),
+      reason,
+      source,
+      notReady: reason === 'cap' ? meshesNotReady() : [],
+    };
+    console.info('reveal', detail);
+    (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit?.('reveal', JSON.stringify(detail));
+    screenFade.to(0, 1.5);
   };
   window.setTimeout(() => {
     held = true;
-    if (meshShadersReady()) show();
+    if (meshShadersReady()) show('ready');
   }, 1000);
   // Ready before the hold ends: the timer above reveals. Ready after: this does.
   whenMeshShadersReady(() => {
-    if (held) show();
+    if (held) show('ready');
   });
-  window.setTimeout(show, REVEAL_READY_MAX_MS);
+  window.setTimeout(() => show(meshShadersReady() ? 'ready' : 'cap'), REVEAL_READY_MAX_MS);
 };
 
 /** Resolves once the drawn meshes' materials are compiled, or after `SHADERS_READY_MAX_MS`. */
 const SHADERS_READY_MAX_MS = 15000;
-const whenShadersCompiled = () =>
+const whenShadersCompiled = (deadline = performance.now() + SHADERS_READY_MAX_MS) =>
   new Promise<void>((resolve) => {
-    const timer = window.setTimeout(resolve, SHADERS_READY_MAX_MS);
+    const timer = window.setTimeout(resolve, Math.max(0, deadline - performance.now()));
     whenMeshShadersReady(() => {
       window.clearTimeout(timer);
       resolve();
     });
   });
+
+/**
+ * Boot, under the title card: put the scene in the light configuration the opening draws with and compile every
+ * material that is not ready yet, so the veil lift and the first frames after Start compile nothing. Start adds or
+ * shows the bathroom mirror (`act.onStart`), the sidearm and muzzle flash (`resetPlayer`) and the handset
+ * (`phone.ring`); they exist hidden by now, and Babylon checks hidden meshes too. Capped like `whenShadersCompiled`.
+ */
+const warmStartState = async (deadline: number) => {
+  phone.refreshLights();
+  const pending: Promise<unknown>[] = [];
+  for (const mesh of scene.meshes) {
+    if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
+    if (mesh.isReady(true)) continue;
+    pending.push(mesh.material.forceCompilationAsync(mesh).catch(() => undefined));
+  }
+  if (pending.length === 0) return;
+  let timer = 0;
+  await Promise.race([
+    Promise.all(pending),
+    new Promise<void>((resolve) => { timer = window.setTimeout(resolve, Math.max(0, deadline - performance.now())); }),
+  ]);
+  window.clearTimeout(timer);
+};
 
 const waitFrames = (count: number) =>
   new Promise<void>((resolve) => {
@@ -811,19 +862,24 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     await waitFrames(3);
     // Compile every shader now, under the title card, so Start never opens on a world Babylon is still skipping
     // (a mesh whose effect is not ready is not drawn: pure black behind the HUD on a slow GPU).
-    if (mode === 'boot') await whenShadersCompiled();
     if (mode === 'arrive') {
       act.onOfficeArrived();
       dressedLevelId = 0;
     } else {
+      // Level ready first (it mounts the bathroom mirror, sets the opening objective), so the compile pass below
+      // covers what Start would otherwise add on its first frames.
       act.onLevelReady();
       dressedLevelId = state.level;
+      // One cap for both passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
+      const deadline = performance.now() + SHADERS_READY_MAX_MS;
+      await warmStartState(deadline);
+      await whenShadersCompiled(deadline);
     }
   } finally {
     if (mode === 'boot') {
       gameReady = true;
       syncStartButtonLabel();
-      if (!startingLevel) revealFromBlack(() => !startingLevel);
+      if (!startingLevel) revealFromBlack(() => !startingLevel, 'boot');
     }
   }
 };
@@ -2480,6 +2536,7 @@ const beginGame = () => {
   shadowAirJump = false;
   spaceDown = false;
   stopEndingSong();
+  beginGameAt = performance.now();
   screenFade.to(1, 0);
   audio.start();
   state.running = true;

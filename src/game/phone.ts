@@ -80,6 +80,11 @@ export type PhoneView = {
 
 export type Phone = {
   meshes: () => BABYLON.AbstractMesh[];
+  /**
+   * Builds every mesh's four-light list now (the per-frame pass only does it when the mesh or light count changes), so a
+   * compile pass under the title card sees the lights the opening will draw with.
+   */
+  refreshLights: () => void;
   attachTo: (avatar: PlayerAvatar | null) => void;
   isRaised: () => boolean;
   setRaised: (raised: boolean) => void;
@@ -681,6 +686,12 @@ export const createPhone = (
 
   return {
     meshes: () => meshes,
+    refreshLights: () => {
+      syncExcluded();
+      applyLightLists();
+      seenMeshes = scene.meshes.length;
+      seenLights = scene.lights.length;
+    },
     attachTo: (avatar) => {
       try {
         attach.detachFromBone();
