@@ -240,11 +240,53 @@
       // never call it. Site-only playtests don't call start() and keep reviewing this page.
       (function () {
         var going = null;
+        var scenarios = [
+          { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
+          { id: 'level-1', title: 'Level 1: The Apex Peak to its exit', seconds: 330, tags: ['level'] },
+          { id: 'level-2', title: 'Level 2: B3 to its exit (starts at level 2)', seconds: 170, tags: ['level'] },
+          { id: 'level-3', title: 'Level 3: The Return to its exit (starts at level 3)', seconds: 200, tags: ['level'] },
+          { id: 'level-4', title: 'Level 4: The Desk to its exit (starts at level 4)', seconds: 100, tags: ['level'] },
+          { id: 'level-5', title: 'Level 5: Going Home to its exit (starts at level 5)', seconds: 200, tags: ['level'] },
+          { id: 'level-6', title: 'Level 6: The Station to its exit (starts at level 6)', seconds: 110, tags: ['level'] },
+          { id: 'smoke-l1', title: 'Smoke, level 1 (The Apex Peak): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'smoke-l2', title: 'Smoke, level 2 (B3): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'smoke-l3', title: 'Smoke, level 3 (The Return): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'smoke-l4', title: 'Smoke, level 4 (The Desk): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'smoke-l5', title: 'Smoke, level 5 (Going Home): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'smoke-l6', title: 'Smoke, level 6 (The Station): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'smoke-l7', title: 'Smoke, level 7 (The Train): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'smoke-l8', title: 'Smoke, level 8 (The Morning): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
+          { id: 'stuck-recovery', title: 'Idle 60 s in level 1: "Lost? Return to objective" shows and puts Pierce beside the objective; Pause always offers it; tappable at 390x844 and 844x390', seconds: 420, tags: ['menus', 'ui'] },
+          { id: 'full', title: "Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7's card Continues into The Morning", seconds: 1400, tags: ['full'] },
+          { id: 'sound-settings', title: 'Tap to play unlocks sound, Settings from the title and from Pause, a setting that survives a reload', seconds: 120, tags: ['menus', 'sound'] },
+          { id: 'feel-audio', title: 'Each level has its own bed, a strike gives sound and a screen pulse, volume sliders persist', seconds: 200, tags: ['sound'] },
+          { id: 'ui-style', title: 'Menu, HUD, pause, settings and end cards share fonts and colours, nothing is clipped, and no touch control overlaps another or is under 44 px at 390x844, 844x390 and 667x375', seconds: 170, tags: ['menus'] },
+          { id: 'screen-mode', title: 'Turn your phone sideways in portrait (dismissable), Start asks for fullscreen and the landscape lock, Pause has a Fullscreen switch, desktop is unchanged', seconds: 90, tags: ['menus', 'ui'] },
+          { id: 'objective-marker', title: 'The objective waypoint shows name and distance, clamps to the screen edge with an arrow, hides in scenes and menus, and stays clear of the touch controls', seconds: 240, tags: ['hud'] },
+          { id: 'load-error', title: "A level that fails to load shows Couldn't start the game and Retry; Retry reloads to START", seconds: 90, tags: ['menus'] },
+          { id: 'phone-b3', title: 'Phone title card and buttons, About beat 01, then B3 with the creature downed before decon', seconds: 260, tags: ['menus'] },
+          { id: 'chapters', title: 'Chapter title cards: levels 1 to 8 each open on their own card; one press skips it; no placeholder text', seconds: 420, tags: ['level', 'ui'] },
+          { id: 'context-loss', title: 'Level 1: lose the WebGL context, Recovering shows, the level resumes; memory tier and level change counts', seconds: 300, tags: ['graphics', 'level'] },
+          { id: 'b3-retry', title: 'B3: die and press Start five times; meshes, materials, textures, skeletons, clips and lights stay flat', seconds: 420, tags: ['level', 'perf'] },
+          { id: 'analytics', title: 'Hawkes Analytics: level 1 played to its card, the events going out (debug log), the feedback card after the level', seconds: 360, tags: ['level', 'analytics'] },
+          { id: 'apex-slice', title: 'Apex Peak vertical slice: hall life, cleaner, sofa, papers, valuation screen; quality.maxQuietSeconds and quality.textOnlyBeats', seconds: 240, tags: ['level', 'quality', 'story'] },
+          { id: 'train', title: 'Level 7: the subway car. Seats, poles, ads, tunnel lights, sway; seats and poles block; listed on Load Level; fps vs The Station', seconds: 200, tags: ['level', 'perf'] },
+          { id: 'level-8', title: "Level 8, The Morning: the 7 scenes in order (ride, walk up, threshold), bed, the wake-up, the news naming Hawkes Tower and Pierce, Voss's call in full, the door, End Level", seconds: 240, tags: ['level', 'story'] },
+          { id: 'level-8-release', title: 'The Train Continue enters The Morning; the whole of level 8 follows', seconds: 520, tags: ['level'] },
+          { id: 'level-7-release', title: 'The Station Continue enters The Train; End Level only after the story, then the station song and level 7 credits; Continue and Exit; Load Level lists it', seconds: 480, tags: ['level'] },
+          { id: 'level-7', title: 'Level 7, The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door, then the end song and credits', seconds: 240, tags: ['level'] },
+          { id: 'lore-link', title: 'Finish level 4 and unlock its lore entry, open its Read more page, check every lore page has Play this level', seconds: 200, tags: ['level', 'site'] },
+          { id: 'site-links', title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged', seconds: 60, tags: ['menus', 'site'] },
+          { id: 'frame-trace', title: 'Frame-time trace on all eight levels (desktop and phone): hitch counts, worst causes, no post-grace frame over 100 ms', seconds: 420, tags: ['smoke', 'perf'] }
+        ];
         window.hawkesPlaytest = {
           version: 1,
           product: 'phorigins',
-          scenarios: function () { return [{ id: 'smoke', title: 'Boot, title, start level 1 (in play/game.html)', seconds: 50, tags: ['smoke'] }]; },
+          scenarios: function () { return scenarios.map(function (s) { return Object.assign({}, s); }); },
           start: function (id, options) {
+            if (!scenarios.some(function (s) { return s.id === id; })) {
+              return Promise.reject(new Error('no playtest scenario "' + id + '" (have: ' + scenarios.map(function (s) { return s.id; }).join(', ') + ')'));
+            }
             options = options || {};
             var q = new URLSearchParams({ playtest: String(id), seed: String(options.seed || 1), speed: String(options.speed || 1) });
             // a start point and a feel replay's spot (a place the feel sensor flagged) go along to the game
