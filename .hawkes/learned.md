@@ -1,3 +1,0 @@
-- convention: playtest discovery — Studio reads `window.hawkesPlaytest.scenarios()` on the marketing front page (`index.html` at `/`), not `phPlaytest.ts`. New scenarios must be listed in that hand-off array or beta skips them with "has: smoke".
-- lesson: apex-slice Sit loop — After Sit ends Pierce is still in the 1.35 m prompt radius; guard opportunistic E presses with `!seen.has(label)` and only advance `stopAt` when `once('e')` fires, or the bot re-sits until timeout.
-- lesson: studio local vs worktree — `studio_playtest where=local` for ph-origins can play published beta, not the agent worktree; discovery/Sit-loop fixes only show end-to-end after the change is on beta (or its `/c/<id>/` preview).
