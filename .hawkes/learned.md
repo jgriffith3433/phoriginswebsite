@@ -1,4 +1,0 @@
-- convention: chapter card release waits on lit canvas — revealFromBlack under a held card samples world luma (≥0.03) after snap + 2 frames; pause stays hidden while chapterCard.showing().
-- lesson: Start bypassed startAtLevel — the title Start path did fadeOutCard→show→beginGame and skipped warm; black+pause came back on smoke@live after #146. Route Start through startAtLevel.
-- lesson: followCamera.reset parks at world origin — the first follow frames damp from (0,y,−distance) through the level; snapTo behind Pierce before reveal or the card lifts onto black geometry.
-- lesson: Studio restart mid merge — only `.hawkes/summary.md` conflicted with beta (modify/delete); do not redo the level-start work already on beta as #151.
