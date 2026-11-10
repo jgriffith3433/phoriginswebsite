@@ -1,4 +1,21 @@
-Wrote docs/world-bible.md (Areas, Landmarks, Who lives here, What happens, Story beats) from AGENTS.md and docs/story. It keeps all 8 levels, marks gaps, and proposes "New" additions (cleaner, radio, clock, rat, etc.) for J to approve. No game code changed.
-Fun-reviewer: verdict "thin" as a plan (Return basement, Apex halls, lobby, lift to L, Morning are the empty areas). I added those as ranked work items and a 10-second gap check. Story beats have no text-only beats.
-Checks: docs-only change; build not run. Scenario: existing `smoke`.
-GPU: none needed for this task, so I did not call hawkesgen_estimate. Future art (Morning street stills) is not priced. Lore.txt was unavailable.
+## What was wrong
+The world bible marks **The Apex Peak** as the first vertical-slice area. Halls were dressed but quiet between set pieces: no hall life, few optional interactions, and no playtest measuring the 10-second gap rule.
+
+## What changed
+- **`src/story/apexSlice.ts`** (level 1 only): night cleaner walks hall 2 (pauses mid-hall, greets when a Gen take exists, leaves a cart that settles later); hall practicals flicker; ambient SFX when the floor goes quiet; **Sit** / **Read papers** / **Tap screen**; quiet-gap log + `maxQuietSeconds` / `textOnlyBeats`.
+- **`src/main.ts`**: mount/dispose/step/action/confirm/probe.
+- Playtest **`apex-slice`**: walks the route, reports `quality.maxQuietSeconds`, `quality.textOnlyBeats`, `feel.coyoteMs`.
+- Locale + sfx catalog; placeholder files + **soundFallback** until Gen takes land. Subtitles withheld until `audioText` is set (no text-only beats).
+- Sofa on the office west wall (x 44.2, z 44.6). World bible + `AGENTS.md` updated.
+- `.hawkes/scenario.txt`: `apex-slice`.
+
+## Fun review
+First pass **thin** (fake quiet marks, hardcoded textOnly). Fixed. Second pass **living**, do not block merge.
+
+## Left / GPU
+- Gen voice + apex SFX takes: Gen MCP had no project access this session. Placeholders play via fallbacks; Dev Tools → Generate (or `npm run audio:missing -- --only bark.apex.cleaner,bark.apex.papers,sfx.apex.sofa,...`) when Gen is up. Cents each, no GPU.
+- Optional cart GLB (`prop` preset): Gen estimate blocked (no project access). Approve a small GPU budget later if a polished cart is wanted; procedural cart ships now.
+- Bible leftover: sconce dip when the elevator moves.
+
+## Checks
+- `npm ci && npm run build` — passed.

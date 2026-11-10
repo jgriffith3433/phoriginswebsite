@@ -2557,6 +2557,50 @@
       "audioVoice": "pFZP5JQG7iQjIQuC4Bku"
     },
     {
+      "id": "bark.apex.cleaner",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Evening, Mr. Hawkes.",
+      "audio": "/assets/audio/vo/bark.apex.cleaner.ogg",
+      "note": "Apex Peak: night cleaner passes Pierce in hall 2",
+      "audioText": "",
+      "performance": "default"
+    },
+    {
+      "id": "bark.apex.papers",
+      "type": "bark",
+      "speaker": "Pierce Hawkes",
+      "text": "Still warm. They left them open.",
+      "audio": "/assets/audio/vo/bark.apex.papers.ogg",
+      "note": "Apex Peak: Pierce reads the papers on his desk",
+      "audioText": "",
+      "performance": "default"
+    },
+    {
+      "id": "ui.action.apex.sit",
+      "type": "ui",
+      "speaker": "Sit",
+      "text": "Sit",
+      "audio": "",
+      "note": "Apex Peak: sofa sit"
+    },
+    {
+      "id": "ui.action.apex.papers",
+      "type": "ui",
+      "speaker": "Read papers",
+      "text": "Read papers",
+      "audio": "",
+      "note": "Apex Peak: desk papers"
+    },
+    {
+      "id": "ui.action.apex.screen",
+      "type": "ui",
+      "speaker": "Tap screen",
+      "text": "Tap screen",
+      "audio": "",
+      "note": "Apex Peak: boardroom valuation screen"
+    },
+    {
       "id": "bark.desk.01",
       "type": "bark",
       "speaker": "Security radio",

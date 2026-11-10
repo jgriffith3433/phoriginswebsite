@@ -736,6 +736,51 @@
       "influence": 0.65,
       "volume": 0.28,
       "note": "Footsteps in the apartment and on the train floor. The game loops this file."
+    },
+    {
+      "id": "sfx.apex.sofa",
+      "group": "apex",
+      "text": "One-shot leather office sofa cushion compresses as a man sits, soft fabric and a short wood frame creak, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/apex/sofa-creak.ogg",
+      "influence": 0.65,
+      "volume": 0.55,
+      "note": "Apex Peak: Sit on the office sofa."
+    },
+    {
+      "id": "sfx.apex.cart",
+      "group": "apex",
+      "text": "One-shot soft rolling of a night cleaner cart wheels on office carpet, brief pass-by, quiet bearings, no voices, no music.",
+      "audio": "/assets/audio/sfx/apex/cart-wheels.ogg",
+      "influence": 0.6,
+      "volume": 0.35,
+      "note": "Apex Peak: cleaner cart in hall 2."
+    },
+    {
+      "id": "sfx.apex.screen",
+      "group": "apex",
+      "text": "One-shot soft corporate boardroom screen UI tap beep, short digital click, muted, no voices, no music.",
+      "audio": "/assets/audio/sfx/apex/screen-tap.ogg",
+      "influence": 0.7,
+      "volume": 0.4,
+      "note": "Apex Peak: tap the valuation screen."
+    },
+    {
+      "id": "sfx.apex.skyline",
+      "group": "apex",
+      "text": "One-shot distant night city through thick office glass, a soft traffic wash and a single far horn, muted and brief, no voices, no music.",
+      "audio": "/assets/audio/sfx/apex/skyline.ogg",
+      "influence": 0.55,
+      "volume": 0.42,
+      "note": "Apex Peak: after sitting on the sofa."
+    },
+    {
+      "id": "sfx.apex.flicker",
+      "group": "apex",
+      "text": "One-shot fluorescent ceiling troffer flicker buzz and soft electrical click in an office hallway, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/apex/troffer-flicker.ogg",
+      "influence": 0.65,
+      "volume": 0.28,
+      "note": "Apex Peak: hall 2 troffer flicker."
     }
   ]
 }

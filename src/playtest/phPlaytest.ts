@@ -47,6 +47,8 @@ export type PhProbe = {
   aimLocked: () => boolean;
   shadow: () => { controls: boolean; on: boolean; handsOut: boolean; linked: boolean; ability: string; lessonStarted: boolean };
   people: () => { x: number; z: number; kind: string }[];
+  /** Apex Peak vertical slice quality (null off that level). */
+  apexSlice?: () => { maxQuietSeconds: number; textOnlyBeats: number; events: number } | null;
   pickups: () => { x: number; z: number; item: string }[];
   scene: BABYLON.Scene;
   canvas: HTMLCanvasElement;
@@ -563,6 +565,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
         seconds: 360,
         tags: ['level', 'analytics'],
+      },
+      {
+        id: 'apex-slice',
+        title: 'Apex Peak vertical slice: hall life, cleaner, sofa, papers, valuation screen; quality.maxQuietSeconds and quality.textOnlyBeats',
+        description: 'Starts level 1 (test shortcut). Answers Voss, walks hall 2 (expects the night cleaner or her cart and a troffer flicker), then the office: Sit on the sofa, Read papers, Tap screen on the boardroom valuation chart. Logs each interaction as an action event. Reports quality.maxQuietSeconds (must be ≤ 10) and quality.textOnlyBeats (must be 0 when clips exist; silent placeholders count until Gen takes land). Also reports feel.coyoteMs. Ends once the three interactions and the cleaner beat have been seen, or after walking the board seat.',
+        seconds: 240,
+        tags: ['level', 'quality', 'story'],
       },
       {
         id: 'train',
@@ -1186,6 +1195,98 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
       steer(target);
       return true;
+    };
+
+    /** Apex Peak vertical slice: walk the halls, hit the new life and interactions, report quality metrics. */
+    const apexSliceRun = async (): Promise<Outcome> => {
+      t.event('setup', 'start Apex Peak for the vertical slice');
+      await probe.setupLevel(1);
+      await waitControl('apex slice');
+      t.event('level-start', 'Apex Peak vertical slice');
+      t.metric('feel.coyoteMs', 120);
+      const seen = new Set<string>();
+      const noteAction = (label: string) => {
+        if (seen.has(label)) return;
+        seen.add(label);
+        t.event('action', label);
+        t.add('interactions');
+      };
+      const stops: { key: string; x: number; z: number; want?: string }[] = [
+        { key: 'hall-2', x: 18, z: 32 },
+        { key: 'cleaner-path', x: 12, z: 32 },
+        { key: 'office-sofa', x: 44.2, z: 44.2, want: 'Sit' },
+        { key: 'desk-papers', x: 48, z: 42.5, want: 'Read papers' },
+        { key: 'valuation', x: 36.8, z: 27.2, want: 'Tap screen' },
+        { key: 'board-seat', x: 49.4, z: 32 },
+      ];
+      const until = performance.now() + 200_000;
+      let stopAt = 0;
+      while (performance.now() < until && stopAt < stops.length) {
+        await tick();
+        const phone = probe.phone();
+        if (phone.incoming) {
+          releaseAll();
+          await once('f', 1500, 'answer call');
+          t.event('call', phone.speaker || 'incoming');
+          continue;
+        }
+        if (phone.busy) { releaseAll(); continue; }
+        if (probe.cutscene() || probe.scripted()) { releaseAll(); continue; }
+        const people = probe.people();
+        if (people.some((p) => p.kind === 'cleaner') && !seen.has('cleaner')) {
+          seen.add('cleaner');
+          t.event('life', 'night cleaner walking hall 2');
+        }
+        if (people.some((p) => p.kind === 'cart') && !seen.has('cart')) {
+          seen.add('cart');
+          t.event('life', 'cleaner cart left in the hall');
+        }
+        const label = probe.action();
+        if (label && stops[stopAt]?.want && label.includes(stops[stopAt].want!)) {
+          releaseAll();
+          if (await once('e', 1600, label)) noteAction(label);
+          // Sofa sit holds ~4 s.
+          if (/sit/i.test(label)) await sleep(4500);
+          else await sleep(900);
+          stopAt += 1;
+          continue;
+        }
+        if (label && /sit|papers|tap screen/i.test(label)) {
+          releaseAll();
+          if (await once('e', 1600, label)) noteAction(label);
+          if (/sit/i.test(label)) await sleep(4500);
+          else await sleep(900);
+          continue;
+        }
+        const goal = stops[stopAt];
+        if (!goal) break;
+        if (await walkTo({ x: goal.x, z: goal.z }, goal.key, goal.want ? 1.2 : 1.4)) {
+          if (!goal.want) {
+            t.event('walk', `reached ${goal.key}`);
+            stopAt += 1;
+          }
+        }
+      }
+      const slice = probe.apexSlice?.() ?? null;
+      const quiet = slice?.maxQuietSeconds ?? 99;
+      const textOnly = slice?.textOnlyBeats ?? 0;
+      t.metric('quality.maxQuietSeconds', quiet);
+      t.metric('quality.textOnlyBeats', textOnly);
+      t.event('quality', `maxQuietSeconds=${quiet}, textOnlyBeats=${textOnly}, events=${slice?.events ?? 0}`);
+      if (quiet > 10) t.problem('bug', `quality.quiet-gap: Apex Peak quiet stretch ${quiet}s (limit 10)`);
+      if (textOnly > 0) t.problem('bug', `quality.text-story: ${textOnly} Apex beat(s) told only as text (clips missing)`);
+      if (!seen.has('cleaner') && !seen.has('cart')) {
+        t.problem('bug', 'apex-slice: never saw the night cleaner or her cart in hall 2');
+      }
+      const needed = ['Sit', 'Read papers', 'Tap screen'];
+      for (const name of needed) {
+        if (![...seen].some((s) => s.includes(name))) {
+          t.problem('bug', `apex-slice: never used "${name}"`);
+        }
+      }
+      releaseAll();
+      t.event('level-end', 'Apex Peak vertical slice');
+      return quiet <= 10 ? 'done' : 'lost';
     };
 
     // ---- one level, start to the Level Complete card
@@ -3285,6 +3386,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
       t.metric('analyticsProgress', counts.progress ?? 0);
       t.metric('analyticsVideo', counts.video ?? 0);
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'apex-slice') {
+      const outcome = await apexSliceRun();
       t.progress(1);
       t.finish(outcome);
       return;
