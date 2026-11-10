@@ -1,3 +1,0 @@
-1. Start Level 1 (`The Apex Peak`) or run playtest scenario `smoke`.
-2. Walk north up Hall 1 (`z = 4..30`) and turn east at the Hall 1 / Hall 2 junction (`z = 32`): verify the ceiling lights sit flush inside the white acoustic tile ceiling with thin light-silver bezels rather than bulky black boxes hovering below the ceiling or hanging off the corner.
-3. Enter the Boardroom (`x = 35..52, z = 24..40`) and look toward the ceiling and north doorway into Pierce's office: verify the suspended dark horizontal plank across the room is gone, replaced by flush recessed ceiling troffers, and the ceiling/floor seam between the boardroom and Pierce's office at `z = 40` is closed.
