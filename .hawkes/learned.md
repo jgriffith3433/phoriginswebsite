@@ -1,4 +1,1 @@
-- canon: Apex Peak cleaner — Unnamed night-shift cleaner (speaker "Night shift", voice FGY2WhTYpPnrIDTdsKH5) walks hall 2 once on level 1, says "Evening, Mr. Hawkes.", leaves a cart; not present on The Desk.
-- convention: Apex Peak slice life — Optional office interactions and hall life live in `src/story/apexSlice.ts`, mounted only when `libraryId === 'apex-peak'`, not inside `act1.ts`.
-- lesson: quiet-gap metrics — Do not invent see/hear marks with no stimulus; playtest and fun review treat that as padding. Use real SFX or movers, and withhold subtitles until Gen `audioText` exists so `quality.textOnlyBeats` stays honest.
-- lesson: Hawkes Gen from this agent host — `voice_line` / `hawkesgen_estimate` need Gen project access; shell `tools/hawkesgen.mjs` had URL but no API key. Ship placeholders + `soundFallback`, Generate later.
+- none

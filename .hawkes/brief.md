@@ -5,38 +5,7 @@ You are making content for PH Origins (PH Origins: a Vite/TypeScript web game (b
 
 ## What J asked for
 
-Write PH Origins's world bible in docs/world-bible.md before more is built, so every agent builds one world, not a demo.
-
-Read the story doc, AGENTS.md and what the game has now. Then write the bible with these sections (headings exactly):
-- Areas
-- Landmarks
-- Who lives here
-- What happens
-- Story beats
-
-Plan a full world: a player never walks more than about 10 seconds without something to see, hear or do; every area has
-dressing, a landmark, life, ambient sound and several kinds of interaction; things move and change on their own; every
-story beat is an event, a cutscene with real events, sound or a voice line, never text alone. Keep what already exists
-and say where it falls short. Ask the fun-reviewer subagent to judge the bible and fix what it calls a demo. Change no
-game code in this task. The template:
-
-# <Game>: world bible
-
-## Areas
-Each area: its name, its mood, what it looks and sounds like, how big it is, how the player gets in and out.
-
-## Landmarks
-One landmark per area a player can see from far off and steer by.
-
-## Who lives here
-The characters and creatures, their routines through the day, and how they react to the player.
-
-## What happens
-Per area: the interactions (several kinds), the events that happen on their own, the ambient sound, what changes over time.
-
-## Story beats
-Each beat as an event the player lives through (gameplay, an in-game cutscene with real events, sound, voice lines), with
-where and when it happens. On-screen text is a last resort, one line at most.
+Using the hitch detector's named causes, move first-use costs behind the chapter card for each level: compile shaders/effects for every mesh with a material including hidden/disabled ones (avatars, phone handset, TV, cutscene-only props; see m_92123196702f in main.ts meshShadersReady), upload textures, preload and decode the level's audio, instantiate pooled props, and pre-create particle systems. Spread remaining work across frames (idle-callback style chunks, no polling), avoid per-frame allocations in the render loop hot paths. Check: smoke-l1..l8 detector numbers before/after; Level 1 clip around the boardroom, doors and phone call.
 
 Work out what that means in this project (read the story doc and AGENTS.md), make it well, and keep it consistent with
 the product's tone and style. If it's too big for one change, do a solid first part and say what's left in the summary.
@@ -51,8 +20,10 @@ Nothing here was approved for GPU generation (images, video, music, 3D on the fl
 
 The change is ready once your checks pass and its pull request is open; after it is merged into beta, beta's playtest
 judges these, and the work is done only when every one of them passes there:
-1. docs/world-bible.md exists with every section: Areas, Landmarks, Who lives here, What happens, Story beats
-2. Every story beat in it is an event, a cutscene, sound or voice, with text as a last resort
+1. Level 1 plays from spawn to the board table with no frame over 100 ms after the first second
+2. Opening doors, the phone call and the first cutscene play without a freeze in a desktop clip
+3. Phone-size runs of levels 1, 4 and 8 show no hitch over 150 ms
+4. The chapter card is not held noticeably longer than today (under +1.5 s on desktop)
 
 Where the game implements the playtest contract (`window.hawkesPlaytest`: see this project's AGENTS.md, and the spec
 at `hawkesstudio/docs/playtest.md` next to this repository), add or extend a scenario that plays to what the criteria
@@ -153,24 +124,24 @@ It takes files from this Studio's own Gen library and from its owners' own hawke
 ## The Studio's other repositories (read-only)
 
 Shallow clones of the other projects' repositories, to read (not to change: a change there is that project's own task):
-- `jgriffith3433/theplacedepartmentwebsite`: `../c_e0ae148c6f06.repos/theplacedepartmentwebsite`
-- `jgriffith3433/hawkesgenwebsite`: `../c_e0ae148c6f06.repos/hawkesgenwebsite`
-- `jgriffith3433/hawkesstudio`: `../c_e0ae148c6f06.repos/hawkesstudio`
-- `jgriffith3433/breakingthrough`: `../c_e0ae148c6f06.repos/breakingthrough`
-- `jgriffith3433/icanbeaiwebsite`: `../c_e0ae148c6f06.repos/icanbeaiwebsite`
-- `jgriffith3433/hawkesbiomedical`: `../c_e0ae148c6f06.repos/hawkesbiomedical`
-- `jgriffith3433/imaginelivetvwebsite`: `../c_e0ae148c6f06.repos/imaginelivetvwebsite`
-- `jgriffith3433/doseofdestructionwebsite`: `../c_e0ae148c6f06.repos/doseofdestructionwebsite`
-- `jgriffith3433/YoobaLandGame`: `../c_e0ae148c6f06.repos/YoobaLandGame`
-- `jgriffith3433/sickofitgame-unity`: `../c_e0ae148c6f06.repos/sickofitgame-unity`
-- `jgriffith3433/hawkesnet`: `../c_e0ae148c6f06.repos/hawkesnet`
-- `jgriffith3433/hawkesnet-js`: `../c_e0ae148c6f06.repos/hawkesnet-js`
-- `jgriffith3433/hawkesnet-babylon`: `../c_e0ae148c6f06.repos/hawkesnet-babylon`
-- `jgriffith3433/hawkesnet-unity`: `../c_e0ae148c6f06.repos/hawkesnet-unity`
-- `jgriffith3433/sickofitgamewebsite`: `../c_e0ae148c6f06.repos/sickofitgamewebsite`
-- `jgriffith3433/hawkes-analytics`: `../c_e0ae148c6f06.repos/hawkes-analytics`
-- `jgriffith3433/hawkesgen`: `../c_e0ae148c6f06.repos/hawkesgen`
-- `jgriffith3433/YoobaLand`: `../c_e0ae148c6f06.repos/YoobaLand`
+- `jgriffith3433/theplacedepartmentwebsite`: `../c_567609defe5e.repos/theplacedepartmentwebsite`
+- `jgriffith3433/hawkesstudio`: `../c_567609defe5e.repos/hawkesstudio`
+- `jgriffith3433/breakingthrough`: `../c_567609defe5e.repos/breakingthrough`
+- `jgriffith3433/icanbeaiwebsite`: `../c_567609defe5e.repos/icanbeaiwebsite`
+- `jgriffith3433/hawkesbiomedical`: `../c_567609defe5e.repos/hawkesbiomedical`
+- `jgriffith3433/imaginelivetvwebsite`: `../c_567609defe5e.repos/imaginelivetvwebsite`
+- `jgriffith3433/doseofdestructionwebsite`: `../c_567609defe5e.repos/doseofdestructionwebsite`
+- `jgriffith3433/YoobaLandGame`: `../c_567609defe5e.repos/YoobaLandGame`
+- `jgriffith3433/sickofitgame-unity`: `../c_567609defe5e.repos/sickofitgame-unity`
+- `jgriffith3433/hawkesnet`: `../c_567609defe5e.repos/hawkesnet`
+- `jgriffith3433/hawkesnet-js`: `../c_567609defe5e.repos/hawkesnet-js`
+- `jgriffith3433/hawkesnet-babylon`: `../c_567609defe5e.repos/hawkesnet-babylon`
+- `jgriffith3433/hawkesnet-unity`: `../c_567609defe5e.repos/hawkesnet-unity`
+- `jgriffith3433/sickofitgamewebsite`: `../c_567609defe5e.repos/sickofitgamewebsite`
+- `jgriffith3433/hawkes-analytics`: `../c_567609defe5e.repos/hawkes-analytics`
+- `jgriffith3433/hawkesgen`: `../c_567609defe5e.repos/hawkesgen`
+- `jgriffith3433/YoobaLand`: `../c_567609defe5e.repos/YoobaLand`
+- `jgriffith3433/hawkesgenwebsite`: `../c_567609defe5e.repos/hawkesgenwebsite`
 
 ## What the studio already knows (shared memory)
 
@@ -181,9 +152,10 @@ Earlier agents, J and Talk learned these; follow decisions and preferences, resp
 - [decision] Agents must do quality work: design spec first, un-cheatable criteria, vertical slices, forbidden shortcuts, playtest of the experience: After the Place Department campaign came out as the wave game with a text intro, J approved the whole quality plan: (1) a design-spec step (docs/*.md, player fantasy, structure, new vs reused, distinct layouts) before any big build; (2) acceptance criteria a reskin can't pass (observable: different map, no wave timer, explore/talk/pickup before combat); (3) vertical slices (one playable slice, re… (m_7a31fee7272a)
 - [preference] Roadmap planning: go deep, aim AAA, don't ask first: For roadmap and milestone planning J wants depth and AAA ambition on story and polish, and no confirmation questions first. Plan and add; report afterwards. 2026-11-06: 19 milestones and 95 items added (5 per project) from backlog findings, memory and project descriptions. (m_7f0b957f00bf)
 - [preference] No caching changes for now (Jaycee, Nov 1): Jaycee said on 2026-11-01: "I don't want you to mess with caching right now." Don't add or change Cache-Control, edge/Worker caching or CDN cache rules in any product until they lift this. Internal services must not go through Cloudflare. Gen task k_36c3244487d8 (edge cache for the dashboard) was parked as idea on 2026-11-07 for this reason. (m_92901cfcc7df)
-- [convention] Agent changes go to beta first: An agent works on its own branch and opens a pull request into the game's beta branch. Nothing reaches the live game until the owner goes live. (m_988b8d55f022)
-- [convention] Every game keeps a working smoke scenario: The smoke scenario loads the game, plays a little and checks nothing errors. Keep it passing when changing the game. (m_2965f554a3ce)
-- [lesson] A beta build that failed with "Gen is restarting" needs a re-run, not an agent: Read the build error text before acting. "Gen is restarting" means the cloud build never started; the code isn't at fault. Re-run beta's build (studio_run forceBuild) once no other run is going. Sending it to an agent wastes a try: on 2026-11-08 Sick of It's c_9ce2863b09b6 (k_08f39946b813) read the #270 code, found nothing wrong and made no commit. If a task's work is already merged, mark that ta… (m_c18e3ffa8375)
+- [lesson] shader precompile must include hidden meshes: `meshShadersReady` (main.ts) skipped disabled meshes, so avatars/handset compiled on first show and hitched with a black frame; check all meshes with material. (m_92123196702f)
+- [lesson] Black frame after the veil lifts: Babylon skips meshes whose shader isn't compiled, so revealing before `scene.isReady()` shows clear-colour black on slow GPUs. #107 made `revealFromBlack` wait (8 s cap), but the black after the chapter card persisted; compile under the title card (`whenShadersCompiled` in main.ts, #116) instead of lengthening the veil. (m_b1489738c5ad)
+- [lesson] Camera squeeze at corners: a short boom into a wall behind the player needs a fast yaw swing to his heading (thirdPersonCamera.ts squeeze), not just shortening; the wall-probe fixes only moved the lens. (m_0a28c8ba0672)
+- [lesson] Start rebuilds the Apex bathroom mirror: `onLevelReady` and `onStart` both ran `mountMirror`, so its materials and 512 px render target were made after the title-card compile pass; compile after `onLevelReady`, and mount once. (m_62e036f3c111)
 
 ## How to work
 
