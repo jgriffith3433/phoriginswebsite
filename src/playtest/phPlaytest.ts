@@ -1,6 +1,6 @@
 import type * as BABYLON from '@babylonjs/core';
 import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
-import { missingClip, storyLines } from '../game/locale';
+import { missingClip, spokenLine, storyLines } from '../game/locale';
 import { STRIDE_MPS } from '../game/stride';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
@@ -4333,7 +4333,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
   const watchProblems = (t: Tracker) => {
     const missing = storyLines().filter(missingClip);
     if (missing.length) {
-      t.problem('polish', `${missing.length} spoken line${missing.length === 1 ? ' has' : 's have'} no audio clip: ${missing.slice(0, 6).map((row) => row.id).join(', ')}${missing.length > 6 ? '…' : ''}`);
+      t.problem('bug', `${missing.length} spoken line${missing.length === 1 ? ' has' : 's have'} no audio clip: ${missing.slice(0, 6).map((row) => row.id).join(', ')}${missing.length > 6 ? '…' : ''}`);
+    }
+    const silent = storyLines().filter((row) => spokenLine(row) && row.audio.trim() && !row.audioText.trim());
+    if (silent.length) {
+      t.problem('bug', `${silent.length} spoken line${silent.length === 1 ? ' is' : 's are'} silent placeholders (empty audioText): ${silent.slice(0, 6).map((row) => row.id).join(', ')}${silent.length > 6 ? '…' : ''}`);
     }
     const seen = new Set<string>();
     const report = (url: string, status: number) => {
