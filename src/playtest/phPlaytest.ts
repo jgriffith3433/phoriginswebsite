@@ -4,6 +4,7 @@ import { missingClip, storyLines } from '../game/locale';
 import { STRIDE_MPS } from '../game/stride';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
+import { installCameraWatch, type CamSummary } from './cameraWatch';
 import { installFrameTrace, type FrameTraceSummary } from './frameTrace';
 
 /**
@@ -479,6 +480,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
       ...LEVEL_NAMES.map((name, i) => ({
+        id: `explore-cam-l${i + 1}`,
+        title: `Explore camera, level ${i + 1} (${name}): wall-hugs hallways, turns in doorways, backs into corners on walkable routes; counts camera inside, blocked, near-wall, snaps and jitter, worst frames with screenshots`,
+        seconds: 300,
+        tags: ['camera', 'level'],
+      })),
+      ...LEVEL_NAMES.map((name, i) => ({
         id: `smoke-l${i + 1}`,
         title: `Smoke, level ${i + 1} (${name}): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress`,
         seconds: SMOKE_SECONDS,
@@ -693,12 +700,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
   };
 
   // report() gains the hitch summary (counts over 50/100 ms, worst 5 with cause + level/objective).
+  let lastCam: CamSummary | null = null;
   const baseReport = api.report.bind(api);
   api.report = () => {
     const report = baseReport();
     if (!report) return report;
     try {
-      return { ...report, frameTrace: probe.frames() };
+      return { ...report, frameTrace: probe.frames(), cameraWatch: lastCam };
     } catch {
       return report;
     }
@@ -2966,6 +2974,111 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.progress(1);
       (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = prevEmit;
       t.finish(deskSnap.failOver100 === 0 && phoneFail === 0 && sceneSeen ? 'won' : 'lost');
+      return;
+    }
+
+    const exploreN = Number(/^explore-cam-l([1-8])$/.exec(id)?.[1] ?? 0);
+    if (exploreN > 0) {
+      levelsTotal = 1;
+      const feel = probe.feel;
+      const cw = installCameraWatch({
+        scene: () => probe.scene,
+        player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
+        isSolid: (m) => (feel ? feel.isSolid(m) : true),
+        active: () => probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted(),
+        label: () => `L${exploreN}`,
+        emit: (type, detail) => t.event(type, detail),
+      });
+      try {
+        t.scene(`explore-cam L${exploreN}`);
+        if (exploreN === 7) await probe.setupHidden('the-train');
+        else await enterLevel(exploreN);
+        for (let i = 0; i < 400 && (probe.cutscene() || probe.scripted() || probe.menu().open); i += 1) {
+          const skip = probe.skipButton;
+          if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+          await tick();
+        }
+        await measureLook();
+        await sleep(1200);
+        cw.start();
+        const grid = buildGrid(probe.scene, probe.level().libraryId);
+        const start = probe.player();
+        type Stop = { p: Point; kind: 'hug' | 'door' | 'corner' };
+        const stops: Stop[] = [];
+        if (grid) {
+          const blockedAt = (c: number, r: number) => !isOpen(grid, c, r);
+          const ring = (c: number, r: number, n: number) => {
+            let k = 0;
+            for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) if ((dc || dr) && blockedAt(c + dc * n, r + dr * n)) k++;
+            return k;
+          };
+          const cand: Stop[] = [];
+          for (let r = 0; r < grid.rows; r += 4) for (let c = 0; c < grid.cols; c += 4) {
+            if (!isOpen(grid, c, r) || !isOpen(grid, c, r)) continue;
+            const walls = ring(c, r, 2);
+            const p = worldOf(grid, c, r);
+            if (walls >= 5) cand.push({ p, kind: 'corner' });
+            else if (walls >= 2 && !blockedAt(c + 4, r) !== !blockedAt(c - 4, r)) cand.push({ p, kind: 'door' });
+            else if (walls >= 1) cand.push({ p, kind: 'hug' });
+          }
+          let here = start;
+          for (const k of ['corner', 'door', 'hug'] as const) {
+            for (const c of cand.filter((x) => x.kind === k)) {
+              if (stops.length >= 24) break;
+              if (dist(c.p, here) < 5 || stops.some((s) => dist(s.p, c.p) < 6)) continue;
+              if (!findPath(grid, here, c.p)) continue;
+              stops.push(c);
+            }
+          }
+          stops.sort((a, b) => dist(a.p, start) - dist(b.p, start));
+        }
+        t.event('explore-plan', `${stops.length} stops on L${exploreN}`);
+        let done = 0;
+        for (const s of stops) {
+          const t1 = performance.now();
+          let arrived = false;
+          while (performance.now() - t1 < 25000 && !(arrived = await walkTo(s.p, `cam-${done}`, 0.7))) {
+            if (probe.cutscene() || probe.scripted()) break;
+            await tick();
+          }
+          releaseAll();
+          if (!arrived) continue;
+          done += 1;
+          if (s.kind === 'door' || s.kind === 'hug') {
+            for (let i = 0; i < 8; i += 1) { dragLook(14); await tick(); }
+            for (let i = 0; i < 8; i += 1) { dragLook(-14); await tick(); }
+          }
+          if (s.kind === 'corner') {
+            setHeld('s');
+            const u = performance.now() + 1500;
+            while (performance.now() < u) await tick();
+            releaseAll();
+            for (let i = 0; i < 10; i += 1) { dragLook(14); await tick(); }
+          }
+          t.progress(Math.min(0.95, done / Math.max(1, stops.length)));
+        }
+        t.metric('cameraStops', done);
+        t.metric('cameraStopsPlanned', stops.length);
+      } catch (e) {
+        t.event('explore-error', String(e));
+      }
+      releaseAll();
+      cw.stop();
+      const sum = cw.summary();
+      lastCam = sum;
+      t.metric('cameraFrames', sum.frames);
+      t.metric('cameraInside', sum.inside);
+      t.metric('cameraNear', sum.near);
+      t.metric('cameraBlocked', sum.blocked);
+      t.metric('cameraNearWall', sum.nearWall);
+      t.metric('cameraSnaps', sum.snaps);
+      t.metric('cameraJitter', sum.jitter);
+      t.metric('cameraMaxCoverage', Math.round(sum.maxCoverage * 100) / 100);
+      t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })) }));
+      sum.worst.forEach((w, i) => { if (w.shot) t.event('camera-screenshot', JSON.stringify({ rank: i + 1, kind: w.kind, detail: w.detail, image: w.shot })); });
+      if (sum.inside > 0) t.problem('bug', `camera inside geometry on ${LEVEL_NAMES[exploreN - 1]}: ${sum.inside} frames`);
+      t.progress(1);
+      t.finish('done');
       return;
     }
 
