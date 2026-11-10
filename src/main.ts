@@ -38,6 +38,7 @@ import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadScen
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createAct1, type Act1, type StoryCarry } from './story/act1';
+import { createApexSlice, type ApexSlice } from './story/apexSlice';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
@@ -835,6 +836,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     station.dispose();
     train.dispose();
     morning.dispose();
+    apex.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
@@ -874,6 +876,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       // Level ready first (it mounts the bathroom mirror, sets the opening objective), so the compile pass below
       // covers what Start would otherwise add on its first frames.
       act.onLevelReady();
+      if (isApexPeakLevel()) apex.mount();
       dressedLevelId = state.level;
       // One cap for both passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
       const deadline = performance.now() + SHADERS_READY_MAX_MS;
@@ -2298,6 +2301,31 @@ act = createAct1({
   },
 });
 
+const apex: ApexSlice = createApexSlice({
+  scene,
+  isApex: isApexPeakLevel,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  running: () => state.running,
+  inCutscene: () => state.inCutscene && !apex.playing(),
+  placePierce,
+  playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
+  resumeLocomotion: () => playerAvatar.resumeLocomotion(),
+  holdLocomotion: () => playerAvatar.setLocomotion(false, true),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) audio.setWalk(false);
+  },
+  showLine: (title, text) => showCineHud(title, text),
+  playFile: (url, volume) => audio.play(url, volume),
+  clearInput: () => clearInputState(),
+  seatVisual: (y) => {
+    playerAvatar.group.position.y = y;
+  },
+  standVisual: () => {
+    playerAvatar.group.position.y = playerMeshY(PLAYER_STAND_Y);
+  },
+});
+
 const home: GoingHome = createGoingHome({
   scene,
   camera,
@@ -3228,7 +3256,7 @@ const storyAction = (): string | null => {
   if (isTrainLevel()) return train.action();
   if (isMorningLevel()) return morning.action();
   if (isHomeLevel() || isStationLevel()) return null;
-  return act.action();
+  return act.action() ?? (isApexPeakLevel() ? apex.action() : null);
 };
 
 const confirmStoryAction = () => {
@@ -3243,7 +3271,8 @@ const confirmStoryAction = () => {
   if (isDeskLevel()) desk.confirm();
   else if (isTrainLevel()) train.confirm();
   else if (isMorningLevel()) morning.confirm();
-  else act.confirm();
+  else if (act.confirm()) { /* story walk-up */ }
+  else if (isApexPeakLevel()) apex.confirm();
   syncActionHint();
   return true;
 };
@@ -4203,6 +4232,7 @@ const renderLoop = () => {
     refreshAim(delta);
     triggerRunner.update(state.player);
     act.stepWorld(delta);
+    apex.step(delta);
     home.step(delta);
     station.step(delta);
     train.step(delta);
@@ -4617,9 +4647,16 @@ installPhPlaytest({
     ability: shadowPlay().shadowMode() ? shadowPick : meleeAbility,
     lessonStarted: isHomeLevel() ? home.shoveShown() : true,
   }),
-  people: () => (isHomeLevel() ? home.map()?.blips ?? [] : [])
-    .filter((blip) => blip.kind !== 'shop' && blip.kind !== 'linked')
-    .map((blip) => ({ x: blip.x, z: blip.z, kind: blip.kind })),
+  people: () => [
+    ...(isHomeLevel() ? home.map()?.blips ?? [] : [])
+      .filter((blip) => blip.kind !== 'shop' && blip.kind !== 'linked')
+      .map((blip) => ({ x: blip.x, z: blip.z, kind: blip.kind })),
+    ...(isApexPeakLevel() ? apex.blips() : []),
+  ],
+  /** Apex Peak vertical-slice quality readings for the playtest. */
+  apexSlice: () => (isApexPeakLevel()
+    ? { maxQuietSeconds: apex.maxQuietSeconds(), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
+    : null),
   pickups: () => pickups
     .filter((pickup) => pickup.active && !pickup.mesh.isDisposed() && pickup.mesh.isEnabled())
     .map((pickup) => ({ x: pickup.mesh.position.x, z: pickup.mesh.position.z, item: pickup.item })),
