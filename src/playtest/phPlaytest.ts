@@ -1225,7 +1225,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         { key: 'hall-2', x: 18, z: 32 },
         { key: 'cleaner-path', x: 12, z: 32 },
         { key: 'office-sofa', x: 44.2, z: 44.2, want: 'Sit' },
-        { key: 'desk-papers', x: 48, z: 42.5, want: 'Read papers' },
+        { key: 'desk-papers', x: 48, z: 43.35, want: 'Read papers' },
         { key: 'valuation', x: 36.8, z: 27.2, want: 'Tap screen' },
         { key: 'board-seat', x: 49.4, z: 32 },
       ];
@@ -1251,21 +1251,29 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           seen.add('cart');
           t.event('life', 'cleaner cart left in the hall');
         }
-        const label = probe.action();
-        if (label && stops[stopAt]?.want && label.includes(stops[stopAt].want!)) {
-          releaseAll();
-          if (await once('e', 1600, label)) noteAction(label);
-          // Sofa sit holds ~4 s.
-          if (/sit/i.test(label)) await sleep(4500);
-          else await sleep(900);
+        if (stops[stopAt]?.want && [...seen].some((s) => s.includes(stops[stopAt].want!))) {
           stopAt += 1;
           continue;
         }
-        if (label && /sit|papers|tap screen/i.test(label)) {
+        const label = probe.action();
+        if (label && stops[stopAt]?.want && label.includes(stops[stopAt].want!)) {
           releaseAll();
-          if (await once('e', 1600, label)) noteAction(label);
-          if (/sit/i.test(label)) await sleep(4500);
-          else await sleep(900);
+          if (await once('e', 1600, label)) {
+            noteAction(label);
+            // Sofa sit holds ~4 s.
+            if (/sit/i.test(label)) await sleep(4500);
+            else await sleep(900);
+            stopAt += 1;
+          }
+          continue;
+        }
+        if (label && !seen.has(label) && /sit|papers|tap screen/i.test(label)) {
+          releaseAll();
+          if (await once('e', 1600, label)) {
+            noteAction(label);
+            if (/sit/i.test(label)) await sleep(4500);
+            else await sleep(900);
+          }
           continue;
         }
         const goal = stops[stopAt];
