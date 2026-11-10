@@ -9,6 +9,11 @@ export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/walk-concrete.ogg': '/assets/audio/sfx/walk.ogg',
   '/assets/audio/sfx/walk-hard.ogg': '/assets/audio/sfx/walk.ogg',
   '/assets/audio/sfx/station/train-pass.ogg': '/assets/audio/train/rumble.ogg',
+  '/assets/audio/sfx/apex/sofa-creak.ogg': '/assets/audio/sfx/home/bed-creak.ogg',
+  '/assets/audio/sfx/apex/cart-wheels.ogg': '/assets/audio/sfx/flashlight.ogg',
+  '/assets/audio/sfx/apex/screen-tap.ogg': '/assets/audio/sfx/flashlight.ogg',
+  '/assets/audio/sfx/apex/skyline.ogg': '/assets/audio/sfx/objective.ogg',
+  '/assets/audio/sfx/apex/troffer-flicker.ogg': '/assets/audio/sfx/flashlight-off.ogg',
 };
 
 export const soundFallback = (url: string): string | null => {

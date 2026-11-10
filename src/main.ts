@@ -38,6 +38,7 @@ import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadScen
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createAct1, type Act1, type StoryCarry } from './story/act1';
+import { createApexSlice, type ApexSlice } from './story/apexSlice';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
@@ -475,7 +476,7 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
   const show = (reason: 'ready' | 'cap') => {
     if (shown) return;
     shown = true;
-    if (!alive()) return;
+    if (!alive()) { chapterCard.release(300); return; }
     // Reported to the playtest (event `reveal`) and the console: which path lifted the veil, and which meshes were
     // still compiling when the cap lifted it.
     const detail = {
@@ -486,7 +487,11 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
     };
     console.info('reveal', detail);
     (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit?.('reveal', JSON.stringify(detail));
-    screenFade.to(0, 1.5);
+    // Under a held chapter card the world is already drawing: crossfade the card instead of the veil.
+    if (chapterCard.showing()) {
+      screenFade.to(0, 0);
+      chapterCard.release(600);
+    } else screenFade.to(0, 1.5);
   };
   window.setTimeout(() => {
     held = true;
@@ -822,6 +827,11 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     screenFade.to(1, 0);
     syncStartButtonLabel();
   }
+  // Frame-time trace: mark the whole level load so a hitch here is tagged level-setup, not unknown.
+  try {
+    (window as unknown as { __phFrameSetup?: (on: boolean, detail?: string) => void })
+      .__phFrameSetup?.(true, `load ${path}`);
+  } catch { /* playtest not installed */ }
   try {
     clearNpcs(npcs);
     clearEnemies(enemies);
@@ -830,6 +840,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     station.dispose();
     train.dispose();
     morning.dispose();
+    apex.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
@@ -869,6 +880,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       // Level ready first (it mounts the bathroom mirror, sets the opening objective), so the compile pass below
       // covers what Start would otherwise add on its first frames.
       act.onLevelReady();
+      if (isApexPeakLevel()) apex.mount();
       dressedLevelId = state.level;
       // One cap for both passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
       const deadline = performance.now() + SHADERS_READY_MAX_MS;
@@ -876,6 +888,10 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       await whenShadersCompiled(deadline);
     }
   } finally {
+    try {
+      (window as unknown as { __phFrameSetup?: (on: boolean, detail?: string) => void })
+        .__phFrameSetup?.(false);
+    } catch { /* playtest not installed */ }
     if (mode === 'boot') {
       gameReady = true;
       syncStartButtonLabel();
@@ -2289,6 +2305,31 @@ act = createAct1({
   },
 });
 
+const apex: ApexSlice = createApexSlice({
+  scene,
+  isApex: isApexPeakLevel,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  running: () => state.running,
+  inCutscene: () => state.inCutscene && !apex.playing(),
+  placePierce,
+  playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
+  resumeLocomotion: () => playerAvatar.resumeLocomotion(),
+  holdLocomotion: () => playerAvatar.setLocomotion(false, true),
+  holdScene: (held) => {
+    state.inCutscene = held;
+    if (held) audio.setWalk(false);
+  },
+  showLine: (title, text) => showCineHud(title, text),
+  playFile: (url, volume) => audio.play(url, volume),
+  clearInput: () => clearInputState(),
+  seatVisual: (y) => {
+    playerAvatar.group.position.y = y;
+  },
+  standVisual: () => {
+    playerAvatar.group.position.y = playerMeshY(PLAYER_STAND_Y);
+  },
+});
+
 const home: GoingHome = createGoingHome({
   scene,
   camera,
@@ -2567,6 +2608,34 @@ const beginGame = () => {
 
 let startingLevel = false;
 
+const AUDIO_URL = /^\/?assets\/audio\/[^"]+\.(?:wav|ogg|mp3)$/;
+const collectStrings = (node: unknown, out: Set<string>, ids: Set<string>) => {
+  if (typeof node === 'string') {
+    if (AUDIO_URL.test(node) && !/\/(?:ambient|ending-)|room-tone|drone|rumble/.test(node)) out.add(node);
+    return;
+  }
+  if (Array.isArray(node)) { for (const v of node) collectStrings(v, out, ids); return; }
+  if (node && typeof node === 'object') {
+    for (const [k, v] of Object.entries(node)) {
+      if (k === 'cutscene' && typeof v === 'string') ids.add(v);
+      collectStrings(v, out, ids);
+    }
+  }
+};
+
+/** Fetch and decode the level's one-shots and its cutscene lines while the chapter card is up (no main-thread work). */
+const warmLevelAudio = async (path: string) => {
+  try {
+    const urls = new Set<string>();
+    const ids = new Set<string>();
+    collectStrings(await (await fetch(path)).json(), urls, ids);
+    const docs = await Promise.all([...ids].map((id) =>
+      fetch(`/cutscenes/${id}.json`).then((r) => r.json()).catch(() => null)));
+    for (const doc of docs) collectStrings(doc, urls, ids);
+    preloadClips(urls);
+  } catch { /* warming is best effort */ }
+};
+
 /** `hidden` lets a test entry (the `train` playtest) start a `comingSoon` level; Continue and Load Level never do. */
 const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, hidden = false, chapter = true) => {
   if (startingLevel || !gameReady) return;
@@ -2586,6 +2655,7 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
       if (loadFailed()) return;
     }
     await fadeOutCard();
+    void warmLevelAudio(level.path);
     if (chapter) await chapterCard.show(level.id, level.name);
     beginGame();
   } catch (error) {
@@ -3219,7 +3289,7 @@ const storyAction = (): string | null => {
   if (isTrainLevel()) return train.action();
   if (isMorningLevel()) return morning.action();
   if (isHomeLevel() || isStationLevel()) return null;
-  return act.action();
+  return act.action() ?? (isApexPeakLevel() ? apex.action() : null);
 };
 
 const confirmStoryAction = () => {
@@ -3234,7 +3304,8 @@ const confirmStoryAction = () => {
   if (isDeskLevel()) desk.confirm();
   else if (isTrainLevel()) train.confirm();
   else if (isMorningLevel()) morning.confirm();
-  else act.confirm();
+  else if (act.confirm()) { /* story walk-up */ }
+  else if (isApexPeakLevel()) apex.confirm();
   syncActionHint();
   return true;
 };
@@ -4194,6 +4265,7 @@ const renderLoop = () => {
     refreshAim(delta);
     triggerRunner.update(state.player);
     act.stepWorld(delta);
+    apex.step(delta);
     home.step(delta);
     station.step(delta);
     train.step(delta);
@@ -4583,6 +4655,20 @@ installPhPlaytest({
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
   },
   chapter: () => chapterCard.view(),
+  hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
+  worldLuma: () => new Promise<number>((resolve) => {
+    scene.onAfterRenderObservable.addOnce(() => {
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 18;
+      const g = c.getContext('2d');
+      if (!g) { resolve(1); return; }
+      g.drawImage(canvas, 0, 0, 32, 18);
+      const d = g.getImageData(0, 0, 32, 18).data;
+      let lit = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 36) lit++;
+      resolve(lit / 576);
+    });
+  }),
   menu: () => ({
     open: !messageBox.classList.contains('hidden'),
     title: messageTitle.textContent ?? '',
@@ -4608,9 +4694,16 @@ installPhPlaytest({
     ability: shadowPlay().shadowMode() ? shadowPick : meleeAbility,
     lessonStarted: isHomeLevel() ? home.shoveShown() : true,
   }),
-  people: () => (isHomeLevel() ? home.map()?.blips ?? [] : [])
-    .filter((blip) => blip.kind !== 'shop' && blip.kind !== 'linked')
-    .map((blip) => ({ x: blip.x, z: blip.z, kind: blip.kind })),
+  people: () => [
+    ...(isHomeLevel() ? home.map()?.blips ?? [] : [])
+      .filter((blip) => blip.kind !== 'shop' && blip.kind !== 'linked')
+      .map((blip) => ({ x: blip.x, z: blip.z, kind: blip.kind })),
+    ...(isApexPeakLevel() ? apex.blips() : []),
+  ],
+  /** Apex Peak vertical-slice quality readings for the playtest. */
+  apexSlice: () => (isApexPeakLevel()
+    ? { maxQuietSeconds: apex.maxQuietSeconds(), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
+    : null),
   pickups: () => pickups
     .filter((pickup) => pickup.active && !pickup.mesh.isDisposed() && pickup.mesh.isEnabled())
     .map((pickup) => ({ x: pickup.mesh.position.x, z: pickup.mesh.position.z, item: pickup.item })),

@@ -130,9 +130,9 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
 
 ### Routines (what each does on their own)
 - **Apex board** (Voss, Lang, Hale, the others on seats): after Pierce sits, talk then leave in turn; Hale last. While he
-  walks to the seat they murmur (`placeVoices.ts`). *Gap:* between the board leaving and Voss ringing the floor is empty.
-  **New:** a night cleaner (`asset-ch*-npc`, no name) with a cart who passes along hall 2 once, says "Evening, Mr. Hawkes"
-  in the first level only, then in level 4 cannot be found, only the cart left in the hall.
+  walks to the seat they murmur (`placeVoices.ts`). *Exists:* a night cleaner (`asset-ch23-npc`, no name, speaker
+  "Night shift") with a procedural cart who walks hall 2 once on level 1, says "Evening, Mr. Hawkes", then leaves the
+  cart in the hall (`src/story/apexSlice.ts`). Level 4 does not remount the slice, so only the empty floor remains.
 - **B3:** the creature loop (wait in decon, chase in bursts, roam 5-15 s, bite 22 at 1.8 m). **New:** a dead guard's
   badge on a drum and a radio that crackles twice when Pierce passes (no voice, just a tone) so the hall has a beat.
 - **Lobby:** the receptionist (Liz) works late; on seeing Pierce she screams and calls police (scripted).
@@ -167,16 +167,17 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 ### Apex Peak
 - **Interactions:** answer the phone (F), Join meeting (seat), Look outside (window), Examine monitor (terminal), Ride
   Elevator, open the phone screen (messages, contacts, recents), flashlight (G), sidearm (Q), pick up the ammo box (E,
-  after Hale's scene), sit on the sofa (**new**, E: a 4 s sit with the cushion creak and the skyline sound), read the
-  papers on the desk (**new**, E: a one-line inner bark), tap the valuation screen (**new**: the number changes).
-- **Own events:** Voss rings at start (`voss-late`); the alarm and red monitor; the board's departure; ceiling troffers
-  flicker at the long hall (**new**); the city 205 m below moves (traffic and flares); the sconce lights dip once when
-  the elevator moves (**new**).
-- **Sound:** room-tone 0.14; HVAC; phone tones; alarm loop 0.46; cab hum 0.5; chimes.
-- **Changes:** the valuation screen's number ticks down after the call; the monitor goes dark; by level 4 the papers are
+  after Hale's scene), sit on the sofa (*Exists*, E: a 4 s sit with the cushion creak and the skyline sound), read the
+  papers on the desk (*Exists*, E: "Still warm. They left them open."), tap the valuation screen (*Exists*: the number
+  ticks down with a soft beep).
+- **Own events:** Voss rings at start (`voss-late`); the alarm and red monitor; the board's departure; hall 2 practicals
+  flicker (*Exists*, `apexSlice`); the city 205 m below moves (traffic and flares); the cleaner walk (*Exists*, beat 29).
+- **Sound:** room-tone 0.14; HVAC; phone tones; alarm loop 0.46; cab hum 0.5; chimes; cart wheels, sofa creak, skyline,
+  screen tap, troffer flicker (`locales/sfx.json` apex group).
+- **Changes:** the valuation screen's number ticks down on each tap; the monitor goes dark; by level 4 the papers are
   on the floor and the room is bright.
-- **Gap budget:** hall 1: valuation screen + sconces; hall 2: cleaner and cart (**new**) + art; office: window + terminal.
-  Never more than ~8 s of nothing.
+- **Gap budget:** hall 1: board murmur + sconces; hall 2: cleaner and cart + art + flicker; office: window + terminal +
+  sofa/papers. Never more than ~8 s of nothing. Playtest `apex-slice` reports `quality.maxQuietSeconds`.
 
 ### B3 (level 2)
 - **Interactions:** E on ammo/medkit stacks, R reload, H medkit, Q sidearm, G flashlight, open the lab door, F phone,
@@ -277,9 +278,12 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 | 27 | **Voss.** | Landline | One-way call, seven lines | Voss phone voice |
 | 28 | **Leave.** | Door | "Somebody is going to have to tell them which one of us walks in." End Level | line, ending-6, credits |
 
+### Built this pass
+- **29. The Cleaner.** *Exists* (`src/story/apexSlice.ts`, playtest `apex-slice`): Apex hall, level 1 — a night cleaner
+  and her cart pass; "Evening, Mr. Hawkes." Cart left in the hall after she exits. Voice/SFX catalog entries ship; Gen
+  takes may still be placeholders until Hawkes Gen is reachable.
+
 ### New beats (proposals, each an event; J to approve before build)
-- **29. The Cleaner.** Apex hall, level 1: a night cleaner and her cart pass; "Evening, Mr. Hawkes." In level 4 only the cart
-  is left, empty, still rolling (a wheel). *Audio only: voice line, cart wheel loop. No text.*
 - **30. The Radio.** B3 pipe hall: a dead guard's radio crackles twice as Pierce passes; on the third pass in the Return
   it plays four seconds of the Hale/Voss call from level 1, then dies. *Pure sound, no text.*
 - **31. Tower Clock.** Lobby: a stopped wall clock at 9:41; the apartment window later shows the tower at the same
@@ -303,7 +307,9 @@ The Morning. Whether the world continues is J's call (open question below).
 
 ## Known gaps and work items (in priority order)
 1. **The Return basement is empty.** Add the dead-practical sequence, the radio and the creature's skitter ghost.
-2. **Apex halls are quiet between set pieces.** Add the cleaner and the cart, a flicker and a sofa sit.
+2. **Apex Peak vertical slice (first part done).** Cleaner, cart, sofa sit, papers, valuation tap, hall flicker and
+   `apex-slice` playtest are in. Still open: sconce dip when the elevator moves; Gen voice/SFX takes when Gen is up;
+   optional polished cart GLB (priced below / in task summary).
 3. **Lobby and elevator to L have no life.** Add the clock, the monitor, the 20-floor stop.
 4. **Station and train need a second layer.** Rat, janitor, pole grab, ad zoom.
 5. **The Morning is a single room.** Add fridge, radio, photograph, neighbour.

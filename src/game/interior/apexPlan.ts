@@ -1,5 +1,5 @@
 import type { InteriorPlan, Kit } from './dress';
-import { artFrame, elevatorCab, bench, bookshelf, exitSign, extinguisher, floorLamp, pendantBar, plant, plaque, rug, sconce, screen, sideTable } from './furniture';
+import { artFrame, elevatorCab, bench, bookshelf, exitSign, extinguisher, floorLamp, pendantBar, plant, plaque, rug, sconce, screen, sideTable, troffer } from './furniture';
 import { IS } from './shader';
 
 /**
@@ -55,11 +55,11 @@ export const apexPlan: InteriorPlan = {
     { id: 'hall1', minX: -2.2, maxX: 2.2, minZ: -1, maxZ: 34.25, wall: IS.OFFICE_WALL, wallVar: 0.15, floor: IS.CARPET, floorVar: 0, ceil: IS.ACOUSTIC },
     { id: 'hall2', minX: 2.2, maxX: 35.3, minZ: 29.8, maxZ: 34.26, wall: IS.OFFICE_WALL, wallVar: 0.15, floor: IS.CARPET, floorVar: 0, ceil: IS.ACOUSTIC },
     { id: 'board', minX: 35.2, maxX: 53.0, minZ: 24, maxZ: 40, wall: IS.WOOD_SLATS, floor: IS.CARPET, floorVar: 1, ceil: IS.ACOUSTIC },
-    { id: 'office', minX: 43.2, maxX: 52.7, minZ: 40.1, maxZ: 46.72, wall: IS.WALNUT_PAPER, floor: IS.PLANKS, ceil: IS.ACOUSTIC },
+    { id: 'office', minX: 43.2, maxX: 52.7, minZ: 40.0, maxZ: 46.72, wall: IS.WALNUT_PAPER, floor: IS.PLANKS, ceil: IS.ACOUSTIC },
     { id: 'bath', minX: 15.6, maxX: 20.4, minZ: 25.5, maxZ: 29.56, wall: IS.BATH_TILE, floor: IS.SMALL_TILE, ceil: IS.ACOUSTIC },
   ],
   skip: /^(lift-|floor-lift|office-wall-n|board-glass|office-glass|bath-stall|bath-door|bath-jamb|trim-|ceil-lift)/,
-  hide: /^(trim-|carpet-|fixture-light-lift|bath-jamb|bath-door|bath-handle|bath-plaque)/,
+  hide: /^(trim-|carpet-|fixture-light-|bath-troffer|bath-jamb|bath-door|bath-handle|bath-plaque)/,
   keepClear: [
     { x: 0, z: 4.1, r: 1.5 },
     { x: 48, z: 46.2, r: 1.2 },
@@ -80,6 +80,7 @@ export const apexPlan: InteriorPlan = {
     artFrame(k, 'art-4', 2.2, 1.25, 26.5, 1.1, 0.95, E);
     for (const z of [2.6, 12.9, 23.6, 30]) sconce(k, -2.2, 2.05, z, W);
     for (const z of [3.6, 8.8, 18.6, 28.8]) sconce(k, 2.2, 2.05, z, E);
+    for (const z of [6, 15, 24]) troffer(k, 0, z, 3.196, true);
     exitSign(k, 0, 2.55, -1, S);
     extinguisher(k, 2.2, 1.0, E);
     bench(k, -2.2, 2.4, 1.3, W);
@@ -102,8 +103,10 @@ export const apexPlan: InteriorPlan = {
     artFrame(k, 'art-4', 33.4, 1.25, 29.8, 1.1, 0.95, S);
     for (const x of [4.6, 12, 20, 28, 34]) sconce(k, x, 2.05, 34.26, N);
     for (const x of [10, 26.2]) sconce(k, x, 2.05, 29.8, S);
+    for (const x of [12, 22, 31]) troffer(k, x, 32, 3.196, false);
     rug(k, 2.99, 29.01, 31.2, 32.8, 0.32, 0.1, 0.09, 0.022);
     restroomDoorway(k);
+    troffer(k, 18, 27.35, 3.136, false);
     extinguisher(k, 34.6, 29.8, S);
     plant(k, 34.6, 33.7, 1.05);
 
@@ -113,12 +116,13 @@ export const apexPlan: InteriorPlan = {
     plaque(k, 'meeting', 33.6, 2.42, 34.26, 0.9, 0.27, N);
     artFrame(k, 'art-1', 39.5, 1.2, 24, 1.0, 1.25, S);
     artFrame(k, 'art-5', 48.4, 1.25, 24, 1.1, 1.2, S);
-    pendantBar(k, 40.5, 48.0, 32, 2.55, 3.2);
+    pendantBar(k, 40.5, 48.0, 32, 2.55, 3.196);
     sideTable(k, 37.3, 39.1, 0.28, 0.55);
     floorLamp(k, 41.9, 39.25);
     plant(k, 52.2, 25.6, 1.1);
 
     // ---------- Pierce's office ----------
+    troffer(k, 48, 43.5, 3.196, false);
     rug(k, 45.2, 50.8, 40.9, 45.2, 0.36, 0.12, 0.1);
     bookshelf(k, 43.24, 45.9, 1.3, 2.2, 0.36, W, 2);
     bookshelf(k, 43.24, 41.5, 1.3, 2.2, 0.36, W, 5);
