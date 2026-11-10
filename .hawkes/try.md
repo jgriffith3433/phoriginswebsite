@@ -1,4 +1,3 @@
-1. On the beta site root (not `/play/game.html`), in the console run `hawkesPlaytest.scenarios().map(s => s.id)` — you should see both `smoke` and `apex-slice`.
-2. Run `hawkesPlaytest.start('apex-slice')` — it should open `/play/game.html?playtest=apex-slice` with no "no playtest scenario" error.
-3. When the bot finishes, the report should include `quality.maxQuietSeconds` and `quality.textOnlyBeats`.
-4. Optional: `hawkesPlaytest.start('smoke')` still boots level 1 as before.
+1. Start Level 1 (`The Apex Peak`) or run playtest scenario `smoke`.
+2. Walk north up Hall 1 (`z = 4..30`) and turn east at the Hall 1 / Hall 2 junction (`z = 32`): verify the ceiling lights sit flush inside the white acoustic tile ceiling with thin light-silver bezels rather than bulky black boxes hovering below the ceiling or hanging off the corner.
+3. Enter the Boardroom (`x = 35..52, z = 24..40`) and look toward the ceiling and north doorway into Pierce's office: verify the suspended dark horizontal plank across the room is gone, replaced by flush recessed ceiling troffers, and the ceiling/floor seam between the boardroom and Pierce's office at `z = 40` is closed.
