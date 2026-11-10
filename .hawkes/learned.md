@@ -1,1 +1,1 @@
-- none
+- canon: none — no story facts added

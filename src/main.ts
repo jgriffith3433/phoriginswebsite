@@ -476,7 +476,7 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
   const show = (reason: 'ready' | 'cap') => {
     if (shown) return;
     shown = true;
-    if (!alive()) return;
+    if (!alive()) { chapterCard.release(300); return; }
     // Reported to the playtest (event `reveal`) and the console: which path lifted the veil, and which meshes were
     // still compiling when the cap lifted it.
     const detail = {
@@ -487,7 +487,11 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
     };
     console.info('reveal', detail);
     (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit?.('reveal', JSON.stringify(detail));
-    screenFade.to(0, 1.5);
+    // Under a held chapter card the world is already drawing: crossfade the card instead of the veil.
+    if (chapterCard.showing()) {
+      screenFade.to(0, 0);
+      chapterCard.release(600);
+    } else screenFade.to(0, 1.5);
   };
   window.setTimeout(() => {
     held = true;
@@ -4651,6 +4655,20 @@ installPhPlaytest({
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
   },
   chapter: () => chapterCard.view(),
+  hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
+  worldLuma: () => new Promise<number>((resolve) => {
+    scene.onAfterRenderObservable.addOnce(() => {
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 18;
+      const g = c.getContext('2d');
+      if (!g) { resolve(1); return; }
+      g.drawImage(canvas, 0, 0, 32, 18);
+      const d = g.getImageData(0, 0, 32, 18).data;
+      let lit = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 36) lit++;
+      resolve(lit / 576);
+    });
+  }),
   menu: () => ({
     open: !messageBox.classList.contains('hidden'),
     title: messageTitle.textContent ?? '',
