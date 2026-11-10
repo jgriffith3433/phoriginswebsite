@@ -48,6 +48,7 @@ import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import { warmLevelFirstUse } from './game/levelWarm';
 import { soundFallback } from './game/soundFallback';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
@@ -1086,6 +1087,8 @@ const autoAim = createAutoAim(scene, (mesh) => {
   return false;
 });
 const particles: Array<{ mesh: BABYLON.Mesh; velocity: BABYLON.Vector3; life: number }> = [];
+/** Shared burst colour — combat used to `new Color3` every hit. */
+const BURST_RED = new BABYLON.Color3(1, 0.2, 0.2);
 const pickups: Array<{
   mesh: BABYLON.AbstractMesh;
   item: InventoryItemType;
@@ -2608,33 +2611,8 @@ const beginGame = () => {
 
 let startingLevel = false;
 
-const AUDIO_URL = /^\/?assets\/audio\/[^"]+\.(?:wav|ogg|mp3)$/;
-const collectStrings = (node: unknown, out: Set<string>, ids: Set<string>) => {
-  if (typeof node === 'string') {
-    if (AUDIO_URL.test(node) && !/\/(?:ambient|ending-)|room-tone|drone|rumble/.test(node)) out.add(node);
-    return;
-  }
-  if (Array.isArray(node)) { for (const v of node) collectStrings(v, out, ids); return; }
-  if (node && typeof node === 'object') {
-    for (const [k, v] of Object.entries(node)) {
-      if (k === 'cutscene' && typeof v === 'string') ids.add(v);
-      collectStrings(v, out, ids);
-    }
-  }
-};
-
-/** Fetch and decode the level's one-shots and its cutscene lines while the chapter card is up (no main-thread work). */
-const warmLevelAudio = async (path: string) => {
-  try {
-    const urls = new Set<string>();
-    const ids = new Set<string>();
-    collectStrings(await (await fetch(path)).json(), urls, ids);
-    const docs = await Promise.all([...ids].map((id) =>
-      fetch(`/cutscenes/${id}.json`).then((r) => r.json()).catch(() => null)));
-    for (const doc of docs) collectStrings(doc, urls, ids);
-    preloadClips(urls);
-  } catch { /* warming is best effort */ }
-};
+/** After the chapter card closes, first-use warm may still finish — never hold Start more than this past the card. */
+const WARM_AFTER_CARD_MS = 1500;
 
 /** `hidden` lets a test entry (the `train` playtest) start a `comingSoon` level; Continue and Load Level never do. */
 const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, hidden = false, chapter = true) => {
@@ -2655,8 +2633,25 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
       if (loadFailed()) return;
     }
     await fadeOutCard();
-    void warmLevelAudio(level.path);
-    if (chapter) await chapterCard.show(level.id, level.name);
+    // First-use costs (audio decode, texture upload, particles, pooled props, leftover shaders) run while
+    // the chapter card is up. Cap leftover work at +1.5 s after the card closes so Start is not held long.
+    // Defeat retries and ?beat= entries skip the card: warm in the background, do not hold beginGame.
+    const warmDeadline = performance.now() + (chapter ? 4600 + WARM_AFTER_CARD_MS : WARM_AFTER_CARD_MS);
+    const warm = warmLevelFirstUse(scene, level.path, warmDeadline).then((stats) => {
+      console.info('warm', stats);
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void })
+        .__phEmit?.('warm', JSON.stringify(stats));
+      return stats;
+    }).catch(() => null);
+    if (chapter) {
+      await chapterCard.show(level.id, level.name);
+      await Promise.race([
+        warm,
+        new Promise<void>((resolve) => window.setTimeout(resolve, WARM_AFTER_CARD_MS)),
+      ]);
+    } else {
+      void warm;
+    }
     beginGame();
   } catch (error) {
     showLoadError('level', error);
@@ -2888,22 +2883,23 @@ const clearInputState = () => {
   }
 };
 
+/** Reused every frame so the follow camera's ignore list does not allocate. */
+const cameraIgnoreScratch: BABYLON.AbstractMesh[] = [];
 const gatherCameraIgnoreMeshes = () => {
-  const ignored: BABYLON.AbstractMesh[] = [
-    playerCollider,
-    muzzleFlash.mesh,
-    ...playerAvatar.group.getChildMeshes(true),
-    ...phone.meshes(),
-  ];
+  const ignored = cameraIgnoreScratch;
+  ignored.length = 0;
+  ignored.push(playerCollider, muzzleFlash.mesh);
+  for (const mesh of playerAvatar.group.getChildMeshes(true)) ignored.push(mesh);
+  for (const mesh of phone.meshes()) ignored.push(mesh);
   for (const particle of particles) ignored.push(particle.mesh);
   for (const pickup of pickups) ignored.push(pickup.mesh);
   for (const enemy of enemies) {
     ignored.push(enemy.mesh);
-    enemy.root.getChildMeshes(true).forEach((mesh) => ignored.push(mesh));
+    for (const mesh of enemy.root.getChildMeshes(true)) ignored.push(mesh);
   }
   for (const npc of npcs) {
     ignored.push(npc.mesh);
-    npc.avatar.group.getChildMeshes(true).forEach((mesh) => ignored.push(mesh));
+    for (const mesh of npc.avatar.group.getChildMeshes(true)) ignored.push(mesh);
   }
   return ignored;
 };
@@ -2940,7 +2936,7 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
   playerLift += (liftWant - playerLift) * Math.min(1, delta * 14);
   if (state.inCutscene) return;
   playerAvatar.group.rotation.y = state.characterYaw + Math.PI;
-  playerAvatar.group.position = new BABYLON.Vector3(state.player.x, playerMeshY(state.player.y) + playerLift, state.player.z);
+  playerAvatar.group.position.set(state.player.x, playerMeshY(state.player.y) + playerLift, state.player.z);
 };
 
 const levelSealed = () => pendingEnd?.levelId === state.level;
@@ -3009,12 +3005,37 @@ const jumpPose = createJumpPoser();
 let lastJumpPose: number | null = null;
 let lastMoving = false;
 
+/** Scratch vectors for on-foot / possess movement — never allocate these per frame. */
+const moveForward = new BABYLON.Vector3();
+const moveRight = new BABYLON.Vector3();
+const desiredMove = new BABYLON.Vector3();
+const enemyTarget = new BABYLON.Vector3();
+const strideFrom = { x: 0, z: 0 };
+const moveBefore = { x: 0, z: 0 };
+
 const updatePlayer = (delta: number) => {
   // Any frame that does not walk him on foot (scene, call, link, hold) leaves no stride behind.
   const walkedBefore = groundSpeed;
   groundSpeed = 0;
   const result = updatePlayerBody(delta, walkedBefore);
   return result;
+};
+
+const fillMoveAxes = (yaw: number) => {
+  moveForward.set(Math.sin(yaw), 0, Math.cos(yaw));
+  moveRight.set(Math.cos(yaw), 0, -Math.sin(yaw));
+};
+
+const readMoveXZ = () => {
+  let moveX = 0;
+  let moveZ = 0;
+  if (state.input.right) moveX += 1;
+  if (state.input.left) moveX -= 1;
+  if (state.input.forward) moveZ += 1;
+  if (state.input.backward) moveZ -= 1;
+  moveX += state.movementVector.x;
+  moveZ += -state.movementVector.y;
+  return { moveX, moveZ };
 };
 
 const updatePlayerBody = (delta: number, walkedBefore: number) => {
@@ -3025,18 +3046,13 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   }
   tickShadowRun(delta);
   if (shadowPlay().linked()) {
-    const yaw = followCamera.getYaw();
-    const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
-    const right = new BABYLON.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-    let moveX = 0;
-    let moveZ = 0;
-    if (state.input.right) moveX += 1;
-    if (state.input.left) moveX -= 1;
-    if (state.input.forward) moveZ += 1;
-    if (state.input.backward) moveZ -= 1;
-    moveX += state.movementVector.x;
-    moveZ += -state.movementVector.y;
-    const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
+    fillMoveAxes(followCamera.getYaw());
+    const { moveX, moveZ } = readMoveXZ();
+    desiredMove.set(
+      moveForward.x * moveZ + moveRight.x * moveX,
+      0,
+      moveForward.z * moveZ + moveRight.z * moveX,
+    );
     if (desiredMove.lengthSquared() > 0) desiredMove.normalize();
     const sprinting = state.input.sprint && shadowPlay().shadowMode();
     const speed = state.playerSpeed * (sprinting ? 1.75 : 1);
@@ -3064,22 +3080,15 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     return { moving: false, moveHeading: null };
   }
   const yaw = followCamera.getYaw();
-  const forward = new BABYLON.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
-  const right = new BABYLON.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-
-  let moveX = 0;
-  let moveZ = 0;
-
-  if (state.input.right) moveX += 1;
-  if (state.input.left) moveX -= 1;
-  if (state.input.forward) moveZ += 1;
-  if (state.input.backward) moveZ -= 1;
-
-  moveX += state.movementVector.x;
-  moveZ += -state.movementVector.y;
-
-  const desiredMove = forward.scale(moveZ).add(right.scale(moveX));
-  const strideFrom = { x: state.player.x, z: state.player.z };
+  fillMoveAxes(yaw);
+  const { moveX, moveZ } = readMoveXZ();
+  desiredMove.set(
+    moveForward.x * moveZ + moveRight.x * moveX,
+    0,
+    moveForward.z * moveZ + moveRight.z * moveX,
+  );
+  strideFrom.x = state.player.x;
+  strideFrom.z = state.player.z;
   groundSpeed = walkedBefore;
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
@@ -3091,9 +3100,10 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     while (left > 1e-4) {
       const step = Math.min(left, MAX_MOVE_DELTA);
       left -= step;
-      const before = { x: state.player.x, z: state.player.z };
+      moveBefore.x = state.player.x;
+      moveBefore.z = state.player.z;
       movePlayerOnGround(state.player, playerCollider, desiredMove.x * speed * step, desiredMove.z * speed * step);
-      keepInsideFloors(before);
+      keepInsideFloors(moveBefore);
     }
   } else {
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
@@ -4287,15 +4297,16 @@ const renderLoop = () => {
         : '';
     }
 
+    enemyTarget.set(state.player.x, 1.6, state.player.z);
     for (const enemy of enemies) {
-      const distance = updateEnemyAI(enemy, new BABYLON.Vector3(state.player.x, 1.6, state.player.z), delta);
+      const distance = updateEnemyAI(enemy, enemyTarget, delta);
 
       if (distance < 1.8 && performance.now() - state.lastDamageAt > 500) {
         state.health -= 10;
         lastHurtCause = 'enemy';
         state.lastDamageAt = performance.now();
         audio.hit();
-        createBurst(scene, enemy.mesh.position.x, enemy.mesh.position.y + 1.5, enemy.mesh.position.z, new BABYLON.Color3(1, 0.2, 0.2), particles);
+        createBurst(scene, enemy.mesh.position.x, enemy.mesh.position.y + 1.5, enemy.mesh.position.z, BURST_RED, particles);
         if (state.health <= 0) {
           finishGame(false);
           break;
@@ -4304,7 +4315,11 @@ const renderLoop = () => {
     }
 
     for (const particle of particles) {
-      particle.mesh.position.addInPlace(particle.velocity.scale(delta));
+      const pos = particle.mesh.position;
+      const vel = particle.velocity;
+      pos.x += vel.x * delta;
+      pos.y += vel.y * delta;
+      pos.z += vel.z * delta;
       particle.life -= delta;
       if (particle.life <= 0) {
         particle.mesh.dispose();
