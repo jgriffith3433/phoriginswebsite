@@ -1,3 +1,15 @@
-Beta build check: `npm ci && npm run build` (tsc + vite + postbuild) passes on this branch, also in a git-less copy as Studio's site build runs it. No source change was needed; I could not reproduce the failure (r_233a63f82163) and there is no .hawkes/beta-build.md. Build output in play/ was restored, not committed.
-Kept from the earlier change: chapter card holds (gold shimmer) until shaders are ready and frames have rendered with the follow camera, then a 0.6 s crossfade; HUD only after the fade; `transition` playtest (levels 1-8, desktop and 844x390) fails on a mostly-black frame. Not run in a browser here.
-GPU estimate: none needed.
+# Merge beta: summary conflict only
+
+## What was wrong
+Studio restart-looped during the earlier conflict pass on this branch. The chapter-card → fade-in work was already correct and is on beta as #151 (`83df5d3` / c_91f7227e8e71): Start routes through `startAtLevel`, follow camera snaps behind Pierce before reveal, the card holds until world luma ≥ 0.03 after snap + 2 frames, 0.6 s crossfade, HUD/pause only after the fade, `transition` playtest for levels 1–8 on desktop and 844×390.
+
+## What changed
+- Merged `origin/beta` into this task branch.
+- Sole conflict: modify/delete on `.hawkes/summary.md` (this branch kept the level-start + beta-build note; beta's go-live had deleted the file). Kept both intents: the level-start transition note from this change, and beta's #151 / warm / floating-object work already in the tree.
+- Did **not** redo the chapter-card → fade-in code.
+
+## Checks
+- `npm ci && npm run build` (re-run after the merge).
+
+## GPU
+None needed.

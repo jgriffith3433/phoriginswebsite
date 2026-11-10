@@ -544,14 +544,14 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'transition',
         title: 'Chapter card to world: card held until the world has rendered, crossfade, HUD only after; no black frames (levels 1-8, desktop and 844x390)',
-        description: 'For each level 1-8 on desktop, then at 844x390 phone size: starts the level (setup shortcut), and while the chapter card is up and the level is running it samples the rendered world canvas every tick; the card must not leave until the world is more than 3% non-black, and the pause button must stay hidden while the card is up. Then the card fades and the pause button appears. Metrics: transitionSamples. Problems: a mostly-black frame under the lifting card, HUD over the card.',
+        description: 'Level 1 on desktop starts with the real Start button (the live smoke path); levels 2-8 and the phone pass use the setup shortcut. While the chapter card is up it samples the world canvas every tick: pause/HUD must stay hidden, and once the level is running the card must not leave until the canvas is more than 3% non-black. After the card lifts it samples a few more frames and fails on a mostly-black frame or on HUD over black. Metrics: transitionSamples. Problems: black frame under/after the card, HUD over the card or over black.',
         seconds: 600,
         tags: ['level', 'ui'],
       },
       {
         id: 'chapters',
         title: 'Chapter title cards: levels 1 to 8 each open on their own card; one press skips it; no placeholder text',
-        description: 'Opens level 1 with the Start button, then levels 2 to 8 (test shortcut, as Continue does). Each level must open on a chapter title card (Chapter N, the level name, one story line). The bot logs the card, checks it is not a copy of an earlier card and shows no placeholder text (raw ids, {braces}, undefined, TODO, lorem), waits for it to be fully up, presses one key (Space) and checks the card is gone within 1.5 s and the level is running. Metrics: chapterCards, chapterSkipSeconds. Problems: no card, a duplicate card, placeholder text, a card that needs more than one press.',
+        description: 'Opens level 1 with the Start button, then levels 2 to 8 (test shortcut, as Continue does). Each level must open on a chapter title card (Chapter N, the level name, one story line). The bot logs the card, checks it is not a copy of an earlier card and shows no placeholder text (raw ids, {braces}, undefined, TODO, lorem), waits for it to be fully up, presses one key (Space) and checks the card begins closing at once and lifts within the ready cap (~10 s) once the world has painted. Metrics: chapterCards, chapterSkipSeconds. Problems: no card, a duplicate card, placeholder text, a card that needs more than one press.',
         seconds: 420,
         tags: ['level', 'ui'],
       },
@@ -638,6 +638,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'For each of levels 1–8: starts the level directly (setup / setupHidden for The Train), waits out the first-second grace, plays a few seconds through real input, and logs hitchOver50 / hitchOver100 / the worst hitches with a named cause into the report. Then repeats at phone size (390x844 via phoneFrame). A frame over 100 ms after the first second (outside level setup) fails. Metrics: hitchOver50, hitchOver100, hitchWorstMs, and per-level hitchL{n}WorstMs / hitchL{n}Cause. report().frameTrace carries the summary.',
         seconds: 420,
         tags: ['smoke', 'perf'],
+      },
+      {
+        id: 'hitch-board',
+        title: 'Level 1 spawn to board table with named hitch causes; phone sample of levels 1, 4 and 8',
+        description: 'Starts level 1 with Start (chapter card up while first-use warm runs), logs the warm event, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
+        seconds: 240,
+        tags: ['smoke', 'perf', 'level'],
       },
     ],
     // The splash is the first thing a player can act on, so a run may start while it is up (the contract's auto start
@@ -1225,7 +1232,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         { key: 'hall-2', x: 18, z: 32 },
         { key: 'cleaner-path', x: 12, z: 32 },
         { key: 'office-sofa', x: 44.2, z: 44.2, want: 'Sit' },
-        { key: 'desk-papers', x: 48, z: 42.5, want: 'Read papers' },
+        { key: 'desk-papers', x: 48, z: 43.35, want: 'Read papers' },
         { key: 'valuation', x: 36.8, z: 27.2, want: 'Tap screen' },
         { key: 'board-seat', x: 49.4, z: 32 },
       ];
@@ -1251,21 +1258,29 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           seen.add('cart');
           t.event('life', 'cleaner cart left in the hall');
         }
-        const label = probe.action();
-        if (label && stops[stopAt]?.want && label.includes(stops[stopAt].want!)) {
-          releaseAll();
-          if (await once('e', 1600, label)) noteAction(label);
-          // Sofa sit holds ~4 s.
-          if (/sit/i.test(label)) await sleep(4500);
-          else await sleep(900);
+        if (stops[stopAt]?.want && [...seen].some((s) => s.includes(stops[stopAt].want!))) {
           stopAt += 1;
           continue;
         }
-        if (label && /sit|papers|tap screen/i.test(label)) {
+        const label = probe.action();
+        if (label && stops[stopAt]?.want && label.includes(stops[stopAt].want!)) {
           releaseAll();
-          if (await once('e', 1600, label)) noteAction(label);
-          if (/sit/i.test(label)) await sleep(4500);
-          else await sleep(900);
+          if (await once('e', 1600, label)) {
+            noteAction(label);
+            // Sofa sit holds ~4 s.
+            if (/sit/i.test(label)) await sleep(4500);
+            else await sleep(900);
+            stopAt += 1;
+          }
+          continue;
+        }
+        if (label && !seen.has(label) && /sit|papers|tap screen/i.test(label)) {
+          releaseAll();
+          if (await once('e', 1600, label)) {
+            noteAction(label);
+            if (/sit/i.test(label)) await sleep(4500);
+            else await sleep(900);
+          }
           continue;
         }
         const goal = stops[stopAt];
@@ -2837,6 +2852,123 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     t.event('title', probe.menu().title);
     await sleep(600);
 
+    if (id === 'hitch-board') {
+      levelsTotal = 4; // L1 desktop board walk + phone L1/4/8
+      let warmMs = 0;
+      const onWarm = (type: string, detail?: unknown) => {
+        if (type !== 'warm') return;
+        try {
+          const stats = typeof detail === 'string' ? JSON.parse(detail) : detail;
+          warmMs = Number((stats as { ms?: number })?.ms) || 0;
+          t.metric('chapterWarmMs', warmMs);
+        } catch { /* ignore */ }
+      };
+      const prevEmit = (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit;
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = (type, detail) => {
+        onWarm(type, detail);
+        prevEmit?.(type, detail);
+      };
+
+      frameTrace.reset();
+      t.scene('L1 desktop');
+      await enterLevel(1);
+      // Chapter card + warm already finished inside enterLevel / Start.
+      if (warmMs > 6100) t.problem('bug', `chapter warm held Start for ${warmMs} ms (cap ~4600+1500)`);
+      t.event('play', 'spawn to board');
+
+      const until = performance.now() + 70000;
+      let sceneSeen = 0;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()) {
+          if (!sceneSeen) {
+            sceneSeen = performance.now();
+            t.event('cutscene-start', probe.cutscene() || 'board');
+          }
+          if (performance.now() - sceneSeen > 4000) {
+            const skip = probe.skipButton;
+            if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            await sleep(600);
+            break;
+          }
+          continue;
+        }
+        if (!probe.running() || probe.menu().open) continue;
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
+        if (phone.busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) { releaseAll(); if (await once('e', 1500, label)) t.event('action', label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      if (!sceneSeen) t.problem('bug', 'hitch-board: the board scene did not start');
+
+      const deskSnap = frameTrace.summary();
+      t.metric('hitchOver50', deskSnap.over50);
+      t.metric('hitchOver100', deskSnap.over100);
+      t.metric('hitchFailOver100', deskSnap.failOver100);
+      t.metric('hitchWorstMs', deskSnap.worst[0]?.ms ?? 0);
+      for (const h of deskSnap.worst.slice(0, 5)) {
+        t.event('hitch', `${h.ms}ms ${h.cause} L${h.level} ${h.objective || '—'}${h.detail ? ` (${h.detail})` : ''}`);
+      }
+      t.event('frame-trace', `L1 board: ${deskSnap.over50} over 50 ms, ${deskSnap.over100} over 100 ms, fail ${deskSnap.failOver100}`);
+      if (deskSnap.failOver100 > 0) {
+        const sample = deskSnap.worst.find((h) => h.ms >= 100 && h.t >= 1) ?? deskSnap.worst[0];
+        t.problem(
+          'bug',
+          `hitch-board L1: ${deskSnap.failOver100} frame(s) over 100 ms after the first second`
+            + (sample ? ` (worst ${sample.ms} ms, ${sample.cause})` : ''),
+        );
+      }
+      t.progress(0.4);
+
+      probe.phoneFrame(true, true, { w: 390, h: 844 });
+      t.event('phoneFrame', '390x844');
+      let phoneFail = 0;
+      for (const n of [1, 4, 8]) {
+        levelIndex = n;
+        frameTrace.reset();
+        t.scene(`L${n} phone`);
+        t.event('setup', `hitch-board phone level ${n}`);
+        await enterLevel(n);
+        await sleep(1200);
+        const walkUntil = performance.now() + 4500;
+        while (performance.now() < walkUntil) {
+          if (probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted()) setHeld('w');
+          else {
+            releaseAll();
+            if (probe.cutscene() || probe.scripted()) {
+              const skip = probe.skipButton;
+              if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            }
+          }
+          await tick();
+        }
+        releaseAll();
+        const snap = frameTrace.summary();
+        const worst = snap.worst[0];
+        t.metric(`hitchL${n}PhoneWorstMs`, worst?.ms ?? 0);
+        t.metric(`hitchL${n}PhoneOver50`, snap.over50);
+        if (worst) t.event('hitch-level', `L${n} phone: worst ${worst.ms}ms ${worst.cause}`);
+        else t.event('hitch-level', `L${n} phone: no hitch over 50 ms`);
+        // Phone acceptance: no hitch over 150 ms after grace.
+        const over150 = snap.worst.filter((h) => h.ms >= 150 && h.t >= 1).length;
+        if (over150 > 0) {
+          phoneFail += over150;
+          t.problem('bug', `hitch-board L${n} phone: ${over150} hitch(es) over 150 ms (worst ${worst?.ms ?? 0} ms, ${worst?.cause ?? '—'})`);
+        }
+        mark();
+      }
+      probe.phoneFrame(false);
+      t.metric('hitchPhoneOver150', phoneFail);
+      t.progress(1);
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = prevEmit;
+      t.finish(deskSnap.failOver100 === 0 && phoneFail === 0 && sceneSeen ? 'won' : 'lost');
+      return;
+    }
+
     if (id === 'frame-trace') {
       levelsTotal = 16; // 8 levels × desktop + phone
       const sampleLevel = async (n: number, device: 'desktop' | 'phone') => {
@@ -3193,28 +3325,58 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (phone) probe.phoneFrame(true, true, { w: 844, h: 390 });
         for (let n = 1; n <= 8; n++) {
           levelIndex = n - 1 + (phone ? 8 : 0);
-          void probe.setupLevel(n);
+          const tag = `level ${n}${phone ? ' (phone)' : ''}`;
+          // Desktop level 1 uses Start — that was the live smoke path that showed black + pause only.
+          if (!phone && n === 1) await enterLevel(1);
+          else void probe.setupLevel(n);
           const until = performance.now() + 120000;
           while (!probe.chapter().open) {
-            if (performance.now() > until) throw new Error(`level ${n} never showed its card`);
+            if (performance.now() > until) throw new Error(`${tag} never showed its card`);
             await tick();
           }
-          await sleep(1200);
-          let worst = 1;
+          t.event('chapter-card', { level: n, phone, kicker: probe.chapter().kicker, title: probe.chapter().title });
+          await sleep(800);
+          let worstWhileHeld = 1;
           let samples = 0;
+          let hudOverCard = false;
           while (probe.chapter().open && performance.now() < until) {
+            if (probe.hudShown()) {
+              if (!hudOverCard) {
+                hudOverCard = true;
+                t.problem('bug', `${tag}: HUD/pause shows over the chapter card`);
+              }
+            }
             if (probe.running()) {
-              if (probe.hudShown()) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: HUD shows over the chapter card`);
-              if (!probe.chapter().closing) { worst = Math.min(worst, await probe.worldLuma()); samples++; }
+              const lit = await probe.worldLuma();
+              samples++;
+              // Only score frames after the hold-for-skip ends: under the held card the world must be lighting up.
+              if (probe.chapter().closing) worstWhileHeld = Math.min(worstWhileHeld, lit);
             }
             await tick();
           }
-          const lastLit = await probe.worldLuma();
+          const liftLit = await probe.worldLuma();
           t.add('transitionSamples', samples);
-          t.event('transition', { level: n, phone, samples, litShareAtLift: Math.round(lastLit * 100) / 100 });
-          if (lastLit < 0.03) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: world is mostly black when the card lifts (${lastLit.toFixed(2)})`);
-          await sleep(300);
-          if (!probe.hudShown()) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: HUD missing after the card faded`);
+          t.event('transition', {
+            level: n,
+            phone,
+            samples,
+            litShareAtLift: Math.round(liftLit * 100) / 100,
+            worstWhileClosing: Math.round(worstWhileHeld * 100) / 100,
+          });
+          if (liftLit < 0.03) t.problem('bug', `${tag}: world is mostly black when the card lifts (${liftLit.toFixed(2)})`);
+          // A few frames between card and control — fail on a blank screen with or without HUD.
+          let blankAfter = 0;
+          for (let i = 0; i < 8; i++) {
+            await tick();
+            const lit = await probe.worldLuma();
+            if (lit < 0.03) {
+              blankAfter++;
+              if (probe.hudShown()) t.problem('bug', `${tag}: HUD over a mostly-black frame after the card (${lit.toFixed(2)})`);
+            }
+          }
+          if (blankAfter >= 3) t.problem('bug', `${tag}: ${blankAfter}/8 frames after the card were mostly black`);
+          await sleep(400);
+          if (!probe.hudShown()) t.problem('bug', `${tag}: HUD missing after the card faded`);
           t.progress((levelIndex + 1) / 16);
         }
         if (phone) probe.phoneFrame(false);
@@ -3260,11 +3422,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           t.add('chapterCards');
           const at = performance.now();
           await tap(' ', `skip chapter card ${n}`);
-          while (probe.chapter().open && performance.now() - at < 5000) await tick();
+          // Press only ends the readable hold; the card stays up until the world has painted (ready cap ~8 s).
+          let closedAt = 0;
+          while (probe.chapter().open && performance.now() - at < 12000) {
+            if (!closedAt && probe.chapter().closing) closedAt = performance.now();
+            await tick();
+          }
           const secs = (performance.now() - at) / 1000;
           skipTotal += secs;
-          t.event('chapter-skip', { level: n, seconds: Math.round(secs * 100) / 100 });
-          if (secs > 4) t.problem('bug', `level ${n} chapter card took ${secs.toFixed(1)} s to lift after one press`);
+          t.event('chapter-skip', {
+            level: n,
+            seconds: Math.round(secs * 100) / 100,
+            closingMs: closedAt ? Math.round(closedAt - at) : null,
+          });
+          if (!closedAt) t.problem('bug', `level ${n} chapter card did not begin closing after one press`);
+          if (secs > 10) t.problem('bug', `level ${n} chapter card took ${secs.toFixed(1)} s to lift after one press`);
         }
         const run = performance.now() + 90000;
         while (!(probe.running() && probe.level().id === n)) {

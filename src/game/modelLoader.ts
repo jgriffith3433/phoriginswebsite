@@ -502,6 +502,53 @@ export const importGlbUnderParent = async (
 /** Waits (ms) before each retry of a failed model load. */
 const MODEL_RETRY_DELAYS = [400, 1200, 3000];
 
+/**
+ * Behind the chapter card: instantiate one throwaway copy of each cached static-prop GLB, then
+ * dispose it. That compiles any remaining materials and warms the instantiate path so a mid-level
+ * spawn (dressing that arrives late, a cutscene prop) does not hitch on first use.
+ */
+export const warmPropSources = async (scene: BABYLON.Scene, deadline: number): Promise<number> => {
+  const map = propSources.get(scene);
+  if (!map || map.size === 0) return 0;
+  let warmed = 0;
+  const root = new BABYLON.TransformNode('warm-prop-root', scene);
+  root.setEnabled(false);
+  try {
+    for (const [path, pending] of map) {
+      if (performance.now() >= deadline) break;
+      try {
+        const source = await pending;
+        if (performance.now() >= deadline) break;
+        const prefix = `warm_${++instanceSeq}_`;
+        const entries = source.instantiateModelsToScene((name) => `${prefix}${name}`, true, { doNotInstantiate: true });
+        for (const node of entries.rootNodes) {
+          node.parent = root;
+          if (node instanceof BABYLON.AbstractMesh && node.material && !node.isReady(true)) {
+            await node.material.forceCompilationAsync(node).catch(() => undefined);
+          }
+          for (const child of node.getChildMeshes?.(false) ?? []) {
+            if (child.material && !child.isReady(true)) {
+              await child.material.forceCompilationAsync(child).catch(() => undefined);
+            }
+          }
+        }
+        for (const group of entries.animationGroups) group.dispose();
+        for (const skeleton of entries.skeletons) skeleton.dispose();
+        for (const node of entries.rootNodes) node.dispose(false, false);
+        warmed += 1;
+      } catch {
+        /* best effort; a failed warm must not block Start */
+      }
+      // Yield a frame so this pass does not look like a hitch under the chapter card.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      void path;
+    }
+  } finally {
+    root.dispose(false, false);
+  }
+  return warmed;
+};
+
 export const loadGlbByAssetId = async (
   scene: BABYLON.Scene,
   assetIdOrPath: string,

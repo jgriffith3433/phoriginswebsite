@@ -90,12 +90,32 @@ export const plaque = (k: Kit, key: string, x: number, y0: number, z: number, w:
   k.tex(key, x, y0, z, w, h, n, glow, 0.024);
 };
 
-export const pendantBar = (k: Kit, x0: number, x1: number, z: number, y: number, ceiling: number) => {
-  k.set(IS.METAL, 0.12, 0.12, 0.13);
-  for (const x of [x0 + 0.3, x1 - 0.3]) k.box(x, y, z, 0.006, ceiling - y, 0.006);
-  k.box((x0 + x1) / 2, y - 0.05, z, (x1 - x0) / 2, 0.06, 0.06);
-  k.set(IS.SOLID, 1.0, 0.94, 0.82, 1.8);
-  k.box((x0 + x1) / 2, y - 0.056, z, (x1 - x0) / 2 - 0.03, 0.006, 0.045, { x: 1, z: 0 }, 0b100000);
+/** Recessed acoustic-ceiling troffer: thin white/silver bezel and warm diffuser flush with the ceiling. */
+export const troffer = (k: Kit, x: number, z: number, ceiling: number, alongZ = false) => {
+  const hw = alongZ ? 0.28 : 0.58;
+  const hd = alongZ ? 0.58 : 0.28;
+  const rim = 0.035;
+  const y0 = ceiling - 0.012;
+  k.set(IS.METAL, 0.84, 0.84, 0.82);
+  k.box(x, y0, z - hd + rim / 2, hw, 0.012, rim / 2, { x: 1, z: 0 }, 0b101111);
+  k.box(x, y0, z + hd - rim / 2, hw, 0.012, rim / 2, { x: 1, z: 0 }, 0b101111);
+  k.box(x - hw + rim / 2, y0, z, rim / 2, 0.012, hd - rim, { x: 1, z: 0 }, 0b101111);
+  k.box(x + hw - rim / 2, y0, z, rim / 2, 0.012, hd - rim, { x: 1, z: 0 }, 0b101111);
+  const x0 = x - (hw - rim);
+  const x1 = x + (hw - rim);
+  const z0 = z - (hd - rim);
+  const z1 = z + (hd - rim);
+  const yd = ceiling - 0.008;
+  k.set(IS.SOLID, 1.0, 0.96, 0.88, 1.65);
+  k.g.quad([x0, yd, z0], [x1, yd, z0], [x1, yd, z1], [x0, yd, z1], [0, -1, 0], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+};
+
+export const pendantBar = (k: Kit, x0: number, x1: number, z: number, _y: number, ceiling: number) => {
+  const count = Math.max(1, Math.round((x1 - x0) / 2.6));
+  for (let i = 0; i < count; i += 1) {
+    const x = x0 + ((x1 - x0) * (i + 0.5)) / count;
+    troffer(k, x, z, ceiling, false);
+  }
 };
 
 export const exitSign = (k: Kit, x: number, y0: number, z: number, n: V2) => {
