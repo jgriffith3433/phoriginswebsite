@@ -647,6 +647,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['smoke', 'perf'],
       },
       {
+        id: 'model-audit',
+        title: 'Mesh audit on the live scenes of levels 1 and 8: no mirrored nodes, no NaN or zero normals, no stretched skinned vertices, a screenshot of each',
+        description: 'Starts level 1 and level 8 directly, walks a moment, then audits every enabled mesh the game loaded (characters and props): world matrix determinant (mirrors), NaN or zero-length normals and positions, skinned meshes bound to a skeleton with weights summing to 1. Logs model-audit events and a model-shot screenshot per level (Pierce and the board in level 1). Any finding is a bug.',
+        seconds: 150,
+        tags: ['level', 'quality'],
+      },
+      {
         id: 'hitch-board',
         title: 'Level 1 spawn to board table with named hitch causes; phone sample of levels 1, 4 and 8',
         description: 'Starts level 1 with Start (chapter card up while first-use warm runs), logs the warm event, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
@@ -3165,6 +3172,58 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       });
       t.progress(1);
       t.finish(failOver100 > 0 ? 'lost' : 'done');
+      return;
+    }
+
+    if (id === 'model-audit') {
+      levelsTotal = 2;
+      const auditScene = (label: string) => {
+        const scene = probe.scene;
+        let meshes = 0; let skinned = 0; let bad = 0;
+        const flag = (what: string, detail: string) => { bad++; t.problem('bug', `model-audit ${label}: ${what}: ${detail}`); };
+        for (const mesh of scene.meshes) {
+          if (!mesh.isEnabled(false) || mesh.getTotalVertices() === 0) continue;
+          meshes++;
+          mesh.computeWorldMatrix(true);
+          if (mesh.getWorldMatrix().determinant() < 0) flag('mirrored', mesh.name);
+          const nrm = mesh.getVerticesData('normal');
+          if (nrm) {
+            let nan = 0; let zero = 0;
+            for (let i = 0; i + 2 < nrm.length; i += 3) {
+              const l = Math.hypot(nrm[i]!, nrm[i + 1]!, nrm[i + 2]!);
+              if (!Number.isFinite(l)) nan++; else if (l < 0.5) zero++;
+            }
+            if (nan || zero) flag('normals', `${mesh.name} ${nan} NaN, ${zero} zero`);
+          }
+          const pos = mesh.getVerticesData('position');
+          if (pos && pos.some((v) => !Number.isFinite(v))) flag('positions', `${mesh.name} has NaN positions`);
+          if (mesh.skeleton) {
+            skinned++;
+            const w = mesh.getVerticesData('matricesWeights');
+            if (!w) { flag('skin', `${mesh.name} has no weights`); continue; }
+            let off = 0;
+            for (let i = 0; i + 3 < w.length; i += 4) if (Math.abs(w[i]! + w[i + 1]! + w[i + 2]! + w[i + 3]! - 1) > 0.02) off++;
+            if (off) flag('skin', `${mesh.name} ${off} vertices with weights not summing to 1`);
+          }
+        }
+        t.event('model-audit', `${label}: ${meshes} meshes, ${skinned} skinned, ${bad} findings`);
+        t.metric(`modelAudit${label.replace(/\W/g, '')}Findings`, bad);
+        try {
+          const c = probe.canvas;
+          const w = 640; const s = document.createElement('canvas');
+          s.width = w; s.height = Math.round((c.height / c.width) * w);
+          s.getContext('2d')!.drawImage(c, 0, 0, s.width, s.height);
+          t.event('model-shot', JSON.stringify({ label, image: s.toDataURL('image/jpeg', 0.7) }));
+        } catch { /* no canvas capture: the audit still counts */ }
+      };
+      for (const n of [1, 8]) {
+        await enterLevel(n);
+        t.scene(`Level ${n}`);
+        await sleep(2500);
+        auditScene(`L${n}`);
+        t.progress(n === 1 ? 0.5 : 1);
+      }
+      t.finish('done');
       return;
     }
 
