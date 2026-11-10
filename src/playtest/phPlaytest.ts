@@ -4,6 +4,7 @@ import { missingClip, storyLines } from '../game/locale';
 import { STRIDE_MPS } from '../game/stride';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
+import { installFrameTrace, type FrameTraceSummary } from './frameTrace';
 
 /**
  * Hawkes playtest contract v1 (spec: C:\Projects\hawkesstudio\docs\playtest.md).
@@ -116,6 +117,12 @@ export type PhProbe = {
     /** The walk (footstep) loop is playing. */
     footsteps: boolean;
   };
+  /**
+   * Frame-time trace: last frame ms, hitch counts over 50/100 ms, and the worst five with a
+   * named cause (shader-compile, asset-load, gc, level-setup, audio-decode, unknown).
+   * Filled by installPhPlaytest; main does not provide it.
+   */
+  frames: () => FrameTraceSummary;
 };
 
 export type GraphicsInfo = {
@@ -370,7 +377,22 @@ const findPath = (g: Grid, from: Point, to: Point): Point[] | null => {
 
 // ---------------------------------------------------------------- the bot
 
-export const installPhPlaytest = (probe: PhProbe) => {
+export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: () => FrameTraceSummary }) => {
+  const frameTrace = installFrameTrace({
+    scene: () => probeIn.scene,
+    context: () => {
+      const level = probeIn.level();
+      const obj = probeIn.objective();
+      return {
+        level: level.id,
+        libraryId: level.libraryId,
+        objective: (obj.title || obj.text || '').trim().slice(0, 80),
+      };
+    },
+  });
+  const probe = probeIn as PhProbe;
+  probe.frames = () => frameTrace.summary();
+
   if ((import.meta as { env?: { DEV?: boolean } }).env?.DEV) {
     // Dev only: an ASCII map of the walk grid ('#' blocked, '.' open, '@' Pierce) for debugging routes.
     (window as unknown as Record<string, unknown>).__phWalkGrid = (x0: number, z0: number, x1: number, z1: number, step = 0.4) => {
@@ -591,6 +613,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         seconds: 60,
         tags: ['menus', 'site'],
       },
+      {
+        id: 'frame-trace',
+        title: 'Frame-time trace on all eight levels (desktop and phone): hitch counts, worst causes, no post-grace frame over 100 ms',
+        description: 'For each of levels 1–8: starts the level directly (setup / setupHidden for The Train), waits out the first-second grace, plays a few seconds through real input, and logs hitchOver50 / hitchOver100 / the worst hitches with a named cause into the report. Then repeats at phone size (390x844 via phoneFrame). A frame over 100 ms after the first second (outside level setup) fails. Metrics: hitchOver50, hitchOver100, hitchWorstMs, and per-level hitchL{n}WorstMs / hitchL{n}Cause. report().frameTrace carries the summary.',
+        seconds: 420,
+        tags: ['smoke', 'perf'],
+      },
     ],
     // The splash is the first thing a player can act on, so a run may start while it is up (the contract's auto start
     // and a runner both wait on this). Each scenario taps it, then waits for probe.ready() itself.
@@ -609,6 +638,7 @@ export const installPhPlaytest = (probe: PhProbe) => {
     stop: () => { token++; releaseAll(); },
     async start(id: string, options: RunOptions, t: Tracker) {
       const my = ++token;
+      frameTrace.reset();
       // The game's own moments (main.ts `revealFromBlack`) write into this run's event log.
       (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = (type, detail) => t.event(type, detail);
       const saved = snapshotSave();
@@ -631,7 +661,46 @@ export const installPhPlaytest = (probe: PhProbe) => {
     try { counts = probe.counts(); } catch { /* scene not up yet */ }
     let graphics: GraphicsInfo | null = null;
     try { graphics = probe.graphics(); } catch { /* scene not up yet */ }
-    return { ...baseState(), counts, graphics };
+    let frames: FrameTraceSummary | null = null;
+    try { frames = probe.frames(); } catch { /* */ }
+    return { ...baseState(), counts, graphics, frames };
+  };
+
+  // report() gains the hitch summary (counts over 50/100 ms, worst 5 with cause + level/objective).
+  const baseReport = api.report.bind(api);
+  api.report = () => {
+    const report = baseReport();
+    if (!report) return report;
+    try {
+      return { ...report, frameTrace: probe.frames() };
+    } catch {
+      return report;
+    }
+  };
+
+  /** Publish hitch metrics and fail the run when a post-grace frame exceeded 100 ms. */
+  const publishFrameTrace = (t: Tracker, label: string) => {
+    const snap = frameTrace.summary();
+    t.metric('hitchOver50', snap.over50);
+    t.metric('hitchOver100', snap.over100);
+    t.metric('hitchFailOver100', snap.failOver100);
+    t.metric('hitchFrames', snap.frames);
+    t.metric('hitchWorstMs', snap.worst[0]?.ms ?? 0);
+    for (let i = 0; i < snap.worst.length; i += 1) {
+      const h = snap.worst[i]!;
+      t.event('hitch', `${h.ms}ms ${h.cause} L${h.level} ${h.objective || '—'}${h.detail ? ` (${h.detail})` : ''}`);
+    }
+    t.event('frame-trace', `${label}: ${snap.over50} over 50 ms, ${snap.over100} over 100 ms, fail ${snap.failOver100}; worst ${snap.worst.map((h) => `${h.ms}ms/${h.cause}`).join(', ') || 'none'}`);
+    if (snap.failOver100 > 0) {
+      const sample = snap.worst.find((h) => h.ms >= 100 && h.t >= 1) ?? snap.worst[0];
+      t.problem(
+        'bug',
+        `${label}: ${snap.failOver100} frame${snap.failOver100 === 1 ? '' : 's'} over 100 ms after the first second`
+          + (sample ? ` (worst ${sample.ms} ms, ${sample.cause}, L${sample.level}${sample.objective ? ` ${sample.objective}` : ''})` : ''),
+      );
+      return false;
+    }
+    return true;
   };
 
   // ------------------------------------------------------------ run
@@ -2657,6 +2726,92 @@ export const installPhPlaytest = (probe: PhProbe) => {
     t.event('title', probe.menu().title);
     await sleep(600);
 
+    if (id === 'frame-trace') {
+      levelsTotal = 16; // 8 levels × desktop + phone
+      const sampleLevel = async (n: number, device: 'desktop' | 'phone') => {
+        levelIndex = (device === 'phone' ? 8 : 0) + (n - 1);
+        frameTrace.reset();
+        t.scene(`L${n} ${device}`);
+        t.event('setup', `frame-trace level ${n} on ${device}`);
+        if (n === 7) await probe.setupHidden('the-train');
+        else await enterLevel(n);
+        // Let the first-second grace pass, then walk a few seconds so frames accumulate.
+        await sleep(1200);
+        const until = performance.now() + 4500;
+        while (performance.now() < until) {
+          if (probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted()) {
+            setHeld('w');
+          } else {
+            releaseAll();
+            if (probe.cutscene() || probe.scripted()) {
+              const skip = probe.skipButton;
+              if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            }
+          }
+          await tick();
+        }
+        releaseAll();
+        const snap = frameTrace.summary();
+        const worst = snap.worst[0];
+        t.metric(`hitchL${n}${device === 'phone' ? 'Phone' : ''}WorstMs`, worst?.ms ?? 0);
+        t.metric(`hitchL${n}${device === 'phone' ? 'Phone' : ''}Over50`, snap.over50);
+        t.metric(`hitchL${n}${device === 'phone' ? 'Phone' : ''}Over100`, snap.over100);
+        if (worst) t.event('hitch-level', `L${n} ${device}: worst ${worst.ms}ms ${worst.cause} ${worst.objective || '—'}`);
+        else t.event('hitch-level', `L${n} ${device}: no hitch over 50 ms (${snap.frames} frames)`);
+        mark();
+        return snap;
+      };
+
+      const desktop: FrameTraceSummary[] = [];
+      for (let n = 1; n <= 8; n += 1) desktop.push(await sampleLevel(n, 'desktop'));
+      t.progress(0.5);
+
+      probe.phoneFrame(true, true, { w: 390, h: 844 });
+      t.event('phoneFrame', '390x844 landscape');
+      const phone: FrameTraceSummary[] = [];
+      for (let n = 1; n <= 8; n += 1) phone.push(await sampleLevel(n, 'phone'));
+      probe.phoneFrame(false);
+      t.progress(0.9);
+
+      // Aggregate for report().frameTrace (last reset was phone L8; rebuild a combined view via metrics).
+      let over50 = 0;
+      let over100 = 0;
+      let failOver100 = 0;
+      const worstAll: FrameTraceSummary['worst'] = [];
+      for (const snap of [...desktop, ...phone]) {
+        over50 += snap.over50;
+        over100 += snap.over100;
+        failOver100 += snap.failOver100;
+        for (const h of snap.worst) worstAll.push(h);
+      }
+      worstAll.sort((a, b) => b.ms - a.ms);
+      t.metric('hitchOver50', over50);
+      t.metric('hitchOver100', over100);
+      t.metric('hitchFailOver100', failOver100);
+      t.metric('hitchWorstMs', worstAll[0]?.ms ?? 0);
+      for (const h of worstAll.slice(0, 5)) {
+        t.event('hitch', `${h.ms}ms ${h.cause} L${h.level} ${h.objective || '—'}${h.detail ? ` (${h.detail})` : ''}`);
+      }
+      t.event('frame-trace', `desktop+phone: ${over50} over 50 ms, ${over100} over 100 ms, fail ${failOver100}`);
+      if (failOver100 > 0) {
+        t.problem('bug', `frame-trace: ${failOver100} frame(s) over 100 ms after the first second`);
+      }
+      // Stash a combined summary so report().frameTrace still shows the run's rollup.
+      (probe as PhProbe).frames = () => ({
+        frames: desktop.reduce((n, s) => n + s.frames, 0) + phone.reduce((n, s) => n + s.frames, 0),
+        lastMs: phone[7]?.lastMs ?? desktop[7]?.lastMs ?? 0,
+        over50,
+        over100,
+        failOver100,
+        worst: worstAll.slice(0, 5),
+        startedAt: desktop[0]?.startedAt ?? performance.now(),
+        armed: true,
+      });
+      t.progress(1);
+      t.finish(failOver100 > 0 ? 'lost' : 'done');
+      return;
+    }
+
     if (id === 'feel-audio') {
       levelsTotal = 1;
       const pulses = () => (window as unknown as { __phPulses?: number }).__phPulses ?? 0;
@@ -2828,8 +2983,9 @@ export const installPhPlaytest = (probe: PhProbe) => {
           if (n === 7) t.event('continue', `Level 7's Continue entered ${probe.level().name}`);
         }
       }
+      const hitchOk = publishFrameTrace(t, 'full');
       t.progress(1);
-      t.finish('won');
+      t.finish(hitchOk ? 'won' : 'lost');
       return;
     }
 
@@ -3189,8 +3345,13 @@ export const installPhPlaytest = (probe: PhProbe) => {
         t.metric(`smokeL${smokeN}Seconds`, Math.round(secs));
         t.event('smoke-end', `level ${smokeN} ${outcome} in ${secs.toFixed(0)} s (budget ${SMOKE_SECONDS} s)`);
         if (secs > SMOKE_SECONDS) t.problem('bug', `smoke level ${smokeN} took ${secs.toFixed(0)} s, over its ${SMOKE_SECONDS} s budget`);
+        const hitchOk = publishFrameTrace(t, `smoke-l${smokeN}`);
         t.progress(1);
-        t.finish(outcome);
+        // A post-grace frame over 100 ms fails the smoke by number (hitchFailOver100).
+        const final: Outcome = outcome === 'won' || outcome === 'done'
+          ? (hitchOk ? outcome : 'lost')
+          : outcome;
+        t.finish(final);
       };
       try {
         let outcome: Outcome;

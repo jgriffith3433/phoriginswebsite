@@ -151,6 +151,10 @@ const propSource = (scene: BABYLON.Scene, modelPath: string) => {
   const { rootUrl, fileName } = splitModelUrl(modelPath);
   const pending = enqueueImport(async () => {
     await nextFrame();
+    try {
+      (window as unknown as { __phFrameMark?: (cause: string, detail?: string) => void })
+        .__phFrameMark?.('asset-load', fileName);
+    } catch { /* playtest not installed */ }
     const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(rootUrl, fileName, scene);
     capSimultaneousLights(scene);
     return container;
@@ -402,6 +406,10 @@ export const importGlbUnderParent = async (
   const { rootUrl, fileName } = splitModelUrl(modelPath);
   return enqueueImport(async () => {
     await nextFrame();
+    try {
+      (window as unknown as { __phFrameMark?: (cause: string, detail?: string) => void })
+        .__phFrameMark?.('asset-load', fileName);
+    } catch { /* playtest not installed */ }
     const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(rootUrl, fileName, scene);
     capSimultaneousLights(scene);
     if (parent.isDisposed()) {

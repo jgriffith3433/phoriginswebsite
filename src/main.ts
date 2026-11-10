@@ -822,6 +822,11 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     screenFade.to(1, 0);
     syncStartButtonLabel();
   }
+  // Frame-time trace: mark the whole level load so a hitch here is tagged level-setup, not unknown.
+  try {
+    (window as unknown as { __phFrameSetup?: (on: boolean, detail?: string) => void })
+      .__phFrameSetup?.(true, `load ${path}`);
+  } catch { /* playtest not installed */ }
   try {
     clearNpcs(npcs);
     clearEnemies(enemies);
@@ -876,6 +881,10 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       await whenShadersCompiled(deadline);
     }
   } finally {
+    try {
+      (window as unknown as { __phFrameSetup?: (on: boolean, detail?: string) => void })
+        .__phFrameSetup?.(false);
+    } catch { /* playtest not installed */ }
     if (mode === 'boot') {
       gameReady = true;
       syncStartButtonLabel();
