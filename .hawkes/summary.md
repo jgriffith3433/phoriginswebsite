@@ -5,8 +5,8 @@ Studio discovers scenarios from the front-page hand-off in root `index.html` (`w
 Restored and rebased the known fix onto current beta (`1063b10`):
 - **`index.html`**: Front-page contract lists all 37 game scenarios next to `smoke`, including `apex-slice`. `start()` rejects unknown ids. No `scenarioAliases` (not a rename).
 - **`src/playtest/phPlaytest.ts`**: Sit-loop guard so the bot does not re-press Sit forever; desk-papers target cleared of the desk collider. Slice content (`apexSlice.ts`) untouched.
-- **`.hawkes/scenario.txt`**: `apex-slice`.
-- Rebased onto beta after #144/#146 (chapter-card sequence) landed; HEAD is `b04b7f8`. PR #145 already open (needs Studio re-push of the rebased tip).
+- **`.hawkes/scenario.txt`**: restored to `apex-slice` (beta rebase had overwritten it with the chapter-card scenario `transition`).
+- Rebased onto beta after #144/#146 landed. Tip is `df2f57f` (discovery commit `b04b7f8` + scenario restore). PR #145 is open and needs Studio to re-push this tip (rewrote `94d31f7`).
 
 ## Checks
 - Node parse of `index.html` `scenarios()`: 37 ids, includes `smoke` and `apex-slice`.
