@@ -227,7 +227,7 @@ Level Complete unlocks that chapter's lore entry (`src/game/lore.ts`, `lore: num
 
 ## Chapter title cards
 
-`src/game/chapterCard.ts` + `#chapterCard` in `game.html`. Shown by `startAtLevel` (Continue, New Game, Load Level) and the title Start button, after the card fades out and before `beginGame`. Not shown on a Defeat retry or on `?beat=` entries. Any key press or tap skips it (ignored for the first 350 ms, so the Start tap itself doesn't); it auto-closes after 4.6 s. Copy: `chapter.N.title` / `chapter.N.line` in `locales/en.json` (see `docs/story/chapters.md`). Level Complete's eyebrow shows `Chapter N · name`. Probe: `chapter()`. Playtest: `chapters`.
+`src/game/chapterCard.ts` + `#chapterCard` in `game.html`. Shown by `startAtLevel` (Continue, New Game, Load Level, and the title **Start** button — same path), after the card fades out and before `beginGame`. Not shown on a Defeat retry or on `?beat=` entries. Any key press or tap ends the readable hold (ignored for the first 350 ms, so the Start tap itself doesn't); it auto-holds 4.6 s, then stays up with its gold shimmer until shaders are ready, the follow camera has snapped behind Pierce (no damp from the origin), and at least two frames have painted a non-black world (or the 8 s ready cap). Then it crossfades to the world over ~0.6 s. Pause and the rest of the HUD stay hidden while the card exists. Copy: `chapter.N.title` / `chapter.N.line` in `locales/en.json` (see `docs/story/chapters.md`). Level Complete's eyebrow shows `Chapter N · name`. Probe: `chapter()`, `hudShown()`, `worldLuma()`. Playtests: `chapters`, `transition`.
 
 ## Playtests
 

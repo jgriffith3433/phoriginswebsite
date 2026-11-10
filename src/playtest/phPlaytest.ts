@@ -544,14 +544,14 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'transition',
         title: 'Chapter card to world: card held until the world has rendered, crossfade, HUD only after; no black frames (levels 1-8, desktop and 844x390)',
-        description: 'For each level 1-8 on desktop, then at 844x390 phone size: starts the level (setup shortcut), and while the chapter card is up and the level is running it samples the rendered world canvas every tick; the card must not leave until the world is more than 3% non-black, and the pause button must stay hidden while the card is up. Then the card fades and the pause button appears. Metrics: transitionSamples. Problems: a mostly-black frame under the lifting card, HUD over the card.',
+        description: 'Level 1 on desktop starts with the real Start button (the live smoke path); levels 2-8 and the phone pass use the setup shortcut. While the chapter card is up it samples the world canvas every tick: pause/HUD must stay hidden, and once the level is running the card must not leave until the canvas is more than 3% non-black. After the card lifts it samples a few more frames and fails on a mostly-black frame or on HUD over black. Metrics: transitionSamples. Problems: black frame under/after the card, HUD over the card or over black.',
         seconds: 600,
         tags: ['level', 'ui'],
       },
       {
         id: 'chapters',
         title: 'Chapter title cards: levels 1 to 8 each open on their own card; one press skips it; no placeholder text',
-        description: 'Opens level 1 with the Start button, then levels 2 to 8 (test shortcut, as Continue does). Each level must open on a chapter title card (Chapter N, the level name, one story line). The bot logs the card, checks it is not a copy of an earlier card and shows no placeholder text (raw ids, {braces}, undefined, TODO, lorem), waits for it to be fully up, presses one key (Space) and checks the card is gone within 1.5 s and the level is running. Metrics: chapterCards, chapterSkipSeconds. Problems: no card, a duplicate card, placeholder text, a card that needs more than one press.',
+        description: 'Opens level 1 with the Start button, then levels 2 to 8 (test shortcut, as Continue does). Each level must open on a chapter title card (Chapter N, the level name, one story line). The bot logs the card, checks it is not a copy of an earlier card and shows no placeholder text (raw ids, {braces}, undefined, TODO, lorem), waits for it to be fully up, presses one key (Space) and checks the card begins closing at once and lifts within the ready cap (~10 s) once the world has painted. Metrics: chapterCards, chapterSkipSeconds. Problems: no card, a duplicate card, placeholder text, a card that needs more than one press.',
         seconds: 420,
         tags: ['level', 'ui'],
       },
@@ -3325,28 +3325,58 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (phone) probe.phoneFrame(true, true, { w: 844, h: 390 });
         for (let n = 1; n <= 8; n++) {
           levelIndex = n - 1 + (phone ? 8 : 0);
-          void probe.setupLevel(n);
+          const tag = `level ${n}${phone ? ' (phone)' : ''}`;
+          // Desktop level 1 uses Start — that was the live smoke path that showed black + pause only.
+          if (!phone && n === 1) await enterLevel(1);
+          else void probe.setupLevel(n);
           const until = performance.now() + 120000;
           while (!probe.chapter().open) {
-            if (performance.now() > until) throw new Error(`level ${n} never showed its card`);
+            if (performance.now() > until) throw new Error(`${tag} never showed its card`);
             await tick();
           }
-          await sleep(1200);
-          let worst = 1;
+          t.event('chapter-card', { level: n, phone, kicker: probe.chapter().kicker, title: probe.chapter().title });
+          await sleep(800);
+          let worstWhileHeld = 1;
           let samples = 0;
+          let hudOverCard = false;
           while (probe.chapter().open && performance.now() < until) {
+            if (probe.hudShown()) {
+              if (!hudOverCard) {
+                hudOverCard = true;
+                t.problem('bug', `${tag}: HUD/pause shows over the chapter card`);
+              }
+            }
             if (probe.running()) {
-              if (probe.hudShown()) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: HUD shows over the chapter card`);
-              if (!probe.chapter().closing) { worst = Math.min(worst, await probe.worldLuma()); samples++; }
+              const lit = await probe.worldLuma();
+              samples++;
+              // Only score frames after the hold-for-skip ends: under the held card the world must be lighting up.
+              if (probe.chapter().closing) worstWhileHeld = Math.min(worstWhileHeld, lit);
             }
             await tick();
           }
-          const lastLit = await probe.worldLuma();
+          const liftLit = await probe.worldLuma();
           t.add('transitionSamples', samples);
-          t.event('transition', { level: n, phone, samples, litShareAtLift: Math.round(lastLit * 100) / 100 });
-          if (lastLit < 0.03) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: world is mostly black when the card lifts (${lastLit.toFixed(2)})`);
-          await sleep(300);
-          if (!probe.hudShown()) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: HUD missing after the card faded`);
+          t.event('transition', {
+            level: n,
+            phone,
+            samples,
+            litShareAtLift: Math.round(liftLit * 100) / 100,
+            worstWhileClosing: Math.round(worstWhileHeld * 100) / 100,
+          });
+          if (liftLit < 0.03) t.problem('bug', `${tag}: world is mostly black when the card lifts (${liftLit.toFixed(2)})`);
+          // A few frames between card and control — fail on a blank screen with or without HUD.
+          let blankAfter = 0;
+          for (let i = 0; i < 8; i++) {
+            await tick();
+            const lit = await probe.worldLuma();
+            if (lit < 0.03) {
+              blankAfter++;
+              if (probe.hudShown()) t.problem('bug', `${tag}: HUD over a mostly-black frame after the card (${lit.toFixed(2)})`);
+            }
+          }
+          if (blankAfter >= 3) t.problem('bug', `${tag}: ${blankAfter}/8 frames after the card were mostly black`);
+          await sleep(400);
+          if (!probe.hudShown()) t.problem('bug', `${tag}: HUD missing after the card faded`);
           t.progress((levelIndex + 1) / 16);
         }
         if (phone) probe.phoneFrame(false);
@@ -3392,11 +3422,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           t.add('chapterCards');
           const at = performance.now();
           await tap(' ', `skip chapter card ${n}`);
-          while (probe.chapter().open && performance.now() - at < 5000) await tick();
+          // Press only ends the readable hold; the card stays up until the world has painted (ready cap ~8 s).
+          let closedAt = 0;
+          while (probe.chapter().open && performance.now() - at < 12000) {
+            if (!closedAt && probe.chapter().closing) closedAt = performance.now();
+            await tick();
+          }
           const secs = (performance.now() - at) / 1000;
           skipTotal += secs;
-          t.event('chapter-skip', { level: n, seconds: Math.round(secs * 100) / 100 });
-          if (secs > 4) t.problem('bug', `level ${n} chapter card took ${secs.toFixed(1)} s to lift after one press`);
+          t.event('chapter-skip', {
+            level: n,
+            seconds: Math.round(secs * 100) / 100,
+            closingMs: closedAt ? Math.round(closedAt - at) : null,
+          });
+          if (!closedAt) t.problem('bug', `level ${n} chapter card did not begin closing after one press`);
+          if (secs > 10) t.problem('bug', `level ${n} chapter card took ${secs.toFixed(1)} s to lift after one press`);
         }
         const run = performance.now() + 90000;
         while (!(probe.running() && probe.level().id === n)) {

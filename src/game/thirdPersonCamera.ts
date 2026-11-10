@@ -476,6 +476,80 @@ export const createThirdPersonCamera = (
     camera.upVector.set(0, 1, 0);
   };
 
+  /**
+   * Put the follow lens behind `player` immediately (no damp from the last pose or from reset's origin).
+   * A Start that only called `reset` used to fly the camera through walls to the spawn and paint black frames.
+   */
+  const snapTo = (
+    player: { x: number; y: number; z: number },
+    ignoreMeshes: BABYLON.AbstractMesh[] = [],
+    nextYaw?: number,
+  ) => {
+    if (typeof nextYaw === 'number') yaw = nextYaw;
+    cinematicPos = null;
+    cinematicLook = null;
+    cinematicFresh = false;
+    holdAim = false;
+    lookStickX = 0;
+    lookStickY = 0;
+    lookInputTimer = 0;
+    recenterIdle = 0;
+    shoulderMix = shoulderTarget;
+    callMix = callTarget;
+    const ignore = new Set(ignoreMeshes);
+    const shoulder = cfg.shoulderOffset * shoulderMix;
+    const rightX = Math.cos(yaw);
+    const rightZ = -Math.sin(yaw);
+    pivot.set(
+      player.x + rightX * shoulder,
+      playerMeshY(player.y) + cfg.pivotHeight,
+      player.z + rightZ * shoulder,
+    );
+    const aimDistance = toolClose ? cfg.equippedDistance : cfg.distance;
+    desiredDistance = aimDistance;
+    desiredOffset(aimDistance, desiredPos);
+    desiredPos.addInPlace(pivot);
+    let blocked = collideDistance(pivot, desiredPos, ignore);
+    const ceilingY = Math.min(
+      ceilingWorldY(pivot.x, pivot.y, pivot.z, ignore),
+      ceilingWorldY(desiredPos.x, pivot.y, desiredPos.z, ignore),
+    );
+    const maxCamY = ceilingY - ceilingClearance;
+    const pitchLift = Math.sin(pitch);
+    if (Number.isFinite(maxCamY) && pitchLift > 0.02) {
+      const maxDistY = (maxCamY - pivot.y - cfg.height) / pitchLift;
+      if (maxDistY < blocked) blocked = clampValue(maxDistY, cfg.minDistance, blocked);
+    }
+    currentDistance = Math.min(aimDistance, blocked);
+    squeeze = clampValue((aimDistance * 0.7 - blocked) / Math.max(0.1, aimDistance * 0.7 - cfg.minDistance), 0, 1);
+    desiredOffset(currentDistance, smoothedPos);
+    smoothedPos.addInPlace(pivot);
+    if (Number.isFinite(maxCamY) && smoothedPos.y > maxCamY) smoothedPos.y = maxCamY;
+    const floorY = floorWorldY(smoothedPos.x, pivot.y + 0.25, smoothedPos.z, ignore);
+    const minCamY = floorY + ceilingClearance;
+    if (smoothedPos.y < minCamY) smoothedPos.y = minCamY;
+    if (clearancePush(smoothedPos, ignore)) {
+      smoothedPos.x += pushOut.x;
+      smoothedPos.z += pushOut.z;
+    }
+    probeOrigin.set(player.x, playerMeshY(player.y) + 1.5, player.z);
+    offsetDir.copyFrom(smoothedPos).subtractInPlace(probeOrigin);
+    const eyeSpan = offsetDir.length();
+    if (eyeSpan > 0.3) {
+      offsetDir.scaleInPlace(1 / eyeSpan);
+      const eyeHit = pickAlong(probeOrigin, offsetDir, eyeSpan, ignore);
+      if (eyeHit?.hit && typeof eyeHit.distance === 'number') {
+        const stop = Math.max(0.3, eyeHit.distance - cfg.collisionRadius);
+        smoothedPos.copyFrom(probeOrigin).addInPlace(offsetDir.scale(Math.min(stop, eyeSpan)));
+        currentDistance = Math.min(currentDistance, Math.max(cfg.minDistance, stop));
+      }
+    }
+    lookAt.set(pivot.x + Math.sin(yaw) * 0.35, pivot.y, pivot.z + Math.cos(yaw) * 0.35);
+    camera.position.copyFrom(smoothedPos);
+    camera.setTarget(lookAt);
+    camera.upVector.set(0, 1, 0);
+  };
+
   reset();
 
   const setCinematic = (position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }) => {
@@ -495,6 +569,7 @@ export const createThirdPersonCamera = (
     addLook,
     setLookStick,
     reset,
+    snapTo,
     update,
     isLooking,
     setCinematic,

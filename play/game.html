@@ -1718,6 +1718,26 @@
         text-transform: uppercase;
         color: #6f7a85;
       }
+      .chapter-inner::after {
+        content: '';
+        display: block;
+        width: 140px;
+        height: 2px;
+        margin: 18px auto 0;
+        background: linear-gradient(90deg, transparent, #c9a86a, transparent) 0 0 / 200% 100%;
+        opacity: 0.55;
+        animation: chapter-shimmer 1.4s linear infinite;
+      }
+      @keyframes chapter-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+      /* The HUD waits until the card has faded off the world. */
+      body:has(.chapter-card:not([hidden])) .hud,
+      body:has(.chapter-card:not([hidden])) .controls,
+      body:has(.chapter-card:not([hidden])) .objective-hud,
+      body:has(.chapter-card:not([hidden])) .pause-btn,
+      body:has(.chapter-card:not([hidden])) .skip-cutscene,
+      body:has(.chapter-card:not([hidden])) .ability-readout,
+      body:has(.chapter-card:not([hidden])) .missions-hud,
+      body:has(.chapter-card:not([hidden])) .inventory-hud { visibility: hidden; }
       .chapter-card.on .chapter-kicker,
       .chapter-card.on .chapter-title,
       .chapter-card.on .chapter-line { animation: menu-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
@@ -3116,7 +3136,7 @@
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
-    <script type="module" crossorigin src="./assets/index-BTTY5yWa.js"></script>
+    <script type="module" crossorigin src="./assets/index-B3Iev2Cz.js"></script>
   </head>
   <body>
     <div id="game-root">

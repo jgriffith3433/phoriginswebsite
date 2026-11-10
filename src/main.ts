@@ -470,6 +470,31 @@ const meshesNotReady = () => {
   return names;
 };
 
+/** Share of 32×18 canvas samples brighter than near-black. Used to hold the chapter card over an empty frame. */
+const sampleWorldLitShare = () => new Promise<number>((resolve) => {
+  scene.onAfterRenderObservable.addOnce(() => {
+    try {
+      const c = document.createElement('canvas');
+      c.width = 32;
+      c.height = 18;
+      const g = c.getContext('2d', { willReadFrequently: true });
+      if (!g) { resolve(1); return; }
+      g.drawImage(canvas, 0, 0, 32, 18);
+      const d = g.getImageData(0, 0, 32, 18).data;
+      let lit = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 36) lit++;
+      resolve(lit / 576);
+    } catch {
+      resolve(1);
+    }
+  });
+});
+
+/** Minimum lit share before the chapter card may lift (matches the transition playtest). */
+const WORLD_LIT_MIN = 0.03;
+/** Frames with the follow camera in place before a card crossfade may start. */
+const REVEAL_PAINT_FRAMES = 2;
+
 const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start') => {
   let held = false;
   let shown = false;
@@ -494,15 +519,50 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
       chapterCard.release(600);
     } else screenFade.to(0, 1.5);
   };
+  let revealing = false;
+  const deadline = calledAt + REVEAL_READY_MAX_MS;
+  const tryReveal = async (reason: 'ready' | 'cap') => {
+    if (shown || !alive()) return;
+    // Boot under the title card: keep the old 1 s hold + shader gate (no chapter card).
+    if (source === 'boot' || !chapterCard.showing()) {
+      show(reason);
+      return;
+    }
+    // One painter loop. The ready-cap timer only starts a loop if shaders never came up.
+    if (revealing) return;
+    revealing = true;
+    // Snap the follow camera, paint frames, and only lift once the canvas is not mostly black.
+    // Past the deadline we still snap and paint, then lift so a dark art pass cannot hang Start forever.
+    for (;;) {
+      if (shown || !alive()) return;
+      snapFollowCamera();
+      await waitFrames(REVEAL_PAINT_FRAMES);
+      if (shown || !alive()) return;
+      const timedOut = reason === 'cap' || performance.now() >= deadline;
+      if (timedOut) {
+        show(meshShadersReady() ? 'ready' : 'cap');
+        return;
+      }
+      const lit = await sampleWorldLitShare();
+      if (shown || !alive()) return;
+      if (lit >= WORLD_LIT_MIN) {
+        show('ready');
+        return;
+      }
+      await waitFrames(1);
+    }
+  };
   window.setTimeout(() => {
     held = true;
-    if (meshShadersReady()) show('ready');
+    if (meshShadersReady()) void tryReveal('ready');
   }, 1000);
   // Ready before the hold ends: the timer above reveals. Ready after: this does.
   whenMeshShadersReady(() => {
-    if (held) show('ready');
+    if (held) void tryReveal('ready');
   });
-  window.setTimeout(() => show(meshShadersReady() ? 'ready' : 'cap'), REVEAL_READY_MAX_MS);
+  window.setTimeout(() => {
+    if (!revealing) void tryReveal(meshShadersReady() ? 'ready' : 'cap');
+  }, REVEAL_READY_MAX_MS);
 };
 
 /** Resolves once the drawn meshes' materials are compiled, or after `SHADERS_READY_MAX_MS`. */
@@ -2581,6 +2641,7 @@ const beginGame = () => {
   spaceDown = false;
   stopEndingSong();
   beginGameAt = performance.now();
+  // Keep the black veil under the chapter card until reveal crossfades it away.
   screenFade.to(1, 0);
   audio.start();
   state.running = true;
@@ -2601,10 +2662,12 @@ const beginGame = () => {
     train.onStart();
     syncSkipButton();
   }
+  // onStart may have moved Pierce — snap the follow lens behind him before any frame draws from origin.
+  snapFollowCamera();
   analytics?.levelStarted();
   checkpoint = { x: state.player.x, z: state.player.z };
   lostWatcher.reset();
-  void waitFrames(3).then(() => {
+  void waitFrames(REVEAL_PAINT_FRAMES).then(() => {
     revealFromBlack(() => state.running);
   });
 };
@@ -2902,6 +2965,11 @@ const gatherCameraIgnoreMeshes = () => {
     for (const mesh of npc.avatar.group.getChildMeshes(true)) ignored.push(mesh);
   }
   return ignored;
+};
+
+/** Follow lens sits behind Pierce now — never damp from reset's origin through the level. */
+const snapFollowCamera = () => {
+  followCamera.snapTo(state.player, gatherCameraIgnoreMeshes(), state.characterYaw);
 };
 
 let playerLift = 0;
@@ -3907,8 +3975,9 @@ startBtn.addEventListener('click', () => {
     void startAtLevel(state.level, false, true);
     return;
   }
-  const entering = getLevelDefinition(state.level);
-  void fadeOutCard().then(() => chapterCard.show(entering.id, entering.name)).then(beginGame);
+  // Same path as Continue / New Game: chapter card + warm, then beginGame. The old fadeOutCard→show→beginGame
+  // skip of warm left Start opening on a black veil with the pause button (f_b5c2f6c070b4).
+  void startAtLevel(state.level);
 });
 newGameBtn.addEventListener('click', () => {
   analytics?.feature('new-game');
@@ -4190,7 +4259,9 @@ const syncSkipButton = () => {
 
 const renderLoop = () => {
   if (contextLost) return;
-  pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden'));
+  // Pause (and the rest of the HUD via CSS) stay down while the chapter card is held or crossfading —
+  // never over the black veil between card and world (f_b5c2f6c070b4).
+  pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden') && !chapterCard.showing());
   if (paused) {
     // Hold the frame: no story, camera or cutscene time passes until Resume.
     scene.render();
@@ -4671,19 +4742,7 @@ installPhPlaytest({
   },
   chapter: () => chapterCard.view(),
   hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
-  worldLuma: () => new Promise<number>((resolve) => {
-    scene.onAfterRenderObservable.addOnce(() => {
-      const c = document.createElement('canvas');
-      c.width = 32; c.height = 18;
-      const g = c.getContext('2d');
-      if (!g) { resolve(1); return; }
-      g.drawImage(canvas, 0, 0, 32, 18);
-      const d = g.getImageData(0, 0, 32, 18).data;
-      let lit = 0;
-      for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 36) lit++;
-      resolve(lit / 576);
-    });
-  }),
+  worldLuma: () => sampleWorldLitShare(),
   menu: () => ({
     open: !messageBox.classList.contains('hidden'),
     title: messageTitle.textContent ?? '',
