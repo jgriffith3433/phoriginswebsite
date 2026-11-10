@@ -50,3 +50,4 @@ Replace the tables below with the run's `hitchL{n}WorstMs` / cause events and th
 
 - Trace cost: one after-render callback, mark rings only on hitch or mark events. No `setInterval` sampler.
 - Acceptance: normal play fps within 2 of the prior baseline; post-grace frames must stay under 100 ms outside level setup.
+- First-use warm (`src/game/levelWarm.ts`) runs while the chapter card is up: decode level + cutscene + phone audio (locale line ids resolved), upload textures, tick particle systems, instantiate pooled props once, force-compile leftover meshes. Idle-chunked (`requestIdleCallback` / rAF). Cap after the card: +1.5 s. Scenario `hitch-board` judges spawn→board (desktop ≤100 ms) and phone L1/4/8 (≤150 ms).

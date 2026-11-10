@@ -639,6 +639,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         seconds: 420,
         tags: ['smoke', 'perf'],
       },
+      {
+        id: 'hitch-board',
+        title: 'Level 1 spawn to board table with named hitch causes; phone sample of levels 1, 4 and 8',
+        description: 'Starts level 1 with Start (chapter card up while first-use warm runs), logs the warm event, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
+        seconds: 240,
+        tags: ['smoke', 'perf', 'level'],
+      },
     ],
     // The splash is the first thing a player can act on, so a run may start while it is up (the contract's auto start
     // and a runner both wait on this). Each scenario taps it, then waits for probe.ready() itself.
@@ -2844,6 +2851,123 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     t.scene('Title');
     t.event('title', probe.menu().title);
     await sleep(600);
+
+    if (id === 'hitch-board') {
+      levelsTotal = 4; // L1 desktop board walk + phone L1/4/8
+      let warmMs = 0;
+      const onWarm = (type: string, detail?: unknown) => {
+        if (type !== 'warm') return;
+        try {
+          const stats = typeof detail === 'string' ? JSON.parse(detail) : detail;
+          warmMs = Number((stats as { ms?: number })?.ms) || 0;
+          t.metric('chapterWarmMs', warmMs);
+        } catch { /* ignore */ }
+      };
+      const prevEmit = (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit;
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = (type, detail) => {
+        onWarm(type, detail);
+        prevEmit?.(type, detail);
+      };
+
+      frameTrace.reset();
+      t.scene('L1 desktop');
+      await enterLevel(1);
+      // Chapter card + warm already finished inside enterLevel / Start.
+      if (warmMs > 6100) t.problem('bug', `chapter warm held Start for ${warmMs} ms (cap ~4600+1500)`);
+      t.event('play', 'spawn to board');
+
+      const until = performance.now() + 70000;
+      let sceneSeen = 0;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()) {
+          if (!sceneSeen) {
+            sceneSeen = performance.now();
+            t.event('cutscene-start', probe.cutscene() || 'board');
+          }
+          if (performance.now() - sceneSeen > 4000) {
+            const skip = probe.skipButton;
+            if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            await sleep(600);
+            break;
+          }
+          continue;
+        }
+        if (!probe.running() || probe.menu().open) continue;
+        const phone = probe.phone();
+        if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
+        if (phone.busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) { releaseAll(); if (await once('e', 1500, label)) t.event('action', label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      if (!sceneSeen) t.problem('bug', 'hitch-board: the board scene did not start');
+
+      const deskSnap = frameTrace.summary();
+      t.metric('hitchOver50', deskSnap.over50);
+      t.metric('hitchOver100', deskSnap.over100);
+      t.metric('hitchFailOver100', deskSnap.failOver100);
+      t.metric('hitchWorstMs', deskSnap.worst[0]?.ms ?? 0);
+      for (const h of deskSnap.worst.slice(0, 5)) {
+        t.event('hitch', `${h.ms}ms ${h.cause} L${h.level} ${h.objective || '—'}${h.detail ? ` (${h.detail})` : ''}`);
+      }
+      t.event('frame-trace', `L1 board: ${deskSnap.over50} over 50 ms, ${deskSnap.over100} over 100 ms, fail ${deskSnap.failOver100}`);
+      if (deskSnap.failOver100 > 0) {
+        const sample = deskSnap.worst.find((h) => h.ms >= 100 && h.t >= 1) ?? deskSnap.worst[0];
+        t.problem(
+          'bug',
+          `hitch-board L1: ${deskSnap.failOver100} frame(s) over 100 ms after the first second`
+            + (sample ? ` (worst ${sample.ms} ms, ${sample.cause})` : ''),
+        );
+      }
+      t.progress(0.4);
+
+      probe.phoneFrame(true, true, { w: 390, h: 844 });
+      t.event('phoneFrame', '390x844');
+      let phoneFail = 0;
+      for (const n of [1, 4, 8]) {
+        levelIndex = n;
+        frameTrace.reset();
+        t.scene(`L${n} phone`);
+        t.event('setup', `hitch-board phone level ${n}`);
+        await enterLevel(n);
+        await sleep(1200);
+        const walkUntil = performance.now() + 4500;
+        while (performance.now() < walkUntil) {
+          if (probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted()) setHeld('w');
+          else {
+            releaseAll();
+            if (probe.cutscene() || probe.scripted()) {
+              const skip = probe.skipButton;
+              if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            }
+          }
+          await tick();
+        }
+        releaseAll();
+        const snap = frameTrace.summary();
+        const worst = snap.worst[0];
+        t.metric(`hitchL${n}PhoneWorstMs`, worst?.ms ?? 0);
+        t.metric(`hitchL${n}PhoneOver50`, snap.over50);
+        if (worst) t.event('hitch-level', `L${n} phone: worst ${worst.ms}ms ${worst.cause}`);
+        else t.event('hitch-level', `L${n} phone: no hitch over 50 ms`);
+        // Phone acceptance: no hitch over 150 ms after grace.
+        const over150 = snap.worst.filter((h) => h.ms >= 150 && h.t >= 1).length;
+        if (over150 > 0) {
+          phoneFail += over150;
+          t.problem('bug', `hitch-board L${n} phone: ${over150} hitch(es) over 150 ms (worst ${worst?.ms ?? 0} ms, ${worst?.cause ?? '—'})`);
+        }
+        mark();
+      }
+      probe.phoneFrame(false);
+      t.metric('hitchPhoneOver150', phoneFail);
+      t.progress(1);
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit = prevEmit;
+      t.finish(deskSnap.failOver100 === 0 && phoneFail === 0 && sceneSeen ? 'won' : 'lost');
+      return;
+    }
 
     if (id === 'frame-trace') {
       levelsTotal = 16; // 8 levels × desktop + phone
