@@ -359,11 +359,13 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     applySceneLighting(scene, loaded.data);
     grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
     grade.apply(loaded.data.theme || currentThemeName);
+    followCamera.setVolumes(loaded.data.cameraVolumes ?? []);
     return;
   }
   missionScene = initialSceneData;
   disposeSceneNodes(sceneNodes);
   sceneNodes = loadSceneFromJson(scene, initialSceneData, sceneLoadOptions);
+  followCamera.setVolumes(initialSceneData?.cameraVolumes ?? []);
 };
 
 const npcs: Npc[] = [];
@@ -4794,11 +4796,18 @@ installPhPlaytest({
     grounded: () => state.player.grounded,
     isSolid: (mesh) => {
       if (mesh === playerCollider || mesh === muzzleFlash.mesh || mesh.isDescendantOf(playerAvatar.group)) return false;
-      const meta = mesh.metadata as { pickup?: unknown } | undefined;
+      const meta = mesh.metadata as { pickup?: unknown; cameraFade?: number } | undefined;
       if (meta?.pickup) return false;
+      // Intentionally see-through for the follow camera: do not count as camera-blocked.
+      if (followCamera.isOcclusionFaded(mesh) || (meta?.cameraFade ?? 0) > 0.35) return false;
       return !FEEL_SKIP.test(mesh.name);
     },
   },
+  camera: () => ({
+    profile: followCamera.profile(),
+    faded: followCamera.fadedCount(),
+    volumes: followCamera.volumes().length,
+  }),
   setupHidden: (libraryId) => {
     const level = getLevels().find((entry) => entry.libraryId === libraryId);
     return level ? startAtLevel(level.id, true, true, true) : Promise.resolve();

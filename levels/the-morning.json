@@ -161,5 +161,29 @@
         "volume": 0.16
       }
     }
-  ]
+  ],
+  "cameraVolumes": [
+      {
+        "id": "vol-morning-room",
+        "profile": "open",
+        "minX": -0.2,
+        "maxX": 8.3,
+        "minY": 0,
+        "maxY": 2.9,
+        "minZ": -3.2,
+        "maxZ": 3.2,
+        "priority": 1
+      },
+      {
+        "id": "vol-morning-door",
+        "profile": "doorway",
+        "minX": -0.4,
+        "maxX": 1.2,
+        "minY": 0,
+        "maxY": 2.7,
+        "minZ": -1.2,
+        "maxZ": 1.2,
+        "priority": 3
+      }
+    ]
 }

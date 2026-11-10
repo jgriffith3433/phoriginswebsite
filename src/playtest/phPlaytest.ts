@@ -65,6 +65,8 @@ export type PhProbe = {
   place?: (x: number, z: number, yaw: number) => void;
   /** The feel sensor's view of Pierce: his capsule, whether he stands on something, which meshes count as solid. */
   feel?: { collider: BABYLON.AbstractMesh; grounded: () => boolean; isSolid: (mesh: BABYLON.AbstractMesh) => boolean };
+  /** Interior camera volumes: active profile, faded occluder count, authored volume count. */
+  camera?: () => { profile: string; faded: number; volumes: number };
   /** Test shortcut (`train`): start a hidden (`comingSoon`) level by library id, as `?beat=train` does. */
   setupHidden: (libraryId: string) => Promise<void>;
   /** The rows Load Level shows, as rendered into its list (titles only). */
@@ -487,10 +489,17 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
       ...LEVEL_NAMES.map((name, i) => ({
         id: `explore-cam-l${i + 1}`,
-        title: `Explore camera, level ${i + 1} (${name}): wall-hugs hallways, turns in doorways, backs into corners on walkable routes; counts camera inside, blocked, near-wall, snaps and jitter, worst frames with screenshots`,
+        title: `Explore camera, level ${i + 1} (${name}): wall-hugs hallways, turns in doorways, backs into corners on walkable routes; counts camera inside, blocked, near-wall, snaps and jitter vs docs/camera.md baseline (≤10%); worst frames with screenshots`,
         seconds: 300,
         tags: ['camera', 'level'],
       })),
+      {
+        id: 'interior-cam',
+        title: 'Interior camera volumes: Level 1 halls (hallway profile, occlusion fade) and Level 8 apartment on desktop and 844x390',
+        description: 'Starts Level 1, skips openings, walks Hall 1 and Hall 2 hugging the wall and through doorways; checks hallway/doorway profile, faded occluders, and camera-inside/blocked ≤10% of the L1 baseline. Then Level 8 apartment the same way. Repeats both at 844x390. Metrics: cameraInside, cameraBlocked, cameraFadedPeak, cameraHallwayFrames, cameraProfileHall, cameraProfileOpen.',
+        seconds: 420,
+        tags: ['camera', 'level'],
+      },
       ...LEVEL_NAMES.map((name, i) => ({
         id: `smoke-l${i + 1}`,
         title: `Smoke, level ${i + 1} (${name}): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress`,
@@ -3053,15 +3062,37 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return;
     }
 
+    // Patch-era baselines from docs/camera.md — inside/blocked must drop ≥90%.
+    const CAM_BASELINE: { inside: number; blocked: number }[] = [
+      { inside: 120, blocked: 280 },
+      { inside: 100, blocked: 240 },
+      { inside: 110, blocked: 260 },
+      { inside: 100, blocked: 240 },
+      { inside: 40, blocked: 60 },
+      { inside: 80, blocked: 180 },
+      { inside: 60, blocked: 120 },
+      { inside: 50, blocked: 100 },
+    ];
+
     const exploreN = Number(/^explore-cam-l([1-8])$/.exec(id)?.[1] ?? 0);
     if (exploreN > 0) {
       levelsTotal = 1;
       const feel = probe.feel;
+      let fadedPeak = 0;
+      let hallwayFrames = 0;
       const cw = installCameraWatch({
         scene: () => probe.scene,
         player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
         isSolid: (m) => (feel ? feel.isSolid(m) : true),
-        active: () => probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted(),
+        active: () => {
+          if (!(probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted())) return false;
+          const cam = probe.camera?.();
+          if (cam) {
+            fadedPeak = Math.max(fadedPeak, cam.faded);
+            if (cam.profile === 'hallway' || cam.profile === 'doorway') hallwayFrames += 1;
+          }
+          return true;
+        },
         label: () => `L${exploreN}`,
         emit: (type, detail) => t.event(type, detail),
       });
@@ -3150,11 +3181,162 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.metric('cameraSnaps', sum.snaps);
       t.metric('cameraJitter', sum.jitter);
       t.metric('cameraMaxCoverage', Math.round(sum.maxCoverage * 100) / 100);
-      t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })) }));
+      t.metric('cameraFadedPeak', fadedPeak);
+      t.metric('cameraHallwayFrames', hallwayFrames);
+      t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })), fadedPeak, hallwayFrames }));
       sum.worst.forEach((w, i) => { if (w.shot) t.event('camera-screenshot', JSON.stringify({ rank: i + 1, kind: w.kind, detail: w.detail, image: w.shot })); });
       if (sum.inside > 0) t.problem('bug', `camera inside geometry on ${LEVEL_NAMES[exploreN - 1]}: ${sum.inside} frames`);
+      const base = CAM_BASELINE[exploreN - 1]!;
+      const insideCap = Math.max(1, Math.ceil(base.inside * 0.1));
+      const blockedCap = Math.max(1, Math.ceil(base.blocked * 0.1));
+      if (sum.inside > insideCap) {
+        t.problem('bug', `cameraInside ${sum.inside} on L${exploreN} exceeds 10% of baseline ${base.inside} (cap ${insideCap})`);
+      }
+      if (sum.blocked > blockedCap) {
+        t.problem('bug', `cameraBlocked ${sum.blocked} on L${exploreN} exceeds 10% of baseline ${base.blocked} (cap ${blockedCap})`);
+      }
       t.progress(1);
-      t.finish('done');
+      t.finish(sum.inside <= insideCap && sum.blocked <= blockedCap ? 'done' : 'lost');
+      return;
+    }
+
+    if (id === 'interior-cam') {
+      levelsTotal = 2;
+      const feel = probe.feel;
+      type Pass = { label: string; level: number; phone: boolean };
+      const passes: Pass[] = [
+        { label: 'L1-desktop', level: 1, phone: false },
+        { label: 'L8-desktop', level: 8, phone: false },
+        { label: 'L1-844x390', level: 1, phone: true },
+        { label: 'L8-844x390', level: 8, phone: true },
+      ];
+      let passOk = 0;
+      let hallSeen = 0;
+      let openSeen = 0;
+      let fadeSeen = 0;
+      let totalInside = 0;
+      let totalBlocked = 0;
+      for (let pi = 0; pi < passes.length; pi += 1) {
+        const pass = passes[pi]!;
+        if (pass.phone) probe.phoneFrame(true, true, { w: 844, h: 390 });
+        else probe.phoneFrame(false);
+        t.scene(`interior-cam ${pass.label}`);
+        let fadedPeak = 0;
+        let hallwayFrames = 0;
+        let openFrames = 0;
+        const cw = installCameraWatch({
+          scene: () => probe.scene,
+          player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
+          isSolid: (m) => (feel ? feel.isSolid(m) : true),
+          active: () => {
+            if (!(probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted())) return false;
+            const cam = probe.camera?.();
+            if (cam) {
+              fadedPeak = Math.max(fadedPeak, cam.faded);
+              if (cam.profile === 'hallway' || cam.profile === 'doorway') hallwayFrames += 1;
+              if (cam.profile === 'open') openFrames += 1;
+            }
+            return true;
+          },
+          label: () => pass.label,
+          emit: (type, detail) => t.event(type, detail),
+        });
+        try {
+          await enterLevel(pass.level);
+          for (let i = 0; i < 400 && (probe.cutscene() || probe.scripted() || probe.menu().open); i += 1) {
+            const skip = probe.skipButton;
+            if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            await tick();
+          }
+          await measureLook();
+          await sleep(800);
+          cw.start();
+          const goals: Point[] = pass.level === 1
+            ? [
+              { x: 0, z: 12 },
+              { x: 0, z: 28 },
+              { x: 8, z: 32 },
+              { x: 18, z: 32 },
+              { x: 30, z: 32 },
+            ]
+            : [
+              { x: 2, z: 0 },
+              { x: 4, z: -1.5 },
+              { x: 6, z: 1.2 },
+              { x: 4, z: 0 },
+            ];
+          let arrivedN = 0;
+          for (const g of goals) {
+            const t1 = performance.now();
+            let ok = false;
+            while (performance.now() - t1 < 20000 && !(ok = await walkTo(g, `ic-${pass.label}-${arrivedN}`, 0.85))) {
+              if (probe.cutscene() || probe.scripted()) break;
+              await tick();
+            }
+            releaseAll();
+            if (ok) {
+              arrivedN += 1;
+              for (let i = 0; i < 6; i += 1) { dragLook(12); await tick(); }
+              for (let i = 0; i < 6; i += 1) { dragLook(-12); await tick(); }
+              // Hug the wall briefly so door frames can sit between lens and Pierce (fade check).
+              setHeld('d');
+              const u = performance.now() + 900;
+              while (performance.now() < u) await tick();
+              releaseAll();
+            }
+          }
+          t.event('interior-pass', JSON.stringify({
+            label: pass.label, arrived: arrivedN, fadedPeak, hallwayFrames, openFrames,
+            profile: probe.camera?.()?.profile ?? null, volumes: probe.camera?.()?.volumes ?? 0,
+          }));
+        } catch (e) {
+          t.event('interior-error', `${pass.label}: ${String(e)}`);
+        }
+        releaseAll();
+        cw.stop();
+        const sum = cw.summary();
+        lastCam = sum;
+        totalInside += sum.inside;
+        totalBlocked += sum.blocked;
+        hallSeen += hallwayFrames;
+        openSeen += openFrames;
+        fadeSeen = Math.max(fadeSeen, fadedPeak);
+        const base = CAM_BASELINE[pass.level - 1]!;
+        const insideCap = Math.max(1, Math.ceil(base.inside * 0.1));
+        const blockedCap = Math.max(1, Math.ceil(base.blocked * 0.1));
+        if (sum.inside > insideCap) {
+          t.problem('bug', `${pass.label}: cameraInside ${sum.inside} > 10% of baseline ${base.inside}`);
+        }
+        if (sum.blocked > blockedCap) {
+          t.problem('bug', `${pass.label}: cameraBlocked ${sum.blocked} > 10% of baseline ${base.blocked}`);
+        }
+        if (pass.level === 1 && hallwayFrames < 5) {
+          t.problem('bug', `${pass.label}: hallway/doorway profile never held (frames ${hallwayFrames}) — volumes missing or not blending`);
+        }
+        if (pass.level === 1 && fadedPeak < 1) {
+          // Door GLBs / props between lens and Pierce must fade; a zero peak means fade never armed.
+          t.problem('bug', `${pass.label}: no occluder faded while wall-hugging (peak ${fadedPeak})`);
+        }
+        if (pass.level === 8 && openFrames < 5) {
+          t.problem('bug', `${pass.label}: open profile never held in the apartment (frames ${openFrames})`);
+        }
+        const fadeOk = pass.level !== 1 || fadedPeak >= 1;
+        if (sum.inside <= insideCap && sum.blocked <= blockedCap && (pass.level !== 1 || hallwayFrames >= 5) && fadeOk) passOk += 1;
+        t.metric(`cameraInside_${pass.label}`, sum.inside);
+        t.metric(`cameraBlocked_${pass.label}`, sum.blocked);
+        t.metric(`cameraFadedPeak_${pass.label}`, fadedPeak);
+        t.progress((pi + 1) / passes.length);
+      }
+      probe.phoneFrame(false);
+      t.metric('cameraInside', totalInside);
+      t.metric('cameraBlocked', totalBlocked);
+      t.metric('cameraFadedPeak', fadeSeen);
+      t.metric('cameraHallwayFrames', hallSeen);
+      t.metric('cameraProfileHall', hallSeen);
+      t.metric('cameraProfileOpen', openSeen);
+      t.metric('interiorPassesOk', passOk);
+      t.progress(1);
+      t.finish(passOk >= 3 ? 'done' : 'lost');
       return;
     }
 
