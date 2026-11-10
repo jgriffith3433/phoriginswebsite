@@ -73,6 +73,20 @@ export type SceneTrigger = {
   parentId?: string;
 };
 
+/** Authored follow-camera volume (see `cameraVolumes.ts`, `docs/camera.md`). */
+export type SceneCameraVolume = {
+  id: string;
+  profile: 'open' | 'hallway' | 'doorway';
+  minX: number;
+  maxX: number;
+  minY?: number;
+  maxY?: number;
+  minZ: number;
+  maxZ: number;
+  openSide?: 'posX' | 'negX' | 'posZ' | 'negZ';
+  priority?: number;
+};
+
 export type SceneData = {
   id: string;
   name: string;
@@ -81,6 +95,8 @@ export type SceneData = {
   ambient?: number;
   assets: SceneAssetInstance[];
   triggers: SceneTrigger[];
+  /** Interior camera volumes: blend open / hallway / doorway profiles. */
+  cameraVolumes?: SceneCameraVolume[];
 };
 
 export const SCENE_DATA_KEY = 'ph-origins-scene-editor';
@@ -107,12 +123,14 @@ const cloneDefaultScene = (): SceneData => JSON.parse(JSON.stringify(DEFAULT_SCE
 const parseSceneData = (parsed: unknown): SceneData => {
   const data = (parsed && typeof parsed === 'object' ? parsed : {}) as Partial<SceneData>;
   const ambient = typeof data.ambient === 'number' && Number.isFinite(data.ambient) ? Math.max(0, data.ambient) : undefined;
+  const cameraVolumes = Array.isArray(data.cameraVolumes) ? data.cameraVolumes : undefined;
   return {
     ...cloneDefaultScene(),
     ...data,
     ambient,
     assets: Array.isArray(data.assets) ? data.assets : DEFAULT_SCENE_DATA.assets,
     triggers: Array.isArray(data.triggers) ? data.triggers : DEFAULT_SCENE_DATA.triggers,
+    cameraVolumes,
   };
 };
 
