@@ -311,6 +311,71 @@ const textAudit = (scene: BABYLON.Scene): Finding[] => {
   return out;
 };
 
+
+/**
+ * Rule 14, level geometry the follow camera and Pierce (collider radius 0.4) have to live in: hall clear width,
+ * door width and frame depth, ceiling height over floors, stair riser.
+ */
+const MIN_HALL = 2.4; const MIN_DOOR = 1.2; const MAX_PROUD = 0.02; const MIN_CEIL = 3.0; const MAX_RISER = 0.2;
+const geometryAudit = (scene: BABYLON.Scene): Finding[] => {
+  let lastNear = '';
+  const out: Finding[] = [];
+  const meta = (m: BABYLON.AbstractMesh) => m.metadata as { sceneAssetId?: string; assetKind?: string } | null;
+  const solid = (m: BABYLON.AbstractMesh) => (m.checkCollisions || shown(m)) && !m.skeleton && meta(m)?.assetKind !== 'ground' && !m.name.startsWith('interior-floor');
+  const cast = (o: BABYLON.Vector3, d: BABYLON.Vector3, len: number, pred = solid) => { const h = scene.pickWithRay(new BABYLON.Ray(o, d, len), pred); if (h?.hit && h.distance < 0.3) lastNear = h.pickedMesh?.name ?? ''; return h?.hit ? h.distance : len; };
+  const slab = (m: BABYLON.AbstractMesh) => { if (!solid(m)) return false; const e = m.getBoundingInfo().boundingBox.extendSizeWorld; return e.x > 0.75 && e.z > 0.75 && e.y < 0.4; };
+  const wallish = (m: BABYLON.AbstractMesh) => { if (!solid(m)) return false; const e = m.getBoundingInfo().boundingBox.extendSizeWorld; return e.y > 1.0 && Math.max(e.x, e.z) > 1.5; };
+  const grounds = scene.meshes.filter((m) => meta(m)?.assetKind === 'ground' && m.getTotalVertices() > 0);
+  const V = (x: number, y: number, z: number) => new BABYLON.Vector3(x, y, z);
+  for (const g of grounds) {
+    const b = g.getBoundingInfo().boundingBox; const lo = b.minimumWorld; const hi = b.maximumWorld;
+    const id = g.name;
+    const sx = hi.x - lo.x; const sz = hi.z - lo.z;
+    if (sx < 1 || sz < 1) continue;
+    const isHall = /hall/i.test(id);
+    let minW = Infinity; let minC = Infinity; let at = '';
+    for (let x = lo.x + 0.6; x < hi.x - 0.5; x += 0.5) {
+      for (let z = lo.z + 0.6; z < hi.z - 0.5; z += 0.5) {
+        const y = hi.y + 1.0;
+        if (isHall) {
+          const alongX = sx > sz;
+          const w = alongX ? cast(V(x, y, z), V(0, 0, 1), 20, wallish) + cast(V(x, y, z), V(0, 0, -1), 20, wallish) : cast(V(x, y, z), V(1, 0, 0), 20, wallish) + cast(V(x, y, z), V(-1, 0, 0), 20, wallish);
+          if (w < minW) { minW = w; at = `${x.toFixed(1)},${z.toFixed(1)}`; }
+        }
+        const up = cast(V(x, hi.y + 2.0, z), V(0, 1, 0), 8, slab);
+        if (up < 8 && up + 2.0 < minC) minC = up + 2.0;
+      }
+    }
+    if (isHall && minW < MIN_HALL) out.push({ rule: 'geometry', what: `hall ${id}`, detail: `clear width ${minW.toFixed(2)} m near ${at} ${lastNear} (min ${MIN_HALL})`, amount: +minW.toFixed(2) });
+    if (minC < MIN_CEIL) out.push({ rule: 'geometry', what: `ceiling ${id}`, detail: `ceiling ${minC.toFixed(2)} m over the floor (min ${MIN_CEIL})`, amount: +minC.toFixed(2) });
+  }
+  for (const o of placedObjects(scene)) {
+    if (!/door/i.test(o.id) || /elevator|lift|train|subway/i.test(o.id)) continue;
+    const { min, max } = bounds(o.meshes); const sz = max.subtract(min);
+    const wide = Math.max(sz.x, sz.z); const deep = Math.min(sz.x, sz.z);
+    if (wide < MIN_DOOR) out.push({ rule: 'geometry', what: `door ${o.id}`, detail: `opening ${wide.toFixed(2)} m wide (min ${MIN_DOOR}, 1.5 x capsule 0.8)`, amount: +wide.toFixed(2) });
+    // Frame depth proud of the wall face: wall hit from beside the door against the door's own face.
+    const c = min.add(max).scale(0.5); const alongX = sz.x > sz.z; const side = wide / 2 + 0.3;
+    for (const dir of alongX ? [-1, 1] : [-1, 1]) {
+      const d = alongX ? V(0, 0, dir) : V(dir, 0, 0);
+      const far = 1.5; const o1 = c.add(d.scale(far)); const flip = d.scale(-1);
+      const self = new Set(o.meshes.map((m) => m.uniqueId));
+      const wallD = cast(o1.add(alongX ? V(side, 0, 0) : V(0, 0, side)).add(V(0, 0.4 - c.y + c.y, 0)), flip, far + 1, (m) => solid(m) && !self.has(m.uniqueId));
+      const doorD = cast(o1.add(V(0, 0.4 - c.y + c.y, 0)), flip, far + 1, (m) => self.has(m.uniqueId));
+      const proud = wallD - doorD;
+      if (doorD < far + 1 && proud > MAX_PROUD) { out.push({ rule: 'geometry', what: `door ${o.id}`, detail: `frame ${(proud * 100).toFixed(1)} cm proud of the wall (max ${MAX_PROUD * 100})`, amount: +proud.toFixed(3) }); break; }
+    }
+  }
+  const stairs = scene.meshes.filter((m) => /^stair-up-\d+$/.test(m.name)).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  let prev = 0;
+  for (const m of stairs) {
+    const top = m.getBoundingInfo().boundingBox.maximumWorld.y;
+    if (top - prev > MAX_RISER + 1e-3) out.push({ rule: 'geometry', what: `stairs ${m.name}`, detail: `riser ${(top - prev).toFixed(2)} m (max ${MAX_RISER})`, amount: +(top - prev).toFixed(2) });
+    prev = top;
+  }
+  return out;
+};
+
 const LEVELS: Record<string, { file: string; dress?: (scene: BABYLON.Scene) => void }> = {
   'apex-peak': { file: '/levels/apex-peak.json', dress: (s) => { createInteriorDress(s, apexPlan); } },
   'b3-basement': { file: '/levels/b3-basement.json', dress: (s) => { createInteriorDress(s, b3Plan); } },
@@ -332,7 +397,7 @@ for (const id of pick) {
   level.dress?.(scene);
   await settle(scene);
   for (const m of scene.meshes) { m.computeWorldMatrix(true); m.refreshBoundingInfo?.({}); }
-  const findings = [...groundAudit(scene), ...coplanarAudit(scene), ...mirrorAudit(scene), ...textAudit(scene)];
+  const findings = [...groundAudit(scene), ...coplanarAudit(scene), ...mirrorAudit(scene), ...textAudit(scene), ...geometryAudit(scene)];
   console.log(`audit ${id} ${JSON.stringify(findings)}`);
   scene.dispose();
 }
