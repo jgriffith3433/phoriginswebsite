@@ -14,8 +14,12 @@ Restored and rebased the known fix onto current beta (`1063b10`):
 - Studio `apex-slice@local` `r_ec176ec1f1be`: started (not a discovery skip). Metrics reported: `quality.maxQuietSeconds` 10.6, `quality.textOnlyBeats` 0. That local runner played beta `e52b92c` (pre-Sit-guard), so the run ended `lost`; the Sit-loop fix in this PR is what beta will get after merge.
 - Smoke `r_186109a1db2b`: done in 1 min 20 s (still runnable; 2 problems on current beta content, not a discovery skip).
 
-## Reviewer
-Discovery-only fix plus Sit-loop guard; no new player-facing content. Scope matches the brief. Verdict: merge once Studio re-pushes the rebased tip and beta playtest confirms no "has no scenario" skip.
+## Reviewer (studio:reviewer pass)
+Verdict: **merge** (after Studio re-pushes the rebased tip).
+- Criteria: `index.html` scenarios array includes `apex-slice` next to `smoke` (front-page discovery); game still metrics `quality.maxQuietSeconds` / `quality.textOnlyBeats`; smoke@local still completes.
+- Scope: only the discovery hand-off, Sit-loop guard, and `.hawkes` scenario/docs — no slice content redo, no CI/deploy/secrets.
+- Cause: Studio reads `/` not `phPlaytest.ts`; listing only in the game was the skip. Sit-loop was a real follow-on so the gated run can finish.
+- Playtest caveat: Studio `where=local` still drove published beta for these runs; discovery on beta is what merges unlock.
 
 ## GPU
 None ($0).
