@@ -1,0 +1,1 @@
+- lesson: Lore.txt is not in the checkout — the world bible is built from AGENTS.md, credits.ts and docs/story; new material is marked "New" as a proposal.
