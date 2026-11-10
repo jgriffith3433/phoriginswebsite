@@ -128,6 +128,11 @@ const loadBuffer = (url: string, ctx: AudioContext) => {
       return response.arrayBuffer();
     })
     .then((data) => new Promise<AudioBuffer>((resolve, reject) => {
+      // Frame-time trace: decode is a common main-thread hitch cause.
+      try {
+        (window as unknown as { __phFrameMark?: (cause: string, detail?: string) => void })
+          .__phFrameMark?.('audio-decode', url);
+      } catch { /* playtest not installed */ }
       // Older Safari only has the callback form.
       const result = ctx.decodeAudioData(data.slice(0), resolve, reject);
       if (result && typeof result.then === 'function') result.then(resolve, reject);
