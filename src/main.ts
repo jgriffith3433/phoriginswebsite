@@ -2604,6 +2604,34 @@ const beginGame = () => {
 
 let startingLevel = false;
 
+const AUDIO_URL = /^\/?assets\/audio\/[^"]+\.(?:wav|ogg|mp3)$/;
+const collectStrings = (node: unknown, out: Set<string>, ids: Set<string>) => {
+  if (typeof node === 'string') {
+    if (AUDIO_URL.test(node) && !/\/(?:ambient|ending-)|room-tone|drone|rumble/.test(node)) out.add(node);
+    return;
+  }
+  if (Array.isArray(node)) { for (const v of node) collectStrings(v, out, ids); return; }
+  if (node && typeof node === 'object') {
+    for (const [k, v] of Object.entries(node)) {
+      if (k === 'cutscene' && typeof v === 'string') ids.add(v);
+      collectStrings(v, out, ids);
+    }
+  }
+};
+
+/** Fetch and decode the level's one-shots and its cutscene lines while the chapter card is up (no main-thread work). */
+const warmLevelAudio = async (path: string) => {
+  try {
+    const urls = new Set<string>();
+    const ids = new Set<string>();
+    collectStrings(await (await fetch(path)).json(), urls, ids);
+    const docs = await Promise.all([...ids].map((id) =>
+      fetch(`/cutscenes/${id}.json`).then((r) => r.json()).catch(() => null)));
+    for (const doc of docs) collectStrings(doc, urls, ids);
+    preloadClips(urls);
+  } catch { /* warming is best effort */ }
+};
+
 /** `hidden` lets a test entry (the `train` playtest) start a `comingSoon` level; Continue and Load Level never do. */
 const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, hidden = false, chapter = true) => {
   if (startingLevel || !gameReady) return;
@@ -2623,6 +2651,7 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
       if (loadFailed()) return;
     }
     await fadeOutCard();
+    void warmLevelAudio(level.path);
     if (chapter) await chapterCard.show(level.id, level.name);
     beginGame();
   } catch (error) {
