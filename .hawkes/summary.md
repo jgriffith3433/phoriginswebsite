@@ -1,7 +1,2 @@
-First part of the first-use warm-up: while the chapter card is up, the game now fetches and decodes the level's audio (one-shots from the level JSON and every line and sound in the cutscenes it references), so cutscenes, doors and phone calls no longer decode on first play.
-
-Shader and material compilation for hidden meshes was already in place (`warmStartState`, `meshShadersReady`).
-
-Not done yet: texture upload, pooled-prop instantiation, particle pre-creation, spreading remaining work across frames, and before/after smoke-l1..l8 detector numbers. Typecheck passes; I did not run the playtests.
-
+Chapter card now stays up (gold shimmer) after the press/timeout until the scene has shaders ready and 3+ frames rendered with the follow camera, then crossfades to the world over 0.6 s. HUD/pause stay hidden while the card exists. Added `transition` playtest (levels 1-8, desktop and 844x390) sampling the world canvas for black frames. Not run in a browser here; typecheck passes. No GPU used.
 GPU estimate: none needed.

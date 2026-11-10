@@ -40,6 +40,9 @@ export type PhProbe = {
   scripted: () => string | null;
   phone: () => { incoming: boolean; busy: boolean; speaker: string; line: string };
   /** The chapter title card that opens each level (kicker, name, story line). */
+  hudShown: () => boolean;
+  /** Share (0-1) of the rendered world canvas that is not black. */
+  worldLuma: () => Promise<number>;
   chapter: () => { open: boolean; kicker: string; title: string; line: string; closing: boolean };
   menu: () => { open: boolean; title: string; text: string; start: string | null; startEnabled: boolean; newGame: boolean };
   subtitle: () => { speaker: string; text: string };
@@ -537,6 +540,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'On a desktop viewport the page is laid out as a 390x844 phone for the title and button checks. Then the About page shows in an overlay, then level 2: stand still for the way hints, shoot it from the lab before entering decon, and finish the level.',
         seconds: 260,
         tags: ['menus'],
+      },
+      {
+        id: 'transition',
+        title: 'Chapter card to world: card held until the world has rendered, crossfade, HUD only after; no black frames (levels 1-8, desktop and 844x390)',
+        description: 'For each level 1-8 on desktop, then at 844x390 phone size: starts the level (setup shortcut), and while the chapter card is up and the level is running it samples the rendered world canvas every tick; the card must not leave until the world is more than 3% non-black, and the pause button must stay hidden while the card is up. Then the card fades and the pause button appears. Metrics: transitionSamples. Problems: a mostly-black frame under the lifting card, HUD over the card.',
+        seconds: 600,
+        tags: ['level', 'ui'],
       },
       {
         id: 'chapters',
@@ -3177,6 +3187,42 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return;
     }
 
+    if (id === 'transition') {
+      levelsTotal = 16;
+      for (const phone of [false, true]) {
+        if (phone) probe.phoneFrame(true, true, { w: 844, h: 390 });
+        for (let n = 1; n <= 8; n++) {
+          levelIndex = n - 1 + (phone ? 8 : 0);
+          void probe.setupLevel(n);
+          const until = performance.now() + 120000;
+          while (!probe.chapter().open) {
+            if (performance.now() > until) throw new Error(`level ${n} never showed its card`);
+            await tick();
+          }
+          await sleep(1200);
+          let worst = 1;
+          let samples = 0;
+          while (probe.chapter().open && performance.now() < until) {
+            if (probe.running()) {
+              if (probe.hudShown()) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: HUD shows over the chapter card`);
+              if (!probe.chapter().closing) { worst = Math.min(worst, await probe.worldLuma()); samples++; }
+            }
+            await tick();
+          }
+          const lastLit = await probe.worldLuma();
+          t.add('transitionSamples', samples);
+          t.event('transition', { level: n, phone, samples, litShareAtLift: Math.round(lastLit * 100) / 100 });
+          if (lastLit < 0.03) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: world is mostly black when the card lifts (${lastLit.toFixed(2)})`);
+          await sleep(300);
+          if (!probe.hudShown()) t.problem('bug', `level ${n}${phone ? ' (phone)' : ''}: HUD missing after the card faded`);
+          t.progress((levelIndex + 1) / 16);
+        }
+        if (phone) probe.phoneFrame(false);
+      }
+      t.finish('done');
+      return;
+    }
+
     if (id === 'chapters') {
       levelsTotal = 8;
       const seen = new Map<string, number>();
@@ -3218,7 +3264,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           const secs = (performance.now() - at) / 1000;
           skipTotal += secs;
           t.event('chapter-skip', { level: n, seconds: Math.round(secs * 100) / 100 });
-          if (secs > 1.5) t.problem('bug', `level ${n} chapter card took ${secs.toFixed(1)} s to skip after one press`);
+          if (secs > 4) t.problem('bug', `level ${n} chapter card took ${secs.toFixed(1)} s to lift after one press`);
         }
         const run = performance.now() + 90000;
         while (!(probe.running() && probe.level().id === n)) {

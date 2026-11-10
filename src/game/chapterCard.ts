@@ -7,7 +7,6 @@ const WORDS = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', '
 const HOLD_MS = 4600;
 /** A press right after the card appears is the Start tap itself, so it does not count. */
 const ARM_MS = 350;
-const FADE_MS = 320;
 
 export const chapterCopy = (n: number, fallbackName: string) => ({
   kicker: `Chapter ${WORDS[n - 1] ?? n}`,
@@ -21,10 +20,11 @@ export const createChapterCard = (root: HTMLElement) => {
   const lineEl = root.querySelector('.chapter-line') as HTMLElement;
   let active: Promise<void> | null = null;
   let closing = false;
+  let releasing = false;
   let finish: (() => void) | null = null;
 
   const show = (n: number, fallbackName: string): Promise<void> => {
-    if (active) return active;
+    if (active) return releasing ? Promise.resolve() : active;
     const copy = chapterCopy(n, fallbackName);
     kickerEl.textContent = copy.kicker;
     titleEl.textContent = copy.title;
@@ -43,14 +43,9 @@ export const createChapterCard = (root: HTMLElement) => {
         window.clearTimeout(timer);
         window.removeEventListener('keydown', onKey, true);
         root.removeEventListener('pointerdown', onPress, true);
-        root.classList.remove('on');
-        window.setTimeout(() => {
-          root.hidden = true;
-          closing = false;
-          active = null;
-          finish = null;
-          resolve();
-        }, FADE_MS);
+        finish = null;
+        // The card stays up (with its shimmer) until `release`: the level is not on screen yet.
+        resolve();
       };
       const onKey = (event: KeyboardEvent) => {
         if (event.repeat || ['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) return;
@@ -74,7 +69,23 @@ export const createChapterCard = (root: HTMLElement) => {
     return active;
   };
 
+  /** Crossfade the held card to the world, then drop it. */
+  const release = (ms = 600) => {
+    if (!active || releasing) return;
+    releasing = true;
+    root.style.transitionDuration = `${ms}ms`;
+    root.classList.remove('on');
+    window.setTimeout(() => {
+      root.hidden = true;
+      root.style.transitionDuration = '';
+      releasing = false;
+      closing = false;
+      active = null;
+    }, ms);
+  };
+
   return {
+    release,
     show,
     showing: () => active !== null,
     view: (): ChapterView => ({
