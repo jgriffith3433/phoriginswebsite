@@ -477,7 +477,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
   const api = installPlaytest({
     product: 'phorigins',
     scenarios: [
-      { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk, open the board scene', seconds: 50, tags: ['smoke'] },
+      {
+        id: 'smoke',
+        title: 'Boot, title, start level 1, answer the call, walk to the board; hitchFailOver100; chapter-card black-frame check on levels 1-8 desktop and 844x390',
+        description: 'Starts level 1 with Start (chapter card + warm). Samples the world while the card is up and fails on a mostly-black lift or HUD over the card/black. Answers Voss, walks to the board cutscene. Publishes hitchFailOver100 (Babylon work time) and fails on any post-grace frame over 100 ms. Then samples chapter-card → world for levels 2-8 on desktop and levels 1-8 at 844x390 (same black-frame rules as transition). Metrics: hitchOver50/100, hitchFailOver100, transitionSamples. Problems: board scene missing, hitch over 100 ms, black frame under/after the card, HUD over the card or over black.',
+        seconds: 720,
+        tags: ['smoke', 'perf', 'ui'],
+      },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
       ...LEVEL_NAMES.map((name, i) => ({
         id: `explore-cam-l${i + 1}`,
@@ -667,12 +673,14 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     stallSeconds: 75,
     // The feel sensor (hawkes-feel.js): Pierce's capsule while he's the player's to move; during cutscenes, scripted
     // openings and menus only frame hitches count. His position is the capsule's center, so the eye is just above it.
+    // hitchMs 250 matches quality rule 7 (wall-clock feel is advisory; the 100 ms bar is hitchFailOver100 / frameTrace).
     feel: probe.feel ? {
       active: () => probe.running() && !probe.cutscene() && !probe.scripted() && !probe.menu().open,
       player: () => probe.feel!.collider,
       grounded: () => probe.feel!.grounded(),
       isSolid: (mesh: BABYLON.AbstractMesh) => probe.feel!.isSolid(mesh),
       headHeight: 0.15,
+      thresholds: { hitchMs: 250 },
     } : undefined,
     input,
     stop: () => { token++; releaseAll(); },
@@ -1123,6 +1131,67 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (performance.now() > until) throw new Error(`timed out waiting for level ${n} to start`);
         await tick();
       }
+    };
+
+    /**
+     * Chapter card → world black-frame check (shared by `transition` and smoke's beta legs).
+     * Starts the level when `start` is true; otherwise the card must already be up or arriving.
+     */
+    const sampleChapterTransition = async (n: number, phone: boolean, start: boolean) => {
+      const tag = `level ${n}${phone ? ' (phone)' : ''}`;
+      if (start) {
+        if (!phone && n === 1) await enterLevel(1);
+        else {
+          t.event('setup', `start at level ${n} directly (test shortcut)`);
+          void probe.setupLevel(n);
+        }
+      }
+      const until = performance.now() + 120000;
+      while (!probe.chapter().open) {
+        if (performance.now() > until) throw new Error(`${tag} never showed its card`);
+        await tick();
+      }
+      t.event('chapter-card', { level: n, phone, kicker: probe.chapter().kicker, title: probe.chapter().title });
+      await sleep(800);
+      let worstWhileHeld = 1;
+      let samples = 0;
+      let hudOverCard = false;
+      while (probe.chapter().open && performance.now() < until) {
+        if (probe.hudShown()) {
+          if (!hudOverCard) {
+            hudOverCard = true;
+            t.problem('bug', `${tag}: HUD/pause shows over the chapter card`);
+          }
+        }
+        if (probe.running()) {
+          const lit = await probe.worldLuma();
+          samples++;
+          if (probe.chapter().closing) worstWhileHeld = Math.min(worstWhileHeld, lit);
+        }
+        await tick();
+      }
+      const liftLit = await probe.worldLuma();
+      t.add('transitionSamples', samples);
+      t.event('transition', {
+        level: n,
+        phone,
+        samples,
+        litShareAtLift: Math.round(liftLit * 100) / 100,
+        worstWhileClosing: Math.round(worstWhileHeld * 100) / 100,
+      });
+      if (liftLit < 0.03) t.problem('bug', `${tag}: world is mostly black when the card lifts (${liftLit.toFixed(2)})`);
+      let blankAfter = 0;
+      for (let i = 0; i < 8; i++) {
+        await tick();
+        const lit = await probe.worldLuma();
+        if (lit < 0.03) {
+          blankAfter++;
+          if (probe.hudShown()) t.problem('bug', `${tag}: HUD over a mostly-black frame after the card (${lit.toFixed(2)})`);
+        }
+      }
+      if (blankAfter >= 3) t.problem('bug', `${tag}: ${blankAfter}/8 frames after the card were mostly black`);
+      await sleep(400);
+      if (!probe.hudShown()) t.problem('bug', `${tag}: HUD missing after the card faded`);
     };
 
     // ---- per level special play
@@ -3296,8 +3365,24 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
 
     if (id === 'smoke') {
-      levelsTotal = 1;
-      await enterLevel(1);
+      // Beta only runs smoke: cover hitch-board's L1 work-time hitch bar and transition's black-frame check here
+      // so a smoke-only beta run can judge those tasks (m_98ce28cc5577).
+      levelsTotal = 17; // L1 board + transition samples (L1 already counted, then L2-8 desktop + L1-8 phone = 15) ≈ progress steps
+      frameTrace.reset();
+      // Start L1: wait for the chapter card (Start path), sample black-frame, then walk.
+      // Do not soft-skip if the card is late — that was the live path the level-start task needed.
+      {
+        const menu = probe.menu();
+        if (menu.open && menu.start && /start/i.test(menu.start)) press(probe.startButton, menu.start);
+        else if (menu.open && menu.newGame) press(probe.newGameButton, 'New Game');
+        else await probe.setupLevel(1);
+        await sampleChapterTransition(1, false, false);
+        const untilL1 = performance.now() + 90000;
+        while (!(probe.running() && probe.level().id === 1)) {
+          if (performance.now() > untilL1) throw new Error('timed out waiting for level 1 to start after the card');
+          await tick();
+        }
+      }
       t.scene(LEVELS[0].name);
       t.event('level-start', LEVELS[0].name);
       await measureLook();
@@ -3369,8 +3454,26 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
       releaseAll();
       if (!sceneSeen) t.problem('bug', 'smoke: the board scene did not start within 54 s of Start');
+      const hitchOk = publishFrameTrace(t, 'smoke L1 board');
+      t.progress(0.2);
+
+      // Chapter-card black-frame check for the rest of the levels (desktop L2-8, then phone L1-8).
+      let step = 1;
+      const steps = 15;
+      for (let n = 2; n <= 8; n++) {
+        await sampleChapterTransition(n, false, true);
+        t.progress(0.2 + 0.4 * (step++ / steps));
+      }
+      probe.phoneFrame(true, true, { w: 844, h: 390 });
+      t.event('phoneFrame', '844x390');
+      for (let n = 1; n <= 8; n++) {
+        await sampleChapterTransition(n, true, true);
+        t.progress(0.2 + 0.4 * (step++ / steps));
+      }
+      probe.phoneFrame(false);
       t.progress(1);
-      t.finish(sceneSeen ? 'done' : 'stuck');
+      const ok = sceneSeen && hitchOk;
+      t.finish(ok ? 'done' : sceneSeen ? 'lost' : 'stuck');
       return;
     }
 
@@ -3497,58 +3600,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (phone) probe.phoneFrame(true, true, { w: 844, h: 390 });
         for (let n = 1; n <= 8; n++) {
           levelIndex = n - 1 + (phone ? 8 : 0);
-          const tag = `level ${n}${phone ? ' (phone)' : ''}`;
-          // Desktop level 1 uses Start — that was the live smoke path that showed black + pause only.
-          if (!phone && n === 1) await enterLevel(1);
-          else void probe.setupLevel(n);
-          const until = performance.now() + 120000;
-          while (!probe.chapter().open) {
-            if (performance.now() > until) throw new Error(`${tag} never showed its card`);
-            await tick();
-          }
-          t.event('chapter-card', { level: n, phone, kicker: probe.chapter().kicker, title: probe.chapter().title });
-          await sleep(800);
-          let worstWhileHeld = 1;
-          let samples = 0;
-          let hudOverCard = false;
-          while (probe.chapter().open && performance.now() < until) {
-            if (probe.hudShown()) {
-              if (!hudOverCard) {
-                hudOverCard = true;
-                t.problem('bug', `${tag}: HUD/pause shows over the chapter card`);
-              }
-            }
-            if (probe.running()) {
-              const lit = await probe.worldLuma();
-              samples++;
-              // Only score frames after the hold-for-skip ends: under the held card the world must be lighting up.
-              if (probe.chapter().closing) worstWhileHeld = Math.min(worstWhileHeld, lit);
-            }
-            await tick();
-          }
-          const liftLit = await probe.worldLuma();
-          t.add('transitionSamples', samples);
-          t.event('transition', {
-            level: n,
-            phone,
-            samples,
-            litShareAtLift: Math.round(liftLit * 100) / 100,
-            worstWhileClosing: Math.round(worstWhileHeld * 100) / 100,
-          });
-          if (liftLit < 0.03) t.problem('bug', `${tag}: world is mostly black when the card lifts (${liftLit.toFixed(2)})`);
-          // A few frames between card and control — fail on a blank screen with or without HUD.
-          let blankAfter = 0;
-          for (let i = 0; i < 8; i++) {
-            await tick();
-            const lit = await probe.worldLuma();
-            if (lit < 0.03) {
-              blankAfter++;
-              if (probe.hudShown()) t.problem('bug', `${tag}: HUD over a mostly-black frame after the card (${lit.toFixed(2)})`);
-            }
-          }
-          if (blankAfter >= 3) t.problem('bug', `${tag}: ${blankAfter}/8 frames after the card were mostly black`);
-          await sleep(400);
-          if (!probe.hudShown()) t.problem('bug', `${tag}: HUD missing after the card faded`);
+          await sampleChapterTransition(n, phone, true);
           t.progress((levelIndex + 1) / 16);
         }
         if (phone) probe.phoneFrame(false);
