@@ -241,13 +241,22 @@
       (function () {
         var going = null;
         var scenarios = [
-          { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk to the board; hitchFailOver100; chapter-card black-frame check on levels 1-8 desktop and 844x390', seconds: 720, tags: ['smoke', 'perf', 'ui'] },
+          { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk to the board; hitchFailOver100; chapter-card black-frame check on levels 1-8 desktop and 844x390; short L1 explore-cam (cameraInside/blocked/snaps + worst screenshots)', seconds: 840, tags: ['smoke', 'perf', 'ui', 'camera'] },
           { id: 'level-1', title: 'Level 1: The Apex Peak to its exit', seconds: 330, tags: ['level'] },
           { id: 'level-2', title: 'Level 2: B3 to its exit (starts at level 2)', seconds: 170, tags: ['level'] },
           { id: 'level-3', title: 'Level 3: The Return to its exit (starts at level 3)', seconds: 200, tags: ['level'] },
           { id: 'level-4', title: 'Level 4: The Desk to its exit (starts at level 4)', seconds: 100, tags: ['level'] },
           { id: 'level-5', title: 'Level 5: Going Home to its exit (starts at level 5)', seconds: 200, tags: ['level'] },
           { id: 'level-6', title: 'Level 6: The Station to its exit (starts at level 6)', seconds: 110, tags: ['level'] },
+          { id: 'explore-cam-l1', title: 'Explore camera, level 1 (The Apex Peak): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'explore-cam-l2', title: 'Explore camera, level 2 (B3): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'explore-cam-l3', title: 'Explore camera, level 3 (The Return): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'explore-cam-l4', title: 'Explore camera, level 4 (The Desk): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'explore-cam-l5', title: 'Explore camera, level 5 (Going Home): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'explore-cam-l6', title: 'Explore camera, level 6 (The Station): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'explore-cam-l7', title: 'Explore camera, level 7 (The Train): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'explore-cam-l8', title: 'Explore camera, level 8 (The Morning): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
+          { id: 'interior-cam', title: 'Interior camera volumes: Level 1 halls (hallway profile, occlusion fade) and Level 8 apartment on desktop and 844x390', seconds: 420, tags: ['smoke', 'camera', 'level'] },
           { id: 'smoke-l1', title: 'Smoke, level 1 (The Apex Peak): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
           { id: 'smoke-l2', title: 'Smoke, level 2 (B3): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
           { id: 'smoke-l3', title: 'Smoke, level 3 (The Return): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
