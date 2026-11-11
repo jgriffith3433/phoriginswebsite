@@ -265,6 +265,9 @@ export const isFadeCandidate = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.
   if (!isOccluderMesh(mesh, ignore)) return false;
   const meta = mesh.metadata as { noCameraFade?: boolean } | undefined;
   if (meta?.noCameraFade) return false;
+  // A skinned mesh is a person (NPC, cleaner, guard): fading one draws half a body see-through (a ghost with
+  // translucent legs). People block the boom through the collision pass, never through the fade.
+  if (mesh.skeleton) return false;
   const name = (mesh.name || '').toLowerCase();
   if (/(^|-)(floor|ground|ceil|ceiling|sky)/.test(name)) return false;
   if (/^interior-(dress|col)/.test(name)) return false;
