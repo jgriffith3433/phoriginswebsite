@@ -548,7 +548,13 @@ const thickenWall = (scene: BABYLON.Scene, mesh: BABYLON.Mesh) => {
   bindColliderMatrix(mesh, box);
 };
 
-const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode, meshes: BABYLON.AbstractMesh[]) => {
+/**
+ * Props whose arms and bars stick out of the body: the capsule stops 0.4 m from the box, and a running
+ * avatar's swinging arm reaches past that, so it drew through the bars. Pad the floor footprint (metres per side).
+ */
+const COLLIDER_PAD: Record<string, number> = { 'asset-subway-turnstile': 0.18 };
+
+const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode, meshes: BABYLON.AbstractMesh[], pad = 0) => {
   root.computeWorldMatrix(true);
   const toLocal = root.getWorldMatrix().clone();
   if (!toLocal.invert()) return;
@@ -568,6 +574,8 @@ const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode,
   if (!found) return;
   const size = max.subtract(min);
   const center = min.add(max).scale(0.5);
+  size.x += pad * 2;
+  size.z += pad * 2;
   if (size.x < MIN_COLLIDER_THICKNESS) size.x = MIN_COLLIDER_THICKNESS;
   if (size.y < MIN_COLLIDER_THICKNESS) size.y = MIN_COLLIDER_THICKNESS;
   if (size.z < MIN_COLLIDER_THICKNESS) size.z = MIN_COLLIDER_THICKNESS;
@@ -997,7 +1005,7 @@ const createModelAssetNode = (
       const idle = findClip(imported.animationGroups, 'idle');
       idle?.start(true);
     }
-    if (blocksPlayer(asset.assetId)) attachBoundsCollider(scene, root, imported.meshes);
+    if (blocksPlayer(asset.assetId)) attachBoundsCollider(scene, root, imported.meshes, COLLIDER_PAD[asset.assetId] ?? 0);
     const editor = Boolean((scene.metadata as { editor?: boolean } | null)?.editor);
     if (!editor && imported.skeletons.length === 0) {
       for (const mesh of imported.meshes) {
