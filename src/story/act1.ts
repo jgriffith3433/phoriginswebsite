@@ -39,7 +39,8 @@ const copy = actCopy as {
 
 const objective = (id: string): Objective => {
   const fallback = copy.objectives[id] ?? { title: 'Objective', text: '' };
-  const row = storyLine(`objective.${id}`);
+  const touch = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+  const row = (touch && storyLine(`objective.${id}.touch`)) || storyLine(`objective.${id}`);
   if (!row) return fallback;
   return { title: row.speaker || fallback.title, text: row.text || fallback.text };
 };

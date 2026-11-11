@@ -1591,6 +1591,14 @@
       "note": "Objective lab. speaker is the short title."
     },
     {
+      "id": "objective.lab.touch",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "Find the lab door. Tap Light for the dark, Phone for your phone.",
+      "audio": "",
+      "note": "Objective lab, shown on touch devices instead of the key letters."
+    },
+    {
       "id": "objective.lab-lost",
       "type": "objective",
       "speaker": "Objective",
