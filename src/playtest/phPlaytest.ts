@@ -57,7 +57,7 @@ export type PhProbe = {
   creature: () => { x: number; y: number; z: number } | null;
   /** First-visit cold open: where it is, whether the creature is on screen, the lit doorway's box, the flashlight. */
   coldOpen?: () => {
-    active: boolean; seconds: number; creatureShown: boolean; creatureOnScreen: boolean; rushing: boolean; lightOut: boolean;
+    active: boolean; seconds: number; creatureShown: boolean; creatureOnScreen: boolean; rushing: boolean; lightOut: boolean; exitLit?: boolean;
     pending: boolean; running: boolean; sinceTapSeconds: number; flashlight: boolean; cardUp: boolean;
     doorway: { x: number; y: number; w: number; h: number } | null;
   };
@@ -2192,6 +2192,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let cutAt = -1;
       let titleAt = -1;
       let doorSamples = 0;
+      let exitLitSeen = false;
       let doorOverlaps = 0;
       let objectiveShown = false;
       let rushAt = -1;
@@ -2250,6 +2251,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               firstSuccess = true;
               t.event('milestone', 'first-success');
             }
+            if (co.exitLit && !exitLitSeen) { exitLitSeen = true; t.event('exit-lit', 'a lit exit stands at the end of the hall and the walls are lifted so the path reads'); }
             if (probe.objective().visible || probe.menu().open) objectiveShown = true;
             if (touch) {
               const door = co.doorway;
@@ -2300,6 +2302,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         while (since() < 60) { sampleWords(); await sleep(400); }
       }
       sampleWords();
+      t.metric('exitLit', exitLitSeen ? 1 : 0);
       t.metric('secondsToFirstInput', firstInput < 0 ? 999 : Number(firstInput.toFixed(1)));
       t.metric('secondsToFirstThreat', firstThreat < 0 ? 999 : Number(firstThreat.toFixed(1)));
       t.metric('wordsOnScreen60s', seenWords.size);

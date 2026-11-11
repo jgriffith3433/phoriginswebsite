@@ -1254,7 +1254,47 @@ export const createAct1 = (host: ActHost) => {
 
   const hallLight = () => host.scene.lights.find((light) => light.name === 'Hall B Light B') as BABYLON.PointLight | undefined;
 
+  // A lit exit at the end of the hall: a bright door panel, a halo and a floor spill, so the way reads from 26 m away.
+  let coldBeacon: BABYLON.Mesh[] = [];
+  let coldFill: { hemi: number } | null = null;
+  const removeColdBeacon = () => {
+    coldBeacon.forEach((mesh) => {
+      if (!mesh.isDisposed()) mesh.dispose(false, true);
+    });
+    coldBeacon = [];
+    if (coldFill) {
+      host.hemi.intensity = coldFill.hemi;
+      coldFill = null;
+    }
+  };
+  const buildColdBeacon = () => {
+    removeColdBeacon();
+    const scene = host.scene;
+    const make = (name: string, w: number, h: number, color: BABYLON.Color3, alpha: number, pos: BABYLON.Vector3, rot: BABYLON.Vector3) => {
+      const plane = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, scene);
+      const mat = new BABYLON.StandardMaterial(`${name}-mat`, scene);
+      mat.disableLighting = true;
+      mat.emissiveColor = color;
+      mat.alpha = alpha;
+      if (alpha < 1) mat.alphaMode = BABYLON.Engine.ALPHA_ADD;
+      mat.backFaceCulling = false;
+      plane.material = mat;
+      plane.position.copyFrom(pos);
+      plane.rotation.copyFrom(rot);
+      plane.isPickable = false;
+      plane.checkCollisions = false;
+      coldBeacon.push(plane);
+    };
+    const faceHall = new BABYLON.Vector3(0, Math.PI / 2, 0);
+    make('cold-exit-panel', 1.9, 2.3, new BABYLON.Color3(0.55, 1, 0.7), 1, new BABYLON.Vector3(17.2, 1.2, 38), faceHall);
+    make('cold-exit-halo', 3.6, 3.6, new BABYLON.Color3(0.12, 0.42, 0.24), 0.9, new BABYLON.Vector3(17.5, 1.5, 38), faceHall);
+    make('cold-exit-spill', 2.4, 6, new BABYLON.Color3(0.1, 0.34, 0.2), 0.8, new BABYLON.Vector3(19.4, 0.03, 38), new BABYLON.Vector3(Math.PI / 2, Math.PI / 2, 0));
+    coldFill = { hemi: host.hemi.intensity };
+    host.hemi.intensity = Math.max(host.hemi.intensity, 0.3); // enough to read wall, floor and the CONTAINMENT sign
+  };
+
   const beginColdOpen = () => {
+    buildColdBeacon();
     phase = 'cold';
     coldT = 0;
     coldSkittered = false;
@@ -1385,6 +1425,7 @@ export const createAct1 = (host: ActHost) => {
           host.playFile(COLD_SCREAM, 1);
           host.flashlight(false);
           setCreatureVisible(false);
+          removeColdBeacon();
           phase = 'idle';
           host.coldOpenDone?.();
         }
@@ -1400,6 +1441,7 @@ export const createAct1 = (host: ActHost) => {
     rushing: coldRushT >= 0,
     chaseSeconds: Math.max(0, coldRushT),
     lightOut: coldLightOut,
+    exitLit: coldBeacon.length > 0,
   });
 
   const beginArrival = () => {
@@ -3390,6 +3432,7 @@ export const createAct1 = (host: ActHost) => {
     },
     cancelColdOpen: () => {
       coldArmed = false;
+      removeColdBeacon();
       if (phase === 'cold') {
         phase = 'idle';
         host.impair(null);
