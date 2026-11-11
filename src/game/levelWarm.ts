@@ -314,8 +314,8 @@ const warmFadeVariants = async (scene: Scene, deadline: number): Promise<number>
         const material = sub.getMaterial();
         if (!material || seen.has(material)) continue;
         seen.add(material);
-        // Each probe can start a synchronous compile: spread them over frames, not one long task.
-        if (++probed % 4 === 0) await idleChunk(8);
+        // Each probe starts a synchronous compile (tens of ms on a phone): one per idle slice, never four in a task.
+        if (++probed > 1) await idleChunk(8);
         try {
           material.isReadyForSubMesh(mesh, sub, !!mesh.hasInstances);
         } catch { /* best effort */ }
