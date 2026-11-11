@@ -571,6 +571,8 @@ export const createTheMorning = (host: MorningHost) => {
   };
 
   return {
+    /** The ending event: the TV switches itself on to the Hawkes Tower report (a still of the old face). */
+    tvReport: (on: boolean) => setTv(on, on ? 'portrait' : 'off'),
     objectiveKey: () => 'morning',
     playing: () => playing,
     action: () => {

@@ -1,0 +1,97 @@
+{
+  "id": "finale-6",
+  "name": "The board flips",
+  "duration": 7.2,
+  "reequip": false,
+  "notes": "The departure board flips to a stop with no name, boarding now. The platform PA calls it. His phone has nothing left to ring for.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": {
+        "x": 14,
+        "y": 2.2,
+        "z": -1.6
+      },
+      "lookAt": {
+        "x": 36,
+        "y": 2.66,
+        "z": -1.6
+      }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0.5,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/station/pa-chime.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.7
+    },
+    {
+      "at": 0.9,
+      "type": "world",
+      "target": "board-stop",
+      "to": 1,
+      "duration": 0
+    },
+    {
+      "at": 0.9,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/screen-tap.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 1.05,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/screen-tap.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 1.2,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/screen-tap.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 1.5,
+      "type": "line",
+      "duration": 3,
+      "volume": 0.85,
+      "line": "dialogue.finale-6.01"
+    },
+    {
+      "at": 5,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/phone/hangup.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.4
+    },
+    {
+      "at": 5.2,
+      "type": "line",
+      "duration": 1.8,
+      "volume": 0.92,
+      "line": "dialogue.finale-6.02",
+      "actor": "pierce",
+      "anim": "idle"
+    },
+    {
+      "at": 7.2,
+      "type": "end"
+    }
+  ]
+}

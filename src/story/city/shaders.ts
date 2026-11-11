@@ -20,6 +20,7 @@ uniform vec3 skyHorizon;
 uniform float time;
 uniform vec4 sig;
 uniform float boost;
+uniform float towerCut;
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -693,6 +694,8 @@ void main(void) {
   float rId = h11(cellId);
   float floorLit = h11(floorI * 3.3 + seed * 41.0);
   float lit = step(rId, mix(0.15, 1.0, floorLit) * litFrac * 1.5);
+  // Level 5's ending: the Apex tower's floors above towerCut go dark.
+  if (style > 7.5) lit *= step(floorI, towerCut);
 
   if (inWin > 0.5 && mullion < 0.5) {
     vec3 ro = vec3((fx - (win.x + win.z) * 0.5) * bw, (fy - (win.y + win.w) * 0.5) * fh, 0.0);
@@ -938,5 +941,6 @@ export const CITY_SHADERS = {
 };
 
 export const SHARED_UNIFORMS = [
+  'towerCut',
   'worldViewProjection', 'cameraPos', 'fogColor', 'fogDensity', 'lmInfo', 'ambient', 'skyTop', 'skyHorizon', 'time', 'sig', 'boost',
 ];

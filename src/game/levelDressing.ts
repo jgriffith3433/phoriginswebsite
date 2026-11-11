@@ -103,6 +103,8 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     },
     /** The car's camera roll this frame (0 off the train). */
     roll: () => train?.roll() ?? 0,
+    /** Level 6's ending: the departure board flips to his stop. */
+    setBoardStop: (on: boolean) => station?.setBoardStop(on),
     /** The mounted train kit, for level 7's script and the playtest. */
     train: () => train,
     dispose: clear,

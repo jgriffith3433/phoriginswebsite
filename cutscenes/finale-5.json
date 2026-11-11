@@ -1,0 +1,89 @@
+{
+  "id": "finale-5",
+  "name": "The tower goes dark",
+  "duration": 7,
+  "reequip": false,
+  "notes": "From the stairs: the Apex tower's floors go dark from the top down. Police radio: the 58th is empty, nobody matches. Pierce goes down instead of in.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": {
+        "x": 168.5,
+        "y": 1.7,
+        "z": 23.5
+      },
+      "lookAt": {
+        "x": 8,
+        "y": 62,
+        "z": 24
+      }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0.4,
+      "type": "world",
+      "target": "tower-cut",
+      "to": 0,
+      "duration": 5.6
+    },
+    {
+      "at": 1.4,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/glass-tick.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.35
+    },
+    {
+      "at": 2.6,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/glass-tick.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.35
+    },
+    {
+      "at": 3.8,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/glass-tick.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.35
+    },
+    {
+      "at": 5,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/flashlight-off.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.4
+    },
+    {
+      "at": 1.2,
+      "type": "line",
+      "duration": 2.8,
+      "volume": 0.85,
+      "line": "dialogue.finale-5.01"
+    },
+    {
+      "at": 4.8,
+      "type": "line",
+      "duration": 1.3,
+      "volume": 0.92,
+      "line": "dialogue.finale-5.02",
+      "actor": "pierce",
+      "anim": "idle"
+    },
+    {
+      "at": 7,
+      "type": "end"
+    }
+  ]
+}

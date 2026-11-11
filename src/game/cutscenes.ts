@@ -6,9 +6,14 @@ export type CutsceneVec3 = { x: number; y: number; z: number };
 
 export type TimelineEvent = {
   at: number;
-  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'light' | 'end' | 'mesh' | 'objective' | 'avatar' | 'carry' | 'fade';
+  type: 'camera' | 'hud' | 'audio' | 'line' | 'anim' | 'light' | 'end' | 'mesh' | 'objective' | 'avatar' | 'carry' | 'fade' | 'world';
   /** Fade black amount. 0 is clear, 1 is black. */
   to?: number;
+  /**
+   * `camera` only: position and lookAt are offsets from the player (x right, y up from the floor, z forward along
+   * his facing), so an ending reads the same wherever the player stopped.
+   */
+  rel?: boolean;
   position?: CutsceneVec3;
   lookAt?: CutsceneVec3;
   title?: string;
@@ -45,7 +50,9 @@ export type CutsceneTimeline = {
 };
 
 export type CutsceneHooks = {
-  onCamera: (position: CutsceneVec3, lookAt: CutsceneVec3) => void;
+  onCamera: (position: CutsceneVec3, lookAt: CutsceneVec3, rel?: boolean) => void;
+  /** A `world` event: `target` names a change the level's script knows (tower floors, departure board, TV). */
+  onWorld?: (target: string, to: number, seconds: number) => void;
   onHud: (title?: string, text?: string) => void;
   onAnim: (actor: string, clip: string, loop: boolean) => void;
   onLight?: (on: boolean, intensity?: number, target?: string) => void;
@@ -227,7 +234,7 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
   if (cutscene.silent && (event.type === 'audio' || event.type === 'line' || event.type === 'hud' || event.type === 'camera')) return;
   if (cutscene.silent && event.type === 'fade' && (event.to ?? 1) > 0.2) return;
   if (event.type === 'camera' && event.position && event.lookAt) {
-    cutscene.hooks.onCamera(event.position, event.lookAt);
+    cutscene.hooks.onCamera(event.position, event.lookAt, event.rel === true);
     return;
   }
   if (event.type === 'hud') {
@@ -261,6 +268,10 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
   }
   if (event.type === 'carry') {
     cutscene.hooks.onCarry?.(event.target ?? event.assetId ?? 'item', event.title ?? 'Item', event.text);
+    return;
+  }
+  if (event.type === 'world' && event.target) {
+    cutscene.hooks.onWorld?.(event.target, event.to ?? 1, event.duration ?? 0);
     return;
   }
   if (event.type === 'fade') {

@@ -742,6 +742,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
   };
 
   return {
+    /** The ending event: floors of the Apex tower above this index go dark (999 restores). */
+    setTowerCut: (floors: number) => world?.setTowerCut(floors),
     objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'home'),
     playing: () => playing,
     skip: () => {
