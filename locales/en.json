@@ -1583,6 +1583,22 @@
       "note": "Objective elevator. speaker is the short title."
     },
     {
+      "id": "objective.cab",
+      "type": "objective",
+      "speaker": "Objective",
+      "text": "Press B3",
+      "audio": "",
+      "note": "Objective in the cab: the B3 button. speaker is the short title."
+    },
+    {
+      "id": "ui.action.apex.b3",
+      "type": "ui",
+      "speaker": "Press B3",
+      "text": "Press B3",
+      "audio": "",
+      "note": "Apex Peak: the cab's B3 button (Interact)"
+    },
+    {
       "id": "objective.lab",
       "type": "objective",
       "speaker": "Objective",

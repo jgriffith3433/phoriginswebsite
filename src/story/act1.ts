@@ -25,7 +25,7 @@ import { APEX_BOARD, createLinePool } from './placeVoices';
 export type StoryCarry = { id: string; name: string; note: string };
 
 export type SequencePhase =
-  | 'seat' | 'idle' | 'late' | 'wait-board' | 'to-window' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
+  | 'seat' | 'idle' | 'late' | 'wait-board' | 'to-window' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'cab' | 'ride' | 'done'
   | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform' | 'cold'
   | 'return-walk' | 'return-call' | 'return-up' | 'return-ride' | 'mirror' | 'mirror-look';
 
@@ -86,6 +86,8 @@ export type ActHost = {
   refreshHud: () => void;
   setCarry: (items: StoryCarry[]) => void;
   ringCall: (id: string) => void;
+  /** Lets Pierce walk while a call is up (the late call). */
+  callWalk?: (on: boolean) => void;
   pushPhoneText: (id: string) => void;
   silencePhone: () => void;
   hurt: (amount: number, cause?: string) => void;
@@ -136,6 +138,24 @@ const ELEVATOR_RIDE_AT = 7.2;
 const ELEVATOR_ARRIVE_AT = 64.5;
 const ELEVATOR_DING_AT = 65.4;
 const LIFT_FLOOR_AT = [0, 16, 26, 36, 46, 56, 64.5];
+/** The ride is the player's: the B3 press starts it, the doors close, 18 s of floors, then the ding. */
+const CAB_DOOR_CLOSE = 1.4;
+const CAB_RIDE_AT = 1.6;
+const CAB_ARRIVE_AT = 18;
+const CAB_END_AT = 19.6;
+const CAB_FLOOR_AT = [0, 3, 6, 9, 12, 15, 18];
+const WINDOW_MONOLOGUE: AsideLine[] = [
+  { id: 'dialogue.apex-window.01', duration: 4.6 },
+  { id: 'dialogue.apex-window.02', duration: 7.2 },
+  { id: 'dialogue.apex-window.03', duration: 7.4 },
+  { id: 'dialogue.apex-window.04', duration: 7.2 },
+  { id: 'dialogue.apex-window.05', duration: 4.8 },
+  { id: 'dialogue.apex-window.06', duration: 7 },
+];
+const CAB_ASIDE: AsideLine[] = [
+  { id: 'dialogue.elevator-b3.01', duration: 6.1 },
+  { id: 'dialogue.elevator-b3.02', duration: 7.9 },
+];
 const LIFT_FLOOR_LEDS = ['lift-ind-58', 'lift-ind-40', 'lift-ind-20', 'lift-ind-L', 'lift-ind-B1', 'lift-ind-B2', 'lift-ind-B3'] as const;
 const LIFT_FLOOR_LABELS = ['58', '40', '20', 'L', 'B1', 'B2', 'B3'] as const;
 const RETURN_SPAWN = { x: 13.4, z: 38.15, yaw: -Math.PI / 2 };
@@ -271,7 +291,7 @@ const HUNT_DIRS: readonly (readonly [number, number, number])[] = [
 const HUNT_REPATH_MIN = 0.3;
 
 const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'wait-board', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look', 'cold'];
-const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
+const SHOW_HUD: SequencePhase[] = ['seat', 'cab', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
 
 type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
 
@@ -290,6 +310,7 @@ export const createAct1 = (host: ActHost) => {
   /** The head of the board table (the seat walk-up). */
   const BOARD_TABLE = { x: 49.4, z: 32 };
   let elevatorQueued = false;
+  let departT = 0;
   let windowLocked = false;
   let terminalLocked = false;
   let elevatorLocked = false;
@@ -874,6 +895,7 @@ export const createAct1 = (host: ActHost) => {
     const data = mission();
     if (!data || boardDeparting || phase === 'wait-board') return;
     boardDeparting = true;
+    departT = 0;
     phase = 'wait-board';
     startBoardDeparture(host.getNpcs(), data);
     const line = objective('wait-board');
@@ -882,7 +904,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const beginWindow = () => {
-    if (windowQueued || phase === 'to-window' || phase === 'window' || phase === 'call' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'ride') return;
+    if (windowQueued || phase === 'to-window' || phase === 'window' || phase === 'call' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'cab' || phase === 'ride') return;
     windowQueued = true;
     phase = 'to-window';
     const data = mission();
@@ -890,17 +912,16 @@ export const createAct1 = (host: ActHost) => {
     const line = objective('window');
     host.setObjective(line.title, line.text, { x: pose.x, y: 1.6, z: pose.z });
     syncObjective();
+    // The monologue plays while he walks the office: the camera stays his, no forced shot.
+    queueAside(WINDOW_MONOLOGUE);
   };
 
   const beginLateCall = () => {
     if (lateStarted || !host.isApex()) return;
     lateStarted = true;
     phase = 'late';
-    host.clearInput();
-    host.holdLocomotion();
-    host.playClip('idle', true);
-    host.hideMarker();
-    host.showObjective(false);
+    // Voss rings and Pierce keeps walking to the boardroom: the call covers the walk.
+    host.callWalk?.(true);
     host.ringCall('voss-late');
   };
 
@@ -950,15 +971,99 @@ export const createAct1 = (host: ActHost) => {
     host.beginCutscene('apex-terminal');
   };
 
+  /** The cab ride is played, not watched: he steps in, looks around, presses B3, the cab does the rest. */
+  let cabPressed = false;
+  let cabT = 0;
+  let cabAsided = false;
+  let cabDinged = false;
+  let cabHum: ClipHandle | null = null;
+  let cabRumble: ClipHandle | null = null;
+
+  const stopCab = () => {
+    cabHum?.stop();
+    cabHum = null;
+    cabRumble?.stop();
+    cabRumble = null;
+    cabPressed = false;
+    cabT = 0;
+    cabAsided = false;
+    cabDinged = false;
+  };
+
+  const cabButton = (): { x: number; z: number } => {
+    const mesh = firstMesh('lift-b3-button');
+    if (mesh) {
+      const at = mesh.getAbsolutePosition();
+      return { x: at.x, z: at.z };
+    }
+    return { x: ELEVATOR_POSE.x + 0.9, z: ELEVATOR_POSE.z };
+  };
+
   const beginElevatorCutscene = () => {
-    if (elevatorQueued || phase === 'ride' || phase !== 'elevator') return;
+    if (elevatorQueued || phase === 'cab' || phase !== 'elevator') return;
     elevatorQueued = true;
-    phase = 'ride';
-    elevatorLocked = true;
+    phase = 'cab';
+    cabPressed = false;
+    cabT = 0;
+    const at = cabButton();
+    const line = objective('cab');
+    host.setObjective(line.title, line.text, { x: at.x, y: 1.3, z: at.z });
+    syncObjective();
+  };
+
+  const pressB3 = () => {
+    if (phase !== 'cab' || cabPressed) return;
+    cabPressed = true;
+    cabT = 0;
     host.hideMarker();
     host.showObjective(false);
-    placeElevator();
-    host.beginCutscene('elevator-b3');
+    pulseButton(true);
+    host.playFile('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.7);
+    host.playFile('/assets/audio/cutscenes/elevator-b3/doors.wav', 0.65);
+    if (host.audioOn()) {
+      host.ensureAudio();
+      const hum = '/assets/audio/cutscenes/elevator-b3/hum.wav';
+      cabHum = playClip(hum, mixVolume(hum, 0.3), { loop: true });
+    }
+  };
+
+  const stepCab = (delta: number) => {
+    if (phase !== 'cab' || !cabPressed || !host.running()) return;
+    cabT += delta;
+    elevatorDoorOpen = 1 - Math.min(1, cabT / CAB_DOOR_CLOSE);
+    applyElevatorDoors(elevatorDoorOpen);
+    if (cabT >= CAB_RIDE_AT && !cabRumble && host.audioOn()) {
+      const url = '/assets/audio/cutscenes/elevator-b3/rumble.wav';
+      cabRumble = playClip(url, mixVolume(url, 0.38), { loop: true });
+    }
+    if (cabT >= CAB_RIDE_AT && !cabAsided) {
+      cabAsided = true;
+      queueAside(CAB_ASIDE);
+    }
+    stepAside(delta);
+    let rawFloor = 0;
+    for (let i = 0; i < CAB_FLOOR_AT.length; i += 1) if (cabT >= CAB_FLOOR_AT[i]) rawFloor = i;
+    const arrived = cabT >= CAB_ARRIVE_AT;
+    const descending = cabT >= CAB_RIDE_AT && !arrived;
+    if (rawFloor !== elevatorFloorIndex) {
+      elevatorFloorIndex = rawFloor;
+      if (!arrived) host.playFile('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.34);
+    }
+    applyElevatorIndicators(rawFloor, descending, arrived, cabT);
+    applyCabLight(cabT >= CAB_ARRIVE_AT ? ELEVATOR_ARRIVE_AT : cabT >= CAB_RIDE_AT ? ELEVATOR_RIDE_AT + (cabT - CAB_RIDE_AT) : 0, true);
+    if (arrived && !cabDinged) {
+      cabDinged = true;
+      cabRumble?.stop();
+      cabRumble = null;
+      host.playFile('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.82);
+    }
+    if (cabT >= CAB_END_AT) {
+      clearAside();
+      cabHum?.stop();
+      cabHum = null;
+      cabPressed = false;
+      finishLevel('apex');
+    }
   };
 
   const clearMirror = () => {
@@ -3017,7 +3122,6 @@ export const createAct1 = (host: ActHost) => {
   const walkupLabel = (): string | null => {
     if (!host.running() || host.inCutscene()) return null;
     if (phase === 'seat' && inWalkup('trigger-pierce-seat', 49.4, 32, 1.55)) return 'Join meeting';
-    if (phase === 'to-window' && inWalkup('trigger-office-window', 48, 46.2, 1.35)) return 'Look outside';
     if (phase === 'alarm') {
       const data = mission();
       const spot = data ? alarmSpot(data) : { x: 48, z: 41.66 };
@@ -3025,6 +3129,11 @@ export const createAct1 = (host: ActHost) => {
       if (Math.hypot(here.x - spot.x, here.z - spot.z) < 1.35) return 'Examine monitor';
     }
     if (phase === 'elevator' && inWalkup('trigger-elevator-b3', 44, 21.35, 1.55)) return 'Ride Elevator';
+    if (phase === 'cab' && !cabPressed) {
+      const here = host.playerXZ();
+      const at = cabButton();
+      if (Math.hypot(here.x - at.x, here.z - at.z) < 1.5) return lineText('ui.action.apex.b3', 'Press B3');
+    }
     if (host.isB3() && (phase === 'to-lab' || phase === 'arrive') && inWalkup('trigger-lab-door', 17.6, 38, 1.7)) {
       return 'Open door';
     }
@@ -3065,6 +3174,10 @@ export const createAct1 = (host: ActHost) => {
       beginElevatorCutscene();
       return true;
     }
+    if (phase === 'cab' && label) {
+      pressB3();
+      return true;
+    }
     if (label === 'Look in mirror') {
       beginMirrorLook();
       return true;
@@ -3080,6 +3193,8 @@ export const createAct1 = (host: ActHost) => {
     callStarted = false;
     lateStarted = false;
     host.silencePhone();
+    host.callWalk?.(false);
+    stopCab();
     elevatorQueued = false;
     windowLocked = false;
     terminalLocked = false;
@@ -3214,7 +3329,7 @@ export const createAct1 = (host: ActHost) => {
       if (phase === 'late' || phase === 'seat' || phase === 'idle') return 'seat';
       if (phase === 'wait-board' || phase === 'to-window' || phase === 'window') return 'wait-board';
       if (phase === 'alarm' || phase === 'terminal') return 'alarm';
-      if (phase === 'elevator' || phase === 'ride') return 'elevator';
+      if (phase === 'elevator' || phase === 'cab' || phase === 'ride') return 'elevator';
       if (phase === 'arrive' || phase === 'to-lab' || phase === 'reveal') return 'lab';
       if (phase === 'transform') return 'vat';
       if (phase === 'return-walk' || phase === 'return-call') return 'return';
@@ -3432,6 +3547,7 @@ export const createAct1 = (host: ActHost) => {
     startCall: () => beginVossCall(),
     onPhoneFinished: () => {
       if (phase === 'late') {
+        host.callWalk?.(false);
         host.resumeLocomotion();
         beginSeat();
         return;
@@ -3514,6 +3630,14 @@ export const createAct1 = (host: ActHost) => {
       host.camera.position.y += Math.sin(time * 53.7) * amp * 0.55;
       host.camera.position.z += Math.sin(time * 29.1) * amp * 0.35;
     },
+    /** Camera roll (radians) in the cab: a slow rock and a quicker wobble while it descends. */
+    cabRoll: (): number => {
+      if (phase !== 'cab' || !cabPressed || cabT < CAB_RIDE_AT || cabT > CAB_ARRIVE_AT + 1) return 0;
+      const k = cabT > CAB_ARRIVE_AT ? 0.2 : 1;
+      return k * (Math.sin(cabT * 1.7) * 0.0065 + Math.sin(cabT * 7.3) * 0.0025);
+    },
+    /** Seconds since the B3 press, or -1 (playtest). */
+    cabInfo: () => ({ phase, pressed: cabPressed, t: cabT }),
     fearLevel: () => dread,
     stepWorld: (delta: number) => {
       if (!host.isApex() && !host.isB3() && !host.isReturn()) return;
@@ -3560,6 +3684,7 @@ export const createAct1 = (host: ActHost) => {
           finishLevel('return');
         }
       }
+      stepCab(delta);
       if (phase === 'elevator' && elevatorDoorOpen < 1) {
         elevatorDoorOpen = Math.min(1, elevatorDoorOpen + delta / 1.05);
         applyElevatorDoors(elevatorDoorOpen);
@@ -3569,7 +3694,17 @@ export const createAct1 = (host: ActHost) => {
         applyElevatorDoors(elevatorDoorOpen);
         if (elevatorDoorOpen >= 1) beginLab();
       }
+      if (phase === 'to-window' && host.running() && !host.inCutscene()) {
+        stepAside(delta);
+        if (!asideBusy() && inWalkup('trigger-office-window', 48, 46.2, 1.6)) {
+          void mountSecurityFeed();
+          beginVossCall();
+        }
+      }
       if (boardDeparting) {
+        departT += delta;
+        // He sets off for the window once the first of the board is out of the door, not after the last.
+        if (phase === 'wait-board' && departT > 4) beginWindow();
         updateNpcDeparture(host.getNpcs(), delta);
         if (remainingDepartingNpcs(host.getNpcs()) === 0) {
           boardDeparting = false;

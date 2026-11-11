@@ -1603,6 +1603,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let perfChecked = false;
       let phoneCallChecked = false;
       let waitBoardChecked = false;
+      /** Level 1's route (first-minute pass): Start to the B3 doors, the cab ride, the caption above the touch controls. */
+      let cabSeenAt = 0;
+      let cabPressedAt = 0;
+      let captionChecked = false;
+      const phoneRun = Boolean(options.phone);
       await measureLook();
       for (;;) {
         await tick();
@@ -1637,6 +1642,24 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (probe.cutscene() || probe.scripted()) { releaseAll(); continue; }
         if (!lookSens) await measureLook();
         const phone = probe.phone();
+        if (n === 1 && phoneRun && !captionChecked && (phone.incoming || phone.busy || probe.phase() === 'to-window')) {
+          // The caption (call card, or Pierce's aside line) must sit fully on screen and clear of the touch controls.
+          const cap = [document.getElementById('phonePanel'), document.getElementById('cineHud')]
+            .map((el) => (el && shown(el) ? el.getBoundingClientRect() : null)).filter((r): r is DOMRect => Boolean(r));
+          if (cap.length && (phone.line || probe.phase() === 'to-window')) {
+            captionChecked = true;
+            const ctl = ['.controls .stick-ring', '#jumpBtn', '#interactBtn', '#phoneBtn', '#fireBtn']
+              .map((sel) => shown(document.querySelector(sel))).filter((r): r is DOMRect => Boolean(r));
+            const inside = cap.every((r) => r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight);
+            const hit = cap.some((r) => ctl.some((c) => overlaps(r, c)));
+            t.event('caption-check', `caption ${inside ? 'fully on screen' : 'cut off'}, ${hit ? 'overlaps a touch control' : 'clear of the touch controls'}`);
+            if (!inside || hit) t.problem('bug', `late-call caption is ${inside ? '' : 'cut off by the screen edge'}${hit ? ' under a touch control' : ''} at 390x844`);
+          }
+        }
+        if (n === 1 && !cabSeenAt && probe.phase() === 'cab') {
+          cabSeenAt = performance.now();
+          t.event('cab-enter', `stepped into the cab at ${((cabSeenAt - t0) / 1000).toFixed(0)} s`);
+        }
         if ((phone.incoming || phone.busy) && !phoneCallChecked) {
           const panel = document.getElementById('phonePanel');
           if (panel && panel.classList.contains('calling') && !panel.hidden) {
@@ -1650,12 +1673,31 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           }
         }
         if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
-        if (phone.busy) { releaseAll(); continue; }
+        // The opening call is taken on the move: keep walking to the boardroom while Voss talks.
+        if (phone.busy && !(n === 1 && probe.phase() === 'late')) { releaseAll(); continue; }
         const label = probe.action();
         const optional = Boolean(label) && (probe.life?.()?.touchables ?? []).some((x) => x.label === label);
         if (label && !(optional && touchedLabels.has(label))) {
           releaseAll();
-          if (await once('e', 1200, label)) {
+          const onB3 = n === 1 && probe.phase() === 'cab' && label === 'Press B3';
+          const interactBtn = document.getElementById('interactBtn');
+          const viaTap = onB3 && phoneRun && Boolean(shown(interactBtn));
+          if (onB3 && phoneRun && !viaTap) t.problem('bug', 'the cab\'s B3 button prompt is up but the Interact button is not shown on the phone layout');
+          if (viaTap) await tapAt(interactBtn, 'Interact (Press B3)');
+          if (viaTap || (!viaTap && (await once('e', 1200, label)))) {
+            if (onB3) {
+              cabPressedAt = performance.now();
+              t.event('cab-press', `${viaTap ? 'Interact button tapped' : 'E pressed'} for B3 ${cabSeenAt ? ((cabPressedAt - cabSeenAt) / 1000).toFixed(1) : '?'} s after stepping in`);
+            }
+            if (label === 'End Level' && n === 1) {
+              const total = (performance.now() - t0) / 1000;
+              t.metric('level1ToElevatorSeconds', Math.round(total));
+              if (cabSeenAt) t.metric('elevatorRideSeconds', Math.round((performance.now() - cabSeenAt) / 1000));
+              const quiet = probe.apexSlice?.()?.maxQuietSeconds;
+              if (quiet !== undefined) t.metric('quality.maxQuietSeconds', quiet);
+              t.event('route', `level 1 Start to the B3 doors in ${total.toFixed(0)} s; ride ${cabSeenAt ? ((performance.now() - cabSeenAt) / 1000).toFixed(0) : '?'} s; maxQuietSeconds ${quiet ?? 'n/a'}`);
+              if (total >= 240) t.problem('bug', `level 1 took ${total.toFixed(0)} s to the B3 doors (limit 240)`);
+            }
             if (label !== lastAction) t.event('action', label);
             lastAction = label;
             if (optional) touchedLabels.add(label);
@@ -5101,6 +5143,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
 
     const m = /^level-(\d)$/.exec(id);
     if (m) {
+      if (options.phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(300); }
       const n = Number(m[1]);
       levelsTotal = 1;
       await enterLevel(n);
