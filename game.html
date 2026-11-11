@@ -3294,6 +3294,24 @@
       }
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .missions-hud { bottom: calc(var(--safe-bottom) + 156px); }
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .ability-readout { bottom: calc(var(--safe-bottom) + 178px); }
+      /* Captions on touch: wrap inside side margins (never ellipsis), and outside a scene sit above the sticks and buttons (236 px portrait, 148 px landscape). In a scene the controls are hidden, so they stay above the letterbox. */
+      body:is([data-device='mobile'], [data-device='tablet']) #cineHud {
+        width: auto;
+        max-width: none;
+        left: max(20px, env(safe-area-inset-left, 0px));
+        right: max(20px, env(safe-area-inset-right, 0px));
+        transform: none;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) #cineHud .cine-line {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        padding: 6px 12px;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) #cineHud .cine-speaker { display: block; margin: 0 0 2px; }
+      body.cinematic:is([data-device='mobile'], [data-device='tablet']) #cineHud { right: max(120px, env(safe-area-inset-right, 0px)); }
+      body:not(.cinematic):is([data-device='mobile'], [data-device='tablet']) #cineHud { bottom: calc(var(--safe-bottom) + 236px); }
+      body:not(.cinematic):is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] #cineHud { bottom: calc(var(--safe-bottom) + 148px); }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
