@@ -62,16 +62,25 @@ its current form until tuned; its row says what the player will do.
 - Sounds: `sfx.desk.*` in `locales/sfx.json`, stand-ins in `soundFallback.ts` (the breath has none and is silent
   until Gen makes it).
 
-## The train pursuit (The Train, level 7) — built as walking; the chase is to tune
+## The train pursuit (The Train, level 7) — a pursuit; the doors are always a breath early
 
-- **Verb:** close the distance, one car at a time. The old body is always one car ahead; the player keeps walking, and
-  runs (Shadow run) to shorten the gap, which only makes him walk faster. It never resolves.
-- **How it is taught, wordless:** the old body holds the center pole in car 1 and walks through the front door when
-  Pierce moves; the objective marker rides the door, and the gap is the only readout. The stop in car 3 is where the
-  chase pays off: he gets off, and Pierce is let to reach the open door.
-- **Touch:** the left stick walks, **Use** (Next car) at the front door, the existing Shadow run button.
-- **Hold-to-skip:** the opening scene (`train-opening`) has Skip; a repeat player may skip a car with Skip held at the
-  front door, which jumps to the next car with the old body one car ahead.
+- **Verb:** close the distance, one car at a time. There is no prompt: walking into the front end door crosses to the
+  next car (0.3 s fade, close chime). The old body is parked behind the end-door glass in every car (visible down the
+  car, never turning), so the chase reads without a word. It never resolves.
+- **The car pushes back:** one rider per car steps off the wall into the aisle as Pierce comes up (Shadow mode walks
+  through them; on foot the aisle is wide enough to weave without precision). Set points by x: a lurch (camera roll
+  spring) in each car and a stumble (roll plus a 0.5 s stagger that slows and nudges Pierce, never locks him); car 3's
+  stumble is the brakes taking hold. Logged as `train-lurch` events and `story.lurches/stumbles`.
+- **Car 3, the near miss:** the train brakes, the doors open, he says "This is me", steps onto the platform and stays
+  there, facing away. Control returns at the old position about 4.7 m from the door. Shadow mode is locked while the
+  door is open (a run would outpace it). When Pierce is within 2.6 m of the door the leaves close in 0.7 s: at walking
+  pace he ends about an arm's length (0.4-0.9 m) from shut doors, the old body still on the platform. If he stands
+  still they close after 14 s. No fail state. Hale rings after that, at the shut doors; when she is done the train
+  pulls out and he says "He gets the street. I get the train."
+- **Touch:** the left stick and the Shadow button; nothing needs a precise tap.
+- **Hold-to-skip:** the opening scene (`train-opening`) has Skip.
+- Playtest `train-chase` (`{"phone":true,"runs":10}`): `chaseCaught0`, `chaseDoorGapMax`, `trainLurches`, `trainStumbles`.
+  `window.__phTrainStart = n` (before `setupHidden('the-train')`) starts in car n.
 
 ## Hunt retry (B3, level 2)
 

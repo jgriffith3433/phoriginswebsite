@@ -32,6 +32,19 @@ export type TrainStory = {
   leftCar: number | null;
   riders: number;
   hale: boolean;
+  /** Riders standing in the aisle (|z| < 0.7) right now. */
+  aisleRiders: number;
+  /** Lurches and stumbles fired so far in this car (and in all), set points by x. */
+  lurches: number;
+  stumbles: number;
+  /** The old body is parked behind the front end door glass (cars 1-3, before the stop). */
+  oldBodyAhead: boolean;
+  /** The old body stands on the platform (after he steps out). */
+  oldBodyOnPlatform: boolean;
+  /** The stop door has finished closing. */
+  doorsClosed: boolean;
+  /** Metres from Pierce to the stop door's plane, as the doors finish closing (null before). */
+  doorGap: number | null;
 };
 
 /** Car interior: x along the car (0 back, 18 front, the train runs toward +x), z across, y up. */
@@ -819,7 +832,9 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
   // A stop: the platform shows in the north windows below this speed, and one side door opens on it.
   let stopAt = false;
   let platform = 0;
-  const door = { x: 0, side: 1, open: 0, target: 0 };
+  const door = { x: 0, side: 1, open: 0, target: 0, seconds: 1.1 };
+  let lurchRoll = 0;
+  let lurchVel = 0;
   const doorVec = new BABYLON.Vector3();
   let story: TrainStory | null = null;
 
@@ -836,10 +851,13 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       flicker = f > 0.6 ? 0.12 : 1;
       const wantPlatform = stopAt && speed < 7 ? 1 : 0;
       platform += Math.sign(wantPlatform - platform) * Math.min(Math.abs(wantPlatform - platform), d / 1.2);
-      door.open += Math.sign(door.target - door.open) * Math.min(Math.abs(door.target - door.open), d / 1.1);
+      door.open += Math.sign(door.target - door.open) * Math.min(Math.abs(door.target - door.open), d / door.seconds);
       // Slight sway: a slow rock, a quicker wobble, and a jolt every lamp gap or so.
       const jolt = Math.exp(-Math.pow(((scroll / 9.0) % 1) * 9.0 - 0.4, 2) * 20) * 0.004;
-      rollNow = (0.0105 * Math.sin(clock * 2.3) + 0.0045 * Math.sin(clock * 5.9 + 1.3) + jolt) * Math.min(1, 0.15 + speedN);
+      // A lurch is a damped spring kicked by `lurch()`: a quick roll one way that rings out.
+      lurchVel += -lurchRoll * 90 * d - lurchVel * 6 * d;
+      lurchRoll += lurchVel * d;
+      rollNow = (0.0105 * Math.sin(clock * 2.3) + 0.0045 * Math.sin(clock * 5.9 + 1.3) + jolt) * Math.min(1, 0.15 + speedN) + lurchRoll;
       const camera = scene.activeCamera;
       if (!camera) return;
       camPos.copyFrom(camera.globalPosition);
@@ -887,12 +905,17 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       stopAt = at;
     },
     /** Open (or close) the side door at x on side +1 north / -1 south; the leaves part over about a second. */
-    setDoor: (x: number, side: number, open: boolean) => {
+    setDoor: (x: number, side: number, open: boolean, seconds = 1.1) => {
+      door.seconds = Math.max(0.2, seconds);
       door.x = x;
       door.side = side >= 0 ? 1 : -1;
       door.target = open ? 1 : 0;
     },
     doorOpen: () => door.open,
+    /** A set-point lurch: kicks the camera roll (strength 1 is about 2.5 degrees at the peak). */
+    lurch: (strength: number) => {
+      lurchVel += 0.4 * strength;
+    },
     /** Level 7's script reports where its story is, for the playtest (`stats().story`). */
     setStory: (info: TrainStory | null) => {
       story = info;

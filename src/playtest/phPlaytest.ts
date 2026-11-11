@@ -707,9 +707,16 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['level'],
       },
       {
+        id: 'train-chase',
+        title: 'The Train as a pursuit: no Next car prompt, the old body ahead through the end-door glass, riders in the aisle, lurches and stumbles, and car 3\'s doors closing a breath before Pierce (10 runs; 390x844 touch with options.phone)',
+        description: 'Run 1 plays cars 1 to 3 from the opening (Skip) to the stop: walking into the front end door crosses to the next car with the fade and chime, and no "Next car" action is ever offered; in each car the old body is parked behind the end-door glass (story.oldBodyAhead) and at least one rider stands in the aisle; the car lurches and stumbles at the set points and Pierce stays under control. Then options.runs (default 10) runs of car 3 (test shortcut to start in car 3): skip the stop scene, walk to the door, and check the doors finish closing before Pierce touches them, the old body is on the platform at that moment, and Pierce ends within arm\'s reach (doorGap 0.1 to 1.1 m). options.phone: true lays the page out as 390x844 touch and drives the left stick with pointer drags only (shadow mode is a toggle on the Shadow button and is locked at the open door). Metrics: chaseRuns, chaseCaught0, chaseDoorGapMax, trainLurches, trainStumbles.',
+        seconds: 600,
+        tags: ['level', 'phone'],
+      },
+      {
         id: 'level-7',
         title: 'Level 7, The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door, then the end song and credits',
-        description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, presses E (Next car) at the front end door, sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. End Level must be on the finished beat. The press plays ending-6, rolls the level 7 credits, and the card offers Continue (level 8) and Exit. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
+        description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, walks into the front end door (no prompt; the car changes with the fade), sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. End Level must be on the finished beat. The press plays ending-6, rolls the level 7 credits, and the card offers Continue (level 8) and Exit. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
         seconds: 240,
         tags: ['level'],
       },
@@ -3446,7 +3453,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (sub && heard[heard.length - 1] !== sub) heard.push(sub);
         const s = story();
         if (s?.oldBody) sawBody = true;
-        if (sawBody && s && !s.oldBody) bodyLeft = true;
+        if (sawBody && s && (!s.oldBody || s.oldBody.x >= 17.9)) bodyLeft = true;
         await tick();
       }
       const openingSecs = (performance.now() - opening0) / 1000;
@@ -3612,6 +3619,148 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       if (!continues) t.problem('bug', `level 7's card should offer Continue into level 8 and Exit (continue ${menu.start ?? 'hidden'}, title ${menu.title}, other ${(exitBtn?.textContent ?? '').trim()})`);
       await sleep(3500);
       return 'won';
+    };
+
+    /** The Train as a pursuit (train-chase): cars 1-3 once, then car 3's doors closing a breath before Pierce, N times. */
+    const trainChaseRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const phone = Boolean(options.phone);
+      const runs = Math.max(1, Math.min(20, Number(options.runs ?? 10)));
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
+      const story = () => probe.train()?.story ?? null;
+      const zone = document.getElementById('leftStickZone') as HTMLElement | null;
+      let down = false;
+      const stick = (ux: number, uy: number) => {
+        if (!zone) return;
+        const zr = zone.getBoundingClientRect();
+        const type = down ? 'pointermove' : 'pointerdown';
+        down = true;
+        zone.dispatchEvent(new PointerEvent(type, { pointerId: 31, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38, clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38 }));
+      };
+      const lift = () => {
+        if (down && zone) zone.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch', bubbles: true }));
+        down = false;
+      };
+      const walkToward = (to: Point) => {
+        const p = probe.player();
+        const heading = Math.atan2(to.x - p.x, to.z - p.z);
+        if (phone) {
+          const rel = wrap(heading - probe.cameraYaw());
+          stick(Math.sin(rel), -Math.cos(rel));
+        } else steer(to, true);
+      };
+      const stopWalking = () => { if (phone) lift(); else releaseAll(); };
+      const skipScene = async () => {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(300);
+      };
+      const enterCar = async (car: number) => {
+        (window as unknown as { __phTrainStart?: number }).__phTrainStart = car;
+        await probe.setupHidden('the-train');
+        await t.until(() => probe.running() && probe.level().libraryId === 'the-train' && !probe.menu().open, 90000, 'level 7 to start');
+        (window as unknown as { __phTrainStart?: number }).__phTrainStart = 1;
+      };
+      let nextCarPrompt = false;
+      const watchPrompt = () => { if (/next car/i.test(probe.action() ?? '')) nextCarPrompt = true; };
+
+      // ---- Run 1: the whole pursuit, cars 1 to 3.
+      t.scene('The Train: the pursuit');
+      await enterCar(1);
+      await t.until(() => probe.scripted() === 'train-opening', 10000, 'the opening scene');
+      await sleep(2500);
+      await skipScene();
+      await t.until(() => controllable(), 8000, 'control after the opening');
+      const seenCars = new Map<number, { ahead: boolean; aisle: boolean; lurches: number; stumbles: number }>();
+      let crossings = 0;
+      let lastCar = 1;
+      let lastStumbles = 0;
+      const chase0 = performance.now();
+      while (performance.now() - chase0 < 200000) {
+        await tick();
+        watchPrompt();
+        const s = story();
+        if (!s) continue;
+        const row = seenCars.get(s.car) ?? { ahead: false, aisle: false, lurches: 0, stumbles: 0 };
+        if (s.oldBodyAhead || (s.car > 1 && s.oldBody && s.oldBody.x > 17.5)) row.ahead = true;
+        if (s.aisleRiders > 0) row.aisle = true;
+        row.lurches = Math.max(row.lurches, s.lurches);
+        row.stumbles = Math.max(row.stumbles, s.stumbles);
+        seenCars.set(s.car, row);
+        if (s.car !== lastCar) { crossings += 1; lastCar = s.car; t.event('car', `crossed into car ${s.car} without a prompt`); }
+        if (s.stumbles > lastStumbles) {
+          lastStumbles = s.stumbles;
+          await sleep(900);
+          if (!controllable() && !probe.scripted()) t.problem('bug', 'a stumble took control from Pierce');
+          else t.event('stumble', `car ${s.car}: stumble at x ${probe.player().x.toFixed(1)}; control kept`);
+        }
+        if (s.beat === 'stop') break;
+        if (!controllable()) { stopWalking(); continue; }
+        const phoneState = probe.phone();
+        if (phoneState.incoming || phoneState.busy) { stopWalking(); continue; }
+        // Shadow mode once in car 2 (phone: the Shadow button); the chase is run on with the stick.
+        const obj = probe.objective();
+        if (obj.target) walkToward(obj.target);
+      }
+      stopWalking();
+      if (nextCarPrompt) t.problem('bug', 'a "Next car" prompt was offered at an end door');
+      if (crossings < 2) t.problem('bug', `walking through the front end doors changed car ${crossings} times (wanted 2: car 1 to 2 and 2 to 3)`);
+      for (const car of [1, 2, 3]) {
+        const row = seenCars.get(car);
+        t.event('check', `car ${car}: old body ahead ${row?.ahead}, rider in the aisle ${row?.aisle}, lurches ${row?.lurches ?? 0}, stumbles ${row?.stumbles ?? 0}`);
+        if (!row?.ahead) t.problem('bug', `car ${car}: the old body was never visible ahead through the end-door glass`);
+        if (!row?.aisle) t.problem('bug', `car ${car}: no rider stood in the aisle`);
+        if (!row || row.lurches < 1) t.problem('bug', `car ${car}: the car never lurched`);
+      }
+      const total = story();
+      t.metric('trainLurches', total?.lurches ?? 0);
+      t.metric('trainStumbles', total?.stumbles ?? 0);
+      t.progress(0.3);
+
+      // ---- Runs in car 3: the doors close a breath before him.
+      let caught = 0;
+      let gapMax = 0;
+      let done = 0;
+      for (let run = 1; run <= runs; run += 1) {
+        await enterCar(3);
+        const run0 = performance.now();
+        let reachedStop = false;
+        let closed: { gap: number; onPlatform: boolean; x: number; z: number } | null = null;
+        let touched = false;
+        while (performance.now() - run0 < 90000) {
+          await tick();
+          const s = story();
+          if (!s) continue;
+          watchPrompt();
+          if (probe.scripted() === 'train-opening') { await skipScene(); continue; }
+          if (s.beat === 'stop') { reachedStop = true; stopWalking(); await skipScene(); continue; }
+          if (s.beat === 'closing' || s.beat === 'done') break;
+          if (s.doorsClosed && !closed) {
+            const p = probe.player();
+            closed = { gap: s.doorGap ?? 99, onPlatform: s.oldBodyOnPlatform, x: p.x, z: p.z };
+            stopWalking();
+          }
+          if (s.beat === 'door' && !s.doorsClosed && probe.player().z > 1.45 && Math.abs(probe.player().x - 11.2) < 0.4) touched = true;
+          const phoneState = probe.phone();
+          if (phoneState.incoming) { stopWalking(); await once('f', 1500, 'answer call'); continue; }
+          if (phoneState.busy || !controllable()) { stopWalking(); continue; }
+          const obj = probe.objective();
+          if (obj.target) walkToward(obj.target);
+        }
+        stopWalking();
+        done += 1;
+        const ok = !!closed && !touched && closed.onPlatform && closed.gap >= 0.05 && closed.gap <= 1.1;
+        if (ok) caught += 1;
+        if (closed) gapMax = Math.max(gapMax, closed.gap);
+        t.event('chase', `run ${run}/${runs}: ${reachedStop ? 'stop played' : 'no stop'}; doors ${closed ? `closed with Pierce ${closed.gap.toFixed(2)} m away, old body ${closed.onPlatform ? 'on the platform' : 'NOT in sight'}` : 'did not close'}${touched ? '; Pierce touched them first' : ''}`);
+        if (!ok) t.problem('bug', `chase run ${run}: ${closed ? `gap ${closed.gap.toFixed(2)} m, old body on platform ${closed.onPlatform}, touched first ${touched}` : 'the doors never closed'}`);
+        t.progress(0.3 + 0.7 * (run / runs));
+      }
+      t.metric('chaseRuns', done);
+      t.metric('chaseCaught0', caught);
+      t.metric('chaseDoorGapMax', Math.round(gapMax * 100) / 100);
+      if (phone) probe.phoneFrame(false);
+      return caught === runs ? 'won' : 'stuck';
     };
 
     /** Level 8, The Morning: bed, wake-up, the TV, Voss's call, the door, End Level. Real input all the way. */
@@ -5132,6 +5281,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
 
     if (id === 'apex-slice') {
       const outcome = await apexSliceRun();
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'train-chase') {
+      const outcome = await trainChaseRun();
       t.progress(1);
       t.finish(outcome);
       return;
