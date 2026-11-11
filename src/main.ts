@@ -2828,6 +2828,18 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
   startingLevel = true;
   freshStart = fresh;
   unlockAudio();
+  // A start straight from a running level (restart, Load Level, a test shortcut) must end that level first: its
+  // scripted scene (The Morning's opening, the train, the lobby) otherwise keeps "playing" under the black veil for
+  // the whole load and warm, and anything watching `running()` / `scripted()` sees a frozen cutscene.
+  if (state.running) {
+    state.running = false;
+    home.dispose();
+    desk.dispose();
+    station.dispose();
+    train.dispose();
+    morning.dispose();
+    syncSkipButton();
+  }
   try {
     state.level = level.id;
     state.progression.currentLevel = level.id;
