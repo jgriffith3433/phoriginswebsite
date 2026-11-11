@@ -5075,6 +5075,7 @@ const cycleTheme = () => {
 
 const isLocalPlay = () => (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
 
+// Release builds never show the DEV toggle; local dev only, and only with ?debug on touch (CSS hides it there).
 if (isLocalPlay()) devToggle.hidden = false;
 const hasDebugQuery = () => new URLSearchParams(location.search).has('debug');
 // The FPS / MEM readout shows only when ?debug is in the URL or the dev panel is toggled open.
