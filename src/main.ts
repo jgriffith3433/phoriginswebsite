@@ -1194,6 +1194,8 @@ const loadSave = (): SaveData => {
  * into the B3 hall with the flashlight on. `?cold=1` forces it, `?cold=0` turns it off.
  */
 const COLD_SEEN_KEY = 'hawkes.coldOpenSeen';
+/** How long "Six hours earlier." stays up before the title (level 1 loads behind it). */
+const COLD_CARD_MS = 2000;
 const wantsColdOpen = () => {
   const params = new URLSearchParams(location.search);
   if (params.get('cold') === '1') return true;
@@ -3030,22 +3032,23 @@ function endColdOpen() {
   audio.setWalk(false);
   unlockPointer();
   const card = document.getElementById('coldCard');
-  window.setTimeout(() => card?.classList.add('on'), 700);
-  const shownAt = performance.now() + 700;
+  window.setTimeout(() => card?.classList.add('on'), 400);
   void (async () => {
     const level = getLevelDefinition(1);
     state.level = level.id;
     state.progression.currentLevel = level.id;
     applyLevelConfig(level);
-    await withLoadTimeout(loadMissionScene(level.path));
-    // The line stays up long enough to read (~3 s) whatever the load cost.
-    await new Promise<void>((resolve) => window.setTimeout(resolve, Math.max(0, shownAt + 3200 - performance.now())));
+    // Level 1 loads behind the line; the line never waits for it (a slow load held the card for ~90 s).
+    const loading = withLoadTimeout(loadMissionScene(level.path));
+    // About 2 s on screen, then the title appears at once. Start reads "Loading" until the level is ready.
+    await new Promise<void>((resolve) => window.setTimeout(resolve, COLD_CARD_MS + 400));
     document.body.classList.remove('cold-open');
-    menuCameraActive = true;
-    activateMenuCamera(scene, menuCamera);
     messageBox.classList.add('quiet');
     showMessage('PH Origins', levelStartLine());
     card?.classList.remove('on');
+    await loading;
+    menuCameraActive = true;
+    activateMenuCamera(scene, menuCamera);
     screenFade.to(0, 0.9);
   })().catch((error) => showLoadError('level', error));
 }
