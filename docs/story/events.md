@@ -11,8 +11,7 @@ failed load) then calls `presentLevelEnd`. Timelines may use `camera` with `rel:
 `world` event (`tower-cut`, `board-stop`, `tv-report`) that `main.ts` `runFinaleWorld` routes to the level's scene.
 Playtest: `world-events` (phone layout), and `level-N` / `smoke-lN` log `world-event`, `world-event-caption`, `crawl-lines`.
 
-Voices are Hawkes Gen cast voices (voices.json); until the takes are made they are silent placeholder oggs with an
-empty `audioText` (Dev Tools shows them out of date). Sound is reused: troffer flicker, glass tick, PA chime, screen
+Voices are Hawkes Gen cast voices (voices.json); the eleven `dialogue.finale-*` takes are NOT made yet (no ogg under `assets/audio/cutscenes/finale-N/`; Dev Tools shows them as Needs clip). Make them with `npm run audio:missing -- --only <ids>` once Gen is reachable. Sound is reused: troffer flicker, glass tick, PA chime, screen
 tap clacks, TV static and news sting, elevator beep, phone hang-up.
 
 | Level | Event (length) | Crawl facts moved | Where they are now |
