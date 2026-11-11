@@ -55,6 +55,14 @@ export type PhProbe = {
     subtitles: boolean; subtitleSize: string; subtitleBox: boolean;
   };
   creature: () => { x: number; y: number; z: number } | null;
+  /** First-visit cold open: where it is, whether the creature is on screen, the lit doorway's box, the flashlight. */
+  coldOpen?: () => {
+    active: boolean; seconds: number; creatureShown: boolean; creatureOnScreen: boolean; rushing: boolean; lightOut: boolean;
+    pending: boolean; running: boolean; sinceTapSeconds: number; flashlight: boolean; cardUp: boolean;
+    doorway: { x: number; y: number; w: number; h: number } | null;
+  };
+  /** A scenario other than first-five opens on the title: drop the cold open and load level 1. */
+  cancelColdOpen?: () => Promise<void>;
   aimLocked: () => boolean;
   shadow: () => { controls: boolean; on: boolean; handsOut: boolean; linked: boolean; ability: string; lessonStarted: boolean };
   people: () => { x: number; z: number; kind: string }[];
@@ -537,6 +545,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['menus', 'ui'],
       },
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
+      {
+        id: 'first-five',
+        title: 'First five: Tap to play goes straight into a playable B3 hall (flashlight on, creature on screen), then "Six hours earlier." and the title; a save cookie opens on the title',
+        description: 'Cold page, nothing set up. Taps Tap to play and times: first input (the left stick on a phone, W on desktop moves Pierce, 10 s or less), the creature on screen (45 s or less), the words on screen in the first minute (15 or less), the flashlight on at the first frame, no objective or menu text, and on a touch layout that no control box overlaps the lit doorway. The cut to black, the one-line card and the title terminal follow. With options {"returning":true} it writes a save cookie, reloads, and checks the title opens with no cold open. Metrics: secondsToFirstInput, secondsToFirstThreat, wordsOnScreen60s, coldOpenSeconds, titleSeconds, doorwayOverlaps. Options: phone (390x844 touch layout), returning.',
+        seconds: 120,
+        tags: ['ftue', 'first-minute'],
+      },
       {
         id: 'sound-settings',
         title: 'Tap to play unlocks sound, Settings from the title and from Pause, a setting that survives a reload',
@@ -2004,6 +2019,183 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       await tapAt(document.getElementById('tapToPlay'), 'Tap to play');
       await t.until(() => !probe.sound().prompt, 5000, 'the Tap to play prompt to go');
       t.event('tap-to-play', 'prompt tapped');
+    };
+
+    // ---- first-five: a stranger's first minute. Tap to play on a first visit goes into the B3 hall, in control, with
+    // the flashlight on and the creature on screen inside 45 s; a returning player (save cookie) gets the title.
+    const firstFiveRun = async () => {
+      levelsTotal = 1;
+      const SAVE = 'ph-origins-save';
+      const hasSave = () => document.cookie.split('; ').some((part) => part.startsWith(`${SAVE}=`));
+      if (options.returning && !hasSave()) {
+        // Criterion: a run with a save cookie opens on the title. Write one, reload as a returning player.
+        document.cookie = `${SAVE}=${encodeURIComponent(JSON.stringify({ unlocked: 2, level: 2 }))}; Path=/; Max-Age=3600; SameSite=Lax`;
+        const url = new URL(location.href);
+        url.searchParams.set('playtest', 'first-five');
+        url.searchParams.set('seed', String(options.seed ?? 1));
+        url.searchParams.set('speed', String(options.speed ?? 1));
+        t.event('reload', 'a save cookie is written and the page reloads as a returning player');
+        location.assign(url.toString());
+        await new Promise(() => {});
+        return;
+      }
+      const returning = hasSave();
+      const touch = Boolean(options.phone) || document.body.dataset.device === 'mobile' || matchMedia('(pointer: coarse)').matches;
+      if (options.phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(300); }
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const visible = (el: Element) => {
+        const check = (el as Element & { checkVisibility?: (o: object) => boolean }).checkVisibility;
+        if (check) return check.call(el, { opacityProperty: true, visibilityProperty: true });
+        const cs = getComputedStyle(el);
+        return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05;
+      };
+      // Words a player could read, counted from the tap: visible text only, the Tap to play splash itself excluded.
+      const seenWords = new Set<string>();
+      const sampleWords = () => {
+        for (const el of document.body.querySelectorAll('*')) {
+          if (/^(SCRIPT|STYLE|NOSCRIPT|CANVAS|SVG|PATH)$/i.test(el.tagName)) continue;
+          if (el.closest('#tapToPlay, #devPanel, #devToggle, #turnPhone, #cineHud:empty')) continue;
+          let own = '';
+          for (const node of el.childNodes) if (node.nodeType === 3) own += ` ${node.textContent ?? ''}`;
+          if (!/\w/.test(own) || !visible(el)) continue;
+          for (const word of own.split(/\s+/)) if (/[a-z0-9]/i.test(word)) seenWords.add(word.toLowerCase().replace(/[^a-z0-9']/g, ''));
+        }
+      };
+      const left = byId('leftStickZone');
+      let stickDown = false;
+      const stick = (ux: number, uy: number) => {
+        if (!left) return;
+        const zr = left.getBoundingClientRect();
+        const type = stickDown ? 'pointermove' : 'pointerdown';
+        stickDown = true;
+        left.dispatchEvent(new PointerEvent(type, { pointerId: 31, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38, clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38 }));
+      };
+      const lift = () => {
+        if (stickDown && left) left.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch', bubbles: true }));
+        stickDown = false;
+      };
+      const forward = () => { if (touch) stick(0, -1); else setHeld('w'); };
+      const stop = () => { if (touch) lift(); else releaseAll(); };
+
+      const t0 = performance.now();
+      const since = () => (performance.now() - t0) / 1000;
+      if (probe.sound().prompt) await tapToPlay();
+      t.event('first-five', 'tapped');
+      const turn = byId('turnPhone');
+      if (turn && !turn.hidden) {
+        await tapAt(byId('turnPhoneAnyway'), 'Play in portrait anyway');
+        t.event('portrait-prompt', 'dismissed (counts against secondsToFirstInput)');
+      }
+
+      let activeSeen = false;
+      let startPos: { x: number; z: number } | null = null;
+      let firstInput = -1;
+      let firstThreat = -1;
+      let cutAt = -1;
+      let titleAt = -1;
+      let doorSamples = 0;
+      let doorOverlaps = 0;
+      let objectiveShown = false;
+      let titleDuringHall = false;
+      let lastWords = 0;
+      const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls .stick-ring, .controls button, #pauseBtn, #objectiveHud')]
+        .filter((el) => visible(el));
+      let next = 0;
+      while (since() < 62) {
+        const co = probe.coldOpen?.();
+        const now = since();
+        if (now >= next) { sampleWords(); next = now + 0.4; }
+        if (returning) {
+          if (probe.menu().open && probe.menu().title === 'PH Origins' && titleAt < 0) {
+            titleAt = now;
+            t.event('title', `a returning player opens on the title after ${now.toFixed(1)} s`);
+            break;
+          }
+          if (co?.active || co?.running) { t.problem('bug', 'a save cookie is present but the cold open started'); break; }
+        } else if (co) {
+          if (co.active) {
+            if (!activeSeen) {
+              activeSeen = true;
+              startPos = { x: probe.player().x, z: probe.player().z };
+              t.event('cold-open', `in control ${now.toFixed(1)} s after the tap; flashlight ${co.flashlight ? 'on' : 'OFF'}`);
+              t.metric('flashlightAtFirstFrame', co.flashlight ? 1 : 0);
+              if (!co.flashlight) t.problem('bug', 'the cold open starts with the flashlight off');
+              if (probe.menu().open) t.problem('bug', 'a menu is open over the cold open');
+              forward();
+            }
+            if (firstInput < 0 && startPos) {
+              const p = probe.player();
+              if (Math.hypot(p.x - startPos.x, p.z - startPos.z) > 0.2) {
+                firstInput = now;
+                t.event('first-input', `${touch ? 'left stick' : 'W'} moved Pierce after ${now.toFixed(1)} s`);
+              }
+            }
+            if (firstThreat < 0 && co.creatureOnScreen) {
+              firstThreat = now;
+              t.event('first-threat', `the creature is on screen ${now.toFixed(1)} s after the tap`);
+            }
+            if (probe.objective().visible || probe.menu().open) objectiveShown = true;
+            if (touch) {
+              const door = co.doorway;
+              if (door) {
+                doorSamples += 1;
+                const hit = touchBoxes().find((el) => {
+                  const r = el.getBoundingClientRect();
+                  return r.left < door.x + door.w && r.right > door.x && r.top < door.y + door.h && r.bottom > door.y;
+                });
+                if (hit) {
+                  doorOverlaps += 1;
+                  if (doorOverlaps === 1) t.problem('bug', `a touch control (${hit.id || hit.className}) covers the lit doorway during the cold open`);
+                }
+              }
+            }
+          } else if (activeSeen && cutAt < 0) {
+            cutAt = now;
+            stop();
+            t.event('cut', `the creature got him: cut to black ${now.toFixed(1)} s after the tap`);
+          }
+          if (cutAt >= 0 && titleAt < 0 && probe.menu().open && probe.menu().title === 'PH Origins' && !co.cardUp) {
+            titleAt = now;
+            t.event('title', `the title terminal after ${now.toFixed(1)} s`);
+          }
+          if (!activeSeen && now > 25) { t.problem('bug', 'Tap to play on a first visit never reached the cold open'); break; }
+          if (probe.menu().open && !activeSeen && now < 3) titleDuringHall = true;
+        }
+        lastWords = seenWords.size;
+        await sleep(100);
+      }
+      stop();
+      releaseAll();
+      if (returning) {
+        if (titleAt < 0) t.problem('bug', 'a returning player did not open on the title terminal');
+        t.metric('returningTitleSeconds', Number(titleAt.toFixed(1)));
+        t.progress(1);
+        t.finish('done');
+        return;
+      }
+      if (since() < 62) {
+        // The loop ended early on a problem: keep sampling words to the minute so the number means something.
+        while (since() < 60) { sampleWords(); await sleep(400); }
+      }
+      sampleWords();
+      t.metric('secondsToFirstInput', firstInput < 0 ? 999 : Number(firstInput.toFixed(1)));
+      t.metric('secondsToFirstThreat', firstThreat < 0 ? 999 : Number(firstThreat.toFixed(1)));
+      t.metric('wordsOnScreen60s', seenWords.size);
+      t.metric('coldOpenSeconds', cutAt < 0 ? 0 : Number(cutAt.toFixed(1)));
+      t.metric('titleSeconds', titleAt < 0 ? 0 : Number(titleAt.toFixed(1)));
+      t.metric('doorwaySamples', doorSamples);
+      t.metric('doorwayOverlaps', doorOverlaps);
+      t.event('words', [...seenWords].join(' '));
+      if (firstInput < 0 || firstInput > 10) t.problem('bug', `first input took ${firstInput < 0 ? 'never' : `${firstInput.toFixed(1)} s`} (should be 10 s or less after the tap)`);
+      if (firstThreat < 0 || firstThreat > 45) t.problem('bug', `the creature was on screen ${firstThreat < 0 ? 'never' : `${firstThreat.toFixed(1)} s`} after the tap (should be within 45 s)`);
+      if (seenWords.size > 15) t.problem('bug', `${seenWords.size} words on screen in the first minute (should be 15 or less)`);
+      if (objectiveShown) t.problem('bug', 'an objective or menu was on screen during the cold open');
+      if (titleDuringHall) t.problem('bug', 'the title card showed before the cold open');
+      if (touch && activeSeen && doorSamples === 0) t.problem('bug', 'the lit doorway was never in view during the cold open');
+      if (titleAt < 0) t.problem('bug', 'the title terminal did not follow the cold open within the minute');
+      void lastWords;
+      t.progress(1);
+      t.finish('done');
     };
 
     // ---- stuck-recovery: idle, the Lost? prompt, Return to objective (key, tap, Pause), at three viewports
@@ -3566,9 +3758,15 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       await new Promise(() => {}); // the page is going away
       return;
     }
+    if (id === 'first-five') {
+      await firstFiveRun();
+      return;
+    }
+    // Every other scenario opens on the title: a first visit's cold open would otherwise take the tap.
+    await probe.cancelColdOpen?.();
     // A player taps the splash at once; the tap never waits for the load. Scenarios that test the splash or lay the
     // page out themselves tap it in their own run.
-    const ownsSplash = ['sound-settings', 'cutscene-ui', 'ui-style', 'load-error', 'screen-mode', 'stuck-recovery', 'objective-marker'];
+    const ownsSplash = ['first-five', 'sound-settings', 'cutscene-ui', 'ui-style', 'load-error', 'screen-mode', 'stuck-recovery', 'objective-marker'];
     if (!ownsSplash.includes(id) && probe.sound().prompt) await tapToPlay();
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'stuck-recovery') {

@@ -570,7 +570,7 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
     if (chapterCard.showing()) {
       screenFade.to(0, 0);
       chapterCard.release(600);
-    } else screenFade.to(0, 1.5);
+    } else screenFade.to(0, coldOpenRunning ? 0.5 : 1.5);
   };
   let revealing = false;
   const deadline = calledAt + REVEAL_READY_MAX_MS;
@@ -1134,6 +1134,29 @@ const loadSave = (): SaveData => {
     return { ...defaultSave };
   }
 };
+
+/**
+ * Cold open: a first visit (no save, nothing opened through a link, not another playtest) goes from Tap to play straight
+ * into the B3 hall with the flashlight on. `?cold=1` forces it, `?cold=0` turns it off.
+ */
+const COLD_SEEN_KEY = 'hawkes.coldOpenSeen';
+const wantsColdOpen = () => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('cold') === '1') return true;
+  if (params.get('cold') === '0') return false;
+  for (const key of ['beat', 'level', 'cutscene']) if (params.get(key)) return false;
+  const test = params.get('playtest');
+  if (test && test !== 'first-five') return false;
+  try {
+    if (readCookie(SAVE_COOKIE) || localStorage.getItem(SAVE_STORAGE_KEY) || localStorage.getItem(COLD_SEEN_KEY) === '1') return false;
+  } catch { /* storage blocked: still a first visit */ }
+  return true;
+};
+let coldOpen = wantsColdOpen();
+let coldOpenTapped = false;
+let coldOpenRunning = false;
+let coldOpenAt = 0;
+if (coldOpen) document.body.classList.add('cold-open');
 
 let save = loadSave();
 
@@ -2523,6 +2546,7 @@ act = createAct1({
   offerEnd: (title, text) => offerLevelEnd(title, text),
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
+  coldOpenDone: () => endColdOpen(),
   unlockNext: () => unlockProgress(),
   refreshHud: () => updateHud(),
   setCarry: (items) => { storyCarry = items; },
@@ -2859,6 +2883,7 @@ let freshStart = false;
 
 const beginGame = () => {
   if (!gameReady) return;
+  messageBox.classList.remove('quiet');
   pendingEnd = null;
   meleeAbility = 'punch';
   shadowPick = 'shock';
@@ -2899,6 +2924,66 @@ const beginGame = () => {
   void waitFrames(REVEAL_PAINT_FRAMES).then(() => {
     revealFromBlack(() => state.running);
   });
+};
+
+/** Tap to play on a first visit: control in the hall at once. Needs the tap and the loaded hall, in either order. */
+function maybeStartColdOpen() {
+  if (!coldOpen || coldOpenRunning || !coldOpenTapped || !gameReady || loadFailed()) return;
+  coldOpenRunning = true;
+  coldOpenAt = performance.now();
+  state.level = 2;
+  state.progression.currentLevel = 2;
+  fullscreen.enterForPlay();
+  lockPlayPointer();
+  beginGame();
+  (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit?.('cold-open', 'start');
+}
+
+/** The scream and the cut to black are done: "Six hours earlier.", level 1 loads behind it, then the title over the 58th floor. */
+function endColdOpen() {
+  if (!coldOpenRunning) return;
+  coldOpenRunning = false;
+  coldOpen = false;
+  try { localStorage.setItem(COLD_SEEN_KEY, '1'); } catch { /* private mode */ }
+  state.running = false;
+  clearInputState();
+  audio.setWalk(false);
+  unlockPointer();
+  const card = document.getElementById('coldCard');
+  window.setTimeout(() => card?.classList.add('on'), 700);
+  const shownAt = performance.now() + 700;
+  void (async () => {
+    const level = getLevelDefinition(1);
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    applyLevelConfig(level);
+    await withLoadTimeout(loadMissionScene(level.path));
+    // The line stays up long enough to read (~3 s) whatever the load cost.
+    await new Promise<void>((resolve) => window.setTimeout(resolve, Math.max(0, shownAt + 3200 - performance.now())));
+    document.body.classList.remove('cold-open');
+    menuCameraActive = true;
+    activateMenuCamera(scene, menuCamera);
+    messageBox.classList.add('quiet');
+    showMessage('PH Origins', levelStartLine());
+    card?.classList.remove('on');
+    screenFade.to(0, 0.9);
+  })().catch((error) => showLoadError('level', error));
+}
+
+/** A playtest scenario other than first-five (started without a URL hint) opens on the title, as before. */
+const cancelColdOpen = async () => {
+  if (!coldOpen || coldOpenRunning) return;
+  coldOpen = false;
+  document.body.classList.remove('cold-open');
+  act.cancelColdOpen();
+  const level = getLevelDefinition(1);
+  state.level = level.id;
+  state.progression.currentLevel = level.id;
+  applyLevelConfig(level);
+  await withLoadTimeout(loadMissionScene(level.path));
+  menuCameraActive = true;
+  activateMenuCamera(scene, menuCamera);
+  showMessage('PH Origins', levelStartLine());
 };
 
 let startingLevel = false;
@@ -2968,14 +3053,20 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
 
 void (async () => {
   await loadLevelLibrary();
-  const bootLevel = getLevelDefinition(savedLevelId());
+  const bootLevel = getLevelDefinition(coldOpen ? 2 : savedLevelId());
   state.level = bootLevel.id;
   state.progression.currentLevel = bootLevel.id;
   applyLevelConfig(bootLevel);
   await loadMissionScene(bootLevel.path);
+  if (coldOpen) {
+    // The title card stays down: the tap goes into the hall. Only the B3 hall and the creature were loaded.
+    hideMessage();
+    act.armColdOpen();
+  }
   phBoot?.ready();
   analytics?.ready();
   recoverFromStall();
+  maybeStartColdOpen();
   const params = new URLSearchParams(location.search);
   const beat = params.get('beat');
   const cutscene = params.get('cutscene');
@@ -4271,6 +4362,8 @@ const tapState = (window as { __phTap?: { tapped: boolean; onTap: (() => void) |
 // The capture listeners above already unlocked sound during this tap; this tops the pool up once more.
 const warmSounds = () => {
   unlockAudio();
+  coldOpenTapped = true;
+  maybeStartColdOpen();
   preloadClips([...stepUrls('carpet'), SFX.jump, SFX.start, SFX.objective, SFX.levelComplete, SFX.draw, SFX.holster, SFX.hurt]);
 };
 if (tapState) tapState.onTap = warmSounds;
@@ -4580,6 +4673,28 @@ resetBtn.addEventListener('click', () => {
   menuCameraActive = true;
   activateMenuCamera(scene, menuCamera);
 });
+
+/** Screen box (CSS px) of the lab doorway at the end of the cold-open hall, or null when it is not in view. */
+const projectColdDoorway = (): { x: number; y: number; w: number; h: number } | null => {
+  if (!coldOpenRunning || scene.activeCamera !== camera) return null;
+  const rect = canvas.getBoundingClientRect();
+  const rw = engine.getRenderWidth();
+  const rh = engine.getRenderHeight();
+  const viewport = camera.viewport.toGlobal(rw, rh);
+  const matrix = scene.getTransformMatrix();
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y, z] of [[16.4, 0, 36], [16.4, 0, 40], [16.4, 2.4, 36], [16.4, 2.4, 40]]) {
+    const p = BABYLON.Vector3.Project(new BABYLON.Vector3(x, y, z), BABYLON.Matrix.IdentityReadOnly, matrix, viewport);
+    if (p.z < 0 || p.z > 1) return null;
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  }
+  const sx = rect.width / rw;
+  const sy = rect.height / rh;
+  const box = { x: rect.left + minX * sx, y: rect.top + minY * sy, w: (maxX - minX) * sx, h: (maxY - minY) * sy };
+  if (box.x + box.w < rect.left || box.x > rect.right || box.y + box.h < rect.top || box.y > rect.bottom) return null;
+  return box;
+};
 
 /**
  * The train car sways: roll the game camera with the car (around the car's long axis, x). The follow camera sets
@@ -5120,6 +5235,20 @@ installPhPlaytest({
       return r.top > innerHeight * 0.55;
     })(),
   }),
+  coldOpen: () => {
+    const base = act.coldOpenState();
+    const door = projectColdDoorway();
+    return {
+      ...base,
+      pending: coldOpen && !coldOpenRunning,
+      running: coldOpenRunning,
+      sinceTapSeconds: coldOpenRunning ? (performance.now() - coldOpenAt) / 1000 : 0,
+      flashlight: phone.flashlightOn(),
+      doorway: door,
+      cardUp: document.getElementById('coldCard')?.classList.contains('on') ?? false,
+    };
+  },
+  cancelColdOpen: () => cancelColdOpen(),
   creature: () => {
     const at = act.aimPoint();
     return at ? { x: at.x, y: at.y, z: at.z } : null;
