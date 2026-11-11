@@ -378,3 +378,12 @@ tasks.
 - **What happens:** footsteps on every plant by floor; every touchable answers with a motion and a sound; the guard
   rattles a handle; Pierce can try the locked door; a rider stirs; barks never repeat within five minutes.
 - **Story beats:** **35. Board through the hall** (desk, locked door, visible threat) — told as events, not a phone call.
+
+## What Pierce says on the phone (reply moments)
+
+Every scripted Voss and Hale call (`voss-late`, `voss-meeting`, `hale-walkout`, `hale-board`, Hale at the train stop `hale-train`) opens one reply moment while the caller is still talking: two or three short replies (4-7 words) and silence, for 5 s, chosen with 1/2/3 or a tap. Choosing early cuts the caller off; waiting plays the silence answer. Each reply is a spoken Pierce line and an answer from the caller.
+
+- **vossTrust** (-2..+2, on the `ph-origins-save` cookie): up when Pierce gives Voss something (an answer, the tape kept safe), down when he brushes him off. **haleTemper** (-2..+2): how hot Hale runs; up when he is curt or stonewalls, down when he placates her.
+- **The Morning**: Voss's last call is two-way. Its first and last line have three variants on vossTrust (<= -1 cold, 0 neutral, >= 1 warm), and two moments (the vote; the tape) let Pierce answer.
+- Voice stays terse. Replies never name B3 in public, and nobody explains the two Pierces: Pierce asks "Who else knows about last night?", never "why are there two of me".
+- Voices are the existing cast (Voss Adam-line voice, Pierce Jackson, Hale Annie), `assets/audio/phone/*-r1a|b|c(-ans|s-ans).mp3`, ids `phone.<call>.r1a`, `.r1a.ans`, `.r1s.ans`.

@@ -13,7 +13,7 @@ import type { StoryCarry } from './act1';
  *           switches itself on. Control returns.
  *   news    Action: Watch (the television). Scene: the morning programme on a canvas TV (stills, headline, ticker,
  *           anchor captions). It names Hawkes Tower and Pierce Hawkes. Public-safe: no B3, vat or creature.
- *   call    Voss rings (`voss-morning`, one-way: Voss talks, Pierce listens). The player answers with F.
+ *   call    Voss rings (`voss-morning`, two-way: two reply moments, and the opening and closing lines branch on `vossTrust`). The player answers with F.
  *   out     The front door. Action: Leave. His last line, then End Level (Exit only; nothing follows).
  *
  * The anchor is on-screen captions only for now (no voice). Stills are drawn on the canvas as placeholders.

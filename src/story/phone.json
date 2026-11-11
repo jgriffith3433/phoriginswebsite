@@ -33,6 +33,39 @@
           "line": "phone.voss-late.04",
           "duration": 1.63
         }
+      ],
+      "replies": [
+        {
+          "id": "r1",
+          "after": 0,
+          "resume": 3,
+          "window": 5,
+          "options": [
+            {
+              "id": "a",
+              "text": "Two minutes. I'm in the hallway.",
+              "line": "phone.voss-late.r1a",
+              "duration": 2.27,
+              "answer": "phone.voss-late.r1a.ans",
+              "answerDuration": 3.4,
+              "delta": 1
+            },
+            {
+              "id": "b",
+              "text": "Then they can wait.",
+              "line": "phone.voss-late.r1b",
+              "duration": 1.57,
+              "answer": "phone.voss-late.r1b.ans",
+              "answerDuration": 2.59,
+              "delta": -1
+            }
+          ],
+          "silence": {
+            "answer": "phone.voss-late.r1s.ans",
+            "duration": 1.96,
+            "delta": 0
+          }
+        }
       ]
     },
     "voss-meeting": {
@@ -53,6 +86,39 @@
         {
           "line": "phone.voss-meeting.04",
           "duration": 0.9
+        }
+      ],
+      "replies": [
+        {
+          "id": "r1",
+          "after": 0,
+          "resume": 2,
+          "window": 5,
+          "options": [
+            {
+              "id": "a",
+              "text": "Tell her I'll explain later.",
+              "line": "phone.voss-meeting.r1a",
+              "duration": 2.04,
+              "answer": "phone.voss-meeting.r1a.ans",
+              "answerDuration": 3.16,
+              "delta": 1
+            },
+            {
+              "id": "b",
+              "text": "Hale can wait. Not my problem.",
+              "line": "phone.voss-meeting.r1b",
+              "duration": 2.51,
+              "answer": "phone.voss-meeting.r1b.ans",
+              "answerDuration": 2.19,
+              "delta": -1
+            }
+          ],
+          "silence": {
+            "answer": "phone.voss-meeting.r1s.ans",
+            "duration": 3.32,
+            "delta": 0
+          }
         }
       ]
     },
@@ -79,6 +145,48 @@
           "line": "phone.hale-walkout.05",
           "duration": 2.09
         }
+      ],
+      "replies": [
+        {
+          "id": "r1",
+          "after": 1,
+          "resume": 3,
+          "window": 5,
+          "options": [
+            {
+              "id": "a",
+              "text": "I can't right now.",
+              "line": "phone.hale-walkout.03",
+              "duration": 1.16,
+              "answer": "phone.hale-walkout.r1a.ans",
+              "answerDuration": 2.19,
+              "delta": 0
+            },
+            {
+              "id": "b",
+              "text": "You'll have your meeting. Soon.",
+              "line": "phone.hale-walkout.r1b",
+              "duration": 2.27,
+              "answer": "phone.hale-walkout.r1b.ans",
+              "answerDuration": 2.59,
+              "delta": -1
+            },
+            {
+              "id": "c",
+              "text": "Then speak to the investors.",
+              "line": "phone.hale-walkout.r1c",
+              "duration": 1.96,
+              "answer": "phone.hale-walkout.r1c.ans",
+              "answerDuration": 2.04,
+              "delta": 1
+            }
+          ],
+          "silence": {
+            "answer": "phone.hale-walkout.r1s.ans",
+            "duration": 1.96,
+            "delta": 1
+          }
+        }
       ]
     },
     "hale-board": {
@@ -95,6 +203,39 @@
         {
           "line": "phone.hale-board.03",
           "duration": 1.6
+        }
+      ],
+      "replies": [
+        {
+          "id": "r1",
+          "after": 0,
+          "resume": 2,
+          "window": 5,
+          "options": [
+            {
+              "id": "a",
+              "text": "Well for whom, exactly, Hale?",
+              "line": "phone.hale-board.r1a",
+              "duration": 2.85,
+              "answer": "phone.hale-board.r1a.ans",
+              "answerDuration": 3.63,
+              "delta": 1
+            },
+            {
+              "id": "b",
+              "text": "Glad it did. Thank you.",
+              "line": "phone.hale-board.r1b",
+              "duration": 2.04,
+              "answer": "phone.hale-board.r1b.ans",
+              "answerDuration": 1.57,
+              "delta": -1
+            }
+          ],
+          "silence": {
+            "answer": "phone.hale-board.r1s.ans",
+            "duration": 2.85,
+            "delta": 0
+          }
         }
       ]
     },
@@ -117,6 +258,39 @@
           "line": "phone.hale-train.04",
           "duration": 1.68
         }
+      ],
+      "replies": [
+        {
+          "id": "r1",
+          "after": 0,
+          "resume": 2,
+          "window": 5,
+          "options": [
+            {
+              "id": "a",
+              "text": "Who else knows about last night?",
+              "line": "phone.hale-train.r1a",
+              "duration": 2.12,
+              "answer": "phone.hale-train.r1a.ans",
+              "answerDuration": 3.87,
+              "delta": 1
+            },
+            {
+              "id": "b",
+              "text": "Good. Then it stays buried.",
+              "line": "phone.hale-train.r1b",
+              "duration": 2.35,
+              "answer": "phone.hale-train.r1b.ans",
+              "answerDuration": 2.43,
+              "delta": -1
+            }
+          ],
+          "silence": {
+            "answer": "phone.hale-train.r1s.ans",
+            "duration": 3.32,
+            "delta": 1
+          }
+        }
       ]
     },
     "voss-morning": {
@@ -124,31 +298,135 @@
       "lines": [
         {
           "line": "phone.voss-morning.01",
-          "duration": 3.46
+          "duration": 3.4,
+          "alt": [
+            {
+              "when": {
+                "vossTrust": {
+                  "max": -1
+                }
+              },
+              "line": "phone.voss-morning.01l",
+              "duration": 4.05
+            },
+            {
+              "when": {
+                "vossTrust": {
+                  "min": 1
+                }
+              },
+              "line": "phone.voss-morning.01h",
+              "duration": 4.21
+            }
+          ]
         },
         {
           "line": "phone.voss-morning.02",
-          "duration": 6.51
+          "duration": 6.53
         },
         {
           "line": "phone.voss-morning.03",
-          "duration": 4.76
+          "duration": 3.87
         },
         {
           "line": "phone.voss-morning.04",
-          "duration": 3.53
+          "duration": 3.4
         },
         {
           "line": "phone.voss-morning.05",
-          "duration": 6.97
+          "duration": 7.08
         },
         {
           "line": "phone.voss-morning.06",
-          "duration": 4.57
+          "duration": 3.79
         },
         {
           "line": "phone.voss-morning.07",
-          "duration": 4.69
+          "duration": 4.6,
+          "alt": [
+            {
+              "when": {
+                "vossTrust": {
+                  "max": -1
+                }
+              },
+              "line": "phone.voss-morning.07l",
+              "duration": 3.87
+            },
+            {
+              "when": {
+                "vossTrust": {
+                  "min": 1
+                }
+              },
+              "line": "phone.voss-morning.07h",
+              "duration": 4.05
+            }
+          ]
+        }
+      ],
+      "replies": [
+        {
+          "id": "r1",
+          "after": 1,
+          "resume": 2,
+          "window": 5,
+          "options": [
+            {
+              "id": "a",
+              "text": "I'm listening. Keep going.",
+              "line": "phone.voss-morning.r1a",
+              "duration": 1.88,
+              "answer": "phone.voss-morning.r1a.ans",
+              "answerDuration": 2.27,
+              "delta": 1
+            },
+            {
+              "id": "b",
+              "text": "Why should I believe you?",
+              "line": "phone.voss-morning.r1b",
+              "duration": 1.57,
+              "answer": "phone.voss-morning.r1b.ans",
+              "answerDuration": 2.43,
+              "delta": -1
+            }
+          ],
+          "silence": {
+            "answer": "phone.voss-morning.r1s.ans",
+            "duration": 2.43,
+            "delta": 0
+          }
+        },
+        {
+          "id": "r2",
+          "after": 4,
+          "resume": 5,
+          "window": 5,
+          "options": [
+            {
+              "id": "a",
+              "text": "Keep the tape. Keep it safe.",
+              "line": "phone.voss-morning.r2a",
+              "duration": 2.43,
+              "answer": "phone.voss-morning.r2a.ans",
+              "answerDuration": 2.51,
+              "delta": 1
+            },
+            {
+              "id": "b",
+              "text": "Give me the tape.",
+              "line": "phone.voss-morning.r2b",
+              "duration": 1.23,
+              "answer": "phone.voss-morning.r2b.ans",
+              "answerDuration": 2.19,
+              "delta": -1
+            }
+          ],
+          "silence": {
+            "answer": "phone.voss-morning.r2s.ans",
+            "duration": 3.32,
+            "delta": 0
+          }
         }
       ]
     }

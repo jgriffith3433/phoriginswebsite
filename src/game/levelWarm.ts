@@ -164,13 +164,26 @@ const collectPhoneAudio = (out: Set<string>) => {
 };
 
 const addCallLines = (callId: string, out: Set<string>) => {
-  const script = (phoneCopy as { calls?: Record<string, { lines?: { line?: string; audio?: string }[] }> }).calls?.[callId];
+  type Row = { line?: string; audio?: string; answer?: string; alt?: Row[] };
+  type Script = { lines?: Row[]; replies?: { options?: Row[]; silence?: Row }[] };
+  const script = (phoneCopy as { calls?: Record<string, Script> }).calls?.[callId];
+  const add = (id?: string) => {
+    if (!id) return;
+    const audio = lineAudio(id) || storyLine(id)?.audio;
+    if (audio) out.add(audio);
+  };
   for (const entry of script?.lines ?? []) {
     if (entry.audio) out.add(entry.audio);
-    if (entry.line) {
-      const audio = lineAudio(entry.line) || storyLine(entry.line)?.audio;
-      if (audio) out.add(audio);
+    add(entry.line);
+    for (const alt of entry.alt ?? []) add(alt.line);
+  }
+  // Reply moments: each option's Pierce line and answer, and the silence answer.
+  for (const moment of script?.replies ?? []) {
+    for (const option of moment.options ?? []) {
+      add(option.line);
+      add(option.answer);
     }
+    add(moment.silence?.answer);
   }
 };
 
