@@ -104,6 +104,10 @@ export type PhProbe = {
     restore: () => boolean;
     status: () => { lost: boolean; overlay: boolean; overlayText: string; restarted: number; restored: number; lost_?: never };
   };
+  /** Test setup (`vat-acid`): level 2 is loaded; start the hunt from the lab door, or the vat break shot. */
+  setupBeat: (kind: 'hunt' | 'vat') => void;
+  hunt: () => { huntRetries: number; retrySeconds: number[]; lastRetrySeconds: number; retrying: boolean; health: number; fade: number };
+  acid: () => { active: boolean; t: number; falls: number; swapped: boolean; lag: number; drift: number; speed: number; locked: boolean; flashlight: boolean; skipShown: boolean; x: number; z: number; yaw: number };
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
@@ -610,6 +614,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: `Starts level 2 (test shortcut), waits for the scene to settle and reads the scene counts (also in hawkesPlaytest.state().counts). Then ${RETRIES} times: Pierce is downed (test shortcut, as a bite would), Defeat shows, Start retries the level, the scene settles, and the counts are read again. Metrics: each count after the first retry and after the last, and their growth. A count that keeps growing across retries is a bug. Headless WebGL is about 1 fps, so each stage reports progress.`,
         seconds: 420,
         tags: ['level', 'perf'],
+      },
+      {
+        id: 'vat-acid',
+        title: 'B3: a hunt death costs under 3 s with no card; the vat break is played with the left stick (390x844 touch)',
+        description: 'Starts level 2 (test shortcut) and the hunt from the lab door. Pierce is downed (test shortcut, as a bite would): there must be no Defeat card, chapter card or reload, a red fade of about 0.6 s, control back inside 3 s (metrics huntRetries, retrySeconds), health full, and the creature out of sight. Then the vat break shot plays (it must end within 5.5 s, no camera hold over 5 s) and control returns in the acid. Laid out as a 390x844 phone, the bot plays the acid with the left stick only (pointer drags, no keys): it logs the input lag, heading drift, stagger and the falls, the flashlight failing, checks the touch controls stay visible and 44 px, that there is at least 15 s of movement input, that the avatar swaps during a fall, and that it ends as Pierce reaches the door and End Level is offered. Metrics: acidSeconds, acidInputSeconds, huntRetries, retrySeconds.',
+        seconds: 300,
+        tags: ['level', 'phone'],
       },
       {
         id: 'analytics',
@@ -2533,6 +2544,118 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.finish(boardSeen ? 'done' : 'stuck');
     };
 
+
+    // ---- vat-acid: hunt retry (under 3 s, no card) and the vat break played with the left stick on a phone
+    const vatAcidRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+      t.scene('B3 hunt');
+      await enterLevel(2);
+      await waitControl('B3');
+      probe.setupBeat('hunt');
+      await sleep(1500);
+      releaseAll();
+      const before = probe.hunt();
+      const downAt = performance.now();
+      let sawCard = false;
+      let peakFade = 0;
+      if (!probe.forceDefeat()) throw new Error('could not down Pierce in the hunt');
+      t.event('defeat', 'test shortcut, in the hunt');
+      let back = 0;
+      while (performance.now() - downAt < 8000) {
+        await frame();
+        const m = probe.menu();
+        if (m.open || /defeat/i.test(m.title ?? '')) sawCard = true;
+        peakFade = Math.max(peakFade, probe.hunt().fade);
+        if (probe.hunt().huntRetries > before.huntRetries && !probe.hunt().retrying && probe.hunt().health >= 99) { back = performance.now() - downAt; break; }
+      }
+      const after = probe.hunt();
+      t.metric('huntRetries', after.huntRetries);
+      t.metric('retrySeconds', after.lastRetrySeconds);
+      t.event('hunt-retry', `back in control after ${(back / 1000).toFixed(2)} s, retrySeconds ${after.lastRetrySeconds}, health ${after.health}, fade peak ${peakFade.toFixed(2)}, card ${sawCard}`);
+      if (sawCard) t.problem('bug', 'a Defeat card or menu showed after a hunt death');
+      if (!back || after.lastRetrySeconds >= 3) t.problem('bug', `control did not come back within 3 s of the hunt death (retrySeconds ${after.lastRetrySeconds})`);
+      if (peakFade < 0.5) t.problem('bug', `no red fade on the hunt death (peak ${peakFade.toFixed(2)})`);
+      t.progress(0.3);
+
+      // The vat break, as a phone.
+      t.scene('Vat break (phone)');
+      probe.phoneFrame(true);
+      await sleep(800);
+      probe.setupBeat('vat');
+      const shotAt = performance.now();
+      while (!probe.cutscene() && performance.now() - shotAt < 4000) await frame();
+      while (probe.cutscene() && performance.now() - shotAt < 30000) await frame();
+      const shot = (performance.now() - shotAt) / 1000;
+      t.metric('vatShotSeconds', Number(shot.toFixed(1)));
+      if (shot > 8) t.problem('bug', `the vat shot held control for ${shot.toFixed(1)} s (should be a short shot under 5 s)`);
+      const door = { x: 17.6, z: 38 };
+      const zone = document.getElementById('leftStickZone') as HTMLElement;
+      const zr = zone.getBoundingClientRect();
+      const cx = zr.left + zr.width / 2;
+      const cy = zr.top + zr.height / 2;
+      const ptr = (type: string, ux: number, uy: number) =>
+        zone.dispatchEvent(new PointerEvent(type, { pointerId: 17, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: cx + ux * zr.width * 0.38, clientY: cy + uy * zr.height * 0.38 }));
+      let down = false;
+      const stick = (ux: number, uy: number) => {
+        if (!down) { ptr('pointerdown', ux, uy); down = true; } else ptr('pointermove', ux, uy);
+      };
+      const lift = () => { if (down) { zone.dispatchEvent(new PointerEvent('pointerup', { pointerId: 17, pointerType: 'touch', bubbles: true })); down = false; } };
+      const startAt = performance.now();
+      let inputSeconds = 0;
+      let lastAt = performance.now();
+      let maxLag = 0, maxDrift = 0, sawLocked = 0, sawFlashOff = false, swappedDuringFall = false, ended = false, minTouch = 999, controlsHidden = 0;
+      let lastYaw = 0, turnSum = 0;
+      while (performance.now() - startAt < 70000) {
+        await frame();
+        const a = probe.acid();
+        const nowAt = performance.now();
+        if (a.active) {
+          maxLag = Math.max(maxLag, a.lag);
+          maxDrift = Math.max(maxDrift, Math.abs(a.drift));
+          if (a.locked) sawLocked += (nowAt - lastAt) / 1000;
+          if (a.t > 9 && !a.flashlight) sawFlashOff = true;
+          if (a.swapped && a.locked) swappedDuringFall = true;
+          turnSum += Math.abs(wrap(a.yaw - lastYaw));
+          lastYaw = a.yaw;
+          if (!a.locked) {
+            const rel = wrap(Math.atan2(door.x - a.x, door.z - a.z) - probe.cameraYaw());
+            stick(Math.sin(rel), -Math.cos(rel));
+            inputSeconds += (nowAt - lastAt) / 1000;
+          } else lift();
+          for (const sel of ['#leftStickZone .stick-ring', '#jumpBtn']) {
+            const el = document.querySelector(sel);
+            const r = el?.getBoundingClientRect();
+            const cs = el ? getComputedStyle(el) : null;
+            if (!r || r.width < 1 || cs!.visibility === 'hidden' || +cs!.opacity < 0.5) controlsHidden += 1;
+            else minTouch = Math.min(minTouch, Math.min(r.width, r.height));
+          }
+        } else if (a.t > 1) { ended = true; lift(); break; }
+        lastAt = nowAt;
+        if (probe.menu().open) break;
+      }
+      lift();
+      const total = (performance.now() - startAt) / 1000;
+      t.metric('acidSeconds', Number(probe.acid().t.toFixed(1)));
+      t.metric('acidInputSeconds', Number(inputSeconds.toFixed(1)));
+      t.event('acid', `input ${inputSeconds.toFixed(1)} s, lag max ${maxLag.toFixed(2)} s, drift max ${maxDrift.toFixed(2)} rad, down ${sawLocked.toFixed(1)} s, light dead ${sawFlashOff}, swap in a fall ${swappedDuringFall}, ended ${ended} after ${total.toFixed(1)} s`);
+      if (inputSeconds < 15) t.problem('bug', `only ${inputSeconds.toFixed(1)} s of movement input in the acid (want 15 or more)`);
+      if (maxLag < 0.35) t.problem('bug', `input lag only reached ${maxLag.toFixed(2)} s`);
+      if (sawLocked < 1.5) t.problem('bug', 'Pierce never fell in the acid');
+      if (!sawFlashOff) t.problem('bug', 'the flashlight never failed in the acid');
+      if (controlsHidden > 0) t.problem('bug', `touch controls were hidden or covered ${controlsHidden} times in the acid`);
+      if (minTouch < 44) t.problem('bug', `a touch control was ${Math.round(minTouch)} px (44 minimum)`);
+      if (!ended) t.problem('bug', 'the acid never ended at the door');
+      else {
+        const until = performance.now() + 20000;
+        while (performance.now() < until && !/end level/i.test(probe.action() ?? '')) await frame();
+        t.event('check', `action after the acid: ${probe.action()}`);
+      }
+      probe.phoneFrame(false);
+      t.progress(1);
+      return 'done';
+    };
+
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
     const b3RetryRun = async () => {
       levelsTotal = 1;
@@ -4419,6 +4542,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       for (const key of ['meshes', 'materials', 'textures', 'animationGroups'] as const) {
         if (again[key] > one[key] * 1.05 + 10) t.problem('bug', `${key} grew from ${one[key]} to ${again[key]} after level 1 -> 2 -> 1: the previous level was not freed`);
       }
+      return;
+    }
+
+    if (id === 'vat-acid') {
+      const outcome = await vatAcidRun();
+      t.progress(1);
+      t.finish(outcome);
       return;
     }
 

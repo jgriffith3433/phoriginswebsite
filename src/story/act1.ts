@@ -98,6 +98,28 @@ export type ActHost = {
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
   arriveOffice: () => void;
+  /** Hand input impairment to the player controller (null clears it). Used by the acid in the vat break. */
+  impair: (state: ImpairState | null) => void;
+  flashlight: (on: boolean) => void;
+  /** Has the player finished the vat beat before (a repeat player may skip the acid)? */
+  vatSeen: () => boolean;
+  rememberVat: () => void;
+};
+
+/** How the acid bends the player's controls. main.ts applies it in the on-foot movement step. */
+export type ImpairState = {
+  /** Seconds the input is late. */
+  lag: number;
+  /** Radians the walk heading is turned from where the stick points. */
+  drift: number;
+  /** Multiplier on walk speed. */
+  speed: number;
+  /** Input is ignored (he is on the floor). */
+  locked: boolean;
+  /** A pull on his walk, in the world XZ plane (the acid's pool, then the door). */
+  pull: { x: number; z: number };
+  /** He cannot get further east than this (keeps the beat from ending in three seconds). */
+  maxX: number;
 };
 
 const ELEVATOR_DOOR_L_CLOSED = 43.42;
@@ -151,9 +173,46 @@ const CREATURE_FLEE_PATH = [
 const VAT_CENTER = { x: 7.2, z: 38 };
 const VAT_LUNG = { x: 9.15, z: 38.15 };
 const VAT_STAND = { x: 11.35, z: 38.2 };
-const VAT_ARRIVE = 6.5;
-const VAT_CRACK = 3.8;
-const VAT_BREAK = 14.4;
+const VAT_ARRIVE = 2.0;
+const VAT_CRACK = 0.6;
+const VAT_BREAK = 4.2;
+/** The shot ends here; control comes back and the acid is played with the player's hands. */
+const VAT_SHOT_END = 5.0;
+/** Seconds of play in the acid (input never gone for less than the first of these). */
+const ACID_MIN = 21;
+const ACID_MAX = 26;
+/** Pierce is steered to the lab door he came in by. */
+const ACID_EXIT = { x: 17.6, z: 38 };
+const ACID_POOL = { x: 7.2, z: 38 };
+const ACID_FALL1_AT = 10;
+const ACID_FALL2_AT = 15;
+const ACID_LINE_AT = 5;
+/** B3 rooms as [id, minX, maxX, minZ, maxZ]: the hunt keeps one checkpoint per room entered. */
+const HUNT_ROOMS: ReadonlyArray<readonly [string, number, number, number, number]> = [
+  ['pipeHall', 41.5, 46.5, 24, 35.6],
+  ['hallB', 16.4, 46.75, 35.6, 40.45],
+  ['lab', 0, 16.4, 30.9, 45.1],
+  ['decon', 1.1, 14.9, 22.1, 30.9],
+  ['chemA', 18.5, 28.6, 27, 35.6],
+  ['chemB', 28.6, 40.3, 27, 35.6],
+  ['cell', 18.7, 40.4, 40.45, 52.8],
+  ['service', 40.4, 46.5, 40.45, 52.8],
+  ['control', 0.2, 16.4, 45.1, 52.8],
+  ['transform', 46.75, 63, 30, 52.85],
+  ['corridor', 0.3, 63, 52.8, 56.5],
+  ['utility', 16, 44, 56.5, 63],
+];
+/** Where it can wait out of sight after Pierce is downed (the farthest one from his checkpoint is used). */
+const HUNT_HIDE_SPOTS = [
+  { x: 7.5, z: 26.2 },
+  { x: 10.4, z: 36.4 },
+  { x: 44, z: 30 },
+  { x: 24, z: 32 },
+  { x: 34, z: 31 },
+  { x: 30, z: 46 },
+  { x: 8, z: 49 },
+  { x: 30, z: 60 },
+];
 const CREATURE_SFX = {
   breath: '/assets/audio/cutscenes/b3-door-reveal/creature-breath.wav',
   run: '/assets/audio/cutscenes/b3-door-reveal/creature-run.wav',
@@ -238,6 +297,19 @@ export const createAct1 = (host: ActHost) => {
   let bathroomMirror: BathroomMirror | null = null;
   let vatPath: { x: number; z: number }[] = [];
   let vatPathLen = 0;
+  let acidOn = false;
+  let acidT = 0;
+  let acidFallEnd = 0;
+  let acidWasDown = false;
+  let acidFalls = 0;
+  let acidSwapped = false;
+  let acidBeatAt = 0;
+  let acidBreathAt = 0;
+  let acidLineOn = false;
+  let acidFlashStep = 0;
+  let huntCheckpoint: { x: number; z: number; yaw: number } | null = null;
+  let huntRoom = '';
+  let huntHideLeft = 0;
   let vatArrive = VAT_ARRIVE;
   let vatCrackAt = 0;
   let vatClip: string | null = null;
@@ -330,9 +402,9 @@ export const createAct1 = (host: ActHost) => {
   const firstMesh = (id: string) => meshesFor(id)[0] ?? null;
 
   const syncObjective = () => {
-    if (host.inCutscene() || HIDE_MARKER.includes(phase)) host.hideMarker();
+    if (host.inCutscene() || (HIDE_MARKER.includes(phase) && !acidOn)) host.hideMarker();
     else host.showMarker();
-    host.showObjective(SHOW_HUD.includes(phase) && !host.inCutscene() && host.running());
+    host.showObjective((SHOW_HUD.includes(phase) || acidOn) && !host.inCutscene() && host.running());
   };
 
   const setCarry = (id: string) => host.setCarry(carryOf(id));
@@ -2113,7 +2185,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const lightVatStage = (time: number) => {
-    const open = Math.min(1, time / 7.5);
+    const open = Math.min(1, time / 3.2);
     const flare = time >= VAT_BREAK && time < VAT_BREAK + 2.4 ? 1 : time >= VAT_BREAK ? 0.4 : 0;
     host.hemi.intensity = 0.16 + open * 0.82 + flare * 0.2;
     host.sun.intensity = 0.03 + open * 0.16 + flare * 0.06;
@@ -2279,10 +2351,12 @@ export const createAct1 = (host: ActHost) => {
       );
     };
     if (time < VAT_ARRIVE && vatPathLen > 0.55) {
-      const along = vatPointAlong(vatPath, vatPathLen * Math.min(1, time / VAT_ARRIVE));
+      // Only the last stretch is walked on screen: the shot stays short wherever the hunt ended.
+      const from = Math.max(0, vatPathLen - 6);
+      const along = vatPointAlong(vatPath, from + (vatPathLen - from) * Math.min(1, time / VAT_ARRIVE));
       host.placePierce(along.x, along.z, along.yaw);
       if (vatClip !== 'walk') {
-        const rate = vatPathLen / VAT_ARRIVE;
+        const rate = (vatPathLen - from) / VAT_ARRIVE;
         host.playClip('walk', true, strideRatio('walk', rate));
         vatClip = 'walk';
       }
@@ -2291,7 +2365,7 @@ export const createAct1 = (host: ActHost) => {
       const span = VAT_BREAK - VAT_ARRIVE;
       const u = Math.min(1, Math.max(0, (time - VAT_ARRIVE) / span));
       const back = u * u * (3 - 2 * u);
-      const x = VAT_STAND.x + back * 2.15;
+      const x = VAT_STAND.x + back * 1.3;
       const z = VAT_STAND.z + Math.sin(u * Math.PI) * 0.16;
       const yaw = face + (time < VAT_BREAK ? Math.sin(time * 2.1) * 0.08 : 0);
       host.placePierce(x, z, yaw);
@@ -2300,7 +2374,7 @@ export const createAct1 = (host: ActHost) => {
         vatClip = 'back';
       }
       if (time >= VAT_BREAK && vatClip !== 'fall') {
-        host.playClip('fallingdown', false);
+        host.playClip('fallingdown', false, 1.6);
         vatClip = 'fall';
       }
       if (time < VAT_BREAK) frameOn(x, z, yaw);
@@ -2321,6 +2395,215 @@ export const createAct1 = (host: ActHost) => {
         material.emissiveColor.set(0.12 * pulse, 0.55 * pulse, 0.12 * pulse);
       }
     }
+  };
+
+
+  // ---- The acid: the vat break, played with the player's hands --------------------------------------------------
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+  const ramp = (t: number, from: number, to: number) => clamp01((t - from) / (to - from));
+
+  const beginAcid = () => {
+    if (acidOn || phase === 'done') return;
+    acidOn = true;
+    acidT = 0;
+    acidFalls = 0;
+    acidSwapped = false;
+    acidFallEnd = 0;
+    acidBeatAt = 0;
+    acidBreathAt = 0;
+    acidLineOn = false;
+    acidFlashStep = 0;
+    host.clearInput();
+    host.resumeLocomotion();
+    host.holdScene(false);
+    const line = objective('acid');
+    host.setObjective(line.title, line.text, { x: ACID_EXIT.x, y: 1.4, z: ACID_EXIT.z });
+    host.showMarker();
+    host.showObjective(true);
+    host.playFile(lineAudio('dialogue.b3-vat-break.02') || '/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg', 1);
+    host.showLine('Pierce', lineText('dialogue.b3-vat-break.02'));
+    host.impair({ lag: 0.05, drift: 0, speed: 0.9, locked: false, pull: { x: 0, z: 0 }, maxX: 14.2 });
+    host.playClip('fallingdown', false, 1.6);
+    acidFallEnd = 0.9;
+    acidWasDown = true;
+  };
+
+  const endAcid = () => {
+    if (!acidOn) return;
+    acidOn = false;
+    host.impair(null);
+    host.showLine('', '');
+    host.rememberVat();
+    if (!acidSwapped) {
+      acidSwapped = true;
+      transformed = true;
+      host.swapAvatar(TRANSFORM_HERO_ASSET_ID);
+    }
+    host.playClip('rebornidle', true);
+    finishLevel('b3');
+  };
+
+  const acidFall = (long: boolean) => {
+    acidFalls += 1;
+    acidFallEnd = acidT + (long ? 2.0 : 1.5);
+    acidWasDown = true;
+    host.clearInput();
+    host.playClip('fallingdown', false, 1.2);
+    host.playFile(CREATURE_SFX.wound, long ? 0.5 : 0.4);
+  };
+
+  const stepAcid = (delta: number) => {
+    if (!acidOn) return;
+    if (!host.running()) return;
+    acidT += delta;
+    const t = acidT;
+    // The vat stage keeps its light; the acid keeps pouring.
+    lightVatStage(VAT_BREAK + 3 + t * 0.1);
+    stepVatCoat();
+    const here = host.playerXZ();
+    const acid = firstMesh('vat-acid');
+    const material = acid?.material;
+    if (material instanceof BABYLON.StandardMaterial) {
+      const pulse = 0.72 + 0.28 * Math.abs(Math.sin(t * 5));
+      material.emissiveColor.set(0.12 * pulse, 0.55 * pulse, 0.12 * pulse);
+    }
+
+    // Strength of the acid in him, 0 (just hit) .. 1 (the end).
+    const lag = 0.05 + 0.35 * ramp(t, 0, 12);
+    const stagger = ramp(t, 3, 11);
+    const drift = Math.sin(t * 0.9) * (0.25 + 0.75 * stagger) * 0.85 + Math.sin(t * 2.3 + 1.1) * 0.3 * stagger;
+    let speed = 1.0 - 0.45 * stagger;
+    // Early on the fumes pull him back toward the pool; later the door pulls him out.
+    const doorPull = ramp(t, 11, 20);
+    const toDoor = Math.hypot(ACID_EXIT.x - here.x, ACID_EXIT.z - here.z) || 1;
+    const toPool = Math.hypot(ACID_POOL.x - here.x, ACID_POOL.z - here.z) || 1;
+    const poolK = 0.55 * (1 - doorPull) * 1;
+    const doorK = 0.2 + 0.9 * doorPull + (t > ACID_MAX - 3 ? 1.5 : 0);
+    const pull = {
+      x: ((ACID_POOL.x - here.x) / toPool) * poolK + ((ACID_EXIT.x - here.x) / toDoor) * doorK,
+      z: ((ACID_POOL.z - here.z) / toPool) * poolK + ((ACID_EXIT.z - here.z) / toDoor) * doorK,
+    };
+    if (acidWasDown && t >= acidFallEnd) {
+      acidWasDown = false;
+      host.resumeLocomotion();
+    }
+    if (acidFalls === 0 && t >= ACID_FALL1_AT) acidFall(false);
+    if (acidFalls === 1 && t >= ACID_FALL2_AT) {
+      acidFall(true);
+      // The swap hides in the fall and a white-hot blink: no T-pose, no pop.
+      host.fade(1, 0.12);
+      window.setTimeout(() => {
+        if (!acidOn) return;
+        acidSwapped = true;
+        transformed = true;
+        host.swapAvatar(TRANSFORM_HERO_ASSET_ID);
+        setCarry('changed');
+        host.playClip('fallingdown', false, 1.2);
+        host.fade(0, 0.5);
+      }, 160);
+    }
+    if (acidFalls >= 2 && acidSwapped) speed = 0.55;
+    host.impair({
+      lag: acidFalls >= 2 ? 0.3 : lag,
+      drift: acidFalls >= 2 ? drift * 0.6 : drift,
+      speed,
+      locked: t < acidFallEnd || (acidFalls >= 2 && !acidSwapped),
+      pull,
+      maxX: 13.2 + 4.4 * clamp01(t / 20),
+    });
+
+    // Flashlight: it stutters from 6 s and is dead by 8.5 s.
+    if (acidFlashStep === 0 && t >= 6) { host.flashlight(false); acidFlashStep = 1; }
+    else if (acidFlashStep === 1 && t >= 6.25) { host.flashlight(true); acidFlashStep = 2; }
+    else if (acidFlashStep === 2 && t >= 7.2) { host.flashlight(false); acidFlashStep = 3; }
+    else if (acidFlashStep === 3 && t >= 7.5) { host.flashlight(true); acidFlashStep = 4; }
+    else if (acidFlashStep === 4 && t >= 8.5) { host.flashlight(false); acidFlashStep = 5; }
+
+    // Heartbeat and breath rise with the acid.
+    const strain = clamp01(t / 18);
+    if (t >= acidBeatAt) {
+      host.playFile(CREATURE_SFX.heartbeat, 0.3 + 0.5 * strain);
+      acidBeatAt = t + 1.0 - 0.55 * strain;
+    }
+    if (t >= acidBreathAt) {
+      host.playFile(CREATURE_SFX.breath, 0.12 + 0.3 * strain);
+      acidBreathAt = t + 2.6 - 1.5 * strain;
+    }
+    fearFlash = 0;
+    if (t >= ACID_LINE_AT && !acidLineOn) {
+      acidLineOn = true;
+      host.playFile(lineAudio('dialogue.b3-vat-break.03') || '/assets/audio/cutscenes/b3-vat-break/05-pierce-what-happened.ogg', 0.92);
+      host.showLine('Pierce', lineText('dialogue.b3-vat-break.03'));
+    }
+    if (acidLineOn && t >= ACID_LINE_AT + 17) host.showLine('', '');
+
+    const door = Math.hypot(here.x - ACID_EXIT.x, here.z - ACID_EXIT.z);
+    if ((t >= ACID_MIN && door < 1.1 && acidSwapped) || t >= ACID_MAX + 4) endAcid();
+  };
+
+  /** Repeat players: hold Skip to go straight to the crawl out. */
+  const skipAcid = () => {
+    if (!acidOn) return;
+    endAcid();
+  };
+
+  // ---- Hunt retry: the creature downs Pierce, he is back at the room's checkpoint in under a second --------------
+  const roomOf = (x: number, z: number) => {
+    for (const row of HUNT_ROOMS) {
+      if (x >= row[1] && x <= row[2] && z >= row[3] && z <= row[4]) return row[0];
+    }
+    return '';
+  };
+
+  const noteCheckpoint = () => {
+    if (phase !== 'hunt' || host.inCutscene()) return;
+    const here = host.playerXZ();
+    const room = roomOf(here.x, here.z);
+    if (!room || room === huntRoom) return;
+    huntRoom = room;
+    huntCheckpoint = { x: here.x, z: here.z, yaw: huntCheckpoint?.yaw ?? Math.PI / 2 };
+  };
+
+  /** True when the hunt takes the down as a retry (the caller restores health and fades). */
+  const huntDowned = (): boolean => phase === 'hunt' && host.isB3() && retreatLeft <= 0;
+
+  /** Back to the last checkpoint, the creature out of sight. Returns where Pierce stands. */
+  const huntRetry = (): { x: number; z: number; yaw: number } => {
+    const spot = huntCheckpoint ?? { x: B3_REVEAL_START.x, z: B3_REVEAL_START.z, yaw: B3_REVEAL_START.yaw };
+    let best = HUNT_HIDE_SPOTS[0];
+    let far = -1;
+    for (const hide of HUNT_HIDE_SPOTS) {
+      const d = Math.hypot(hide.x - spot.x, hide.z - spot.z);
+      if (d > far) { far = d; best = hide; }
+    }
+    const node = creatureRoot();
+    if (node) {
+      node.position.set(best.x, 0, best.z);
+      node.setEnabled(false);
+    }
+    huntHideLeft = 3.2;
+    huntMood = 'lurk';
+    huntWaiting = false;
+    nextStrike = 8 + Math.random() * 3;
+    lurkIdle = 0.5;
+    strikeLeft = 0;
+    leapLeft = 0;
+    leapt = false;
+    huntPath = [];
+    biteCooldown = 2.5;
+    repathIn = 0;
+    dread = 0;
+    fearFlash = 0;
+    host.alarmFlash?.classList.remove('visible');
+    restorePracticals();
+    return { x: spot.x, z: spot.z, yaw: Math.atan2(spot.x - best.x, spot.z - best.z) };
+  };
+
+  const stepHuntHidden = (delta: number) => {
+    if (huntHideLeft <= 0) return;
+    huntHideLeft -= delta;
+    const node = creatureRoot();
+    if (node && huntHideLeft <= 0) node.setEnabled(true);
   };
 
   const FEED_LAYER = 0x10000000;
@@ -2949,7 +3232,7 @@ export const createAct1 = (host: ActHost) => {
         return;
       }
       if (id === 'b3-vat-break') {
-        finishLevel('b3');
+        beginAcid();
         return;
       }
       if (id === 'b3-door-reveal') {
@@ -2997,7 +3280,7 @@ export const createAct1 = (host: ActHost) => {
         finishLevel('apex');
       }
       if (id === 'b3-door-reveal') beginHunt();
-      if (id === 'b3-vat-break') finishLevel('b3');
+      if (id === 'b3-vat-break') beginAcid();
     },
     beforeCutsceneStep: (id: string, time: number) => {
       if (windowLocked) placeWindow();
@@ -3117,7 +3400,10 @@ export const createAct1 = (host: ActHost) => {
         }
       }
       stepStall(delta);
+      noteCheckpoint();
+      stepHuntHidden(delta);
       stepHunt(delta);
+      stepAcid(delta);
     },
     alarmTick: (delta: number) => {
       if (!alarm.active) return;
@@ -3134,6 +3420,23 @@ export const createAct1 = (host: ActHost) => {
     },
     shotAt,
     aimPoint,
+    huntDowned,
+    huntRetry,
+    /** Test setup (playtest `vat-acid`): the hunt, from the lab door. */
+    debugHunt: () => {
+      phase = 'reveal';
+      labDoorOpen = 1;
+      applyLabDoors(1);
+      resetCreature();
+      beginHunt();
+      host.showObjective(true);
+      syncObjective();
+    },
+    acidInfo: () => ({ active: acidOn, t: acidT, falls: acidFalls, swapped: acidSwapped }),
+    acidActive: () => acidOn,
+    acidTime: () => acidT,
+    vatSeen: () => host.vatSeen(),
+    skipAcid,
     doneHold: () => phase === 'done',
     cutsceneLight: (on: boolean, intensity?: number, target?: string) => {
       captureLights();

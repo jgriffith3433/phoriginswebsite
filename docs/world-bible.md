@@ -256,7 +256,7 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 | 5 | **Down.** | Elevator | `elevator-b3`: cab hum, chimes, floors pass, sway | hum 0.5, descent rumble 0.38, 6 lines |
 | 6 | **Door reveal.** | B3 lab door | Door slides, creature (Idle, Attack, shriek), flees through the south door | "Oh my god! What is that thing?!", shriek 0.78 |
 | 7 | **The hunt.** | B3 decon onward | Creature chases in bursts; downed by 4 torso hits; runs to the glass | skitter, breath, heartbeat |
-| 8 | **Vat break.** | ACID VAT | 40 s: Attack on glass, crack, Pierce backs off, glass goes at 14.4 s, FallingDown, acid, scream, swap to Ch44 at 18.6 s | Scream 1.0, glass 0.86, splash 0.78, "What happened to me..." |
+| 8 | **Vat break.** | ACID VAT | A 5 s shot: Attack on glass, crack, Pierce backs off, glass goes at 4.2 s, acid. Then played: 21-26 s of input in the acid (lag to ~0.4 s, drift, stagger, two falls, flashlight dies, heartbeat and breath rise), Ch44 swap hidden in the second fall, a crawl to the lab door. A death in the hunt before it is a 0.6 s red fade and a checkpoint, not a Defeat card. See `docs/story/playable-beats.md` | Scream 1.0, glass 0.86, splash 0.78, heartbeat, breath, "What happened to me..." |
 | 9 | **Brightness.** | Pipe hall x 44 | He talks to himself, the lamps too bright, Hale rings | Pierce x4, Hale x3 (Annie) |
 | 10 | **Up.** | Cab | `elevator-up` ~69 s; he reconstructs the vat, notices hands, decides on a mirror | rebornidle, chime |
 | 11 | **That's me.** | Restroom mirror | Look in mirror; reflection; "That's me. I'm not seeing things." | Jackson 0.92 |
