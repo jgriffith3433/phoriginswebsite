@@ -12,6 +12,7 @@ export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/apex/screen-tap.ogg': '/assets/audio/sfx/flashlight.ogg',
   '/assets/audio/sfx/apex/skyline.ogg': '/assets/audio/sfx/objective.ogg',
   '/assets/audio/sfx/apex/troffer-flicker.ogg': '/assets/audio/sfx/flashlight-off.ogg',
+  '/assets/audio/sfx/apex/door-locked.ogg': '/assets/audio/sfx/glass-tick.ogg',
   // The Desk (theDesk.ts): the sweep and the mirror. The breath has no stand-in and stays silent until made.
   '/assets/audio/sfx/desk/paper-slide.ogg': '/assets/audio/sfx/apex/sofa-creak.ogg',
   '/assets/audio/sfx/desk/paper-land.ogg': '/assets/audio/sfx/pistol-holster.ogg',

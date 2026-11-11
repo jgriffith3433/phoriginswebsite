@@ -2645,6 +2645,32 @@
       "note": "Apex Peak: boardroom valuation screen"
     },
     {
+      "id": "ui.action.apex.door",
+      "type": "ui",
+      "speaker": "Try the door",
+      "text": "Try the door",
+      "audio": "",
+      "note": "Apex Peak hall: locked side door marked IN SESSION"
+    },
+    {
+      "id": "bark.apex.desk01",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "They're already in. Hale's on her feet.",
+      "audio": "",
+      "performance": "nervous",
+      "note": "Apex Peak hall: associate at the desk, board plot through play (no call)"
+    },
+    {
+      "id": "bark.apex.threat01",
+      "type": "bark",
+      "speaker": "Pierce Hawkes",
+      "text": "She's standing.",
+      "audio": "",
+      "performance": "softly",
+      "note": "Apex Peak hall: Pierce flinches at Hale's silhouette through the board doorway"
+    },
+    {
       "id": "bark.desk.01",
       "type": "bark",
       "speaker": "Security radio",
