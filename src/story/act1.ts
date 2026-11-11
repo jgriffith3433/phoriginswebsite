@@ -103,6 +103,7 @@ export type ActHost = {
   /** Hand input impairment to the player controller (null clears it). Used by the acid in the vat break. */
   impair: (state: ImpairState | null) => void;
   flashlight: (on: boolean) => void;
+  flashlightOn?: () => boolean;
   /** Has the player finished the vat beat before (a repeat player may skip the acid)? */
   vatSeen: () => boolean;
   rememberVat: () => void;
@@ -243,7 +244,12 @@ const COLD_PASS_AT = 14;
 const COLD_PASS_NEAR_X = 30;
 const COLD_RUSH_AFTER = 8;
 const COLD_RUSH_NEAR_X = 27;
-const COLD_RUSH_SPEED = 7.4;
+const COLD_RUSH_SPEED = 7.4; // the old straight-line speed; now the top end of the chase ramp
+const COLD_CHASE_START = 4.2; // m/s when it breaks into the hall: Pierce walks 3.05, so running away only buys seconds
+const COLD_CHASE_RAMP = 0.3; // m/s gained per second of chase
+const COLD_CHASE_MAX_SECONDS = 12; // the cut comes no later than this
+const COLD_DARK_STALL = 3.5; // seconds the creature loses its footing when he kills the torch (once spent, it is on him)
+const COLD_DARK_SLOW = 0.3; // fraction of its speed while it hunts a dark hall
 const COLD_CAUGHT = 1.5;
 const COLD_LIGHT_FAIL_AT = 7;
 const COLD_SKITTER_AT = 3;
@@ -1244,10 +1250,51 @@ export const createAct1 = (host: ActHost) => {
   let coldCut = false;
   let coldKnocked = false;
   let coldFlicker = 0;
+  let coldDarkLeft = COLD_DARK_STALL;
 
   const hallLight = () => host.scene.lights.find((light) => light.name === 'Hall B Light B') as BABYLON.PointLight | undefined;
 
+  // A lit exit at the end of the hall: a bright door panel, a halo and a floor spill, so the way reads from 26 m away.
+  let coldBeacon: BABYLON.Mesh[] = [];
+  let coldFill: { hemi: number } | null = null;
+  const removeColdBeacon = () => {
+    coldBeacon.forEach((mesh) => {
+      if (!mesh.isDisposed()) mesh.dispose(false, true);
+    });
+    coldBeacon = [];
+    if (coldFill) {
+      host.hemi.intensity = coldFill.hemi;
+      coldFill = null;
+    }
+  };
+  const buildColdBeacon = () => {
+    removeColdBeacon();
+    const scene = host.scene;
+    const make = (name: string, w: number, h: number, color: BABYLON.Color3, alpha: number, pos: BABYLON.Vector3, rot: BABYLON.Vector3) => {
+      const plane = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, scene);
+      const mat = new BABYLON.StandardMaterial(`${name}-mat`, scene);
+      mat.disableLighting = true;
+      mat.emissiveColor = color;
+      mat.alpha = alpha;
+      if (alpha < 1) mat.alphaMode = BABYLON.Engine.ALPHA_ADD;
+      mat.backFaceCulling = false;
+      plane.material = mat;
+      plane.position.copyFrom(pos);
+      plane.rotation.copyFrom(rot);
+      plane.isPickable = false;
+      plane.checkCollisions = false;
+      coldBeacon.push(plane);
+    };
+    const faceHall = new BABYLON.Vector3(0, Math.PI / 2, 0);
+    make('cold-exit-panel', 1.9, 2.3, new BABYLON.Color3(0.55, 1, 0.7), 1, new BABYLON.Vector3(17.2, 1.2, 38), faceHall);
+    make('cold-exit-halo', 3.6, 3.6, new BABYLON.Color3(0.12, 0.42, 0.24), 0.9, new BABYLON.Vector3(17.5, 1.5, 38), faceHall);
+    make('cold-exit-spill', 2.4, 6, new BABYLON.Color3(0.1, 0.34, 0.2), 0.8, new BABYLON.Vector3(19.4, 0.03, 38), new BABYLON.Vector3(Math.PI / 2, Math.PI / 2, 0));
+    coldFill = { hemi: host.hemi.intensity };
+    host.hemi.intensity = Math.max(host.hemi.intensity, 0.3); // enough to read wall, floor and the CONTAINMENT sign
+  };
+
   const beginColdOpen = () => {
+    buildColdBeacon();
     phase = 'cold';
     coldT = 0;
     coldSkittered = false;
@@ -1258,6 +1305,7 @@ export const createAct1 = (host: ActHost) => {
     coldCut = false;
     coldKnocked = false;
     coldFlicker = 0;
+    coldDarkLeft = COLD_DARK_STALL;
     host.showObjective(false);
     host.hideMarker();
     host.clearObjectiveCue();
@@ -1292,7 +1340,9 @@ export const createAct1 = (host: ActHost) => {
     const here = host.playerXZ();
     // Creeping with a torch: slower than the story walk, and the nearer the doorway the heavier each step.
     const near = Math.max(0, Math.min(1, (here.x - 26) / 6));
-    host.impair({ lag: 0, drift: 0, speed: 0.55 * (0.2 + 0.8 * near), locked: false, pull: { x: 0, z: 0 }, maxX: 99 });
+    // Once it breaks loose he has his full walk back: running away is the response, and it only buys seconds.
+    const creep = coldRushT >= 0 ? 1 : 0.55 * (0.2 + 0.8 * near);
+    host.impair({ lag: 0, drift: 0, speed: creep, locked: false, pull: { x: 0, z: 0 }, maxX: 99 });
     if (!coldSkittered && coldT >= COLD_SKITTER_AT) {
       coldSkittered = true;
       host.playFile(CREATURE_SFX.skitter, 0.6);
@@ -1355,12 +1405,18 @@ export const createAct1 = (host: ActHost) => {
         const dz = here.z - node.position.z;
         const dist = Math.hypot(dx, dz);
         if (dist > 1e-3) {
-          const step = Math.min(dist, COLD_RUSH_SPEED * delta);
+          // It speeds up the longer the chase goes. Killing the torch (G) makes it lose him for a few seconds.
+          let speed = Math.min(COLD_RUSH_SPEED, COLD_CHASE_START + COLD_CHASE_RAMP * coldRushT);
+          if (!host.flashlightOn?.() && coldDarkLeft > 0 && dist > 3) {
+            coldDarkLeft -= delta;
+            speed *= COLD_DARK_SLOW;
+          }
+          const step = Math.min(dist, speed * delta);
           node.position.x += (dx / dist) * step;
           node.position.z += (dz / dist) * step;
           node.rotation.y = Math.atan2(dx, dz);
         }
-        if (dist < COLD_CAUGHT || coldRushT > 7) {
+        if (dist < COLD_CAUGHT || coldRushT > COLD_CHASE_MAX_SECONDS) {
           coldCut = true;
           host.impair(null);
           host.clearInput();
@@ -1369,6 +1425,7 @@ export const createAct1 = (host: ActHost) => {
           host.playFile(COLD_SCREAM, 1);
           host.flashlight(false);
           setCreatureVisible(false);
+          removeColdBeacon();
           phase = 'idle';
           host.coldOpenDone?.();
         }
@@ -1382,7 +1439,9 @@ export const createAct1 = (host: ActHost) => {
     creatureShown: Boolean(creatureRoot()?.isEnabled()),
     creatureOnScreen: phase === 'cold' && coldCreatureOnScreen(),
     rushing: coldRushT >= 0,
+    chaseSeconds: Math.max(0, coldRushT),
     lightOut: coldLightOut,
+    exitLit: coldBeacon.length > 0,
   });
 
   const beginArrival = () => {
@@ -3373,6 +3432,7 @@ export const createAct1 = (host: ActHost) => {
     },
     cancelColdOpen: () => {
       coldArmed = false;
+      removeColdBeacon();
       if (phase === 'cold') {
         phase = 'idle';
         host.impair(null);

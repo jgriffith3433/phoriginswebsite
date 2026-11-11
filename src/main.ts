@@ -2629,6 +2629,7 @@ act = createAct1({
     if (on && !phone.isRaised()) phone.setRaised(true);
     if (phone.flashlightOn() !== on) phone.setFlashlight(on);
   },
+  flashlightOn: () => phone.flashlightOn(),
   vatSeen: () => {
     try { return localStorage.getItem('hawkes.vatSeen') === '1'; } catch { return false; }
   },
