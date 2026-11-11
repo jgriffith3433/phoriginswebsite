@@ -198,7 +198,7 @@
         z-index: 11;
         border: 1px solid rgba(255,255,255,0.16);
         border-radius: 999px;
-        background: rgba(10, 20, 31, 0.92);
+        background: rgba(10, 20, 31, 0.72);
         color: var(--text);
         font-size: 10px;
         letter-spacing: 0.18rem;
@@ -206,7 +206,7 @@
         text-transform: uppercase;
         padding: 10px 14px;
         cursor: pointer;
-        /* No backdrop-filter over the live canvas: it paints a flat dark band on slow/headless GPUs. */
+        backdrop-filter: blur(8px);
       }
 
       #devPanel {
@@ -837,144 +837,22 @@
 
       .skip-cutscene {
         position: absolute;
-        bottom: calc(var(--safe-bottom) + 18px);
-        right: max(16px, env(safe-area-inset-right, 0px));
-        top: auto;
+        top: 18px;
+        right: 18px;
         z-index: 30;
-        min-width: 88px;
-        min-height: 44px;
-        padding: 10px 18px;
+        padding: 8px 16px;
         border: 1px solid rgba(255, 255, 255, 0.35);
         border-radius: 4px;
-        background: rgba(8, 10, 14, 0.82);
+        background: rgba(8, 10, 14, 0.72);
         color: #f2f2f2;
         font: 600 13px/1.2 inherit;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         cursor: pointer;
-        touch-action: manipulation;
-        overflow: hidden;
-      }
-
-      .skip-cutscene .skip-fill {
-        position: absolute;
-        inset: 0 auto 0 0;
-        width: 0%;
-        background: rgba(201, 168, 106, 0.35);
-        pointer-events: none;
-        transition: width 0.05s linear;
-      }
-
-      .skip-cutscene .skip-label {
-        position: relative;
-        z-index: 1;
-      }
-
-      .skip-cutscene kbd {
-        margin-left: 6px;
-        opacity: 0.65;
-        font: inherit;
-        font-size: 11px;
-        letter-spacing: 0.04em;
-      }
-
-      body[data-device='mobile'] .skip-cutscene kbd,
-      body[data-device='tablet'] .skip-cutscene kbd {
-        display: none;
       }
 
       .skip-cutscene[hidden] {
         display: none;
-      }
-
-      /* Thin letterbox during cutscenes / scripted scenes (TLOU-style presentation). */
-      .letterbox {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 0;
-        background: #05070a;
-        z-index: 22;
-        pointer-events: none;
-        opacity: 0;
-        transition: height 0.35s ease, opacity 0.35s ease;
-      }
-      .letterbox.top { top: 0; }
-      .letterbox.bottom { bottom: 0; }
-      body.cinematic .letterbox {
-        height: min(9vh, 72px);
-        opacity: 1;
-      }
-
-      /* Captions: one line, bottom centre, above the letterbox; leave room for Skip on the right. */
-      #cineHud {
-        position: absolute;
-        left: 50%;
-        bottom: calc(var(--safe-bottom) + min(9vh, 72px) + 14px);
-        transform: translateX(-50%);
-        width: min(72vw, 640px);
-        max-width: calc(100vw - 200px);
-        text-align: center;
-        pointer-events: none;
-        z-index: 24;
-        display: none;
-        transition: opacity 0.25s ease;
-      }
-      #cineHud.on { display: block; }
-      body:not(.cinematic) #cineHud { bottom: 11%; }
-      #cineHud .cine-line {
-        display: inline-block;
-        max-width: 100%;
-        margin: 0;
-        padding: 0;
-        color: #f3f1ea;
-        font: 500 17px/1.35 "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
-        letter-spacing: 0.02em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-shadow: 0 2px 16px #000;
-        vertical-align: middle;
-      }
-      #cineHud .cine-speaker {
-        color: #d4b483;
-        text-transform: uppercase;
-        letter-spacing: 0.18em;
-        font-size: 0.78em;
-        margin-right: 0.55em;
-      }
-      #cineHud[data-box='true'] .cine-line {
-        padding: 8px 16px;
-        background: rgba(5, 8, 12, 0.78);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-      #cineHud[data-size='sm'] .cine-line { font-size: 14px; }
-      #cineHud[data-size='md'] .cine-line { font-size: 17px; }
-      #cineHud[data-size='lg'] .cine-line { font-size: 21px; }
-      #cineHud[data-off='true'] { display: none !important; }
-
-      /* Cinematic: HUD and touch controls fade out; Skip and captions stay. */
-      body.cinematic .hud,
-      body.cinematic .controls,
-      body.cinematic .objective-hud,
-      body.cinematic .objective-waypoint,
-      body.cinematic .pause-btn,
-      body.cinematic .ability-readout,
-      body.cinematic .missions-hud,
-      body.cinematic .inventory-hud,
-      body.cinematic .action-hint,
-      body.cinematic .interact-hint,
-      body.cinematic .lost-hint,
-      body.cinematic .reload-hint,
-      body.cinematic .perf-monitor,
-      body.cinematic #crosshair {
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition: opacity 0.35s ease, visibility 0.35s ease;
-      }
-      .hud, .controls, .objective-hud, .pause-btn, .ability-readout, .missions-hud, .inventory-hud {
-        transition: opacity 0.35s ease, visibility 0.35s ease;
       }
 
       .phone-hint kbd {
@@ -1488,9 +1366,9 @@
         width: min(260px, calc(100vw - 36px));
         padding: 10px;
         border-radius: 16px;
-        background: rgba(10, 20, 31, 0.94);
+        background: rgba(10, 20, 31, 0.78);
         border: 1px solid var(--panel-border);
-        /* No backdrop-filter over the live canvas: same dark-band family as the title panel. */
+        backdrop-filter: blur(10px);
         pointer-events: auto;
         gap: 8px;
         flex-direction: column;
@@ -2405,17 +2283,14 @@
         display: none;
       }
 
+      .skip-cutscene {
+        right: 72px;
+      }
+
       body[data-device='mobile'] .pause-btn,
       body[data-device='tablet'] .pause-btn {
         right: 10px;
         top: calc(var(--safe-top) + 10px);
-      }
-
-      body[data-device='mobile'] .skip-cutscene,
-      body[data-device='tablet'] .skip-cutscene {
-        bottom: calc(var(--safe-bottom) + 12px);
-        right: max(12px, env(safe-area-inset-right, 0px));
-        top: auto;
       }
 
       .overlay-card {
@@ -2488,19 +2363,6 @@
         opacity: 0.45;
       }
 
-      .settings-rows[data-subs-off='true'] .settings-row.subs-detail {
-        opacity: 0.45;
-      }
-
-      .settings-section {
-        margin: 4px 0 0;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.22rem;
-        text-transform: uppercase;
-        color: var(--hb-gold, #c9a86a);
-      }
-
       .sound-switch {
         min-width: 76px;
         padding: 10px 16px;
@@ -2520,27 +2382,8 @@
       @media (max-height: 480px) {
         .overlay-card .panel { padding: 18px 20px; }
         .overlay-card h1 { font-size: 28px; margin-bottom: 6px; }
-        .settings-rows { gap: 8px; margin-top: 8px; }
-        .settings-row input[type='range'] { height: 28px; }
-        .overlay-card .button-row { margin-top: 10px; }
-        .settings-privacy { display: none; }
-      }
-
-      /* Portrait phone: Settings must show every option without clipping the card. */
-      body[data-device='mobile'][data-orientation='portrait'] .settings-card .panel,
-      body[data-device='tablet'][data-orientation='portrait'] .settings-card .panel {
-        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 24px);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-      }
-      body[data-device='mobile'][data-orientation='portrait'] .settings-rows,
-      body[data-device='tablet'][data-orientation='portrait'] .settings-rows {
-        gap: 10px;
-        margin-top: 10px;
-      }
-      body[data-device='mobile'][data-orientation='portrait'] .settings-privacy,
-      body[data-device='tablet'][data-orientation='portrait'] .settings-privacy {
-        display: none;
+        .settings-rows { gap: 10px; margin-top: 10px; }
+        .overlay-card .button-row { margin-top: 12px; }
       }
       /* ---- Title card (PH Origins main menu): the chairman's terminal on the 58th floor of Hawkes Tower. ----
          A Hawkes Biomedical executive console over the night skyline: letterhead bar, serif wordmark, a memo line,
@@ -3129,11 +2972,7 @@
       body[data-device='mobile'] .pause-btn,
       body[data-device='tablet'] .pause-btn { right: max(10px, env(safe-area-inset-right, 0px)); }
       body[data-device='mobile'] .skip-cutscene,
-      body[data-device='tablet'] .skip-cutscene {
-        right: max(10px, env(safe-area-inset-right, 0px));
-        bottom: calc(var(--safe-bottom) + 12px);
-        top: auto;
-      }
+      body[data-device='tablet'] .skip-cutscene { right: calc(max(10px, env(safe-area-inset-right, 0px)) + 56px); }
       body[data-device='mobile'] .message,
       body[data-device='tablet'] .message {
         padding-left: max(12px, env(safe-area-inset-left, 0px));
@@ -3297,7 +3136,7 @@
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
-    <script type="module" crossorigin src="./assets/index-CaB6Bjyg.js"></script>
+    <script type="module" crossorigin src="./assets/index-B3Iev2Cz.js"></script>
   </head>
   <body>
     <div id="game-root">
@@ -3329,15 +3168,7 @@
       <button type="button" id="actionHint" class="action-hint" hidden>Join meeting<kbd> — E</kbd></button>
       <button type="button" id="lostHint" class="action-hint lost-hint" hidden>Lost? Return to objective<kbd> — R</kbd></button>
       <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
-      <div class="letterbox top" id="letterboxTop" aria-hidden="true"></div>
-      <div class="letterbox bottom" id="letterboxBottom" aria-hidden="true"></div>
-      <div id="cineHud" data-size="md" data-box="true" aria-live="polite">
-        <p class="cine-line"><span class="cine-speaker" id="cineSpeaker"></span><span id="cineText"></span></p>
-      </div>
-      <button type="button" id="skipCutscene" class="skip-cutscene" hidden aria-label="Skip">
-        <span class="skip-fill" id="skipFill" aria-hidden="true"></span>
-        <span class="skip-label">Skip<kbd>Enter</kbd></span>
-      </button>
+      <button type="button" id="skipCutscene" class="skip-cutscene" hidden>Skip</button>
       <div id="objectiveHud" class="objective-hud" aria-live="polite">
         <span class="objective-kicker">Objective</span>
         <span id="objectiveText" class="objective-text"></span>
@@ -3540,33 +3371,6 @@
         <div class="panel">
           <h1 id="settingsTitle">Settings</h1>
           <div class="settings-rows" id="settingsRows">
-            <div class="settings-section">Camera</div>
-            <div class="settings-row inline">
-              <span class="settings-label" id="invertYLabel">Invert camera Y</span>
-              <button type="button" class="sound-switch" id="invertYSwitch" role="switch" aria-checked="false" aria-labelledby="invertYLabel">Off</button>
-            </div>
-            <div class="settings-row">
-              <label for="mouseSens">Mouse sensitivity <output id="mouseSensOut" for="mouseSens">1.0×</output></label>
-              <input type="range" id="mouseSens" min="50" max="200" step="5" value="100" />
-            </div>
-            <div class="settings-row">
-              <label for="touchSens">Touch sensitivity <output id="touchSensOut" for="touchSens">1.0×</output></label>
-              <input type="range" id="touchSens" min="50" max="200" step="5" value="100" />
-            </div>
-            <div class="settings-section">Subtitles</div>
-            <div class="settings-row inline">
-              <span class="settings-label" id="subsLabel">Subtitles</span>
-              <button type="button" class="sound-switch" id="subsSwitch" role="switch" aria-checked="true" aria-labelledby="subsLabel">On</button>
-            </div>
-            <div class="settings-row subs-detail">
-              <label for="subsSize">Subtitle size <output id="subsSizeOut" for="subsSize">Medium</output></label>
-              <input type="range" id="subsSize" min="0" max="2" step="1" value="1" />
-            </div>
-            <div class="settings-row inline subs-detail">
-              <span class="settings-label" id="subsBoxLabel">Subtitle box</span>
-              <button type="button" class="sound-switch" id="subsBoxSwitch" role="switch" aria-checked="true" aria-labelledby="subsBoxLabel">On</button>
-            </div>
-            <div class="settings-section">Sound</div>
             <div class="settings-row inline">
               <span class="settings-label" id="soundLabel">Sound</span>
               <button type="button" class="sound-switch" id="soundSwitch" role="switch" aria-checked="true" aria-labelledby="soundLabel">On</button>
