@@ -218,6 +218,7 @@ type LiveClip = {
   finished: boolean;
   onEnded?: () => void;
   rate: number;
+  voiceEnd?: () => void;
 };
 
 const liveClips = new Set<LiveClip>();
@@ -227,9 +228,31 @@ const disconnect = (node: AudioNode | null) => {
   try { node?.disconnect(); } catch { /* already */ }
 };
 
+/** The music director listens here: it ducks under a voice line and fires a stinger on a beat's line. */
+export type VoiceHook = (url: string) => (() => void) | null;
+let voiceHook: VoiceHook | null = null;
+export const setVoiceHook = (hook: VoiceHook | null) => { voiceHook = hook; };
+
+/** Decode a file into the shared cache (the music director's stems and stingers). */
+export const decodeClip = (url: string): Promise<AudioBuffer> => {
+  const ctx = getSharedAudioContext();
+  if (!ctx) return Promise.reject(new Error('no audio context'));
+  return loadBuffer(clean(url), ctx);
+};
+
+/** Forget a decoded file (a stem that is not in use, on the phone memory tier). */
+export const forgetClip = (url: string) => {
+  const entry = buffers.get(clean(url));
+  if (!entry) return;
+  bufferBytes -= entry.bytes;
+  buffers.delete(clean(url));
+};
+
 const finish = (clip: LiveClip, ended: boolean) => {
   if (clip.finished) return;
   clip.finished = true;
+  clip.voiceEnd?.();
+  clip.voiceEnd = undefined;
   liveClips.delete(clip);
   disconnect(clip.source);
   disconnect(clip.gain);
@@ -276,13 +299,13 @@ const pauseSource = (clip: LiveClip) => {
 export const playClip = (
   url: string,
   volume: number,
-  options: { loop?: boolean; bus?: SoundBus; rate?: number; onEnded?: () => void; onError?: () => void } = {},
+  options: { loop?: boolean; bus?: SoundBus; destination?: AudioNode; rate?: number; onEnded?: () => void; onError?: () => void } = {},
 ): ClipHandle | null => {
   const ctx = getSharedAudioContext();
   if (!ctx) return null;
   const gain = ctx.createGain();
   gain.gain.value = clamp(volume);
-  gain.connect(busInput(ctx, options.bus ?? 'sfx'));
+  gain.connect(options.destination ?? busInput(ctx, options.bus ?? 'sfx'));
   const clip: LiveClip = {
     ctx,
     buffer: null,
@@ -297,6 +320,7 @@ export const playClip = (
     onEnded: options.onEnded,
     rate: options.rate ?? 1,
   };
+  clip.voiceEnd = voiceHook?.(clean(url)) ?? undefined;
   liveClips.add(clip);
   loadBuffer(clean(url), ctx).then((buffer) => {
     if (clip.finished) return;

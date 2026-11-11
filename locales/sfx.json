@@ -1036,6 +1036,315 @@
       "influence": 0.65,
       "volume": 1,
       "note": "The Desk mirror: his breath, until the glass goes quiet. No stand-in: silent until made."
+    },
+    {
+      "id": "music.ch1.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, whole Pierce piano motif, sparse low piano in D minor, soft room-tone strings; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch1-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 1 Apex Peak (58th floor) score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch1.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, whole Pierce piano motif, sparse low piano in D minor, soft room-tone strings; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch1-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 1 Apex Peak (58th floor) score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch1.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, whole Pierce piano motif, sparse low piano in D minor, soft room-tone strings; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch1-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 1 Apex Peak (58th floor) score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch2.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, B3 hunt: low synth pulse under the piano motif, detuned after the vat; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch2-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 2 B3 score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch2.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, B3 hunt: low synth pulse under the piano motif, detuned after the vat; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch2-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 2 B3 score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch2.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, B3 hunt: low synth pulse under the piano motif, detuned after the vat; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch2-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 2 B3 score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch3.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, the detuned Pierce piano motif, wrong-sounding, bright hum; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch3-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 3 The Return score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch3.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, the detuned Pierce piano motif, wrong-sounding, bright hum; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch3-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 3 The Return score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch3.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, the detuned Pierce piano motif, wrong-sounding, bright hum; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch3-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 3 The Return score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch4.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, the detuned piano motif alone, cold, a ticking clock pulse; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch4-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 4 The Desk score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch4.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, the detuned piano motif alone, cold, a ticking clock pulse; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch4-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 4 The Desk score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch4.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, the detuned piano motif alone, cold, a ticking clock pulse; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch4-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 4 The Desk score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch5.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, night street, detuned piano with distant low drone and soft kick; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch5-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 5 Going Home score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch5.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, night street, detuned piano with distant low drone and soft kick; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch5-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 5 Going Home score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch5.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, night street, detuned piano with distant low drone and soft kick; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch5-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 5 Going Home score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch6.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, rail-like percussion, steel clicks and a rolling snare, detuned piano; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch6-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 6 The Station score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch6.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, rail-like percussion, steel clicks and a rolling snare, detuned piano; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch6-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 6 The Station score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch6.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, rail-like percussion, steel clicks and a rolling snare, detuned piano; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch6-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 6 The Station score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch7.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, rail-like percussion rising with the chase, rolling wheels rhythm, detuned piano; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch7-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 7 The Train score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch7.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, rail-like percussion rising with the chase, rolling wheels rhythm, detuned piano; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch7-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 7 The Train score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch7.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, rail-like percussion rising with the chase, rolling wheels rhythm, detuned piano; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch7-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 7 The Train score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch8.calm",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, near silence, a single held low tone, the piano motif only once in the peak stem; sparse and quiet. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch8-calm.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 8 The Morning score stem (calm). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch8.tension",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, near silence, a single held low tone, the piano motif only once in the peak stem; a pulse comes in, thicker. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch8-tension.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 8 The Morning score stem (tension). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.ch8.peak",
+      "group": "music",
+      "text": "Loopable instrumental music stem, D minor, 72 bpm, 12 bars (40 s), seamless loop, near silence, a single held low tone, the piano motif only once in the peak stem; full, urgent, driving. No voices, no melody beyond the motif, mixes under dialogue.",
+      "audio": "/assets/audio/music/ch8-peak.ogg",
+      "loop": true,
+      "duration": 40,
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Chapter 8 The Morning score stem (peak). Stems of one chapter share key, tempo and length so they crossfade on bar lines. Not yet generated (needs GPU approval)."
+    },
+    {
+      "id": "music.stinger.vat-break",
+      "group": "music",
+      "text": "One-shot musical stinger, D minor, no voices: a low piano cluster collapses into a detuned chord, glass-like shimmer, 5 s.",
+      "audio": "/assets/audio/music/stinger-vat-break.ogg",
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Stinger fired by the music director (vat-break). Not yet generated."
+    },
+    {
+      "id": "music.stinger.mirror",
+      "group": "music",
+      "text": "One-shot musical stinger, D minor, no voices: one clean piano note, then the same note detuned a quarter tone, hollow, 4 s.",
+      "audio": "/assets/audio/music/stinger-mirror.ogg",
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Stinger fired by the music director (mirror). Not yet generated."
+    },
+    {
+      "id": "music.stinger.is-that-me",
+      "group": "music",
+      "text": "One-shot musical stinger, D minor, no voices: two piano notes answered by their reversed echo, subway air, 4 s.",
+      "audio": "/assets/audio/music/stinger-is-that-me.ogg",
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Stinger fired by the music director (is-that-me). Not yet generated."
+    },
+    {
+      "id": "music.stinger.no-stop",
+      "group": "music",
+      "text": "One-shot musical stinger, D minor, no voices: brakes-like descending string glissando with one soft low piano hit, 5 s.",
+      "audio": "/assets/audio/music/stinger-no-stop.ogg",
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Stinger fired by the music director (no-stop). Not yet generated."
+    },
+    {
+      "id": "music.stinger.tv-news",
+      "group": "music",
+      "text": "One-shot musical stinger, D minor, no voices: a bright broadcast sting bent flat, thin synth over low piano, 4 s.",
+      "audio": "/assets/audio/music/stinger-tv-news.ogg",
+      "influence": 0.5,
+      "volume": 0.8,
+      "note": "Stinger fired by the music director (tv-news). Not yet generated."
     }
   ]
 }

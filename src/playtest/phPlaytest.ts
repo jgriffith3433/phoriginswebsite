@@ -160,6 +160,8 @@ export type PhProbe = {
     footsteps: boolean;
     stepCount?: number;
     steps?: { surface: string; variant: number; rate: number; foot: string }[];
+    /** Music director (docs/music.md): state, state log, duck depth, events. */
+    music?: { chapter: number; state: string; stems: number; streaming: boolean; duckDb: number; duckDepthDb: number; voices: number; changes: number; stateLog: { t: number; state: string; reason: string }[]; events: { t: number; kind: string; detail: string }[]; silenceSeconds: number };
   };
   /**
    * Frame-time trace: last frame ms, hitch counts over 50/100 ms, and the worst five with a
@@ -578,6 +580,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         title: 'Each level has its own bed, a strike gives sound and a screen pulse, volume sliders persist',
         description: 'Starts levels 1 to 8 directly (setup) and logs the music bed each one plays. On level 6 it walks and checks the footstep loop starts and stops, clicks (Punch) and checks the action pulse fired, then opens Pause > Settings, slides Music and Effects and checks hawkes.sound saved both.',
         seconds: 200,
+        tags: ['sound'],
+      },
+      {
+        id: 'music-director',
+        title: 'The score answers the game: a state change in every chapter, ducking under voice, stingers on their beats, Music 0% silences it',
+        description: 'Starts levels 1 to 8 directly and logs each chapter\'s music state changes, stems loaded (streamed on the phone tier), duck depth and stinger events from the music director. On level 1 it drops Settings Music to 0 through the real slider and checks the bus is silent, then puts it back. Run it at 390x844 touch for the phone check.',
+        seconds: 150,
         tags: ['sound'],
       },
       {
@@ -4810,6 +4819,44 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         t.progress(n === 1 ? 0.5 : 1);
       }
       t.finish('done');
+      return;
+    }
+
+    if (id === 'music-director') {
+      levelsTotal = 1;
+      for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        await enterLevel(n);
+        t.scene(`Level ${n}`);
+        t.event('level-start', `Level ${n}`);
+        try {
+          await t.until(() => (probe.sound().music?.chapter ?? 0) === n, 20000, 'the music director to start the chapter');
+          await sleep(3000);
+          const m = probe.sound().music!;
+          t.event('music-state', `L${n}: ${m.state}, ${m.changes} change(s), stems ${m.stems}${m.streaming ? ' (streamed)' : ''}, duck depth ${m.duckDepthDb} dB`);
+          for (const e of m.events.filter((x) => x.kind === 'stinger')) t.event('stinger', `L${n}: ${e.detail} at ${e.t}s`);
+          if (m.changes < 1 && n !== 8) t.problem('bug', `Level ${n}: the music never changed state`);
+        } catch { t.problem('bug', `Level ${n}: the music director never started`); }
+        if (n === 1) {
+          try {
+            const byId = (name: string) => document.getElementById(name);
+            await tapAt(byId('pauseBtn'), 'Pause');
+            await t.until(() => probe.sound().paused, 3000, 'Pause');
+            await tapAt(byId('pauseSettingsBtn'), 'Settings (Pause)');
+            await t.until(() => probe.sound().settingsOpen, 3000, 'Settings');
+            const el = byId('musicVolume') as HTMLInputElement;
+            el.value = '0';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            await sleep(300);
+            t.event('setting-saved', `Music at 0%: bus level ${probe.sound().settings.music}`);
+            if (probe.sound().settings.music !== 0) t.problem('bug', 'Music 0% did not take');
+            el.value = '100';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            await tapAt(byId('settingsDoneBtn'), 'Done');
+          } catch (e) { t.problem('bug', `Music slider check failed: ${e instanceof Error ? e.message : e}`); }
+        }
+      }
       return;
     }
 
