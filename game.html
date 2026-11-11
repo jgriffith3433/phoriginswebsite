@@ -3367,6 +3367,33 @@
       body.cinematic:is([data-device='mobile'], [data-device='tablet']) #cineHud { right: max(120px, env(safe-area-inset-right, 0px)); }
       body:not(.cinematic):is([data-device='mobile'], [data-device='tablet']) #cineHud { bottom: calc(var(--safe-bottom) + 236px); }
       body:not(.cinematic):is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] #cineHud { bottom: calc(var(--safe-bottom) + 148px); }
+
+      /* ---- Phone pass (critic: phone 4/10): bigger HUD text, a right-hand stack of two or three buttons
+         (Phone duplicates the ☎ action button, Medkit and Inventory live in the Missions / pause flow),
+         and no developer toggle on touch. ---- */
+      body:is([data-device='mobile'], [data-device='tablet']) #devToggle,
+      body:is([data-device='mobile'], [data-device='tablet']) #devPanel { display: none !important; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #phoneHint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #medkitHint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #inventoryHint { display: none; }
+      /* On the street levels Shadow, Ability and Hands are the three; the flashlight is not needed there. */
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open):has(#shadowHint:not([hidden])) #lightHint { display: none; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) .phone-hint {
+        min-width: 112px; min-height: 48px; font-size: 14px; letter-spacing: 0.08em; padding: 10px 14px; justify-content: center;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .brand { font-size: 12px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .label,
+      body:is([data-device='mobile'], [data-device='tablet']) .ability-kicker,
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-kicker { font-size: 13px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-text { font-size: 20px; line-height: 1.25; }
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-dist { font-size: 15px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .ability-readout strong { font-size: 18px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .missions-hud .phone-hint { font-size: 14px; min-height: 48px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name,
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-dist { font-size: 16px; }
+      /* Landscape grid keeps its three columns but gets room for the larger type. */
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) { grid-template-columns: repeat(3, 100px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) .phone-hint { min-width: 0; font-size: 13px; padding: 6px; }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
