@@ -69,7 +69,7 @@ export const createSceneGrade = (
     const apex = themeName === 'Apex Peak';
     const street = themeName === 'Street';
     const station = themeName === 'Station';
-    image.exposure = basement ? 0.84 : street ? 0.9 : apex ? 1.12 : 1.05;
+    image.exposure = basement ? 0.84 : street ? 0.9 : apex ? 1.02 : 1.05;
     image.contrast = basement ? 1.06 : 1.12;
     pipeline.bloomWeight = basement ? 0.28 : apex ? 0.06 : 0.1;
     pipeline.bloomThreshold = basement ? 0.48 : 0.84;
@@ -82,6 +82,11 @@ export const createSceneGrade = (
     curves.globalExposure = 0;
     curves.shadowsExposure = 0;
     curves.highlightsExposure = 0;
+    curves.shadowsHue = 0;
+    curves.midtonesHue = 0;
+    curves.highlightsHue = 0;
+    curves.shadowsSaturation = 0;
+    curves.midtonesSaturation = 0;
     image.colorCurvesEnabled = false;
     paintHemiGround(0, 0, 0);
     if (station) {
@@ -96,6 +101,26 @@ export const createSceneGrade = (
       image.colorCurvesEnabled = true;
       liftFill(0.95, 0.2);
       paintHemiGround(0.16, 0.17, 0.15);
+    } else if (apex && !powers) {
+      // Title-card navy: cool the office halls so the bright ceiling reads with the terminal chrome.
+      image.exposure = 1.0;
+      image.contrast = 1.16;
+      image.vignetteWeight = 2.55;
+      image.vignetteColor.set(0.035, 0.06, 0.11, 0);
+      pipeline.bloomWeight = 0.05;
+      pipeline.bloomThreshold = 0.9;
+      pipeline.bloomKernel = 14;
+      curves.globalSaturation = -10;
+      curves.shadowsHue = 28;
+      curves.midtonesHue = 18;
+      curves.highlightsHue = 12;
+      curves.shadowsSaturation = 18;
+      curves.midtonesSaturation = 8;
+      curves.highlightsExposure = -22;
+      curves.shadowsExposure = -8;
+      image.colorCurvesEnabled = true;
+      paintHemiGround(0.04, 0.07, 0.14);
+      scene.fogColor = new BABYLON.Color3(0.035, 0.05, 0.09);
     } else if (powers && basement) {
       image.exposure = 1.72;
       image.contrast = 1.08;

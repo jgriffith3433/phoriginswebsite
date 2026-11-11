@@ -1438,7 +1438,7 @@
       "name": "Player",
       "x": 0,
       "y": 0,
-      "z": 4.087249279022217,
+      "z": 13.5,
       "components": [
         "Transform",
         "Collider"
@@ -3462,18 +3462,18 @@
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Bathroom Door",
-      "x": 17.34,
+      "x": 16.62,
       "y": 1.05,
-      "z": 29.02,
+      "z": 29.45,
       "rotation": {
         "x": 0,
         "y": 0,
         "z": 0
       },
       "scale": {
-        "x": 0.045,
+        "x": 0.88,
         "y": 2.1,
-        "z": 0.88
+        "z": 0.045
       },
       "components": [
         "Transform"
@@ -3543,18 +3543,18 @@
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Bathroom Door Handle",
-      "x": 17.39,
+      "x": 16.4,
       "y": 1.02,
-      "z": 29.32,
+      "z": 29.4125,
       "rotation": {
         "x": 0,
         "y": 0,
         "z": 0
       },
       "scale": {
-        "x": 0.04,
+        "x": 0.03,
         "y": 0.12,
-        "z": 0.03
+        "z": 0.04
       },
       "components": [
         "Transform"

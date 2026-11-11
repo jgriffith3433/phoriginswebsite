@@ -1,0 +1,73 @@
+{
+  "id": "finale-8",
+  "name": "The report",
+  "duration": 7.6,
+  "reequip": false,
+  "notes": "The TV switches itself on to the Hawkes Tower report as he leaves: the board voted without its chairman and called it stable.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": {
+        "x": 4.6,
+        "y": 1.55,
+        "z": 1
+      },
+      "lookAt": {
+        "x": 3.2,
+        "y": 1.3,
+        "z": -2.95
+      }
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0.3,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/home/tv-static.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 0.6,
+      "type": "world",
+      "target": "tv-report",
+      "to": 1,
+      "duration": 0
+    },
+    {
+      "at": 0.9,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/home/news-sting.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 1.2,
+      "type": "line",
+      "duration": 4.2,
+      "volume": 0.85,
+      "line": "dialogue.finale-8.01"
+    },
+    {
+      "at": 6,
+      "type": "line",
+      "duration": 1.3,
+      "volume": 0.92,
+      "line": "dialogue.finale-8.02",
+      "actor": "pierce",
+      "anim": "idle"
+    },
+    {
+      "at": 7.6,
+      "type": "end"
+    }
+  ]
+}

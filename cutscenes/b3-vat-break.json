@@ -1,38 +1,38 @@
 {
   "id": "b3-vat-break",
   "name": "Acid",
-  "duration": 39.6,
+  "duration": 5.0,
   "reequip": false,
-  "notes": "Pierce walks to the vat. The creature attacks the glass in place. Pierce backs away on WalkBack while the glass cracks, then it shatters at 14.4s, FallingDown plays, and the acid hits him. Ch44 at 18.6s plays RebornIdle. Level Complete follows the line.",
+  "notes": "The attack on the glass is one short shot (5 s): Pierce walks the last steps to the vat, the creature lunges at the glass, Pierce backs away on WalkBack, the glass goes at 4.2s and the acid hits him. Then the cutscene ends and the player has control in the acid (src/story/act1.ts beginAcid): lag, drift, stagger, two falls, a failing flashlight, the Ch44 swap hidden in the second fall, and the crawl to the door. 'What happened to me...' plays during that.",
   "events": [
     {
-      "at": 4.2,
+      "at": 0.5,
       "type": "audio",
       "clip": "/assets/audio/sfx/creature/shriek.wav",
       "bus": "sfx",
       "volume": 0.42
     },
     {
-      "at": 6.6,
+      "at": 0.9,
       "type": "line",
       "duration": 3.2,
       "volume": 0.92,
       "line": "dialogue.b3-vat-break.01"
     },
     {
-      "at": 7.4,
+      "at": 1.1,
       "type": "hud",
       "line": "hud.b3-vat-break.01"
     },
     {
-      "at": 11.2,
+      "at": 2.9,
       "type": "audio",
       "clip": "/assets/audio/sfx/creature/shriek.wav",
       "bus": "sfx",
       "volume": 0.58
     },
     {
-      "at": 14.4,
+      "at": 4.2,
       "type": "camera",
       "position": {
         "x": 16.2,
@@ -46,113 +46,27 @@
       }
     },
     {
-      "at": 14.4,
+      "at": 4.2,
       "type": "mesh",
       "target": "vat-glass",
       "on": false
     },
     {
-      "at": 14.4,
+      "at": 4.2,
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-vat-break/vat-glass.wav",
       "bus": "sfx",
       "volume": 0.86
     },
     {
-      "at": 14.55,
+      "at": 4.35,
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-vat-break/vat-splash.wav",
       "bus": "sfx",
       "volume": 0.78
     },
     {
-      "at": 14.7,
-      "type": "line",
-      "duration": 2.9,
-      "volume": 1,
-      "line": "dialogue.b3-vat-break.02"
-    },
-    {
-      "at": 16.4,
-      "type": "camera",
-      "position": {
-        "x": 15.35,
-        "y": 0.95,
-        "z": 40.15
-      },
-      "lookAt": {
-        "x": 13.5,
-        "y": 0.28,
-        "z": 38.15
-      }
-    },
-    {
-      "at": 18.6,
-      "type": "avatar",
-      "assetId": "asset-ch44-hero"
-    },
-    {
-      "at": 18.6,
-      "type": "carry",
-      "target": "changed",
-      "line": "item.scene.b3-vat-break.01"
-    },
-    {
-      "at": 18.6,
-      "type": "hud",
-      "line": "hud.b3-vat-break.02"
-    },
-    {
-      "at": 18.8,
-      "type": "camera",
-      "position": {
-        "x": 11.2,
-        "y": 1.42,
-        "z": 40.55
-      },
-      "lookAt": {
-        "x": 13.7,
-        "y": 1.28,
-        "z": 38.3
-      }
-    },
-    {
-      "at": 19.1,
-      "type": "anim",
-      "actor": "pierce",
-      "clip": "rebornidle",
-      "loop": true
-    },
-    {
-      "at": 19.4,
-      "type": "line",
-      "actor": "pierce",
-      "anim": "rebornidle",
-      "duration": 19,
-      "volume": 0.92,
-      "line": "dialogue.b3-vat-break.03"
-    },
-    {
-      "at": 28.4,
-      "type": "camera",
-      "position": {
-        "x": 15.5,
-        "y": 1.5,
-        "z": 39.75
-      },
-      "lookAt": {
-        "x": 13.6,
-        "y": 1.22,
-        "z": 38.25
-      }
-    },
-    {
-      "at": 38.6,
-      "type": "hud",
-      "line": "hud.b3-vat-break.03"
-    },
-    {
-      "at": 39.6,
+      "at": 5.0,
       "type": "end"
     }
   ]

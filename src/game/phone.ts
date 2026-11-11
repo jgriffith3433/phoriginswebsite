@@ -7,10 +7,25 @@ import { phoneSpeakerId, storyLine } from './locale';
 import type { PlayerAvatar } from './playerAvatar';
 
 type Contact = { name: string; detail: string };
-type CallLine = { speaker: string; text: string; audio?: string; duration: number };
-type CallScript = { contact: string; dial?: boolean; lines: CallLine[] };
-type RawLine = { line?: string; speaker?: string; text?: string; audio?: string; duration: number };
-type RawScript = { contact: string; dial?: boolean; lines: RawLine[] };
+type CallLine = { speaker: string; text: string; audio?: string; duration: number; alt?: { when: StatWhen; line: CallLine }[] };
+/** A reply moment: while `after` plays, the player picks what Pierce says (keys 1-3, tap), or stays silent. */
+type ReplyOption = { id: string; text: string; line: CallLine; answer: CallLine; delta: number };
+type ReplyMoment = { id: string; after: number; resume: number; window: number; options: ReplyOption[]; silence: { answer: CallLine; delta: number } };
+type CallScript = { contact: string; dial?: boolean; lines: CallLine[]; moments: ReplyMoment[] };
+type StatWhen = Partial<Record<TrustStat, { min?: number; max?: number }>>;
+type RawLine = { line?: string; speaker?: string; text?: string; audio?: string; duration: number; alt?: { when: StatWhen; line?: string; duration?: number }[] };
+type RawMoment = {
+  id: string; after: number; resume?: number; window?: number;
+  options: { id: string; text: string; line: string; duration: number; answer: string; answerDuration: number; delta?: number }[];
+  silence: { answer: string; duration: number; delta?: number };
+};
+type RawScript = { contact: string; dial?: boolean; lines: RawLine[]; replies?: RawMoment[] };
+/** What the player has said to Voss and Hale, kept on the save cookie, each clamped to -2..+2. */
+export type TrustStat = 'vossTrust' | 'haleTemper';
+export const STAT_MIN = -2;
+export const STAT_MAX = 2;
+export const REPLY_WINDOW_SECONDS = 5;
+const statOf = (contact: string): TrustStat => (contact === 'hale' ? 'haleTemper' : 'vossTrust');
 type TextDef = { contact: string; line?: string; text?: string };
 
 const copy = phoneCopy as {
@@ -20,20 +35,39 @@ const copy = phoneCopy as {
   byObjective?: Record<string, Record<string, RawScript>>;
 };
 
+const resolveLine = (entry: { line?: string; speaker?: string; text?: string; audio?: string; duration: number }): CallLine => {
+  const row = entry.line ? storyLine(entry.line) : undefined;
+  const audio = row?.audio || entry.audio || '';
+  return {
+    speaker: phoneSpeakerId(row?.speaker || entry.speaker || ''),
+    text: row?.text || entry.text || '',
+    audio: audio || undefined,
+    duration: entry.duration,
+  };
+};
+
 const resolveScript = (raw: RawScript): CallScript => ({
   contact: raw.contact,
   dial: raw.dial,
-  lines: raw.lines.map((entry) => {
-    const row = entry.line ? storyLine(entry.line) : undefined;
-    const audio = row?.audio || entry.audio || '';
-    return {
-      speaker: phoneSpeakerId(row?.speaker || entry.speaker || ''),
-      text: row?.text || entry.text || '',
-      audio: audio || undefined,
-      duration: entry.duration,
-    };
-  }),
+  lines: raw.lines.map((entry) => ({
+    ...resolveLine(entry),
+    alt: entry.alt?.map((a) => ({ when: a.when, line: resolveLine({ line: a.line, duration: a.duration ?? entry.duration }) })),
+  })),
+  moments: (raw.replies ?? []).map((m) => ({
+    id: m.id,
+    after: m.after,
+    resume: m.resume ?? m.after + 1,
+    window: m.window ?? REPLY_WINDOW_SECONDS,
+    options: m.options.map((o) => {
+      const line = resolveLine({ line: o.line, duration: o.duration });
+      return { id: o.id, text: o.text || line.text, line, answer: resolveLine({ line: o.answer, duration: o.answerDuration }), delta: o.delta ?? 0 };
+    }),
+    silence: { answer: resolveLine({ line: m.silence.answer, duration: m.silence.duration }), delta: m.silence.delta ?? 0 },
+  })),
 });
+
+const inRange = (value: number, range?: { min?: number; max?: number }) =>
+  !range || ((range.min === undefined || value >= range.min) && (range.max === undefined || value <= range.max));
 
 const TONE = {
   dial: '/assets/audio/sfx/phone/dial.wav',
@@ -72,6 +106,10 @@ export type PhoneView = {
   showFlash: boolean;
   showMessages: boolean;
   messages: PhoneMessage[];
+  /** Reply bubbles for the moment that is open now (empty otherwise). `left` counts down from `total` seconds. */
+  replies: { key: number; text: string }[];
+  repliesLeft: number;
+  repliesTotal: number;
   toast: string;
   app: 'home' | 'messages' | 'contacts' | 'recents';
   contacts: { id: string; name: string; detail: string }[];
@@ -106,6 +144,10 @@ export type Phone = {
   openApp: (app: 'messages' | 'contacts' | 'recents') => void;
   back: () => void;
   silence: () => void;
+  /** Picks reply `index` (0-based) of the open moment. False when none is open. */
+  chooseReply: (index: number) => boolean;
+  /** Every reply moment this session answered, in order: which option (or `silence`), and whether it cut the caller off. */
+  replyLog: () => { call: string; moment: string; choice: string; cutOff: boolean; delta: number; stat: TrustStat; value: number }[];
   update: (dt: number, camera: BABYLON.Camera, feet: { x: number; y: number; z: number }) => void;
   view: () => PhoneView;
 };
@@ -144,6 +186,12 @@ export const createPhone = (
     objectiveId: () => string;
     /** Open Call Voss / Call Hale on this level. Those outbound calls connect. */
     callQuestOpen: (contactId: string) => boolean;
+    /** Saved trust values (vossTrust, haleTemper). */
+    getStat?: (stat: TrustStat) => number;
+    /** Adds a reply's delta to a saved stat (clamped to -2..+2 by the saver) and returns the new value. */
+    addStat?: (stat: TrustStat, delta: number) => number;
+    /** A reply moment was answered (for analytics and the playtest). */
+    onReply?: (info: { call: string; moment: string; choice: string; cutOff: boolean }) => void;
   },
 ): Phone => {
   const attach = new BABYLON.TransformNode('phoneAttach', scene);
@@ -291,6 +339,8 @@ export const createPhone = (
   let handMesh: BABYLON.AbstractMesh | null = null;
 
   let scannedMeshes = -1;
+  let scannedAvatar: PlayerAvatar | null = null;
+  let scannedAvatarMeshes = -1;
 
   const rememberExcluded = (mesh: BABYLON.AbstractMesh | null | undefined) => {
     if (!mesh || excludedSet.has(mesh)) return false;
@@ -302,7 +352,11 @@ export const createPhone = (
   const syncExcluded = () => {
     let grew = false;
     const avatar = boundAvatar;
-    if (avatar) {
+    // `getChildMeshes` builds a new array: walk the avatar only when the scene's mesh list changed (or the avatar did),
+    // not on every rendered frame.
+    if (avatar && (avatar !== scannedAvatar || scene.meshes.length !== scannedAvatarMeshes)) {
+      scannedAvatar = avatar;
+      scannedAvatarMeshes = scene.meshes.length;
       for (const mesh of avatar.group.getChildMeshes(false)) {
         if (rememberExcluded(mesh)) grew = true;
       }
@@ -437,6 +491,12 @@ export const createPhone = (
   let gap = 0;
   let lineToken = 0;
   let voice: ClipHandle | null = null;
+  /** Reply moment being offered: its seconds left, and the ones already answered on this call. */
+  let moment: { def: ReplyMoment; left: number } | null = null;
+  const momentsDone = new Set<string>();
+  let queue: CallLine[] = [];
+  let resumeAt = -1;
+  const replyLogged: { call: string; moment: string; choice: string; cutOff: boolean; delta: number; stat: TrustStat; value: number }[] = [];
   let nextRing = 0;
   let toast = '';
   let toastLeft = 0;
@@ -551,18 +611,23 @@ export const createPhone = (
     voice = null;
   };
 
-  const playLine = () => {
-    const line = script?.lines[lineIndex];
-    if (!script || !line) {
-      beginEnded();
-      return;
+  const pickLine = (line: CallLine): CallLine => {
+    for (const alt of line.alt ?? []) {
+      const ok = (Object.keys(alt.when) as TrustStat[]).every((key) => inRange(options.getStat?.(key) ?? 0, alt.when[key]));
+      if (ok) return alt.line;
     }
+    return line;
+  };
+
+  const playLineNow = (line: CallLine) => {
+    if (!script) return;
     speakerId = line.speaker;
     lineText = line.text;
     const token = ++lineToken;
     gap = 0;
     if (line.audio && options.soundOn()) {
-      preloadClips(script.lines.slice(lineIndex + 1, lineIndex + 3).map((next) => next.audio ?? ''));
+      const upcoming = script.lines.slice(lineIndex + 1, lineIndex + 3).map((next) => next.audio ?? '');
+      preloadClips([...queue.map((q) => q.audio ?? ''), ...upcoming]);
       voice = playClip(line.audio, 0.92, {
         onEnded: () => {
           if (token !== lineToken) return;
@@ -579,12 +644,62 @@ export const createPhone = (
     }
   };
 
+  const playLine = () => {
+    const line = script?.lines[lineIndex];
+    if (!script || !line) {
+      beginEnded();
+      return;
+    }
+    const def = script.moments.find((m) => m.after === lineIndex && !momentsDone.has(m.id));
+    if (def) {
+      momentsDone.add(def.id);
+      moment = { def, left: def.window };
+    }
+    playLineNow(pickLine(line));
+  };
+
+  /** The line that just finished is followed by an inserted reply/answer, else the script's next (or resume) line. */
+  const advance = () => {
+    const next = queue.shift();
+    if (next) {
+      playLineNow(next);
+      return;
+    }
+    if (resumeAt >= 0) {
+      lineIndex = resumeAt;
+      resumeAt = -1;
+    } else {
+      lineIndex += 1;
+    }
+    playLine();
+  };
+
+  const settle = (choice: ReplyOption | null) => {
+    if (!moment || !script) return;
+    const def = moment.def;
+    const cutOff = choice !== null && gap <= 0;
+    const delta = choice ? choice.delta : def.silence.delta;
+    const stat = statOf(script.contact);
+    const value = options.addStat?.(stat, delta) ?? 0;
+    const tag = choice ? choice.id : 'silence';
+    replyLogged.push({ call: scriptId, moment: def.id, choice: tag, cutOff, delta, stat, value });
+    options.onReply?.({ call: scriptId, moment: def.id, choice: tag, cutOff });
+    moment = null;
+    stopVoice();
+    queue = choice ? [choice.line, choice.answer] : [def.silence.answer];
+    resumeAt = def.resume;
+    advance();
+  };
+
   const beginEnded = () => {
     if (script && scriptId) {
       const of = script.lines.length;
       options.onCallEnded?.(scriptId, lineIndex >= of ? 'read' : 'skipped', Math.min(lineIndex, of), of);
     }
     rememberCall('Answered');
+    moment = null;
+    queue = [];
+    resumeAt = -1;
     stopVoice();
     mode = 'ended';
     lineText = '';
@@ -615,6 +730,7 @@ export const createPhone = (
     mode = 'active';
     elapsed = 0;
     lineIndex = 0;
+    momentsDone.clear();
     options.onConnected?.(next.contact);
     playLine();
   };
@@ -762,6 +878,7 @@ export const createPhone = (
       mode = 'active';
       elapsed = 0;
       lineIndex = 0;
+      momentsDone.clear();
       nextRing = 0;
       stopTones();
       options.onConnected?.(script.contact);
@@ -839,7 +956,17 @@ export const createPhone = (
       toastLeft = Math.min(8, 3.4 + body.length / 28);
       chirp(740, 0.09, 'sine', 0.05);
     },
+    chooseReply: (index: number) => {
+      const choice = moment?.def.options[index];
+      if (!moment || !choice || mode !== 'active') return false;
+      settle(choice);
+      return true;
+    },
+    replyLog: () => replyLogged.map((entry) => ({ ...entry })),
     silence: () => {
+      moment = null;
+      queue = [];
+      resumeAt = -1;
       stopVoice();
       stopTones();
       mode = 'idle';
@@ -885,12 +1012,16 @@ export const createPhone = (
       }
       if (mode === 'active') {
         elapsed += dt;
-        if (gap > 0) {
+        if (moment) {
+          moment.left -= dt;
+          // The window is up: stay silent once the caller has finished the line (never cut them off for nothing).
+          if (moment.left <= 0 && gap > 0) settle(null);
+        }
+        if (mode === 'active' && gap > 0 && !(moment && moment.left > 0)) {
           gap -= dt;
           if (gap <= 0) {
             gap = 0;
-            lineIndex += 1;
-            playLine();
+            advance();
           }
         }
       }
@@ -940,6 +1071,9 @@ export const createPhone = (
         showFlash: uiOpen && mode === 'idle',
         showMessages: uiOpen && mode === 'idle',
         messages: inbox.map((message) => ({ ...message })),
+        replies: mode === 'active' && moment ? moment.def.options.map((o, i) => ({ key: i + 1, text: o.text })) : [],
+        repliesLeft: mode === 'active' && moment ? Math.max(0, moment.left) : 0,
+        repliesTotal: mode === 'active' && moment ? moment.def.window : 0,
         toast,
         app,
         contacts,

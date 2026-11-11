@@ -18,6 +18,7 @@ import {
 import { paintLiftGlyph, type SceneData, type SceneTrigger } from '../game/sceneData';
 import { pointInsideTrigger } from '../game/triggers';
 import { carryItems, lineAudio, lineText, storyLine } from '../game/locale';
+import { music } from '../game/musicDirector';
 
 import actCopy from './act1.json';
 import { APEX_BOARD, createLinePool } from './placeVoices';
@@ -25,8 +26,8 @@ import { APEX_BOARD, createLinePool } from './placeVoices';
 export type StoryCarry = { id: string; name: string; note: string };
 
 export type SequencePhase =
-  | 'seat' | 'idle' | 'late' | 'wait-board' | 'to-window' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
-  | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform'
+  | 'seat' | 'idle' | 'late' | 'wait-board' | 'to-window' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'cab' | 'ride' | 'done'
+  | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform' | 'cold'
   | 'return-walk' | 'return-call' | 'return-up' | 'return-ride' | 'mirror' | 'mirror-look';
 
 type Objective = { title: string; text: string };
@@ -39,7 +40,8 @@ const copy = actCopy as {
 
 const objective = (id: string): Objective => {
   const fallback = copy.objectives[id] ?? { title: 'Objective', text: '' };
-  const row = storyLine(`objective.${id}`);
+  const touch = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+  const row = (touch && storyLine(`objective.${id}.touch`)) || storyLine(`objective.${id}`);
   if (!row) return fallback;
   return { title: row.speaker || fallback.title, text: row.text || fallback.text };
 };
@@ -85,6 +87,8 @@ export type ActHost = {
   refreshHud: () => void;
   setCarry: (items: StoryCarry[]) => void;
   ringCall: (id: string) => void;
+  /** Lets Pierce walk while a call is up (the late call). */
+  callWalk?: (on: boolean) => void;
   pushPhoneText: (id: string) => void;
   silencePhone: () => void;
   hurt: (amount: number, cause?: string) => void;
@@ -97,6 +101,31 @@ export type ActHost = {
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
   arriveOffice: () => void;
+  /** Hand input impairment to the player controller (null clears it). Used by the acid in the vat break. */
+  impair: (state: ImpairState | null) => void;
+  flashlight: (on: boolean) => void;
+  flashlightOn?: () => boolean;
+  /** Has the player finished the vat beat before (a repeat player may skip the acid)? */
+  vatSeen: () => boolean;
+  rememberVat: () => void;
+  /** The first-visit cold open ended on the scream and a cut to black (main.ts shows the card and the title). */
+  coldOpenDone?: () => void;
+};
+
+/** How the acid bends the player's controls. main.ts applies it in the on-foot movement step. */
+export type ImpairState = {
+  /** Seconds the input is late. */
+  lag: number;
+  /** Radians the walk heading is turned from where the stick points. */
+  drift: number;
+  /** Multiplier on walk speed. */
+  speed: number;
+  /** Input is ignored (he is on the floor). */
+  locked: boolean;
+  /** A pull on his walk, in the world XZ plane (the acid's pool, then the door). */
+  pull: { x: number; z: number };
+  /** He cannot get further east than this (keeps the beat from ending in three seconds). */
+  maxX: number;
 };
 
 const ELEVATOR_DOOR_L_CLOSED = 43.42;
@@ -111,6 +140,24 @@ const ELEVATOR_RIDE_AT = 7.2;
 const ELEVATOR_ARRIVE_AT = 64.5;
 const ELEVATOR_DING_AT = 65.4;
 const LIFT_FLOOR_AT = [0, 16, 26, 36, 46, 56, 64.5];
+/** The ride is the player's: the B3 press starts it, the doors close, 18 s of floors, then the ding. */
+const CAB_DOOR_CLOSE = 1.4;
+const CAB_RIDE_AT = 1.6;
+const CAB_ARRIVE_AT = 18;
+const CAB_END_AT = 19.6;
+const CAB_FLOOR_AT = [0, 3, 6, 9, 12, 15, 18];
+const WINDOW_MONOLOGUE: AsideLine[] = [
+  { id: 'dialogue.apex-window.01', duration: 4.6 },
+  { id: 'dialogue.apex-window.02', duration: 7.2 },
+  { id: 'dialogue.apex-window.03', duration: 7.4 },
+  { id: 'dialogue.apex-window.04', duration: 7.2 },
+  { id: 'dialogue.apex-window.05', duration: 4.8 },
+  { id: 'dialogue.apex-window.06', duration: 7 },
+];
+const CAB_ASIDE: AsideLine[] = [
+  { id: 'dialogue.elevator-b3.01', duration: 6.1 },
+  { id: 'dialogue.elevator-b3.02', duration: 7.9 },
+];
 const LIFT_FLOOR_LEDS = ['lift-ind-58', 'lift-ind-40', 'lift-ind-20', 'lift-ind-L', 'lift-ind-B1', 'lift-ind-B2', 'lift-ind-B3'] as const;
 const LIFT_FLOOR_LABELS = ['58', '40', '20', 'L', 'B1', 'B2', 'B3'] as const;
 const RETURN_SPAWN = { x: 13.4, z: 38.15, yaw: -Math.PI / 2 };
@@ -129,7 +176,7 @@ const RETURN_BRIGHT: AsideLine[] = [
   { id: 'dialogue.return.lamps', duration: 4.37 },
 ];
 const BATH_DOOR = { x: 18, z: 30.35 };
-const MIRROR_STAND = { x: 19.05, z: 28.15, yaw: Math.PI / 2 };
+const MIRROR_STAND = { x: 18.65, z: 28.15, yaw: Math.PI / 2 };
 const MIRROR_GLASS = { x: 20.22, y: 1.5, z: 28.15 };
 const LAB_DOOR_L_CLOSED = 36.95;
 const LAB_DOOR_R_CLOSED = 39.05;
@@ -150,9 +197,64 @@ const CREATURE_FLEE_PATH = [
 const VAT_CENTER = { x: 7.2, z: 38 };
 const VAT_LUNG = { x: 9.15, z: 38.15 };
 const VAT_STAND = { x: 11.35, z: 38.2 };
-const VAT_ARRIVE = 6.5;
-const VAT_CRACK = 3.8;
-const VAT_BREAK = 14.4;
+const VAT_ARRIVE = 2.0;
+const VAT_CRACK = 0.6;
+const VAT_BREAK = 4.2;
+/** The shot ends here; control comes back and the acid is played with the player's hands. */
+const VAT_SHOT_END = 5.0;
+/** Seconds of play in the acid (input never gone for less than the first of these). */
+const ACID_MIN = 21;
+const ACID_MAX = 26;
+/** Pierce is steered to the lab door he came in by. */
+const ACID_EXIT = { x: 17.6, z: 38 };
+const ACID_POOL = { x: 7.2, z: 38 };
+const ACID_FALL1_AT = 10;
+const ACID_FALL2_AT = 15;
+const ACID_LINE_AT = 5;
+/** B3 rooms as [id, minX, maxX, minZ, maxZ]: the hunt keeps one checkpoint per room entered. */
+const HUNT_ROOMS: ReadonlyArray<readonly [string, number, number, number, number]> = [
+  ['pipeHall', 41.5, 46.5, 24, 35.6],
+  ['hallB', 16.4, 46.75, 35.6, 40.45],
+  ['lab', 0, 16.4, 30.9, 45.1],
+  ['decon', 1.1, 14.9, 22.1, 30.9],
+  ['chemA', 18.5, 28.6, 27, 35.6],
+  ['chemB', 28.6, 40.3, 27, 35.6],
+  ['cell', 18.7, 40.4, 40.45, 52.8],
+  ['service', 40.4, 46.5, 40.45, 52.8],
+  ['control', 0.2, 16.4, 45.1, 52.8],
+  ['transform', 46.75, 63, 30, 52.85],
+  ['corridor', 0.3, 63, 52.8, 56.5],
+  ['utility', 16, 44, 56.5, 63],
+];
+/** Where it can wait out of sight after Pierce is downed (the farthest one from his checkpoint is used). */
+const HUNT_HIDE_SPOTS = [
+  { x: 7.5, z: 26.2 },
+  { x: 10.4, z: 36.4 },
+  { x: 44, z: 30 },
+  { x: 24, z: 32 },
+  { x: 34, z: 31 },
+  { x: 30, z: 46 },
+  { x: 8, z: 49 },
+  { x: 30, z: 60 },
+];
+/** Cold open (first visit): Pierce at the east end of the long hall, the lab door open at the far end, lit green by the vat. */
+const COLD_START = { x: 42.6, z: 38, yaw: -Math.PI / 2 };
+/** The silhouette crosses the doorway at the end of the hall (inside the lab, backlit by the vat). */
+const COLD_PASS = { x: 12.6, fromZ: 41, toZ: 34.6, seconds: 2.8 };
+const COLD_PASS_AT = 14;
+const COLD_PASS_NEAR_X = 30;
+const COLD_RUSH_AFTER = 8;
+const COLD_RUSH_NEAR_X = 27;
+const COLD_RUSH_SPEED = 7.4; // the old straight-line speed; now the top end of the chase ramp
+const COLD_CHASE_START = 4.2; // m/s when it breaks into the hall: Pierce walks 3.05, so running away only buys seconds
+const COLD_CHASE_RAMP = 0.3; // m/s gained per second of chase
+const COLD_CHASE_MAX_SECONDS = 12; // the cut comes no later than this
+const COLD_DARK_STALL = 3.5; // seconds the creature loses its footing when he kills the torch (once spent, it is on him)
+const COLD_DARK_SLOW = 0.3; // fraction of its speed while it hunts a dark hall
+const COLD_CAUGHT = 1.5;
+const COLD_LIGHT_FAIL_AT = 7;
+const COLD_SKITTER_AT = 3;
+const COLD_SCREAM = '/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg';
 const CREATURE_SFX = {
   breath: '/assets/audio/cutscenes/b3-door-reveal/creature-breath.wav',
   run: '/assets/audio/cutscenes/b3-door-reveal/creature-run.wav',
@@ -195,8 +297,8 @@ const HUNT_DIRS: readonly (readonly [number, number, number])[] = [
 /** Shortest repath interval in a strike, even when the last search found nothing. */
 const HUNT_REPATH_MIN = 0.3;
 
-const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'wait-board', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look'];
-const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
+const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'wait-board', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look', 'cold'];
+const SHOW_HUD: SequencePhase[] = ['seat', 'cab', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
 
 type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
 
@@ -215,6 +317,7 @@ export const createAct1 = (host: ActHost) => {
   /** The head of the board table (the seat walk-up). */
   const BOARD_TABLE = { x: 49.4, z: 32 };
   let elevatorQueued = false;
+  let departT = 0;
   let windowLocked = false;
   let terminalLocked = false;
   let elevatorLocked = false;
@@ -237,6 +340,19 @@ export const createAct1 = (host: ActHost) => {
   let bathroomMirror: BathroomMirror | null = null;
   let vatPath: { x: number; z: number }[] = [];
   let vatPathLen = 0;
+  let acidOn = false;
+  let acidT = 0;
+  let acidFallEnd = 0;
+  let acidWasDown = false;
+  let acidFalls = 0;
+  let acidSwapped = false;
+  let acidBeatAt = 0;
+  let acidBreathAt = 0;
+  let acidLineOn = false;
+  let acidFlashStep = 0;
+  let huntCheckpoint: { x: number; z: number; yaw: number } | null = null;
+  let huntRoom = '';
+  let huntHideLeft = 0;
   let vatArrive = VAT_ARRIVE;
   let vatCrackAt = 0;
   let vatClip: string | null = null;
@@ -329,9 +445,9 @@ export const createAct1 = (host: ActHost) => {
   const firstMesh = (id: string) => meshesFor(id)[0] ?? null;
 
   const syncObjective = () => {
-    if (host.inCutscene() || HIDE_MARKER.includes(phase)) host.hideMarker();
+    if (host.inCutscene() || (HIDE_MARKER.includes(phase) && !acidOn)) host.hideMarker();
     else host.showMarker();
-    host.showObjective(SHOW_HUD.includes(phase) && !host.inCutscene() && host.running());
+    host.showObjective((SHOW_HUD.includes(phase) || acidOn) && !host.inCutscene() && host.running());
   };
 
   const setCarry = (id: string) => host.setCarry(carryOf(id));
@@ -745,6 +861,7 @@ export const createAct1 = (host: ActHost) => {
     const already = phase === 'done';
     clearVatFx();
     phase = 'done';
+    music.creature(null);
     elevatorLocked = false;
     stopAlarm();
     restoreLights();
@@ -786,6 +903,7 @@ export const createAct1 = (host: ActHost) => {
     const data = mission();
     if (!data || boardDeparting || phase === 'wait-board') return;
     boardDeparting = true;
+    departT = 0;
     phase = 'wait-board';
     startBoardDeparture(host.getNpcs(), data);
     const line = objective('wait-board');
@@ -794,7 +912,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const beginWindow = () => {
-    if (windowQueued || phase === 'to-window' || phase === 'window' || phase === 'call' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'ride') return;
+    if (windowQueued || phase === 'to-window' || phase === 'window' || phase === 'call' || phase === 'alarm' || phase === 'terminal' || phase === 'elevator' || phase === 'cab' || phase === 'ride') return;
     windowQueued = true;
     phase = 'to-window';
     const data = mission();
@@ -802,17 +920,16 @@ export const createAct1 = (host: ActHost) => {
     const line = objective('window');
     host.setObjective(line.title, line.text, { x: pose.x, y: 1.6, z: pose.z });
     syncObjective();
+    // The monologue plays while he walks the office: the camera stays his, no forced shot.
+    queueAside(WINDOW_MONOLOGUE);
   };
 
   const beginLateCall = () => {
     if (lateStarted || !host.isApex()) return;
     lateStarted = true;
     phase = 'late';
-    host.clearInput();
-    host.holdLocomotion();
-    host.playClip('idle', true);
-    host.hideMarker();
-    host.showObjective(false);
+    // Voss rings and Pierce keeps walking to the boardroom: the call covers the walk.
+    host.callWalk?.(true);
     host.ringCall('voss-late');
   };
 
@@ -862,15 +979,99 @@ export const createAct1 = (host: ActHost) => {
     host.beginCutscene('apex-terminal');
   };
 
+  /** The cab ride is played, not watched: he steps in, looks around, presses B3, the cab does the rest. */
+  let cabPressed = false;
+  let cabT = 0;
+  let cabAsided = false;
+  let cabDinged = false;
+  let cabHum: ClipHandle | null = null;
+  let cabRumble: ClipHandle | null = null;
+
+  const stopCab = () => {
+    cabHum?.stop();
+    cabHum = null;
+    cabRumble?.stop();
+    cabRumble = null;
+    cabPressed = false;
+    cabT = 0;
+    cabAsided = false;
+    cabDinged = false;
+  };
+
+  const cabButton = (): { x: number; z: number } => {
+    const mesh = firstMesh('lift-b3-button');
+    if (mesh) {
+      const at = mesh.getAbsolutePosition();
+      return { x: at.x, z: at.z };
+    }
+    return { x: ELEVATOR_POSE.x + 0.9, z: ELEVATOR_POSE.z };
+  };
+
   const beginElevatorCutscene = () => {
-    if (elevatorQueued || phase === 'ride' || phase !== 'elevator') return;
+    if (elevatorQueued || phase === 'cab' || phase !== 'elevator') return;
     elevatorQueued = true;
-    phase = 'ride';
-    elevatorLocked = true;
+    phase = 'cab';
+    cabPressed = false;
+    cabT = 0;
+    const at = cabButton();
+    const line = objective('cab');
+    host.setObjective(line.title, line.text, { x: at.x, y: 1.3, z: at.z });
+    syncObjective();
+  };
+
+  const pressB3 = () => {
+    if (phase !== 'cab' || cabPressed) return;
+    cabPressed = true;
+    cabT = 0;
     host.hideMarker();
     host.showObjective(false);
-    placeElevator();
-    host.beginCutscene('elevator-b3');
+    pulseButton(true);
+    host.playFile('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.7);
+    host.playFile('/assets/audio/cutscenes/elevator-b3/doors.wav', 0.65);
+    if (host.audioOn()) {
+      host.ensureAudio();
+      const hum = '/assets/audio/cutscenes/elevator-b3/hum.wav';
+      cabHum = playClip(hum, mixVolume(hum, 0.3), { loop: true });
+    }
+  };
+
+  const stepCab = (delta: number) => {
+    if (phase !== 'cab' || !cabPressed || !host.running()) return;
+    cabT += delta;
+    elevatorDoorOpen = 1 - Math.min(1, cabT / CAB_DOOR_CLOSE);
+    applyElevatorDoors(elevatorDoorOpen);
+    if (cabT >= CAB_RIDE_AT && !cabRumble && host.audioOn()) {
+      const url = '/assets/audio/cutscenes/elevator-b3/rumble.wav';
+      cabRumble = playClip(url, mixVolume(url, 0.38), { loop: true });
+    }
+    if (cabT >= CAB_RIDE_AT && !cabAsided) {
+      cabAsided = true;
+      queueAside(CAB_ASIDE);
+    }
+    stepAside(delta);
+    let rawFloor = 0;
+    for (let i = 0; i < CAB_FLOOR_AT.length; i += 1) if (cabT >= CAB_FLOOR_AT[i]) rawFloor = i;
+    const arrived = cabT >= CAB_ARRIVE_AT;
+    const descending = cabT >= CAB_RIDE_AT && !arrived;
+    if (rawFloor !== elevatorFloorIndex) {
+      elevatorFloorIndex = rawFloor;
+      if (!arrived) host.playFile('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.34);
+    }
+    applyElevatorIndicators(rawFloor, descending, arrived, cabT);
+    applyCabLight(cabT >= CAB_ARRIVE_AT ? ELEVATOR_ARRIVE_AT : cabT >= CAB_RIDE_AT ? ELEVATOR_RIDE_AT + (cabT - CAB_RIDE_AT) : 0, true);
+    if (arrived && !cabDinged) {
+      cabDinged = true;
+      cabRumble?.stop();
+      cabRumble = null;
+      host.playFile('/assets/audio/cutscenes/elevator-b3/beep.wav', 0.82);
+    }
+    if (cabT >= CAB_END_AT) {
+      clearAside();
+      cabHum?.stop();
+      cabHum = null;
+      cabPressed = false;
+      finishLevel('apex');
+    }
   };
 
   const clearMirror = () => {
@@ -1039,6 +1240,211 @@ export const createAct1 = (host: ActHost) => {
     host.setObjective(line.title, line.text, { x: B3_LAB_DOOR.x, y: 2.05, z: B3_LAB_DOOR.z });
     syncObjective();
   };
+
+  // ---- Cold open: a first visit starts here, in control, before any title (see AGENTS.md "Cold open") ------------
+  let coldArmed = false;
+  let coldT = 0;
+  let coldSkittered = false;
+  let coldLightOut = false;
+  let coldPassT = -1;
+  let coldPassDone = false;
+  let coldRushT = -1;
+  let coldCut = false;
+  let coldKnocked = false;
+  let coldFlicker = 0;
+  let coldDarkLeft = COLD_DARK_STALL;
+
+  const hallLight = () => host.scene.lights.find((light) => light.name === 'Hall B Light B') as BABYLON.PointLight | undefined;
+
+  // A lit exit at the end of the hall: a bright door panel, a halo and a floor spill, so the way reads from 26 m away.
+  let coldBeacon: BABYLON.Mesh[] = [];
+  let coldFill: { hemi: number } | null = null;
+  const removeColdBeacon = () => {
+    coldBeacon.forEach((mesh) => {
+      if (!mesh.isDisposed()) mesh.dispose(false, true);
+    });
+    coldBeacon = [];
+    if (coldFill) {
+      host.hemi.intensity = coldFill.hemi;
+      coldFill = null;
+    }
+  };
+  const buildColdBeacon = () => {
+    removeColdBeacon();
+    const scene = host.scene;
+    const make = (name: string, w: number, h: number, color: BABYLON.Color3, alpha: number, pos: BABYLON.Vector3, rot: BABYLON.Vector3) => {
+      const plane = BABYLON.MeshBuilder.CreatePlane(name, { width: w, height: h }, scene);
+      const mat = new BABYLON.StandardMaterial(`${name}-mat`, scene);
+      mat.disableLighting = true;
+      mat.emissiveColor = color;
+      mat.alpha = alpha;
+      if (alpha < 1) mat.alphaMode = BABYLON.Engine.ALPHA_ADD;
+      mat.backFaceCulling = false;
+      plane.material = mat;
+      plane.position.copyFrom(pos);
+      plane.rotation.copyFrom(rot);
+      plane.isPickable = false;
+      plane.checkCollisions = false;
+      coldBeacon.push(plane);
+    };
+    const faceHall = new BABYLON.Vector3(0, Math.PI / 2, 0);
+    make('cold-exit-panel', 1.9, 2.3, new BABYLON.Color3(0.55, 1, 0.7), 1, new BABYLON.Vector3(17.2, 1.2, 38), faceHall);
+    make('cold-exit-halo', 3.6, 3.6, new BABYLON.Color3(0.12, 0.42, 0.24), 0.9, new BABYLON.Vector3(17.5, 1.5, 38), faceHall);
+    make('cold-exit-spill', 2.4, 6, new BABYLON.Color3(0.1, 0.34, 0.2), 0.8, new BABYLON.Vector3(19.4, 0.03, 38), new BABYLON.Vector3(Math.PI / 2, Math.PI / 2, 0));
+    coldFill = { hemi: host.hemi.intensity };
+    host.hemi.intensity = Math.max(host.hemi.intensity, 0.3); // enough to read wall, floor and the CONTAINMENT sign
+  };
+
+  const beginColdOpen = () => {
+    buildColdBeacon();
+    phase = 'cold';
+    coldT = 0;
+    coldSkittered = false;
+    coldLightOut = false;
+    coldPassT = -1;
+    coldPassDone = false;
+    coldRushT = -1;
+    coldCut = false;
+    coldKnocked = false;
+    coldFlicker = 0;
+    coldDarkLeft = COLD_DARK_STALL;
+    host.showObjective(false);
+    host.hideMarker();
+    host.clearObjectiveCue();
+    labDoorOpen = 1;
+    applyLabDoors(1);
+    applyElevatorDoors(0);
+    setVatGlassBroken(false);
+    resetCreature();
+    setCreatureVisible(false);
+    host.placePierce(COLD_START.x, COLD_START.z, COLD_START.yaw);
+    host.resumeLocomotion();
+    host.flashlight(true);
+  };
+
+  const coldCreatureOnScreen = () => {
+    const node = creatureRoot();
+    if (!node || !node.isEnabled()) return false;
+    return coldInView(new BABYLON.Vector3(node.position.x, 1.2, node.position.z));
+  };
+  const coldInView = (at: BABYLON.Vector3) => {
+    const cam = host.camera as BABYLON.TargetCamera;
+    const frustum = BABYLON.Frustum.GetPlanes(cam.getTransformationMatrix());
+    for (const plane of frustum) {
+      if (BABYLON.Vector3.Dot(new BABYLON.Vector3(plane.normal.x, plane.normal.y, plane.normal.z), at) + plane.d < 0) return false;
+    }
+    return true;
+  };
+
+  const stepColdOpen = (delta: number) => {
+    if (coldCut) return;
+    coldT += delta;
+    const here = host.playerXZ();
+    // Creeping with a torch: slower than the story walk, and the nearer the doorway the heavier each step.
+    const near = Math.max(0, Math.min(1, (here.x - 26) / 6));
+    // Once it breaks loose he has his full walk back: running away is the response, and it only buys seconds.
+    const creep = coldRushT >= 0 ? 1 : 0.55 * (0.2 + 0.8 * near);
+    host.impair({ lag: 0, drift: 0, speed: creep, locked: false, pull: { x: 0, z: 0 }, maxX: 99 });
+    if (!coldSkittered && coldT >= COLD_SKITTER_AT) {
+      coldSkittered = true;
+      host.playFile(CREATURE_SFX.skitter, 0.6);
+    }
+    if (!coldLightOut && coldT >= COLD_LIGHT_FAIL_AT) {
+      coldLightOut = true;
+      coldFlicker = 1.3;
+      host.playFile(CREATURE_SFX.tick, 0.5);
+    }
+    const light = hallLight();
+    if (light) {
+      if (coldFlicker > 0) {
+        coldFlicker -= delta;
+        const base = 0.31;
+        light.intensity = coldFlicker <= 0 ? 0 : base * (Math.sin(coldFlicker * 41) > 0.2 ? 0.9 : 0.05);
+      } else if (coldLightOut) light.intensity = 0;
+    }
+    // The silhouette crosses the lit doorway.
+    if (coldPassT < 0 && (coldT >= COLD_PASS_AT || (coldLightOut && here.x < COLD_PASS_NEAR_X))) {
+      coldPassT = 0;
+      const node = creatureRoot();
+      node?.setEnabled(true);
+      host.playFile(CREATURE_SFX.breath, 0.42);
+      playCreature('walk', 1.1);
+    }
+    if (coldPassT >= 0 && !coldPassDone) {
+      coldPassT += delta;
+      const u = Math.min(1, coldPassT / COLD_PASS.seconds);
+      const node = creatureRoot();
+      if (node) {
+        node.position.set(COLD_PASS.x, 0, COLD_PASS.fromZ + (COLD_PASS.toZ - COLD_PASS.fromZ) * u);
+        node.rotation.y = Math.atan2(0, COLD_PASS.toZ - COLD_PASS.fromZ);
+      }
+      if (u >= 1) {
+        coldPassDone = true;
+        setCreatureVisible(false);
+      }
+    }
+    if (coldPassDone && !coldKnocked && coldPassT >= COLD_PASS.seconds + 2.2) {
+      coldKnocked = true;
+      host.playFile(CREATURE_SFX.knock, 0.5);
+      host.playFile(CREATURE_SFX.cry, 0.4);
+    }
+    if (coldPassDone) coldPassT += delta;
+    if (coldPassDone && coldRushT < 0 && (coldPassT >= COLD_PASS.seconds + COLD_RUSH_AFTER || here.x < COLD_RUSH_NEAR_X)) {
+      coldRushT = 0;
+      const node = creatureRoot();
+      node?.setEnabled(true);
+      node?.position.set(15.6, 0, 38);
+      playCreature('walk', 2.4);
+      host.playFile(CREATURE_SFX.shriek, 0.8);
+      host.playFile(CREATURE_SFX.run, 0.55);
+      host.playFile(CREATURE_SFX.heartbeat, 0.5);
+    }
+    if (coldRushT >= 0) {
+      coldRushT += delta;
+      const node = creatureRoot();
+      if (node) {
+        const dx = here.x - node.position.x;
+        const dz = here.z - node.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 1e-3) {
+          // It speeds up the longer the chase goes. Killing the torch (G) makes it lose him for a few seconds.
+          let speed = Math.min(COLD_RUSH_SPEED, COLD_CHASE_START + COLD_CHASE_RAMP * coldRushT);
+          if (!host.flashlightOn?.() && coldDarkLeft > 0 && dist > 3) {
+            coldDarkLeft -= delta;
+            speed *= COLD_DARK_SLOW;
+          }
+          const step = Math.min(dist, speed * delta);
+          node.position.x += (dx / dist) * step;
+          node.position.z += (dz / dist) * step;
+          node.rotation.y = Math.atan2(dx, dz);
+        }
+        if (dist < COLD_CAUGHT || coldRushT > COLD_CHASE_MAX_SECONDS) {
+          coldCut = true;
+          host.impair(null);
+          host.clearInput();
+          host.fade(1, 0);
+          host.playFile(CREATURE_SFX.snarl, 0.8);
+          host.playFile(COLD_SCREAM, 1);
+          host.flashlight(false);
+          setCreatureVisible(false);
+          removeColdBeacon();
+          phase = 'idle';
+          host.coldOpenDone?.();
+        }
+      }
+    }
+  };
+
+  const coldOpenState = () => ({
+    active: phase === 'cold',
+    seconds: coldT,
+    creatureShown: Boolean(creatureRoot()?.isEnabled()),
+    creatureOnScreen: phase === 'cold' && coldCreatureOnScreen(),
+    rushing: coldRushT >= 0,
+    chaseSeconds: Math.max(0, coldRushT),
+    lightOut: coldLightOut,
+    exitLit: coldBeacon.length > 0,
+  });
 
   const beginArrival = () => {
     if (!host.isB3()) return;
@@ -1485,6 +1891,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const stepDread = (node: BABYLON.TransformNode, dist: number, delta: number) => {
+    music.creature(dist);
     stepPracticals(node.position);
     const reach = huntMood === 'strike' ? 8.5 : 5.2;
     const closeness = Math.max(0, 1 - dist / reach);
@@ -2112,7 +2519,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const lightVatStage = (time: number) => {
-    const open = Math.min(1, time / 7.5);
+    const open = Math.min(1, time / 3.2);
     const flare = time >= VAT_BREAK && time < VAT_BREAK + 2.4 ? 1 : time >= VAT_BREAK ? 0.4 : 0;
     host.hemi.intensity = 0.16 + open * 0.82 + flare * 0.2;
     host.sun.intensity = 0.03 + open * 0.16 + flare * 0.06;
@@ -2278,10 +2685,12 @@ export const createAct1 = (host: ActHost) => {
       );
     };
     if (time < VAT_ARRIVE && vatPathLen > 0.55) {
-      const along = vatPointAlong(vatPath, vatPathLen * Math.min(1, time / VAT_ARRIVE));
+      // Only the last stretch is walked on screen: the shot stays short wherever the hunt ended.
+      const from = Math.max(0, vatPathLen - 6);
+      const along = vatPointAlong(vatPath, from + (vatPathLen - from) * Math.min(1, time / VAT_ARRIVE));
       host.placePierce(along.x, along.z, along.yaw);
       if (vatClip !== 'walk') {
-        const rate = vatPathLen / VAT_ARRIVE;
+        const rate = (vatPathLen - from) / VAT_ARRIVE;
         host.playClip('walk', true, strideRatio('walk', rate));
         vatClip = 'walk';
       }
@@ -2290,7 +2699,7 @@ export const createAct1 = (host: ActHost) => {
       const span = VAT_BREAK - VAT_ARRIVE;
       const u = Math.min(1, Math.max(0, (time - VAT_ARRIVE) / span));
       const back = u * u * (3 - 2 * u);
-      const x = VAT_STAND.x + back * 2.15;
+      const x = VAT_STAND.x + back * 1.3;
       const z = VAT_STAND.z + Math.sin(u * Math.PI) * 0.16;
       const yaw = face + (time < VAT_BREAK ? Math.sin(time * 2.1) * 0.08 : 0);
       host.placePierce(x, z, yaw);
@@ -2299,7 +2708,7 @@ export const createAct1 = (host: ActHost) => {
         vatClip = 'back';
       }
       if (time >= VAT_BREAK && vatClip !== 'fall') {
-        host.playClip('fallingdown', false);
+        host.playClip('fallingdown', false, 1.6);
         vatClip = 'fall';
       }
       if (time < VAT_BREAK) frameOn(x, z, yaw);
@@ -2320,6 +2729,215 @@ export const createAct1 = (host: ActHost) => {
         material.emissiveColor.set(0.12 * pulse, 0.55 * pulse, 0.12 * pulse);
       }
     }
+  };
+
+
+  // ---- The acid: the vat break, played with the player's hands --------------------------------------------------
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+  const ramp = (t: number, from: number, to: number) => clamp01((t - from) / (to - from));
+
+  const beginAcid = () => {
+    if (acidOn || phase === 'done') return;
+    acidOn = true;
+    acidT = 0;
+    acidFalls = 0;
+    acidSwapped = false;
+    acidFallEnd = 0;
+    acidBeatAt = 0;
+    acidBreathAt = 0;
+    acidLineOn = false;
+    acidFlashStep = 0;
+    host.clearInput();
+    host.resumeLocomotion();
+    host.holdScene(false);
+    const line = objective('acid');
+    host.setObjective(line.title, line.text, { x: ACID_EXIT.x, y: 1.4, z: ACID_EXIT.z });
+    host.showMarker();
+    host.showObjective(true);
+    host.playFile(lineAudio('dialogue.b3-vat-break.02') || '/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg', 1);
+    host.showLine('Pierce', lineText('dialogue.b3-vat-break.02'));
+    host.impair({ lag: 0.05, drift: 0, speed: 0.9, locked: false, pull: { x: 0, z: 0 }, maxX: 14.2 });
+    host.playClip('fallingdown', false, 1.6);
+    acidFallEnd = 0.9;
+    acidWasDown = true;
+  };
+
+  const endAcid = () => {
+    if (!acidOn) return;
+    acidOn = false;
+    host.impair(null);
+    host.showLine('', '');
+    host.rememberVat();
+    if (!acidSwapped) {
+      acidSwapped = true;
+      transformed = true;
+      host.swapAvatar(TRANSFORM_HERO_ASSET_ID);
+    }
+    host.playClip('rebornidle', true);
+    finishLevel('b3');
+  };
+
+  const acidFall = (long: boolean) => {
+    acidFalls += 1;
+    acidFallEnd = acidT + (long ? 2.0 : 1.5);
+    acidWasDown = true;
+    host.clearInput();
+    host.playClip('fallingdown', false, 1.2);
+    host.playFile(CREATURE_SFX.wound, long ? 0.5 : 0.4);
+  };
+
+  const stepAcid = (delta: number) => {
+    if (!acidOn) return;
+    if (!host.running()) return;
+    acidT += delta;
+    const t = acidT;
+    // The vat stage keeps its light; the acid keeps pouring.
+    lightVatStage(VAT_BREAK + 3 + t * 0.1);
+    stepVatCoat();
+    const here = host.playerXZ();
+    const acid = firstMesh('vat-acid');
+    const material = acid?.material;
+    if (material instanceof BABYLON.StandardMaterial) {
+      const pulse = 0.72 + 0.28 * Math.abs(Math.sin(t * 5));
+      material.emissiveColor.set(0.12 * pulse, 0.55 * pulse, 0.12 * pulse);
+    }
+
+    // Strength of the acid in him, 0 (just hit) .. 1 (the end).
+    const lag = 0.05 + 0.35 * ramp(t, 0, 12);
+    const stagger = ramp(t, 3, 11);
+    const drift = Math.sin(t * 0.9) * (0.25 + 0.75 * stagger) * 0.85 + Math.sin(t * 2.3 + 1.1) * 0.3 * stagger;
+    let speed = 1.0 - 0.45 * stagger;
+    // Early on the fumes pull him back toward the pool; later the door pulls him out.
+    const doorPull = ramp(t, 11, 20);
+    const toDoor = Math.hypot(ACID_EXIT.x - here.x, ACID_EXIT.z - here.z) || 1;
+    const toPool = Math.hypot(ACID_POOL.x - here.x, ACID_POOL.z - here.z) || 1;
+    const poolK = 0.55 * (1 - doorPull) * 1;
+    const doorK = 0.2 + 0.9 * doorPull + (t > ACID_MAX - 3 ? 1.5 : 0);
+    const pull = {
+      x: ((ACID_POOL.x - here.x) / toPool) * poolK + ((ACID_EXIT.x - here.x) / toDoor) * doorK,
+      z: ((ACID_POOL.z - here.z) / toPool) * poolK + ((ACID_EXIT.z - here.z) / toDoor) * doorK,
+    };
+    if (acidWasDown && t >= acidFallEnd) {
+      acidWasDown = false;
+      host.resumeLocomotion();
+    }
+    if (acidFalls === 0 && t >= ACID_FALL1_AT) acidFall(false);
+    if (acidFalls === 1 && t >= ACID_FALL2_AT) {
+      acidFall(true);
+      // The swap hides in the fall and a white-hot blink: no T-pose, no pop.
+      host.fade(1, 0.12);
+      window.setTimeout(() => {
+        if (!acidOn) return;
+        acidSwapped = true;
+        transformed = true;
+        host.swapAvatar(TRANSFORM_HERO_ASSET_ID);
+        setCarry('changed');
+        host.playClip('fallingdown', false, 1.2);
+        host.fade(0, 0.5);
+      }, 160);
+    }
+    if (acidFalls >= 2 && acidSwapped) speed = 0.55;
+    host.impair({
+      lag: acidFalls >= 2 ? 0.3 : lag,
+      drift: acidFalls >= 2 ? drift * 0.6 : drift,
+      speed,
+      locked: t < acidFallEnd || (acidFalls >= 2 && !acidSwapped),
+      pull,
+      maxX: 13.2 + 4.4 * clamp01(t / 20),
+    });
+
+    // Flashlight: it stutters from 6 s and is dead by 8.5 s.
+    if (acidFlashStep === 0 && t >= 6) { host.flashlight(false); acidFlashStep = 1; }
+    else if (acidFlashStep === 1 && t >= 6.25) { host.flashlight(true); acidFlashStep = 2; }
+    else if (acidFlashStep === 2 && t >= 7.2) { host.flashlight(false); acidFlashStep = 3; }
+    else if (acidFlashStep === 3 && t >= 7.5) { host.flashlight(true); acidFlashStep = 4; }
+    else if (acidFlashStep === 4 && t >= 8.5) { host.flashlight(false); acidFlashStep = 5; }
+
+    // Heartbeat and breath rise with the acid.
+    const strain = clamp01(t / 18);
+    if (t >= acidBeatAt) {
+      host.playFile(CREATURE_SFX.heartbeat, 0.3 + 0.5 * strain);
+      acidBeatAt = t + 1.0 - 0.55 * strain;
+    }
+    if (t >= acidBreathAt) {
+      host.playFile(CREATURE_SFX.breath, 0.12 + 0.3 * strain);
+      acidBreathAt = t + 2.6 - 1.5 * strain;
+    }
+    fearFlash = 0;
+    if (t >= ACID_LINE_AT && !acidLineOn) {
+      acidLineOn = true;
+      host.playFile(lineAudio('dialogue.b3-vat-break.03') || '/assets/audio/cutscenes/b3-vat-break/05-pierce-what-happened.ogg', 0.92);
+      host.showLine('Pierce', lineText('dialogue.b3-vat-break.03'));
+    }
+    if (acidLineOn && t >= ACID_LINE_AT + 17) host.showLine('', '');
+
+    const door = Math.hypot(here.x - ACID_EXIT.x, here.z - ACID_EXIT.z);
+    if ((t >= ACID_MIN && door < 1.1 && acidSwapped) || t >= ACID_MAX + 4) endAcid();
+  };
+
+  /** Repeat players: hold Skip to go straight to the crawl out. */
+  const skipAcid = () => {
+    if (!acidOn) return;
+    endAcid();
+  };
+
+  // ---- Hunt retry: the creature downs Pierce, he is back at the room's checkpoint in under a second --------------
+  const roomOf = (x: number, z: number) => {
+    for (const row of HUNT_ROOMS) {
+      if (x >= row[1] && x <= row[2] && z >= row[3] && z <= row[4]) return row[0];
+    }
+    return '';
+  };
+
+  const noteCheckpoint = () => {
+    if (phase !== 'hunt' || host.inCutscene()) return;
+    const here = host.playerXZ();
+    const room = roomOf(here.x, here.z);
+    if (!room || room === huntRoom) return;
+    huntRoom = room;
+    huntCheckpoint = { x: here.x, z: here.z, yaw: huntCheckpoint?.yaw ?? Math.PI / 2 };
+  };
+
+  /** True when the hunt takes the down as a retry (the caller restores health and fades). */
+  const huntDowned = (): boolean => phase === 'hunt' && host.isB3() && retreatLeft <= 0;
+
+  /** Back to the last checkpoint, the creature out of sight. Returns where Pierce stands. */
+  const huntRetry = (): { x: number; z: number; yaw: number } => {
+    const spot = huntCheckpoint ?? { x: B3_REVEAL_START.x, z: B3_REVEAL_START.z, yaw: B3_REVEAL_START.yaw };
+    let best = HUNT_HIDE_SPOTS[0];
+    let far = -1;
+    for (const hide of HUNT_HIDE_SPOTS) {
+      const d = Math.hypot(hide.x - spot.x, hide.z - spot.z);
+      if (d > far) { far = d; best = hide; }
+    }
+    const node = creatureRoot();
+    if (node) {
+      node.position.set(best.x, 0, best.z);
+      node.setEnabled(false);
+    }
+    huntHideLeft = 3.2;
+    huntMood = 'lurk';
+    huntWaiting = false;
+    nextStrike = 8 + Math.random() * 3;
+    lurkIdle = 0.5;
+    strikeLeft = 0;
+    leapLeft = 0;
+    leapt = false;
+    huntPath = [];
+    biteCooldown = 2.5;
+    repathIn = 0;
+    dread = 0;
+    fearFlash = 0;
+    host.alarmFlash?.classList.remove('visible');
+    restorePracticals();
+    return { x: spot.x, z: spot.z, yaw: Math.atan2(spot.x - best.x, spot.z - best.z) };
+  };
+
+  const stepHuntHidden = (delta: number) => {
+    if (huntHideLeft <= 0) return;
+    huntHideLeft -= delta;
+    const node = creatureRoot();
+    if (node && huntHideLeft <= 0) node.setEnabled(true);
   };
 
   const FEED_LAYER = 0x10000000;
@@ -2566,7 +3184,6 @@ export const createAct1 = (host: ActHost) => {
   const walkupLabel = (): string | null => {
     if (!host.running() || host.inCutscene()) return null;
     if (phase === 'seat' && inWalkup('trigger-pierce-seat', 49.4, 32, 1.55)) return 'Join meeting';
-    if (phase === 'to-window' && inWalkup('trigger-office-window', 48, 46.2, 1.35)) return 'Look outside';
     if (phase === 'alarm') {
       const data = mission();
       const spot = data ? alarmSpot(data) : { x: 48, z: 41.66 };
@@ -2574,6 +3191,11 @@ export const createAct1 = (host: ActHost) => {
       if (Math.hypot(here.x - spot.x, here.z - spot.z) < 1.35) return 'Examine monitor';
     }
     if (phase === 'elevator' && inWalkup('trigger-elevator-b3', 44, 21.35, 1.55)) return 'Ride Elevator';
+    if (phase === 'cab' && !cabPressed) {
+      const here = host.playerXZ();
+      const at = cabButton();
+      if (Math.hypot(here.x - at.x, here.z - at.z) < 1.5) return lineText('ui.action.apex.b3', 'Press B3');
+    }
     if (host.isB3() && (phase === 'to-lab' || phase === 'arrive') && inWalkup('trigger-lab-door', 17.6, 38, 1.7)) {
       return 'Open door';
     }
@@ -2614,6 +3236,10 @@ export const createAct1 = (host: ActHost) => {
       beginElevatorCutscene();
       return true;
     }
+    if (phase === 'cab' && label) {
+      pressB3();
+      return true;
+    }
     if (label === 'Look in mirror') {
       beginMirrorLook();
       return true;
@@ -2629,6 +3255,8 @@ export const createAct1 = (host: ActHost) => {
     callStarted = false;
     lateStarted = false;
     host.silencePhone();
+    host.callWalk?.(false);
+    stopCab();
     elevatorQueued = false;
     windowLocked = false;
     terminalLocked = false;
@@ -2763,7 +3391,7 @@ export const createAct1 = (host: ActHost) => {
       if (phase === 'late' || phase === 'seat' || phase === 'idle') return 'seat';
       if (phase === 'wait-board' || phase === 'to-window' || phase === 'window') return 'wait-board';
       if (phase === 'alarm' || phase === 'terminal') return 'alarm';
-      if (phase === 'elevator' || phase === 'ride') return 'elevator';
+      if (phase === 'elevator' || phase === 'cab' || phase === 'ride') return 'elevator';
       if (phase === 'arrive' || phase === 'to-lab' || phase === 'reveal') return 'lab';
       if (phase === 'transform') return 'vat';
       if (phase === 'return-walk' || phase === 'return-call') return 'return';
@@ -2802,6 +3430,18 @@ export const createAct1 = (host: ActHost) => {
         beginReturnUp();
       }
     },
+    armColdOpen: () => {
+      coldArmed = true;
+    },
+    cancelColdOpen: () => {
+      coldArmed = false;
+      removeColdBeacon();
+      if (phase === 'cold') {
+        phase = 'idle';
+        host.impair(null);
+      }
+    },
+    coldOpenState,
     onStart: () => {
       if (!host.isApex() && !host.isB3() && !host.isReturn()) {
         phase = 'idle';
@@ -2817,7 +3457,10 @@ export const createAct1 = (host: ActHost) => {
         syncObjective();
         return;
       }
-      if (host.isB3()) beginArrival();
+      if (host.isB3() && coldArmed) {
+        coldArmed = false;
+        beginColdOpen();
+      } else if (host.isB3()) beginArrival();
       else if (host.isApex() && (phase === 'idle' || phase === 'done' || phase === 'seat')) {
         beginSeat();
         beginLateCall();
@@ -2897,6 +3540,7 @@ export const createAct1 = (host: ActHost) => {
       }
       if (id === 'b3-vat-break') {
         phase = 'transform';
+        music.creature(null);
         host.showObjective(false);
         host.hideMarker();
         dread = 0;
@@ -2948,7 +3592,7 @@ export const createAct1 = (host: ActHost) => {
         return;
       }
       if (id === 'b3-vat-break') {
-        finishLevel('b3');
+        beginAcid();
         return;
       }
       if (id === 'b3-door-reveal') {
@@ -2967,6 +3611,7 @@ export const createAct1 = (host: ActHost) => {
     startCall: () => beginVossCall(),
     onPhoneFinished: () => {
       if (phase === 'late') {
+        host.callWalk?.(false);
         host.resumeLocomotion();
         beginSeat();
         return;
@@ -2996,7 +3641,7 @@ export const createAct1 = (host: ActHost) => {
         finishLevel('apex');
       }
       if (id === 'b3-door-reveal') beginHunt();
-      if (id === 'b3-vat-break') finishLevel('b3');
+      if (id === 'b3-vat-break') beginAcid();
     },
     beforeCutsceneStep: (id: string, time: number) => {
       if (windowLocked) placeWindow();
@@ -3049,9 +3694,21 @@ export const createAct1 = (host: ActHost) => {
       host.camera.position.y += Math.sin(time * 53.7) * amp * 0.55;
       host.camera.position.z += Math.sin(time * 29.1) * amp * 0.35;
     },
+    /** Camera roll (radians) in the cab: a slow rock and a quicker wobble while it descends. */
+    cabRoll: (): number => {
+      if (phase !== 'cab' || !cabPressed || cabT < CAB_RIDE_AT || cabT > CAB_ARRIVE_AT + 1) return 0;
+      const k = cabT > CAB_ARRIVE_AT ? 0.2 : 1;
+      return k * (Math.sin(cabT * 1.7) * 0.0065 + Math.sin(cabT * 7.3) * 0.0025);
+    },
+    /** Seconds since the B3 press, or -1 (playtest). */
+    cabInfo: () => ({ phase, pressed: cabPressed, t: cabT }),
     fearLevel: () => dread,
     stepWorld: (delta: number) => {
       if (!host.isApex() && !host.isB3() && !host.isReturn()) return;
+      if (phase === 'cold') {
+        stepColdOpen(delta);
+        return;
+      }
       if (host.isApex()) stepBoardTalk(delta);
       if (phase === 'return-walk' && host.running() && !host.inCutscene()) {
         stepAside(delta);
@@ -3091,6 +3748,7 @@ export const createAct1 = (host: ActHost) => {
           finishLevel('return');
         }
       }
+      stepCab(delta);
       if (phase === 'elevator' && elevatorDoorOpen < 1) {
         elevatorDoorOpen = Math.min(1, elevatorDoorOpen + delta / 1.05);
         applyElevatorDoors(elevatorDoorOpen);
@@ -3100,7 +3758,17 @@ export const createAct1 = (host: ActHost) => {
         applyElevatorDoors(elevatorDoorOpen);
         if (elevatorDoorOpen >= 1) beginLab();
       }
+      if (phase === 'to-window' && host.running() && !host.inCutscene()) {
+        stepAside(delta);
+        if (!asideBusy() && inWalkup('trigger-office-window', 48, 46.2, 1.6)) {
+          void mountSecurityFeed();
+          beginVossCall();
+        }
+      }
       if (boardDeparting) {
+        departT += delta;
+        // He sets off for the window once the first of the board is out of the door, not after the last.
+        if (phase === 'wait-board' && departT > 4) beginWindow();
         updateNpcDeparture(host.getNpcs(), delta);
         if (remainingDepartingNpcs(host.getNpcs()) === 0) {
           boardDeparting = false;
@@ -3116,7 +3784,10 @@ export const createAct1 = (host: ActHost) => {
         }
       }
       stepStall(delta);
+      noteCheckpoint();
+      stepHuntHidden(delta);
       stepHunt(delta);
+      stepAcid(delta);
     },
     alarmTick: (delta: number) => {
       if (!alarm.active) return;
@@ -3133,6 +3804,23 @@ export const createAct1 = (host: ActHost) => {
     },
     shotAt,
     aimPoint,
+    huntDowned,
+    huntRetry,
+    /** Test setup (playtest `vat-acid`): the hunt, from the lab door. */
+    debugHunt: () => {
+      phase = 'reveal';
+      labDoorOpen = 1;
+      applyLabDoors(1);
+      resetCreature();
+      beginHunt();
+      host.showObjective(true);
+      syncObjective();
+    },
+    acidInfo: () => ({ active: acidOn, t: acidT, falls: acidFalls, swapped: acidSwapped }),
+    acidActive: () => acidOn,
+    acidTime: () => acidT,
+    vatSeen: () => host.vatSeen(),
+    skipAcid,
     doneHold: () => phase === 'done',
     cutsceneLight: (on: boolean, intensity?: number, target?: string) => {
       captureLights();

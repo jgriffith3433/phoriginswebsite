@@ -5,6 +5,8 @@ export type ScreenFade = {
   update: (delta: number) => void;
   /** Run `fn` once the veil is fully clear (now, if it already is). Used to hold a story beat until the world shows. */
   whenClear: (fn: () => void) => void;
+  /** Tint the veil (a CSS colour); an empty string puts it back to black. */
+  setColor: (color: string) => void;
 };
 
 export const createScreenFade = (veil: HTMLElement): ScreenFade => {
@@ -57,6 +59,10 @@ export const createScreenFade = (veil: HTMLElement): ScreenFade => {
     else waiting.push(fn);
   };
 
+  const setColor = (color: string) => {
+    veil.style.background = color;
+  };
+
   paint();
-  return { to, update, whenClear };
+  return { to, update, whenClear, setColor };
 };

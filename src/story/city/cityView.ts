@@ -14,6 +14,11 @@ const OFFICE_CENTER = { x: 25, z: 23 };
 const TOWER_CENTER = { x: 0, z: 6.85 };
 const FLOOR_HEIGHT = 205;
 
+/** What the traffic steps with each frame: fixed here, so the render loop allocates nothing. */
+const TRAFFIC_FOCUS = { x: TOWER_CENTER.x, z: TOWER_CENTER.z + 40 };
+const TRAFFIC_FACING = { fx: 0, fz: 1 };
+const NO_HIT = () => {};
+
 /** Near plane while a far-plane city is on screen (quality rule 2). */
 export const CITY_NEAR = 0.2;
 
@@ -96,7 +101,7 @@ export const createCityView = (scene: BABYLON.Scene, camera: BABYLON.Camera) => 
       if (!world) return;
       syncSkybox(true);
       world.step(TOWER_CENTER.x, TOWER_CENTER.z, dt);
-      traffic?.step(dt, { x: TOWER_CENTER.x, z: TOWER_CENTER.z + 40 }, { fx: 0, fz: 1 }, false, () => {});
+      traffic?.step(dt, TRAFFIC_FOCUS, TRAFFIC_FACING, false, NO_HIT);
     },
     dispose,
   };

@@ -32,8 +32,9 @@ floor to his own bed.
   `room-tone.mp3` 0.14. HVAC hush, sconce hum, distant traffic through glass, phone tones.
 - **Size:** about 60 m of hall plus rooms; 15-20 s to cross end to end at 3.05 m/s.
 - **In/out:** in by the lobby elevator (late call), out by the cab to B3. Also reused as The Return's office and The Desk.
-- *Gap:* the halls are lit and dressed but quiet between set pieces; the long hall between boardroom and office is the
-  longest stretch with nothing alive. **New:** see Apex "life" under What happens.
+- *Exists (story through play):* hall 1 has a late associate at a desk, a locked east door marked IN SESSION, and a
+  standing Hale silhouette visible through the board doorway that makes Pierce flinch — the board plot without the call
+  (`src/story/apexBoardHall.ts`, playtest `living-places`). Hall 2 still has the cleaner.
 
 ### 2. B3 (level 2, and level 3's first half) - `b3-basement.json`
 - **Mood:** sealed, wet, wrong. Near dark; practical lights make small colored pools; fog 5-32 m.
@@ -132,7 +133,10 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
 - **Apex board** (Voss, Lang, Hale, the others on seats): after Pierce sits, talk then leave in turn; Hale last. While he
   walks to the seat they murmur (`placeVoices.ts`). *Exists:* a night cleaner (`asset-ch23-npc`, no name, speaker
   "Night shift") with a procedural cart who walks hall 2 once on level 1, says "Evening, Mr. Hawkes", then leaves the
-  cart in the hall (`src/story/apexSlice.ts`). Level 4 does not remount the slice, so only the empty floor remains.
+  cart in the hall (`src/story/apexSlice.ts`). *Exists:* a late associate at a hall-1 desk (`bark.apex.desk01`: "They're
+  already in. Hale's on her feet.") and a darkened silhouette through the board doorway (procedural, never a second
+  Hale mesh next to seated Hale) that Pierce flinches at (`bark.apex.threat01`). Level 4 does not remount the slice or
+  the board-hall module, so only the empty floor remains.
 - **B3:** the creature loop (wait in decon, chase in bursts, roam 5-15 s, bite 22 at 1.8 m). **New:** a dead guard's
   badge on a drum and a radio that crackles twice when Pierce passes (no voice, just a tone) so the hall has a beat.
 - **Lobby:** the receptionist (Liz) works late; on seeing Pierce she screams and calls police (scripted).
@@ -169,15 +173,18 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   Elevator, open the phone screen (messages, contacts, recents), flashlight (G), sidearm (Q), pick up the ammo box (E,
   after Hale's scene), sit on the sofa (*Exists*, E: a 4 s sit with the cushion creak and the skyline sound), read the
   papers on the desk (*Exists*, E: "Still warm. They left them open."), tap the valuation screen (*Exists*: the number
-  ticks down with a soft beep).
-- **Own events:** Voss rings at start (`voss-late`); the alarm and red monitor; the board's departure; hall 2 practicals
-  flicker (*Exists*, `apexSlice`); the city 205 m below moves (traffic and flares); the cleaner walk (*Exists*, beat 29).
+  ticks down with a soft beep), try the locked hall door (*Exists*, E: rattles, IN SESSION plate).
+- **Own events:** Voss rings at start (`voss-late`) but is not required; the desk associate looks up; the locked door;
+  Hale's standing silhouette through the board doorway flinches Pierce (*Exists*, `apexBoardHall`, beat 35); the alarm
+  and red monitor; the board's departure; hall 2 practicals flicker (*Exists*, `apexSlice`); the city 205 m below moves;
+  the cleaner walk (*Exists*, beat 29).
 - **Sound:** room-tone 0.14; HVAC; phone tones; alarm loop 0.46; cab hum 0.5; chimes; cart wheels, sofa creak, skyline,
-  screen tap, troffer flicker (`locales/sfx.json` apex group).
+  screen tap, troffer flicker, door-locked (`locales/sfx.json` apex group).
 - **Changes:** the valuation screen's number ticks down on each tap; the monitor goes dark; by level 4 the papers are
   on the floor and the room is bright.
-- **Gap budget:** hall 1: board murmur + sconces; hall 2: cleaner and cart + art + flicker; office: window + terminal +
-  sofa/papers. Never more than ~8 s of nothing. Playtest `apex-slice` reports `quality.maxQuietSeconds`.
+- **Gap budget:** hall 1: desk person + locked door + board murmur + sconces; hall 2: cleaner and cart + art + flicker +
+  threat silhouette; office: window + terminal + sofa/papers. Never more than ~8 s of nothing. Playtests `apex-slice`
+  and `living-places` report `quality.maxQuietSeconds`.
 
 ### B3 (level 2)
 - **Interactions:** E on ammo/medkit stacks, R reload, H medkit, Q sidearm, G flashlight, open the lab door, F phone,
@@ -195,6 +202,11 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 - **Own events:** the cab sways; floor LEDs cycle; Hale rings at x 44, z 30; phone buzzes; fluorescent hum in the bath.
 - **Sound:** cab hum, chimes, door slide, water, mirror breathing.
 - **Changes:** Pierce's reflection shows the new body; the powers grade; the desk becomes a mess.
+- **The Desk, played (built):** walking up to the glass (no prompt) eases the camera over his shoulder; the reflection
+  lags him up to 0.5 s and turns its head once before he does, the bed and his breath go silent, "That's me." plays.
+  At the desk a held drag (mouse or one finger) sweeps papers, folder, glass and terminal off with paper and impact
+  sounds; a harder drag moves more (the terminal wants a hard one). Canon: the reflection is a second body of the new
+  face; it never speaks and is never explained.
 - *Gap:* the Return basement run is the longest empty stretch. **New:** along the pipe hall at x 44 a row of dead
   practicals that come on one by one as he passes, on a chime, and a ghost of the creature's skitter on the left wall.
 
@@ -256,7 +268,7 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 | 5 | **Down.** | Elevator | `elevator-b3`: cab hum, chimes, floors pass, sway | hum 0.5, descent rumble 0.38, 6 lines |
 | 6 | **Door reveal.** | B3 lab door | Door slides, creature (Idle, Attack, shriek), flees through the south door | "Oh my god! What is that thing?!", shriek 0.78 |
 | 7 | **The hunt.** | B3 decon onward | Creature chases in bursts; downed by 4 torso hits; runs to the glass | skitter, breath, heartbeat |
-| 8 | **Vat break.** | ACID VAT | 40 s: Attack on glass, crack, Pierce backs off, glass goes at 14.4 s, FallingDown, acid, scream, swap to Ch44 at 18.6 s | Scream 1.0, glass 0.86, splash 0.78, "What happened to me..." |
+| 8 | **Vat break.** | ACID VAT | A 5 s shot: Attack on glass, crack, Pierce backs off, glass goes at 4.2 s, acid. Then played: 21-26 s of input in the acid (lag to ~0.4 s, drift, stagger, two falls, flashlight dies, heartbeat and breath rise), Ch44 swap hidden in the second fall, a crawl to the lab door. A death in the hunt before it is a 0.6 s red fade and a checkpoint, not a Defeat card. See `docs/story/playable-beats.md` | Scream 1.0, glass 0.86, splash 0.78, heartbeat, breath, "What happened to me..." |
 | 9 | **Brightness.** | Pipe hall x 44 | He talks to himself, the lamps too bright, Hale rings | Pierce x4, Hale x3 (Annie) |
 | 10 | **Up.** | Cab | `elevator-up` ~69 s; he reconstructs the vat, notices hands, decides on a mirror | rebornidle, chime |
 | 11 | **That's me.** | Restroom mirror | Look in mirror; reflection; "That's me. I'm not seeing things." | Jackson 0.92 |
@@ -279,9 +291,30 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 | 28 | **Leave.** | Door | "Somebody is going to have to tell them which one of us walks in." End Level | line, ending-6, credits |
 
 ### Built this pass
+- **36. The street teaches one power at a time.** *Exists* (`src/story/streetTutorial.ts`, `goingHome.ts`, playtest
+  `street-powers`): Going Home, level 5 — each power in four steps (safe use, harder use, a twist, a payoff), never two
+  at once and never closer than 30 s. Shadow in the crowd (people lose him; one startled walker runs and loses him);
+  Shock on a police pair (the second officer charges, blind to the dark for a few seconds); Possess on a taped-off
+  sidewalk (the guard walks to the tape and lifts it); Consume on the station guard who holds the stairs; Punch and
+  Kick only after he drops Shadow and a man shoves him. A context prompt (icon, key, at most four words) hangs on the
+  target or on the matching touch button while the power can be used; the button pulses once when its power unlocks.
+  Told by play, not text: objective lines are eight words or fewer.
+- **35. Board through the hall.** *Exists* (`src/story/apexBoardHall.ts`, playtest `living-places`): Apex hall 1–2,
+  level 1 — a late associate at a desk says Hale is already standing; a side door marked IN SESSION rattles locked when
+  Pierce tries it; through the board doorway a standing silhouette of Hale makes him flinch and say "She's standing."
+  None of it needs the Voss call. The call still rings as parallel pressure.
 - **29. The Cleaner.** *Exists* (`src/story/apexSlice.ts`, playtest `apex-slice`): Apex hall, level 1 — a night cleaner
   and her cart pass; "Evening, Mr. Hawkes." Cart left in the hall after she exits. Voice/SFX catalog entries ship; Gen
   takes may still be placeholders until Hawkes Gen is reachable.
+
+- **0. The Cold Open.** *Exists* (`src/story/act1.ts` `beginColdOpen`, playtest `first-five`): a first visit only (no save).
+  Tap to play drops the player into the B3 long hall as the old Pierce (`asset-ch33-hero`), flashlight on, the lab door
+  open and lit green by the vat 26 m ahead. No text, no objective. A skitter crosses the wall, the hall light at x 26 fails,
+  the creature's silhouette crosses the lit doorway, then it rushes him; the scream and a cut to black. One line,
+  "Six hours earlier.", then the title terminal over the live 58th floor (quiet at first: wordmark and Start; the rest
+  of the letterhead comes up after 30 s). Canon: B3 is the end of the night, so the cold open is a flash-forward of the
+  hall he walks into in level 2; "six hours earlier" is the board night the title opens on. The creature's code is the
+  hunt's own (clips, sounds); the cold-open rush is scripted and always ends in the scream.
 
 ### New beats (proposals, each an event; J to approve before build)
 - **30. The Radio.** B3 pipe hall: a dead guard's radio crackles twice as Pierce passes; on the third pass in the Return
@@ -307,9 +340,10 @@ The Morning. Whether the world continues is J's call (open question below).
 
 ## Known gaps and work items (in priority order)
 1. **The Return basement is empty.** Add the dead-practical sequence, the radio and the creature's skitter ghost.
-2. **Apex Peak vertical slice (first part done).** Cleaner, cart, sofa sit, papers, valuation tap, hall flicker and
-   `apex-slice` playtest are in. Still open: sconce dip when the elevator moves; Gen voice/SFX takes when Gen is up;
-   optional polished cart GLB (priced below / in task summary).
+2. **Apex Peak vertical slice (first part done).** Cleaner, cart, sofa sit, papers, valuation tap, hall flicker,
+   board-through-hall (desk, locked door, Hale silhouette) and `apex-slice` / `living-places` playtests are in. Still
+   open: sconce dip when the elevator moves; Gen voice/SFX takes for the new desk/threat lines and door-locked when Gen
+   is up; optional polished cart GLB (priced below / in task summary).
 3. **Lobby and elevator to L have no life.** Add the clock, the monitor, the 20-floor stop.
 4. **Station and train need a second layer.** Rat, janitor, pole grab, ad zoom.
 5. **The Morning is a single room.** Add fridge, radio, photograph, neighbour.
@@ -329,3 +363,27 @@ tasks.
 - May the cleaner speak one line (voice cents, no GPU)?
 - Is the lobby clock's 9:41 acceptable as the board time?
 - Do we keep "which of you" (Voss, Morning call) or cut to preserve "nobody names it"? (Q6 in the level-8 beat sheet.)
+
+
+## Living places (58th floor, station, train)
+
+- **Areas:** Apex Peak halls and office, The Station platform and concourse, The Train car.
+- **Landmarks:** the hall cooler and light switch, the boardroom coffee machine and the desk phone (Apex); the IN SESSION
+  door plate and the lit desk lamp in hall 1; the ticket machine, turnstiles, newsstand bell (Station); the center pole,
+  the strap, the stop button (Train).
+- **Who lives here:** a night guard (rounds in hall 1, tries each east door), a late associate at a desk and readers on
+  the waiting chairs / phone / cooler (all "Night shift" voice, no first names); a standing Hale silhouette through the
+  board doorway (story beat, not a routine); the station's platform walkers; the train's riders (one reads, one sleeps,
+  one sways). They look up when Pierce passes. Nobody mentions B3.
+- **What happens:** footsteps on every plant by floor; every touchable answers with a motion and a sound; the guard
+  rattles a handle; Pierce can try the locked door; a rider stirs; barks never repeat within five minutes.
+- **Story beats:** **35. Board through the hall** (desk, locked door, visible threat) — told as events, not a phone call.
+
+## What Pierce says on the phone (reply moments)
+
+Every scripted Voss and Hale call (`voss-late`, `voss-meeting`, `hale-walkout`, `hale-board`, Hale at the train stop `hale-train`) opens one reply moment while the caller is still talking: two or three short replies (4-7 words) and silence, for 5 s, chosen with 1/2/3 or a tap. Choosing early cuts the caller off; waiting plays the silence answer. Each reply is a spoken Pierce line and an answer from the caller.
+
+- **vossTrust** (-2..+2, on the `ph-origins-save` cookie): up when Pierce gives Voss something (an answer, the tape kept safe), down when he brushes him off. **haleTemper** (-2..+2): how hot Hale runs; up when he is curt or stonewalls, down when he placates her.
+- **The Morning**: Voss's last call is two-way. Its first and last line have three variants on vossTrust (<= -1 cold, 0 neutral, >= 1 warm), and two moments (the vote; the tape) let Pierce answer.
+- Voice stays terse. Replies never name B3 in public, and nobody explains the two Pierces: Pierce asks "Who else knows about last night?", never "why are there two of me".
+- Voices are the existing cast (Voss Adam-line voice, Pierce Jackson, Hale Annie), `assets/audio/phone/*-r1a|b|c(-ans|s-ans).mp3`, ids `phone.<call>.r1a`, `.r1a.ans`, `.r1s.ans`.

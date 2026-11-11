@@ -119,12 +119,15 @@
         --panel-border: rgba(201, 168, 106, 0.34);
         --text: #ece6d8;
         --muted: #a9b2ba;
-        --accent: #67d2ff;
+        /* Accent matches the title card gold so HUD primary actions no longer read cyan against navy chrome. */
+        --accent: #c9a86a;
         --good: #7af0c9;
         --gold: #c9a86a;
         --warning: #ffd86a;
         /* House style: the Hawkes Biomedical terminal's tokens, shared by the title card, HUD, pause, settings and end cards. */
         --hb-ink: #0a1016;
+        --hb-navy: #0a1522;
+        --hb-navy-deep: #061018;
         --hb-paper: #ece6d8;
         --hb-gold: #c9a86a;
         --hb-gold-hi: #e4c88f;
@@ -291,8 +294,8 @@
       }
 
       .dev-actions .primary {
-        background: linear-gradient(135deg, var(--accent), var(--good));
-        color: #07141e;
+        background: linear-gradient(135deg, var(--hb-gold-hi), var(--hb-gold));
+        color: var(--hb-ink);
       }
 
       .dev-output {
@@ -312,7 +315,7 @@
         content: "";
         position: absolute;
         background: rgba(255,255,255,0.9);
-        box-shadow: 0 0 12px rgba(103, 210, 255, 0.7);
+        box-shadow: 0 0 12px rgba(201, 168, 106, 0.55);
       }
 
       #crosshair::before {
@@ -680,6 +683,27 @@
       }
 
 
+      /* Context prompt (src/game/powerPrompt.ts): icon + key + a word or two, on the target or the matching touch button. */
+      .power-prompt {
+        position: absolute; left: 0; top: 0; z-index: 40; pointer-events: none;
+        display: none; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
+        background: rgba(10, 20, 31, 0.86); border: 1px solid var(--hb-gold-hi, #d8b45a); color: #fff;
+        font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+        border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 0 14px rgba(216,180,90,0.25);
+      }
+      .power-prompt.on { display: flex; animation: ppBob 1.4s ease-in-out infinite; }
+      .power-prompt .pp-icon { color: var(--hb-gold-hi, #d8b45a); font-size: 16px; }
+      .power-prompt kbd { font-family: var(--hb-mono, monospace); font-size: 11px; padding: 1px 5px; border: 1px solid rgba(255,255,255,0.4); border-radius: 2px; }
+      @keyframes ppBob { 0%, 100% { margin-top: 0; } 50% { margin-top: -4px; } }
+      body.cinematic .power-prompt, body:has(.message:not(.hidden)) .power-prompt { display: none !important; }
+      /* A power unlocks: its button pulses once. */
+      .unlock-pulse { animation: unlockPulse 1.1s ease-out 1; }
+      @keyframes unlockPulse {
+        0% { box-shadow: 0 0 0 0 rgba(216,180,90,0.9); transform: scale(1); }
+        40% { box-shadow: 0 0 0 14px rgba(216,180,90,0); transform: scale(1.12); }
+        100% { box-shadow: 0 0 0 0 rgba(216,180,90,0); transform: scale(1); }
+      }
+
       /* Objective waypoint (src/game/objectiveWaypoint.ts): a diamond over the objective, clamped to the screen edge. */
       .objective-waypoint {
         position: absolute;
@@ -973,6 +997,61 @@
         pointer-events: none;
         transition: opacity 0.35s ease, visibility 0.35s ease;
       }
+
+      /* Cold open (first visit): no HUD, no buttons, no text. Only the two sticks stay (touch), so nothing sits on the lit doorway. */
+      body.cold-open .hud,
+      body.cold-open .objective-hud,
+      body.cold-open .objective-waypoint,
+      body.cold-open .pause-btn,
+      body.cold-open .ability-readout,
+      body.cold-open .missions-hud,
+      body.cold-open .inventory-hud,
+      body.cold-open .action-hint,
+      body.cold-open .interact-hint,
+      body.cold-open .lost-hint,
+      body.cold-open .reload-hint,
+      body.cold-open .perf-monitor,
+      body.cold-open .right-action-zone,
+      body.cold-open #interactBtn,
+      body.cold-open #crosshair {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      /* "Six hours earlier." One line on black, then the terminal. */
+      .cold-card {
+        position: fixed;
+        inset: 0;
+        z-index: 95;
+        display: grid;
+        place-items: center;
+        background: #000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.9s ease;
+      }
+      .cold-card.on { opacity: 1; }
+      .cold-card p {
+        margin: 0;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: clamp(20px, 3.4vw, 34px);
+        letter-spacing: 0.08em;
+        color: #d9c58a;
+      }
+      /* The terminal after the cold open arrives quiet: wordmark and Start. The rest of the letterhead comes up later. */
+      .message.quiet .corp-meta,
+      .message.quiet .eyebrow,
+      .message.quiet .subtitle,
+      .message.quiet #resetBtn,
+      .message.quiet #loadModelBtn,
+      .message.quiet #settingsBtn,
+      .message.quiet .build-version,
+      .message.quiet .corp-foot {
+        visibility: hidden;
+        opacity: 0;
+        animation: quietReveal 1.2s ease 30s forwards;
+      }
+      @keyframes quietReveal { to { visibility: visible; opacity: 1; } }
       .hud, .controls, .objective-hud, .pause-btn, .ability-readout, .missions-hud, .inventory-hud {
         transition: opacity 0.35s ease, visibility 0.35s ease;
       }
@@ -1017,6 +1096,70 @@
         font-size: 11px;
       }
 
+
+      /* Call replies: what Pierce can say while the caller is still talking (keys 1-3, or tap). */
+      .call-replies {
+        position: fixed;
+        left: 250px;
+        bottom: calc(var(--safe-bottom, 0px) + 18px);
+        width: min(360px, calc(100vw - 280px));
+        z-index: 12;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: auto;
+        color: #f2f2f7;
+      }
+      .call-replies[hidden] { display: none; }
+      .call-replies .cr-timer {
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(212, 180, 131, 0.9);
+        transform-origin: left center;
+      }
+      .call-replies .cr-option {
+        appearance: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 48px;
+        padding: 8px 14px;
+        border-radius: 24px;
+        border: 1px solid rgba(212, 180, 131, 0.55);
+        background: rgba(9, 12, 16, 0.92);
+        color: #f2f2f7;
+        font: inherit;
+        font-size: 15px;
+        line-height: 1.25;
+        text-align: left;
+        cursor: pointer;
+      }
+      .call-replies .cr-option:active,
+      .call-replies .cr-option.picked { background: #d4b483; color: #0b0b0d; }
+      .call-replies .cr-key {
+        flex: none;
+        min-width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: rgba(212, 180, 131, 0.22);
+        text-align: center;
+        font-size: 12px;
+        line-height: 22px;
+      }
+      body[data-device='mobile'] .call-replies,
+      body[data-device='tablet'] .call-replies {
+        left: calc(env(safe-area-inset-left, 0px) + 16px);
+        right: calc(env(safe-area-inset-right, 0px) + 16px);
+        bottom: auto;
+        width: auto;
+        top: calc(var(--safe-top, 0px) + 56px + 214px);
+      }
+      body[data-device='mobile'][data-orientation='landscape'] .call-replies,
+      body[data-device='tablet'][data-orientation='landscape'] .call-replies {
+        left: calc(env(safe-area-inset-left, 0px) + 248px);
+        max-width: 360px;
+        top: calc(var(--safe-top, 0px) + 12px);
+      }
       .phone-panel {
         position: absolute;
         left: 28px;
@@ -1710,9 +1853,9 @@
         height: 44px;
         border-radius: 50%;
         transform: translate(-50%, -50%);
-        background: linear-gradient(135deg, rgba(103, 210, 255, 0.9), rgba(122, 240, 201, 0.8));
-        border: 1px solid rgba(255,255,255,0.22);
-        box-shadow: 0 0 20px rgba(103, 210, 255, 0.45);
+        background: linear-gradient(145deg, rgba(228, 200, 143, 0.95), rgba(201, 168, 106, 0.88) 55%, rgba(154, 122, 66, 0.9));
+        border: 1px solid rgba(228, 200, 143, 0.45);
+        box-shadow: 0 0 18px rgba(201, 168, 106, 0.35);
       }
 
       .right-controls {
@@ -1743,10 +1886,10 @@
       .touch-btn {
         width: 72px;
         height: 72px;
-        border: 1px solid rgba(255,255,255,0.16);
+        border: 1px solid rgba(201, 168, 106, 0.42);
         border-radius: 50%;
-        background: rgba(13, 20, 31, 0.52);
-        color: var(--text);
+        background: rgba(10, 21, 34, 0.72);
+        color: var(--hb-gold-hi);
         font-size: 28px;
         font-weight: 700;
         touch-action: manipulation;
@@ -1761,17 +1904,20 @@
         width: 90px;
         height: 90px;
         border-radius: 50%;
-        border: 1px solid rgba(255,255,255,0.16);
-        background: linear-gradient(135deg, var(--accent), var(--good));
-        color: #07141e;
+        border: 1px solid rgba(201, 168, 106, 0.55);
+        background: linear-gradient(145deg, #1a2a3c 0%, var(--hb-navy) 55%, var(--hb-navy-deep) 100%);
+        color: var(--hb-gold-hi);
         font-weight: 900;
         font-size: 24px;
         pointer-events: auto;
+        box-shadow: 0 0 16px rgba(6, 16, 24, 0.55), inset 0 0 0 1px rgba(201, 168, 106, 0.16);
       }
 
       .action-btn.fire {
-        background: linear-gradient(135deg, #ffbf69, #ff7a59);
-        color: #23120d;
+        background: linear-gradient(145deg, var(--hb-gold-hi), var(--hb-gold) 55%, #9a7a42);
+        color: var(--hb-ink);
+        border-color: rgba(228, 200, 143, 0.6);
+        box-shadow: 0 0 16px rgba(201, 168, 106, 0.28), inset 0 0 0 1px rgba(228, 200, 143, 0.22);
       }
 
       #screenFade {
@@ -2121,8 +2267,8 @@
       }
 
       .primary {
-        background: linear-gradient(135deg, var(--accent), var(--good));
-        color: #07141e;
+        background: linear-gradient(135deg, var(--hb-gold-hi), var(--hb-gold));
+        color: var(--hb-ink);
       }
 
       .primary:disabled,
@@ -2510,8 +2656,8 @@
       }
 
       .sound-switch[aria-checked='true'] {
-        background: linear-gradient(135deg, var(--accent), var(--good));
-        color: #07141e;
+        background: linear-gradient(135deg, var(--hb-gold-hi), var(--hb-gold));
+        color: var(--hb-ink);
         border-color: transparent;
       }
 
@@ -2809,6 +2955,47 @@
       .message .lore-link::after { content: ' \2197'; }
       .message .lore-link:hover, .message .lore-link:focus-visible { color: #fff; }
 
+      /* Level Complete: the run goal's payout (rank, unlocked tool) and the hook into the next level. */
+      .message .reward-entry {
+        margin: 10px 0 4px;
+        padding: 10px 16px;
+        border: 1px solid rgba(212, 180, 131, 0.38);
+        border-left-width: 3px;
+        background: rgba(5, 8, 12, 0.55);
+        text-align: left;
+      }
+      .message .reward-entry .reward-row {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        padding: 3px 0;
+      }
+      .message .reward-entry .reward-row span {
+        flex: 0 0 84px;
+        font-family: var(--hb-sans);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--hb-gold);
+      }
+      .message .reward-entry .reward-row strong { font-size: 16px; font-weight: 500; }
+      .message .reward-entry .reward-row.full strong { color: var(--hb-gold); }
+      .message .reward-entry .reward-hook {
+        margin: 6px 0 0;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #c9d1d8;
+      }
+      .message .reward-entry .reward-hook span {
+        font-family: var(--hb-sans);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--hb-gold);
+        margin-right: 8px;
+      }
+      .mission-row.reward-row strong { color: var(--hb-gold, #d4b483); }
+
       /* Actions are an agenda: numbered rows, the first one set in ivory. */
       .message .button-row {
         counter-reset: agenda;
@@ -3062,6 +3249,23 @@
       }
       .tap-note { font-size: 14px; letter-spacing: 0.08em; color: var(--hb-dim); }
 
+      /* The gate owns the screen: the title card (menu rows, loading line) stays hidden until Tap to play is dismissed. */
+      body:has(#tapToPlay:not([hidden])) .message .panel { visibility: hidden; }
+      .tap-to-play { background: #03060a; }
+      /* One progress line under the button while the level loads; gone once Start works. */
+      .message .load-line {
+        margin: 14px 0 0;
+        font-family: var(--hb-sans);
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--hb-gold-hi, #e6cf9a);
+        text-align: center;
+      }
+      .message .load-line[hidden] { display: none; }
+      .message .subtitle:empty { display: none; }
+      .tap-note { color: #b9c2cb; font-size: 15px; }
+
       /* Turn your phone sideways: touch devices held in portrait (src/game/screenMode.ts). Over the tap prompt, below nothing. */
       .turn-phone {
         position: fixed;
@@ -3294,6 +3498,51 @@
       }
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .missions-hud { bottom: calc(var(--safe-bottom) + 156px); }
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .ability-readout { bottom: calc(var(--safe-bottom) + 178px); }
+      /* Captions on touch: wrap inside side margins (never ellipsis), and outside a scene sit above the sticks and buttons (236 px portrait, 148 px landscape). In a scene the controls are hidden, so they stay above the letterbox. */
+      body:is([data-device='mobile'], [data-device='tablet']) #cineHud {
+        width: auto;
+        max-width: none;
+        left: max(20px, env(safe-area-inset-left, 0px));
+        right: max(20px, env(safe-area-inset-right, 0px));
+        transform: none;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) #cineHud .cine-line {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        padding: 6px 12px;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) #cineHud .cine-speaker { display: block; margin: 0 0 2px; }
+      body.cinematic:is([data-device='mobile'], [data-device='tablet']) #cineHud { right: max(120px, env(safe-area-inset-right, 0px)); }
+      body:not(.cinematic):is([data-device='mobile'], [data-device='tablet']) #cineHud { bottom: calc(var(--safe-bottom) + 236px); }
+      body:not(.cinematic):is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] #cineHud { bottom: calc(var(--safe-bottom) + 148px); }
+
+      /* ---- Phone pass (critic: phone 4/10): bigger HUD text, a right-hand stack of two or three buttons
+         (Phone duplicates the ☎ action button, Medkit and Inventory live in the Missions / pause flow),
+         and no developer toggle on touch. ---- */
+      body:is([data-device='mobile'], [data-device='tablet']) #devToggle,
+      body:is([data-device='mobile'], [data-device='tablet']) #devPanel { display: none !important; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #phoneHint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #medkitHint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #inventoryHint { display: none; }
+      /* On the street levels Shadow, Ability and Hands are the three; the flashlight is not needed there. */
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open):has(#shadowHint:not([hidden])) #lightHint { display: none; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) .phone-hint {
+        min-width: 112px; min-height: 48px; font-size: 14px; letter-spacing: 0.08em; padding: 10px 14px; justify-content: center;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .brand { font-size: 12px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .label,
+      body:is([data-device='mobile'], [data-device='tablet']) .ability-kicker,
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-kicker { font-size: 13px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-text { font-size: 20px; line-height: 1.25; }
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-dist { font-size: 15px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .ability-readout strong { font-size: 18px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .missions-hud .phone-hint { font-size: 14px; min-height: 48px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name,
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-dist { font-size: 16px; }
+      /* Landscape grid keeps its three columns but gets room for the larger type. */
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) { grid-template-columns: repeat(3, 100px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) .phone-hint { min-width: 0; font-size: 13px; padding: 6px; }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
@@ -3348,6 +3597,7 @@
         <span class="waypoint-diamond"></span>
         <span class="waypoint-label"><span class="waypoint-name"></span><span class="waypoint-dist"></span></span>
       </div>
+      <div id="powerPrompt" class="power-prompt" aria-hidden="true"><span class="pp-icon"></span><kbd class="pp-key"></kbd><span class="pp-label"></span></div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <div id="hitFlash" class="hit-flash" aria-hidden="true"></div>
       <aside id="phonePanel" class="phone-panel" hidden>
@@ -3384,6 +3634,7 @@
           <div id="phoneMessages" class="phone-messages" hidden></div>
         </div>
       </aside>
+      <div id="callReplies" class="call-replies" role="group" aria-label="Reply" hidden></div>
       <div id="phoneToast" class="phone-toast" hidden></div>
 
       <div id="missionsHud" class="missions-hud" aria-live="polite">
@@ -3471,6 +3722,7 @@
       </div>
 
       <div id="screenFade" aria-hidden="true"></div>
+      <div class="cold-card" id="coldCard" aria-live="polite"><p>Six hours earlier.</p></div>
       <div class="chapter-card" id="chapterCard" hidden aria-live="polite">
         <div class="chapter-inner">
           <div class="chapter-kicker"></div>
@@ -3488,7 +3740,7 @@
           </header>
           <div class="eyebrow" id="messageEyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
-          <p class="subtitle" id="messageText">Loading</p>
+          <p class="subtitle" id="messageText"></p>
           <p class="mission-score" id="missionScore" hidden></p>
           <aside class="lore-entry" id="loreEntry" hidden aria-live="polite">
             <div class="lore-kicker" id="loreKicker"></div>
@@ -3496,6 +3748,8 @@
             <p class="lore-text" id="loreText"></p>
             <a class="lore-link" id="loreLink" href="#" target="_blank" rel="noopener"></a>
           </aside>
+
+          <aside class="reward-entry" id="rewardEntry" hidden aria-live="polite"></aside>
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">
@@ -3506,12 +3760,13 @@
           </div>
 
           <div class="button-row">
-            <button class="primary" id="startBtn" disabled aria-busy="true">Loading…</button>
+            <button class="primary" id="startBtn" disabled aria-busy="true">Start</button>
             <button class="secondary" id="newGameBtn" type="button" style="display:none">New Game</button>
             <button class="secondary" id="resetBtn">Reset</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
             <button class="secondary" id="settingsBtn" type="button">Settings</button>
           </div>
+          <p class="load-line" id="loadLine" role="status" aria-live="polite">Loading…</p>
           <a class="build-version" href="/whatsnew.html" target="_blank" rel="noopener" data-hawkes-version data-prefix="Version " hidden></a>
           <footer class="corp-foot" aria-hidden="true"><span>Confidential · Board use only</span><span>HB-58 / NIGHT</span></footer>
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />

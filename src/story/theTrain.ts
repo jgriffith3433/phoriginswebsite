@@ -1,7 +1,8 @@
+import { music } from '../game/musicDirector';
 import * as BABYLON from '@babylonjs/core';
 
 import type { LevelCredits } from './credits';
-import type { StoryCarry } from './act1';
+import type { ImpairState, StoryCarry } from './act1';
 import type { TrainDress } from './trainDress';
 import { CAR } from './trainDress';
 import { PLAYER_ASSET_ID } from '../game/modelLoader';
@@ -10,6 +11,7 @@ import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
+import { lifeStats } from '../game/lifeStats';
 import { createLinePool, TRAIN_BARKS, TRAIN_PA } from './placeVoices';
 
 /**
@@ -66,6 +68,8 @@ export type TheTrainHost = {
   callBusy: () => boolean;
   /** The car kit (tunnel speed for a stop, stats); null in a frame where the level is not dressed. */
   car: () => TrainDress | null;
+  /** Bends the walk for a moment (the stumble); null clears it. Never locks. */
+  impair: (state: ImpairState | null) => void;
 };
 
 /** The back of the car, facing the front (+x). */
@@ -77,6 +81,26 @@ const STOP_DOOR = { x: 11.2, z: 1.2 };
 const LAST_CAR = 3;
 const CRUISE = 14;
 const EXIT_X = 17.85;
+/** Where the old body (and the commuter) stand behind the front end door glass, in the coupled car. */
+const PARK = { x: 18.65, z: 0.05 };
+const PARK_COMMUTER = { x: 19.35, z: -0.2 };
+/** Where he stands on the platform after he steps off, and where the commuter does. */
+const PLATFORM = { x: 11.2, z: 3.35 };
+const PLATFORM_COMMUTER = { x: 11.75, z: 3.05 };
+/** Pierce to the stop door's plane: the doors start to close at this distance. At walking pace (the lift on shadow
+ *  running is locked once the doors are open) that is a little over 0.8 s from the door and CLOSE_SECONDS is shorter,
+ *  so he arrives about an arm's length from shut doors every time. */
+const CLOSE_AT = 2.6;
+const CLOSE_SECONDS = 0.7;
+/** If he stands still, the doors close anyway. */
+const DOOR_TIMEOUT = 14;
+const DOOR_PLANE_Z = 1.5;
+/** Set points in a car, by Pierce's x: a lurch (camera roll) or a stumble (roll and a stagger that never stops him). */
+const LURCH_POINTS: Record<number, { x: number; kind: 'lurch' | 'stumble' }[]> = {
+  1: [{ x: 5.5, kind: 'lurch' }, { x: 12, kind: 'stumble' }],
+  2: [{ x: 4.5, kind: 'lurch' }, { x: 10.5, kind: 'stumble' }],
+  3: [{ x: 3, kind: 'lurch' }],
+};
 /** Car 2: already near the front end door when Pierce enters, so he walks out before a shadow run can close. */
 const CAR2_SPAWN_X = 15.2;
 /** Base walk in car 2; ramps when Pierce closes the lead, with a burst if he gets inside ~3 m. */
@@ -87,11 +111,13 @@ const CAR2_BURST = 9;
 const COMMUTER = 'asset-ch28-npc';
 const RIDER_ASSETS = ['asset-ch08-npc', 'asset-ch31-npc', 'asset-ch23-npc'];
 /** Riders per car: x, z, facing. They stand by the doors and the poles; nobody is in the aisle down the middle. */
-const RIDERS: [number, number, number][][] = [
-  [[6.8, -1.15, 0], [9.4, 0.92, Math.PI]],
-  [[2.3, 1.15, Math.PI], [7.4, -0.92, 0], [15.7, -1.15, 0]],
-  [[4.2, -0.92, 0], [15.7, 1.15, Math.PI]],
+const RIDERS: [number, number, number, number?][][] = [
+  [[6.8, -1.15, 0, -0.3], [9.4, 0.92, Math.PI], [13.2, 1.1, Math.PI]],
+  [[2.3, 1.15, Math.PI], [7.4, -0.92, 0, 0.35], [15.7, -1.15, 0], [10.2, 1.1, Math.PI, -0.1]],
+  [[4.2, -0.92, 0, 0.3], [15.7, 1.15, Math.PI], [8.2, -1.1, 0]],
 ];
+/** A rider with an aisle spot steps off the wall into it when Pierce is this close (metres along the car). */
+const AISLE_TRIGGER = 5;
 
 const CARRY: StoryCarry[] = [
   { id: 'phone', name: 'Phone', note: 'No signal in the tunnel. A bar or two at a stop.' },
@@ -140,6 +166,14 @@ type Rider = {
   resting: boolean;
   poseHold: number;
   floorY: number;
+  /** What the rider is doing while the car rolls: reading, asleep, or just swaying on the pole. */
+  routine: 'read' | 'sleep' | 'sway';
+  phase: number;
+  notice: number;
+  cool: number;
+  /** The aisle spot (z) he shifts to, or null; `shifted` once he is standing there. */
+  aisleZ: number | null;
+  shifted: boolean;
 };
 
 type Beat = 'opening' | 'cars' | 'stop' | 'door' | 'closing' | 'done';
@@ -191,6 +225,14 @@ export const createTheTrain = (host: TheTrainHost) => {
   let callIn = -1;
   let haleRang = false;
   let leftCar = 0;
+  let lurches = 0;
+  let stumbles = 0;
+  const fired = new Set<string>();
+  let stumbleLeft = 0;
+  let doorTime = 0;
+  let closeLeft = -1;
+  let doorsClosed = false;
+  let doorGap: number | null = null;
 
   const face = (avatar: PlayerAvatar, yaw: number) => {
     avatar.group.rotation.y = yaw + Math.PI;
@@ -268,23 +310,35 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const castReady = () => [double, commuter].every((figure) => !figure || figure.gone || figure.avatar.isReady());
 
-  /** Walks a figure toward +x along its lane; true once it has gone through the end door. */
-  const walkForward = (figure: Figure | null, z: number, speed: number, dt: number) => {
+  /** Stands a figure in the coupled car, behind the front end door glass, facing forward. */
+  const parkAhead = (figure: Figure | null, at: { x: number; z: number }) => {
+    if (!figure || figure.gone) return;
+    putFigure(figure, at.x, at.z, Math.PI / 2, false);
+  };
+
+  /**
+   * Walks a figure toward +x along its lane, through the end door and on to `park` (behind the glass, where
+   * Pierce sees him from the car). True once he is through the door.
+   */
+  const walkForward = (figure: Figure | null, z: number, speed: number, dt: number, park = PARK) => {
     if (!figure || figure.gone) return true;
-    const x = figure.mesh.position.x + speed * dt;
-    if (x >= EXIT_X) {
-      hideFigure(figure);
+    const px = figure.mesh.position.x;
+    if (px >= park.x) {
+      parkAhead(figure, park);
       return true;
     }
-    putFigure(figure, x, figure.mesh.position.z + (z - figure.mesh.position.z) * Math.min(1, dt * 3), Math.PI / 2, true);
-    return false;
+    const x = Math.min(park.x, px + speed * dt);
+    // Through the door he is on the aisle centre line.
+    const lane = x > EXIT_X - 1 ? park.z : z;
+    putFigure(figure, x, figure.mesh.position.z + (lane - figure.mesh.position.z) * Math.min(1, dt * 3), Math.PI / 2, x < park.x);
+    return x >= EXIT_X;
   };
 
   // ---------- Riders (Shadow mode targets) ----------
 
   const spawnRiders = (car: number) => {
     const spots = RIDERS[(car - 1) % RIDERS.length];
-    spots.forEach(([x, z, yaw], index) => {
+    spots.forEach(([x, z, yaw, aisle], index) => {
       const id = `train-rider-${car}-${index}`;
       const mesh = BABYLON.MeshBuilder.CreateCapsule(id, { radius: 0.38, height: 1.55 }, host.scene);
       mesh.position.set(x, PLAYER_STAND_Y, z);
@@ -294,7 +348,12 @@ export const createTheTrain = (host: TheTrainHost) => {
       const avatar = createCharacterAvatar(host.scene, id, RIDER_ASSETS[(car + index) % RIDER_ASSETS.length]);
       avatar.group.parent = mesh;
       avatar.group.position.y = -PLAYER_MESH_Y_OFFSET;
-      const rider: Rider = { mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0 };
+      const rider: Rider = {
+        mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0,
+        routine: aisle !== undefined ? 'sway' : (['read', 'sleep', 'sway'] as const)[index % 3], phase: Math.random() * 6, notice: 0, cool: 2 + Math.random() * 2,
+        aisleZ: aisle ?? null, shifted: false,
+      };
+      lifeStats.person(id, 'train', rider.routine);
       face(avatar, yaw);
       avatar.whenReady(() => {
         if (!rider.down && rider !== tether) avatar.setLocomotion(false, true);
@@ -476,6 +535,13 @@ export const createTheTrain = (host: TheTrainHost) => {
       leftCar: leftCar || null,
       riders: riders.filter((rider) => !rider.down).length,
       hale: haleRang,
+      aisleRiders: riders.filter((rider) => !rider.down && Math.abs(rider.mesh.position.z) < 0.7).length,
+      lurches,
+      stumbles,
+      oldBodyAhead: !!double && !double.gone && double.mesh.position.x >= PARK.x - 0.05 && beat === 'cars',
+      oldBodyOnPlatform: !!double && !double.gone && double.mesh.position.z >= PLATFORM.z - 0.05,
+      doorsClosed,
+      doorGap,
     });
   };
 
@@ -530,8 +596,8 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const endOpening = () => {
     if (beat !== 'opening') return;
-    hideFigure(double);
-    hideFigure(commuter);
+    parkAhead(double, PARK);
+    parkAhead(commuter, PARK_COMMUTER);
     leftCar = 1;
     beat = 'cars';
     host.placePierce(TRAIN_SPAWN.x, TRAIN_SPAWN.z, TRAIN_SPAWN.yaw);
@@ -550,7 +616,7 @@ export const createTheTrain = (host: TheTrainHost) => {
     cue(L_POLE, T_POLE);
     if (sceneTime >= T_GO) {
       walkForward(double, 0.15, 1.15, dt);
-      if (sceneTime >= T_GO + 0.5) walkForward(commuter, -0.2, 1.15, dt);
+      if (sceneTime >= T_GO + 0.5) walkForward(commuter, -0.2, 1.15, dt, PARK_COMMUTER);
     }
     cue(L_TURN, T_TURN);
     cue(L_NEXT, T_NEXT);
@@ -568,14 +634,17 @@ export const createTheTrain = (host: TheTrainHost) => {
     clearRiders();
     clearFigures();
     spawnRiders(n);
+    stumbleLeft = 0;
+    host.impair(null);
     if (n < LAST_CAR) {
       // Already past mid-car and walking out — one car ahead, not a fair chase.
       double = spawnFigure('train-double', PLAYER_ASSET_ID, CAR2_SPAWN_X, 0.15, Math.PI / 2);
       commuter = spawnFigure('train-commuter', COMMUTER, CAR2_SPAWN_X + 0.7, -0.25, Math.PI / 2);
     } else {
-      // At the north door, facing it. He does not turn around again.
-      double = spawnFigure('train-double', PLAYER_ASSET_ID, STOP_DOOR.x, 0.95, 0);
-      commuter = spawnFigure('train-commuter', COMMUTER, 12.05, 0.62, -Math.PI / 2 - 0.5);
+      // Visible ahead through the front end door glass, like the cars before. When the train stops he is at the
+      // north door (beginStop moves him there under the cut).
+      double = spawnFigure('train-double', PLAYER_ASSET_ID, PARK.x, PARK.z, Math.PI / 2);
+      commuter = spawnFigure('train-commuter', COMMUTER, PARK_COMMUTER.x, PARK_COMMUTER.z, Math.PI / 2);
       braking = false;
     }
     host.placePierce(TRAIN_SPAWN.x, TRAIN_SPAWN.z, TRAIN_SPAWN.yaw);
@@ -596,6 +665,11 @@ export const createTheTrain = (host: TheTrainHost) => {
     if (shadowOn) toggle(false);
     releaseLink(false);
     host.placePierce(7.3, -0.35, Math.atan2(STOP_DOOR.x - 7.3, STOP_DOOR.z - -0.35));
+    host.impair(null);
+    stumbleLeft = 0;
+    // Under the cut: he is at the north door, facing it. He does not turn around.
+    putFigure(double, STOP_DOOR.x, 0.95, 0, false);
+    putFigure(commuter, 12.05, 0.62, -Math.PI / 2 - 0.5, false);
     holdFor(stopShot);
     host.playClip('rebornidle', true);
   };
@@ -608,12 +682,17 @@ export const createTheTrain = (host: TheTrainHost) => {
   const endStop = () => {
     if (beat !== 'stop') return;
     if (openedAt < 0) openDoors();
-    hideFigure(double);
-    hideFigure(commuter);
+    // Skipped, he is already on the platform; either way he is still there when the doors close.
+    putFigure(double, PLATFORM.x, PLATFORM.z, 0, false);
+    putFigure(commuter, PLATFORM_COMMUTER.x, PLATFORM_COMMUTER.z, 0, false);
     leftCar = LAST_CAR;
     beat = 'door';
+    doorTime = 0;
+    closeLeft = -1;
+    doorsClosed = false;
+    doorGap = null;
     giveControl();
-    callIn = 1.0;
+    callIn = -1;
   };
 
   const stepStop = (dt: number) => {
@@ -634,9 +713,9 @@ export const createTheTrain = (host: TheTrainHost) => {
     if (walkOutAt >= 0 && double && !double.gone) {
       // Straight out through the door onto the Gaussian Splat station platform, facing it the whole way.
       const z = double.mesh.position.z + 1.45 * dt;
-      if (z > 2.65) {
-        hideFigure(double);
-        goneAt = sceneTime;
+      if (z >= PLATFORM.z) {
+        putFigure(double, PLATFORM.x, PLATFORM.z, 0, false);
+        if (goneAt < 0) goneAt = sceneTime;
       } else {
         putFigure(double, STOP_DOOR.x, z, 0, true);
       }
@@ -644,8 +723,8 @@ export const createTheTrain = (host: TheTrainHost) => {
     if (walkOutAt >= 0 && sceneTime >= walkOutAt + 0.35 && commuter && !commuter.gone) {
       const cx = commuter.mesh.position.x + (STOP_DOOR.x + 0.22 - commuter.mesh.position.x) * Math.min(1, 3.5 * dt);
       const cz = commuter.mesh.position.z + 1.35 * dt;
-      if (cz > 2.45) {
-        hideFigure(commuter);
+      if (cz >= PLATFORM_COMMUTER.z) {
+        putFigure(commuter, PLATFORM_COMMUTER.x, PLATFORM_COMMUTER.z, 0, false);
       } else {
         putFigure(commuter, cx, cz, 0, true);
       }
@@ -667,11 +746,9 @@ export const createTheTrain = (host: TheTrainHost) => {
     beat = 'closing';
     releaseLink(false);
     if (shadowOn) toggle(false);
-    host.placePierce(STOP_DOOR.x - 0.1, 0.55, 0);
+    // The doors are already shut and he is where the chase left him (about an arm's length away). No placement.
     holdFor(closingShot);
     host.playClip('rebornidle', true);
-    host.car()?.setDoor(STOP_DOOR.x, 1, false);
-    host.playFile(SFX.close, 0.6);
   };
 
   const finish = () => {
@@ -704,6 +781,11 @@ export const createTheTrain = (host: TheTrainHost) => {
     closingShot();
     if (sceneTime >= 1.4 && (host.car()?.speed() ?? 0) < 0.5) host.car()?.setSpeed(CRUISE);
     if (sceneTime >= 2.2) host.car()?.setStop(false);
+    if (sceneTime >= 2.4) {
+      // The train has gone; so has the platform.
+      hideFigure(double);
+      hideFigure(commuter);
+    }
     cue(L_STREET, 1.6);
     clearLine();
     if (said.has(L_STREET.id) && sceneTime > lineUntil + 0.6) finish();
@@ -723,6 +805,51 @@ export const createTheTrain = (host: TheTrainHost) => {
   };
 
   const controls = () => active && !finished && !playing && crossing < 0;
+
+  /** Through the front end door: a 0.3 s fade and the close chime, then the next car. */
+  const startCross = () => {
+    releaseLink(false);
+    host.clearInput();
+    host.setWalk(false);
+    host.fade(1, 0.3);
+    host.playFile(SFX.close, 0.25);
+    crossing = 0.4;
+  };
+
+  const fireLurch = (kind: 'lurch' | 'stumble') => {
+    lurches += 1;
+    host.car()?.lurch(kind === 'stumble' ? 1.35 : 0.7);
+    (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit?.('train-lurch', JSON.stringify({ car: carNo, kind, x: Math.round(host.player().x * 10) / 10 }));
+    if (kind === 'stumble') {
+      stumbles += 1;
+      stumbleLeft = 0.5;
+    }
+  };
+
+  /** The rider's routine: a lean and a rock that follow the car, and a look at Pierce when he comes close. */
+  const routineStep = (rider: Rider, dt: number) => {
+    rider.phase += dt;
+    const group = rider.avatar.group;
+    const lean = rider.routine === 'sleep' ? 0.32 + Math.sin(rider.phase * 0.9) * 0.015 : rider.routine === 'read' ? 0.13 + Math.max(0, Math.sin(rider.phase * 1.3)) * 0.03 : 0;
+    const rock = Math.sin(rider.phase * 1.7) * (rider.routine === 'sway' ? 0.045 : 0.02);
+    group.rotation.x += (lean - group.rotation.x) * Math.min(1, dt * 4);
+    group.rotation.z += (rock - group.rotation.z) * Math.min(1, dt * 4);
+    if (rider.routine === 'sleep' || shadowOn) return;
+    const at = host.player();
+    const dx = at.x - rider.mesh.position.x;
+    const dz = at.z - rider.mesh.position.z;
+    rider.cool -= dt;
+    if (rider.notice <= 0 && rider.cool <= 0 && Math.hypot(dx, dz) < 3.2) {
+      rider.notice = 1.8;
+      rider.cool = 12;
+      lifeStats.glance('train', rider.mesh.name);
+    }
+    if (rider.notice > 0) {
+      rider.notice -= dt;
+      const want = rider.notice > 0 ? Math.atan2(dx, dz) : rider.yaw;
+      face(rider.avatar, want);
+    }
+  };
 
   const stepRiders = (dt: number) => {
     const buried: Rider[] = [];
@@ -752,10 +879,32 @@ export const createTheTrain = (host: TheTrainHost) => {
         tetherMove = { x: 0, z: 0 };
         continue;
       }
+      if (rider.aisleZ !== null && !rider.shifted) {
+        // He steps off the wall into the aisle as Pierce comes up the car, and stands there swaying.
+        const at = host.player();
+        if (rider.moving || Math.abs(at.x - rider.mesh.position.x) < AISLE_TRIGGER) {
+          const dz = rider.aisleZ - rider.mesh.position.z;
+          const stepZ = Math.sign(dz) * Math.min(Math.abs(dz), 0.95 * dt);
+          rider.mesh.position.z += stepZ;
+          face(rider.avatar, dz > 0 ? 0 : Math.PI);
+          if (!rider.moving) {
+            rider.moving = true;
+            rider.avatar.setLocomotion(true, true);
+          }
+          if (Math.abs(rider.aisleZ - rider.mesh.position.z) < 0.01) {
+            rider.shifted = true;
+            rider.moving = false;
+            rider.avatar.setLocomotion(false, true);
+            face(rider.avatar, rider.yaw);
+          }
+          continue;
+        }
+      }
       if (rider.moving) {
         rider.moving = false;
         rider.avatar.setLocomotion(false, true);
       }
+      routineStep(rider, dt);
     }
     for (const rider of buried) bury(rider);
   };
@@ -773,6 +922,12 @@ export const createTheTrain = (host: TheTrainHost) => {
       haleRang = false;
       callIn = -1;
       leftCar = 0;
+      lurches = 0;
+      stumbles = 0;
+      fired.clear();
+      stumbleLeft = 0;
+      doorsClosed = false;
+      doorGap = null;
       beat = 'opening';
     },
     onStart: () => {
@@ -784,6 +939,13 @@ export const createTheTrain = (host: TheTrainHost) => {
       haleRang = false;
       callIn = -1;
       leftCar = 0;
+      lurches = 0;
+      stumbles = 0;
+      fired.clear();
+      stumbleLeft = 0;
+      doorsClosed = false;
+      doorGap = null;
+      host.impair(null);
       releaseLink(false);
       clearRiders();
       host.car()?.setSpeed(CRUISE);
@@ -792,24 +954,19 @@ export const createTheTrain = (host: TheTrainHost) => {
       host.setCarry(carryItems('train', CARRY));
       host.fade(0, 1.1);
       beginOpening();
+      // Test shortcut (`train-chase`): begin in car n, with the opening spent.
+      const startCar = Number((window as unknown as { __phTrainStart?: number }).__phTrainStart ?? 1);
+      if (startCar >= 2 && startCar <= LAST_CAR) {
+        endOpening();
+        enterCar(startCar);
+        host.fade(0, 0.2);
+      }
       report();
       host.refreshHud();
     },
-    /** The E prompt (null for none), and what pressing it does. */
-    action: (): string | null => {
-      if (!active || finished || playing || crossing >= 0 || beat !== 'cars' || carNo >= LAST_CAR || tether) return null;
-      const here = host.player();
-      return Math.abs(here.x - FRONT.x) < 1.3 && Math.abs(here.z - FRONT.z) < 0.9 ? lineText('ui.action.train.next', 'Next car') : null;
-    },
-    confirm: () => {
-      if (crossing >= 0 || beat !== 'cars' || carNo >= LAST_CAR) return;
-      if (shadowOn) toggle(false);
-      host.clearInput();
-      host.setWalk(false);
-      host.fade(1, 0.3);
-      host.playFile(SFX.close, 0.25);
-      crossing = 0.4;
-    },
+    /** No prompt: the front end door is walked through (step), with the same fade and chime. */
+    action: (): string | null => null,
+    confirm: () => {},
     /** A scripted scene is running (input held, Skip offered). */
     playing: () => playing,
     skip: () => {
@@ -830,9 +987,10 @@ export const createTheTrain = (host: TheTrainHost) => {
       }
       showGoal();
     },
-    shadowShown: () => controls(),
+    shadowShown: () => controls() && beat !== 'door',
     toggleShadow: () => {
-      if (!controls()) return shadowOn;
+      // At the open door the chase is on foot: no shadow run to outpace a door that closes at a walk.
+      if (!controls() || beat === 'door') return shadowOn;
       toggle(!shadowOn);
       return shadowOn;
     },
@@ -964,10 +1122,14 @@ export const createTheTrain = (host: TheTrainHost) => {
           // The riders' own remarks once they are voiced; the street's until then.
           const own = riderLine();
           const pool = STREET_BARKS.flat();
-          const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
-          host.showLine(own?.speaker || 'Rider', copy.text);
-          host.playFile(copy.url, 0.55);
-          lineUntil = Math.max(lineUntil, sceneTime + 3.2);
+          // Voiced rider lines never repeat inside 5 minutes: while they cool down the car stays quiet.
+          if (own || !riderLine.hasVoice()) {
+            const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
+            host.showLine(own?.speaker || 'Rider', copy.text);
+            host.playFile(copy.url, 0.55);
+            lifeStats.bark('train', own?.speaker || 'Rider', own?.id ?? 'street');
+            lineUntil = Math.max(lineUntil, sceneTime + 3.2);
+          }
           barkIn = 16 + Math.random() * 10;
         } else barkIn = 1.5;
       }
@@ -994,15 +1156,36 @@ export const createTheTrain = (host: TheTrainHost) => {
       stepRiders(stepDt);
       const here = host.player();
 
+      if (beat === 'cars') {
+        // Set points: a lurch or a stumble when Pierce passes x, once each per car.
+        for (const point of LURCH_POINTS[carNo] ?? []) {
+          const key = `${carNo}:${point.x}`;
+          if (here.x >= point.x && !fired.has(key)) {
+            fired.add(key);
+            fireLurch(point.kind);
+          }
+        }
+        // The stumble is a short stagger in his walk: slower, and a shove sideways. It never locks him.
+        if (stumbleLeft > 0) {
+          stumbleLeft -= stepDt;
+          host.impair(stumbleLeft > 0
+            ? { lag: 0, drift: 0.4, speed: 0.55, locked: false, pull: { x: 0.12, z: 0.18 }, maxX: 99 }
+            : null);
+        }
+        // Walking into the front end door is the whole prompt.
+        if (carNo < LAST_CAR && here.x >= FRONT.x - 0.1 && crossing < 0) startCross();
+      }
+
       if (beat === 'cars' && carNo > 1 && carNo < LAST_CAR) {
         // One car ahead, and through the end door before Pierce gets there.
         if (carTime > 0.8) cue(L_AHEAD, 0);
         const lead = double && !double.gone ? double.mesh.position.x - here.x : 99;
+        music.pursuit(lead < 99 ? lead : null);
         // Faster when he closes in; a short burst keeps shadow-run from tagging him.
         let speed = CAR2_WALK + Math.max(0, CAR2_LEAD - lead) * 1.15;
         if (lead < 3) speed = Math.max(speed, CAR2_BURST);
         const gone = walkForward(double, 0.15, speed, stepDt);
-        walkForward(commuter, -0.25, speed, stepDt);
+        walkForward(commuter, -0.25, speed, stepDt, PARK_COMMUTER);
         if (gone && leftCar < carNo) leftCar = carNo;
       }
       if (beat === 'cars' && carNo >= LAST_CAR) {
@@ -1012,13 +1195,34 @@ export const createTheTrain = (host: TheTrainHost) => {
           host.car()?.setSpeed(0);
           host.car()?.setStop(true);
           host.playFile(SFX.brakes, 0.5);
+          // The brakes take hold: the stumble of car 3.
+          fireLurch('stumble');
         }
         if (braking && (host.car()?.speed() ?? 0) < 7.5) cue(L_STOP, 0);
         const speed = host.car()?.speed() ?? 0;
         if (braking && (speed < 0.4 || here.x > 7.4)) beginStop();
       }
       if (beat === 'door') {
-        if (callIn >= 0) {
+        doorTime += stepDt;
+        const doorAway = Math.hypot(here.x - STOP_DOOR.x, here.z - DOOR_PLANE_Z);
+        if (closeLeft < 0 && !doorsClosed && host.running() && (doorAway <= CLOSE_AT || doorTime > DOOR_TIMEOUT)) {
+          // The world is timed so the player is a breath late: the doors start to close an arm's walk early.
+          closeLeft = CLOSE_SECONDS;
+          host.car()?.setDoor(STOP_DOOR.x, 1, false, CLOSE_SECONDS);
+          host.playFile(SFX.close, 0.6);
+        }
+        if (closeLeft >= 0) {
+          closeLeft -= stepDt;
+          if (closeLeft <= 0) {
+            closeLeft = -1;
+            doorsClosed = true;
+            doorGap = Math.round(Math.max(0, DOOR_PLANE_Z - here.z) * 100) / 100;
+            (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit?.('train-doors-closed', JSON.stringify({ gap: doorGap, x: Math.round(here.x * 100) / 100, z: Math.round(here.z * 100) / 100 }));
+            // Hale rings once he is standing at shut doors, with the platform still in the glass.
+            callIn = 0.9;
+          }
+        }
+        if (doorsClosed && callIn >= 0) {
           callIn -= stepDt;
           if (callIn <= 0) {
             callIn = -1;
@@ -1028,14 +1232,14 @@ export const createTheTrain = (host: TheTrainHost) => {
             }
           }
         }
-        // The end: the door he left by. Not while Hale is still on the line.
-        const atDoor = Math.abs(here.x - STOP_DOOR.x) < 0.75 && here.z > 0.75;
-        if (atDoor && !tether && host.running() && !host.callBusy() && callIn < 0) beginClosing();
+        // The end: Hale's call is done, the doors are shut and the train pulls out.
+        if (doorsClosed && haleRang && callIn < 0 && !tether && host.running() && !host.callBusy()) beginClosing();
       }
       clearLine();
       report();
     },
     dispose: () => {
+      host.impair(null);
       active = false;
       playing = false;
       releaseLink(false);

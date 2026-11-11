@@ -2,7 +2,7 @@
   "id": "apex-window",
   "name": "The Glass",
   "duration": 45,
-  "notes": "Pierce at the office north window after the board has left. Standing idle; do not sit. The monologue ends on the basement line. Fade up from black, then fade out on the last line. The Voss call is the next beat, then the terminal alarm.",
+  "notes": "Fallback timeline only. On the Level 1 route the monologue plays as asides while the player walks the office to the window (src/story/act1.ts, WINDOW_MONOLOGUE); this version keeps a camera move at least every 4.5 s so no shot is static over 5 s. The monologue ends on the basement line; the Voss call is the next beat.",
   "events": [
     {
       "at": 0,
@@ -54,16 +54,7 @@
       "line": "dialogue.apex-window.01"
     },
     {
-      "at": 6.2,
-      "type": "line",
-      "actor": "pierce",
-      "anim": "idle",
-      "duration": 7.2,
-      "volume": 0.9,
-      "line": "dialogue.apex-window.02"
-    },
-    {
-      "at": 14,
+      "at": 4.5,
       "type": "camera",
       "position": {
         "x": 49.85,
@@ -77,6 +68,43 @@
       }
     },
     {
+      "at": 6.2,
+      "type": "line",
+      "actor": "pierce",
+      "anim": "idle",
+      "duration": 7.2,
+      "volume": 0.9,
+      "line": "dialogue.apex-window.02"
+    },
+    {
+      "at": 9.0,
+      "type": "camera",
+      "position": {
+        "x": 50.7,
+        "y": 1.58,
+        "z": 45.55
+      },
+      "lookAt": {
+        "x": 48.4,
+        "y": 1.4,
+        "z": 46.9
+      }
+    },
+    {
+      "at": 13.5,
+      "type": "camera",
+      "position": {
+        "x": 50.1,
+        "y": 1.6,
+        "z": 44.9
+      },
+      "lookAt": {
+        "x": 48.0,
+        "y": 1.45,
+        "z": 46.9
+      }
+    },
+    {
       "at": 14.2,
       "type": "line",
       "actor": "pierce",
@@ -84,6 +112,20 @@
       "duration": 7.4,
       "volume": 0.9,
       "line": "dialogue.apex-window.03"
+    },
+    {
+      "at": 18.0,
+      "type": "camera",
+      "position": {
+        "x": 50.55,
+        "y": 1.62,
+        "z": 45.55
+      },
+      "lookAt": {
+        "x": 48.15,
+        "y": 1.42,
+        "z": 46.85
+      }
     },
     {
       "at": 22.2,
@@ -95,7 +137,21 @@
       "line": "dialogue.apex-window.04"
     },
     {
-      "at": 30,
+      "at": 22.5,
+      "type": "camera",
+      "position": {
+        "x": 49.85,
+        "y": 1.55,
+        "z": 45.15
+      },
+      "lookAt": {
+        "x": 48,
+        "y": 1.48,
+        "z": 46.9
+      }
+    },
+    {
+      "at": 27.0,
       "type": "camera",
       "position": {
         "x": 50.7,
@@ -118,6 +174,20 @@
       "line": "dialogue.apex-window.05"
     },
     {
+      "at": 31.5,
+      "type": "camera",
+      "position": {
+        "x": 50.1,
+        "y": 1.6,
+        "z": 44.9
+      },
+      "lookAt": {
+        "x": 48.0,
+        "y": 1.45,
+        "z": 46.9
+      }
+    },
+    {
       "at": 35.4,
       "type": "line",
       "actor": "pierce",
@@ -125,6 +195,34 @@
       "duration": 7,
       "volume": 0.9,
       "line": "dialogue.apex-window.06"
+    },
+    {
+      "at": 36.0,
+      "type": "camera",
+      "position": {
+        "x": 50.55,
+        "y": 1.62,
+        "z": 45.55
+      },
+      "lookAt": {
+        "x": 48.15,
+        "y": 1.42,
+        "z": 46.85
+      }
+    },
+    {
+      "at": 40.5,
+      "type": "camera",
+      "position": {
+        "x": 49.85,
+        "y": 1.55,
+        "z": 45.15
+      },
+      "lookAt": {
+        "x": 48,
+        "y": 1.48,
+        "z": 46.9
+      }
     },
     {
       "at": 40.8,

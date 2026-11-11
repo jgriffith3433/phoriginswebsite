@@ -13,7 +13,7 @@ import type { StoryCarry } from './act1';
  *           switches itself on. Control returns.
  *   news    Action: Watch (the television). Scene: the morning programme on a canvas TV (stills, headline, ticker,
  *           anchor captions). It names Hawkes Tower and Pierce Hawkes. Public-safe: no B3, vat or creature.
- *   call    Voss rings (`voss-morning`, one-way: Voss talks, Pierce listens). The player answers with F.
+ *   call    Voss rings (`voss-morning`, two-way: two reply moments, and the opening and closing lines branch on `vossTrust`). The player answers with F.
  *   out     The front door. Action: Leave. His last line, then End Level (Exit only; nothing follows).
  *
  * The anchor is on-screen captions only for now (no voice). Stills are drawn on the canvas as placeholders.
@@ -137,6 +137,8 @@ export const createTheMorning = (host: MorningHost) => {
     if (scenes[scenes.length - 1] !== n) scenes.push(n);
   };
 
+  /** `prepare` built the room under the chapter card; the next `onStart` keeps it. */
+  let prepared = false;
   const owned: (BABYLON.Mesh | BABYLON.Material | BABYLON.BaseTexture)[] = [];
   let tvTexture: BABYLON.DynamicTexture | null = null;
   let tvMaterial: BABYLON.StandardMaterial | null = null;
@@ -569,6 +571,8 @@ export const createTheMorning = (host: MorningHost) => {
   };
 
   return {
+    /** The ending event: the TV switches itself on to the Hawkes Tower report (a still of the old face). */
+    tvReport: (on: boolean) => setTv(on, on ? 'portrait' : 'off'),
     objectiveKey: () => 'morning',
     playing: () => playing,
     action: () => {
@@ -615,10 +619,20 @@ export const createTheMorning = (host: MorningHost) => {
     dispose: () => {
       active = false;
       playing = false;
+      prepared = false;
       clearRoom();
     },
-    onStart: () => {
+    /**
+     * Build the room (about thirty meshes, the TV's canvas texture, its materials) while the level loads, so the
+     * shaders compile under the chapter card. `onStart` keeps it instead of building it on Start's first frame.
+     */
+    prepare: () => {
       clearRoom();
+      build();
+      prepared = true;
+    },
+    onStart: () => {
+      if (!prepared) clearRoom();
       active = true;
       playing = false;
       beat = 'home';
@@ -636,7 +650,8 @@ export const createTheMorning = (host: MorningHost) => {
       tvClock = 0;
       scenes = [];
       host.setCarry(carryItems('morning', CARRY));
-      build();
+      if (!prepared) build();
+      prepared = false;
       host.lie(false, 0, 0, 0, 0);
       host.placePierce(START.x, START.z, START.yaw);
       host.holdScene(false);

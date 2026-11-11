@@ -4,6 +4,7 @@ import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { lineAudio, lineText, storyLine } from '../game/locale';
 import { placeLine } from './placeVoices';
+import { lifeStats } from '../game/lifeStats';
 
 /**
  * Apex Peak vertical slice: hall life, optional interactions, and the cleaner beat.
@@ -89,6 +90,7 @@ export const createApexSlice = (host: ApexSliceHost) => {
 
   const mark = (kind: QuietKind, id: string) => {
     events.push({ t: clock, kind, id });
+    lifeStats.mark();
     lastQuietMark = clock;
   };
 
@@ -445,6 +447,8 @@ export const createApexSlice = (host: ApexSliceHost) => {
   return {
     mount,
     dispose,
+    /** Resolves once the night cleaner's model has loaded (so its shaders compile under the chapter card). */
+    ready: () => (cleaner ? new Promise<void>((resolve) => cleaner!.avatar.whenReady(resolve)) : Promise.resolve()),
     playing: () => active && sitLeft > 0,
     blips: () => {
       const out: { x: number; z: number; kind: string }[] = [];

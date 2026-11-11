@@ -169,24 +169,31 @@ export const preloadClips = (urls: Iterable<string>) => {
  * Past the deadline, leftover URLs still kick off (fire-and-forget) so decode continues under
  * the warm's level-setup mark instead of the first mid-walk play.
  */
+/** Clips fetched and decoded at once while warming. */
+const PRELOAD_LANES = 4;
+
 export const preloadClipsReady = async (urls: Iterable<string>, deadline = Infinity): Promise<number> => {
   const ctx = getSharedAudioContext();
   if (!ctx) return 0;
   const list = [...new Set([...urls].filter(Boolean).map(clean))];
   if (!list.length) return 0;
   let done = 0;
-  let i = 0;
-  for (; i < list.length; i += 1) {
-    if (performance.now() >= deadline) break;
-    const url = list[i]!;
-    try {
-      await loadBuffer(url, ctx);
-      done += 1;
-    } catch { /* best effort */ }
-  }
+  let next = 0;
+  // A few at a time: fetch and decode overlap, so a long list fits under the chapter card.
+  const worker = async () => {
+    while (next < list.length && performance.now() < deadline) {
+      const url = list[next]!;
+      next += 1;
+      try {
+        await loadBuffer(url, ctx);
+        done += 1;
+      } catch { /* best effort */ }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PRELOAD_LANES, list.length) }, worker));
   // Kick the rest so they are at least fetching/decoding before the walk.
-  for (; i < list.length; i += 1) {
-    void loadBuffer(list[i]!, ctx).catch(() => {});
+  for (; next < list.length; next += 1) {
+    void loadBuffer(list[next]!, ctx).catch(() => {});
   }
   return done;
 };
@@ -210,6 +217,8 @@ type LiveClip = {
   stopping: boolean;
   finished: boolean;
   onEnded?: () => void;
+  rate: number;
+  voiceEnd?: () => void;
 };
 
 const liveClips = new Set<LiveClip>();
@@ -219,9 +228,31 @@ const disconnect = (node: AudioNode | null) => {
   try { node?.disconnect(); } catch { /* already */ }
 };
 
+/** The music director listens here: it ducks under a voice line and fires a stinger on a beat's line. */
+export type VoiceHook = (url: string) => (() => void) | null;
+let voiceHook: VoiceHook | null = null;
+export const setVoiceHook = (hook: VoiceHook | null) => { voiceHook = hook; };
+
+/** Decode a file into the shared cache (the music director's stems and stingers). */
+export const decodeClip = (url: string): Promise<AudioBuffer> => {
+  const ctx = getSharedAudioContext();
+  if (!ctx) return Promise.reject(new Error('no audio context'));
+  return loadBuffer(clean(url), ctx);
+};
+
+/** Forget a decoded file (a stem that is not in use, on the phone memory tier). */
+export const forgetClip = (url: string) => {
+  const entry = buffers.get(clean(url));
+  if (!entry) return;
+  bufferBytes -= entry.bytes;
+  buffers.delete(clean(url));
+};
+
 const finish = (clip: LiveClip, ended: boolean) => {
   if (clip.finished) return;
   clip.finished = true;
+  clip.voiceEnd?.();
+  clip.voiceEnd = undefined;
   liveClips.delete(clip);
   disconnect(clip.source);
   disconnect(clip.gain);
@@ -235,6 +266,7 @@ const startSource = (clip: LiveClip) => {
   const source = clip.ctx.createBufferSource();
   source.buffer = clip.buffer;
   source.loop = clip.loop;
+  source.playbackRate.value = clip.rate;
   source.connect(clip.gain);
   const offset = clip.loop ? clip.offset % clip.buffer.duration : clip.offset;
   if (!clip.loop && offset >= clip.buffer.duration) {
@@ -267,13 +299,13 @@ const pauseSource = (clip: LiveClip) => {
 export const playClip = (
   url: string,
   volume: number,
-  options: { loop?: boolean; bus?: SoundBus; onEnded?: () => void; onError?: () => void } = {},
+  options: { loop?: boolean; bus?: SoundBus; destination?: AudioNode; rate?: number; onEnded?: () => void; onError?: () => void } = {},
 ): ClipHandle | null => {
   const ctx = getSharedAudioContext();
   if (!ctx) return null;
   const gain = ctx.createGain();
   gain.gain.value = clamp(volume);
-  gain.connect(busInput(ctx, options.bus ?? 'sfx'));
+  gain.connect(options.destination ?? busInput(ctx, options.bus ?? 'sfx'));
   const clip: LiveClip = {
     ctx,
     buffer: null,
@@ -286,7 +318,9 @@ export const playClip = (
     stopping: false,
     finished: false,
     onEnded: options.onEnded,
+    rate: options.rate ?? 1,
   };
+  clip.voiceEnd = voiceHook?.(clean(url)) ?? undefined;
   liveClips.add(clip);
   loadBuffer(clean(url), ctx).then((buffer) => {
     if (clip.finished) return;

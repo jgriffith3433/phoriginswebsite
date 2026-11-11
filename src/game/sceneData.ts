@@ -548,7 +548,13 @@ const thickenWall = (scene: BABYLON.Scene, mesh: BABYLON.Mesh) => {
   bindColliderMatrix(mesh, box);
 };
 
-const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode, meshes: BABYLON.AbstractMesh[]) => {
+/**
+ * Props whose arms and bars stick out of the body: the capsule stops 0.4 m from the box, and a running
+ * avatar's swinging arm reaches past that, so it drew through the bars. Pad the floor footprint (metres per side).
+ */
+const COLLIDER_PAD: Record<string, number> = { 'asset-subway-turnstile': 0.18 };
+
+const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode, meshes: BABYLON.AbstractMesh[], pad = 0) => {
   root.computeWorldMatrix(true);
   const toLocal = root.getWorldMatrix().clone();
   if (!toLocal.invert()) return;
@@ -568,6 +574,8 @@ const attachBoundsCollider = (scene: BABYLON.Scene, root: BABYLON.TransformNode,
   if (!found) return;
   const size = max.subtract(min);
   const center = min.add(max).scale(0.5);
+  size.x += pad * 2;
+  size.z += pad * 2;
   if (size.x < MIN_COLLIDER_THICKNESS) size.x = MIN_COLLIDER_THICKNESS;
   if (size.y < MIN_COLLIDER_THICKNESS) size.y = MIN_COLLIDER_THICKNESS;
   if (size.z < MIN_COLLIDER_THICKNESS) size.z = MIN_COLLIDER_THICKNESS;
@@ -782,6 +790,16 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     if (asset.color) {
       light.diffuse = new BABYLON.Color3(asset.color[0], asset.color[1], asset.color[2]);
       light.specular = light.diffuse.scale(themeName === 'B3 Basement' ? 0.08 : 0.35);
+    } else if (themeName === 'Apex Peak') {
+      const label = `${asset.name ?? ''} ${asset.id ?? ''}`;
+      // Cool the hall troffers toward title-card navy; leave office/board/bath practicals warmer so lamps still read warm against cold glass.
+      if (/Hall\s*[12]|light-h[12]|Elevator Cab|light-lift/i.test(label)) {
+        light.diffuse = new BABYLON.Color3(0.72, 0.82, 1.0);
+        light.specular = light.diffuse.scale(0.22);
+      } else {
+        light.diffuse = new BABYLON.Color3(1.0, 0.94, 0.82);
+        light.specular = light.diffuse.scale(0.28);
+      }
     }
     light.metadata = metadata;
     return light;
@@ -997,7 +1015,7 @@ const createModelAssetNode = (
       const idle = findClip(imported.animationGroups, 'idle');
       idle?.start(true);
     }
-    if (blocksPlayer(asset.assetId)) attachBoundsCollider(scene, root, imported.meshes);
+    if (blocksPlayer(asset.assetId)) attachBoundsCollider(scene, root, imported.meshes, COLLIDER_PAD[asset.assetId] ?? 0);
     const editor = Boolean((scene.metadata as { editor?: boolean } | null)?.editor);
     if (!editor && imported.skeletons.length === 0) {
       for (const mesh of imported.meshes) {

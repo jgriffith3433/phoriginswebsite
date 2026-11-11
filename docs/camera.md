@@ -28,9 +28,14 @@ Runtime: `src/game/cameraVolumes.ts`, `src/game/thirdPersonCamera.ts`. Probe: `c
 
 `src/playtest/cameraWatch.ts`, run per frame from `onAfterRenderObservable` (push only, no polling). Scenarios
 `explore-cam-l1` … `explore-cam-l8` start the level with the setup shortcut, then walk A* routes on the real walk grid
-to wall-hugging spots, doorways and corners, turning with the look drag and backing into corners.
+to wall-hugging spots, doorways and corners, turning with the look drag and backing into corners. They are listed on
+the front-page playtest contract (`index.html`) and tagged `smoke` so Studio can schedule them (without that list,
+beta skips with "has no scenario").
 
 `interior-cam` walks Level 1 halls (hallway profile + fade) and Level 8's apartment on desktop and at 844×390.
+
+Daily beta still plays `smoke` only. Smoke ends with a short Level 1 hall wall-hug under the same detector so a
+smoke-only run still reports `cameraInside` / `cameraBlocked` / `cameraSnaps` and attaches worst-frame screenshots.
 
 Counts per run (metrics `cameraInside`, `cameraNear`, `cameraBlocked`, `cameraNearWall`, `cameraSnaps`, `cameraJitter`,
 `cameraMaxCoverage`, plus `cameraFadedPeak`, `cameraHallwayFrames`):

@@ -261,10 +261,13 @@ const isOccluderMesh = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.Abstract
 };
 
 /** Discrete props / door GLBs only — never the merged `interior-dress` kit (one mesh = whole floor). */
-const isFadeCandidate = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.AbstractMesh>) => {
+export const isFadeCandidate = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.AbstractMesh>) => {
   if (!isOccluderMesh(mesh, ignore)) return false;
   const meta = mesh.metadata as { noCameraFade?: boolean } | undefined;
   if (meta?.noCameraFade) return false;
+  // A skinned mesh is a person (NPC, cleaner, guard): fading one draws half a body see-through (a ghost with
+  // translucent legs). People block the boom through the collision pass, never through the fade.
+  if (mesh.skeleton) return false;
   const name = (mesh.name || '').toLowerCase();
   if (/(^|-)(floor|ground|ceil|ceiling|sky)/.test(name)) return false;
   if (/^interior-(dress|col)/.test(name)) return false;

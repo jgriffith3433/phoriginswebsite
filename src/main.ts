@@ -23,12 +23,13 @@ import { installMenuNav } from './game/menuNav';
 import { lineText } from './game/locale';
 import { chapterCopy, createChapterCard } from './game/chapterCard';
 import { loreEntry, withLore } from './game/lore';
+import { goalLine, levelReward } from './game/rewards';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
 import { createShadowVeil } from './game/shadowVeil';
-import { createPhone } from './game/phone';
+import { createPhone, STAT_MAX, STAT_MIN } from './game/phone';
 import { mountPipeDrips } from './game/drips';
 import { createLevelDressing } from './game/levelDressing';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
@@ -37,8 +38,13 @@ import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './ga
 import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
-import { createAct1, type Act1, type StoryCarry } from './story/act1';
+import { createAct1, type Act1, type ImpairState, type StoryCarry } from './story/act1';
+import { createFootsteps, surfaceFor, stepUrls } from './game/footsteps';
 import { createApexSlice, type ApexSlice } from './story/apexSlice';
+import { createApexLife } from './story/apexLife';
+import { createApexBoardHall } from './story/apexBoardHall';
+import { createTouchables, TOUCH_SOUNDS } from './game/touchables';
+import { lifeStats } from './game/lifeStats';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
@@ -47,13 +53,15 @@ import { createTheTrain, ENDING_TRACK as TRAIN_ENDING_TRACK, TRAIN_CREDITS, type
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
+import { music } from './game/musicDirector';
 import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
-import { warmLevelFirstUse } from './game/levelWarm';
+import { warmLevelFirstUse, stopLevelWarm } from './game/levelWarm';
 import { soundFallback } from './game/soundFallback';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
 import { createObjectiveWaypoint } from './game/objectiveWaypoint';
+import { createPowerPrompt } from './game/powerPrompt';
 import { createMinimap } from './game/minimap';
 import { createScreenFade } from './game/fade';
 import { createLostWatcher, safeSpotNear } from './game/returnToObjective';
@@ -90,6 +98,7 @@ const healthFill = document.getElementById('healthFill') as HTMLSpanElement;
 const messageBox = document.getElementById('messageBox') as HTMLDivElement;
 const messageTitle = document.getElementById('messageTitle') as HTMLHeadingElement;
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
+const loadLine = document.getElementById('loadLine') as HTMLParagraphElement;
 const messageEyebrow = document.getElementById('messageEyebrow');
 if (messageEyebrow) messageEyebrow.textContent = lineText('ui.menu.eyebrow', 'Board session · One night');
 installMenuNav(messageBox);
@@ -97,7 +106,7 @@ const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 const settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
 if (!loadFailed()) {
   startBtn.disabled = true;
-  startBtn.textContent = 'Loading…';
+  startBtn.textContent = 'Start';
   startBtn.setAttribute('aria-busy', 'true');
 }
 const newGameBtn = document.getElementById('newGameBtn') as HTMLButtonElement;
@@ -133,6 +142,7 @@ const missionsList = document.getElementById('missionsList') as HTMLDivElement |
 const missionsTitle = document.getElementById('missionsTitle') as HTMLElement | null;
 const missionScore = document.getElementById('missionScore') as HTMLParagraphElement | null;
 const loreCard = document.getElementById('loreEntry') as HTMLElement | null;
+const rewardCard = document.getElementById('rewardEntry') as HTMLElement | null;
 const loreKicker = document.getElementById('loreKicker');
 const loreTitle = document.getElementById('loreTitle');
 const loreText = document.getElementById('loreText');
@@ -173,6 +183,20 @@ const actionPulse = (kind: 'strike' | 'shot' | 'power' | 'heal' | 'pickup') => {
   hitFlash.classList.add('pulse');
   (window as unknown as { __phPulses?: number }).__phPulses = ((window as unknown as { __phPulses?: number }).__phPulses ?? 0) + 1;
 };
+/** A power unlocked: its button pulses once (Shadow on its own button, the rest on Switch Ability and the fire button). */
+const pulseUnlock = (power: 'shadow' | 'shock' | 'possess' | 'consume' | 'melee') => {
+  const ids = power === 'shadow' ? ['shadowHint'] : power === 'consume' || power === 'melee' ? ['fireBtn', 'abilityHint'] : ['abilityHint', 'fireBtn'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.classList.remove('unlock-pulse');
+    void el.offsetWidth;
+    el.classList.add('unlock-pulse');
+    el.addEventListener('animationend', () => el.classList.remove('unlock-pulse'), { once: true });
+  }
+  const w = window as unknown as { __phUnlocks?: { power: string; t: number }[] };
+  (w.__phUnlocks ??= []).push({ power, t: Math.round(performance.now()) });
+};
 const phonePanel = document.getElementById('phonePanel') as HTMLElement | null;
 const phoneStatus = document.getElementById('phoneStatus') as HTMLElement | null;
 const phoneContact = document.getElementById('phoneContact') as HTMLElement | null;
@@ -180,6 +204,9 @@ const phoneDetail = document.getElementById('phoneDetail') as HTMLElement | null
 const phoneClock = document.getElementById('phoneClock') as HTMLElement | null;
 const phoneSpeaker = document.getElementById('phoneSpeaker') as HTMLElement | null;
 const phoneLine = document.getElementById('phoneLine') as HTMLElement | null;
+const callReplies = document.getElementById('callReplies') as HTMLElement | null;
+let callRepliesKey = '';
+let callRepliesBar: HTMLElement | null = null;
 const phoneAnswer = document.getElementById('phoneAnswer') as HTMLButtonElement | null;
 const phoneEnd = document.getElementById('phoneEnd') as HTMLButtonElement | null;
 const phoneFlash = document.getElementById('phoneFlash') as HTMLButtonElement | null;
@@ -262,6 +289,7 @@ const endRecovery = () => {
   if (!paused) {
     releaseAllAudio();
     releaseClips();
+    music.hold(false);
   }
 };
 const restartAfterLoss = () => {
@@ -281,6 +309,7 @@ engine.onContextLostObservable.add(() => {
   audio.setWalk(false);
   holdAllAudio();
   holdClips();
+  music.hold(true);
   if (recoveringBox) recoveringBox.hidden = false;
   clearGiveUp();
   contextGiveUp = setTimeout(() => {
@@ -388,6 +417,8 @@ playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
 let storyObjectiveId = () => 'seat';
 let callQuestOpenFor = (_contactId: string) => false;
+/** The opening call on level 1 is taken on the move: Pierce keeps walking while Voss talks. */
+let callWalk = false;
 const phone = createPhone(scene, {
   soundOn: () => audio.enabled,
   objectiveId: () => storyObjectiveId(),
@@ -401,6 +432,8 @@ const phone = createPhone(scene, {
     if (quest) markMission(quest);
   },
   onCallEnded: (callId, how, heard, of) => analytics?.dialogue('call', callId, how, heard, of),
+  getStat: (stat) => clampStat(save[stat]),
+  addStat: (stat, delta) => saveGame({ [stat]: clampStat((save[stat] ?? 0) + delta) })[stat] ?? 0,
   onHand: (raised) => {
     if (!raised || phone.locksBody()) {
       if (!state.player.weaponDrawn) {
@@ -478,8 +511,43 @@ const meshesNotReady = () => {
   return names;
 };
 
-/** Share of 32×18 canvas samples brighter than near-black. Used to hold the chapter card over an empty frame. */
+/** Reused by `sampleWorldLitShare`: one 4×4 RGBA patch. */
+const litPatch = new Uint8Array(4 * 4 * 4);
+/**
+ * Share of an 8×5 grid of 4×4 pixel patches brighter than near-black. Used to hold the chapter card over an empty
+ * frame. It reads forty tiny patches from the framebuffer right after the frame renders; the old version drew the whole
+ * canvas into a 2D canvas and read that back, a full-frame GPU→CPU copy that is a long frame on a slow GPU.
+ */
 const sampleWorldLitShare = () => new Promise<number>((resolve) => {
+  scene.onAfterRenderObservable.addOnce(() => {
+    void (async () => {
+      try {
+        const w = engine.getRenderWidth();
+        const h = engine.getRenderHeight();
+        if (w < 8 || h < 8) { resolve(1); return; }
+        const cols = 8;
+        const rows = 5;
+        let lit = 0;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = Math.min(w - 4, Math.floor(((c + 0.5) / cols) * w) - 2);
+            const y = Math.min(h - 4, Math.floor(((r + 0.5) / rows) * h) - 2);
+            await engine.readPixels(Math.max(0, x), Math.max(0, y), 4, 4, true, true, litPatch);
+            let sum = 0;
+            for (let i = 0; i < 64; i += 4) sum += litPatch[i] + litPatch[i + 1] + litPatch[i + 2];
+            if (sum / 16 > 36) lit++;
+          }
+        }
+        resolve(lit / (cols * rows));
+      } catch {
+        resolve(0);
+      }
+    })();
+  });
+});
+
+/** Share of 32×18 canvas samples brighter than near-black: the whole-canvas read, used only to confirm a dark frame. */
+const sampleWorldLitShareFull = () => new Promise<number>((resolve) => {
   scene.onAfterRenderObservable.addOnce(() => {
     try {
       const c = document.createElement('canvas');
@@ -497,6 +565,12 @@ const sampleWorldLitShare = () => new Promise<number>((resolve) => {
     }
   });
 });
+
+/** Patch read first (cheap); only a frame that reads dark gets the slow whole-canvas check, so a patch read that sees nothing cannot hold the card. */
+const worldLitShare = async () => {
+  const quick = await sampleWorldLitShare();
+  return quick >= WORLD_LIT_MIN ? quick : sampleWorldLitShareFull();
+};
 
 /** Minimum lit share before the chapter card may lift (matches the transition playtest). */
 const WORLD_LIT_MIN = 0.03;
@@ -525,7 +599,7 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
     if (chapterCard.showing()) {
       screenFade.to(0, 0);
       chapterCard.release(600);
-    } else screenFade.to(0, 1.5);
+    } else screenFade.to(0, coldOpenRunning ? 0.5 : 1.5);
   };
   let revealing = false;
   const deadline = calledAt + REVEAL_READY_MAX_MS;
@@ -551,7 +625,7 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
         show(meshShadersReady() ? 'ready' : 'cap');
         return;
       }
-      const lit = await sampleWorldLitShare();
+      const lit = await worldLitShare();
       if (shown || !alive()) return;
       if (lit >= WORLD_LIT_MIN) {
         show('ready');
@@ -683,6 +757,9 @@ const setObjective = (title: string, text: string, target: { x: number; z: numbe
   if (missionsOpen) renderMissions();
   if (!text || cue === lastObjectiveCue || !state.running) return;
   lastObjectiveCue = cue;
+  music.objective(title);
+  // The Morning is near silence; the motif comes once, when he is let out the door.
+  if (isMorningLevel() && text === lineText('objective.morning.out')) music.objective('morning-motif', 'calm');
   audio.play(SFX.objective, 0.55);
 };
 
@@ -817,6 +894,36 @@ const restoreGearAfterCutscene = (gear: CutsceneGear) => {
 /** Where Skip was pressed in the running timeline (seconds), for analytics; null when it played out. */
 let cutsceneSkippedAt: number | null = null;
 
+/** The in-world ending event of a chapter (cutscenes/finale-N.json): plays when End Level is pressed, then the card. */
+const FINALE_LEVELS = new Set([1, 3, 5, 6, 8]);
+const isFinale = (id: string) => id.startsWith('finale-');
+/** `world` events ease a value (tower floors) over a few seconds; stepped with the scene. */
+let worldTweens: Array<{ apply: (v: number) => void; from: number; to: number; t: number; d: number }> = [];
+let finaleWorldRestore: Array<() => void> = [];
+const stopFinaleWorld = () => {
+  worldTweens = [];
+  finaleWorldRestore.forEach((undo) => undo());
+  finaleWorldRestore = [];
+};
+const stepFinaleWorld = (delta: number) => {
+  for (const tween of worldTweens) {
+    tween.t = Math.min(tween.d, tween.t + delta);
+    const k = tween.d > 0 ? tween.t / tween.d : 1;
+    tween.apply(tween.from + (tween.to - tween.from) * k);
+  }
+  worldTweens = worldTweens.filter((tween) => tween.t < tween.d);
+};
+const runFinaleWorld = (target: string, to: number, seconds: number) => {
+  const tween = (apply: (v: number) => void, from: number, restore?: () => void) => {
+    if (restore) finaleWorldRestore.push(restore);
+    if (seconds > 0) worldTweens.push({ apply, from, to, t: 0, d: seconds });
+    else apply(to);
+  };
+  if (target === 'tower-cut') tween((v) => home.setTowerCut(v), 70, () => home.setTowerCut(999));
+  else if (target === 'board-stop') { dressing.setBoardStop(to > 0); finaleWorldRestore.push(() => dressing.setBoardStop(false)); }
+  else if (target === 'tv-report') { morning.tvReport(to > 0); if (to > 0) music.stinger('tv-news'); }
+};
+
 const endCutscene = () => {
   const finished = activeCutscene;
   const skippedAt = cutsceneSkippedAt;
@@ -833,6 +940,7 @@ const endCutscene = () => {
   const gear = cutsceneGear;
   cutsceneGear = null;
   const reequip = finished ? finished.timeline.reequip !== false : true;
+  if (finished) music.cutsceneEnd(finished.id);
   act.releaseSeat();
   resetCutsceneState();
   phone.aimBeam(null);
@@ -842,6 +950,11 @@ const endCutscene = () => {
     else phone.setFlashlight(false);
   }
   if (reequip && gear) restoreGearAfterCutscene({ ...gear, light: restoreLight });
+  if (finished && isFinale(finished.id)) {
+    stopFinaleWorld();
+    presentLevelEnd();
+    return;
+  }
   if (finished) act.onCutsceneEnded(finished.id);
 };
 
@@ -855,8 +968,26 @@ const beginNamedCutscene = (id: string) => {
   act.prepareCutscene(id);
   unlockPointer();
   analytics?.cutscenePlay(id);
+  music.cutsceneStart(id, id === 'b3-vat-break' ? 'silence' : 'calm');
+  if (id === 'b3-vat-break') music.stinger('vat-break', 3.3);
   void startCutscene(id, {
-    onCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+    onCamera: (position, lookAt, rel) => {
+      if (!rel) {
+        followCamera.setCinematic(position, lookAt);
+        return;
+      }
+      // Offsets from Pierce: x right, y up from his feet, z along his facing.
+      const fx = Math.sin(state.characterYaw);
+      const fz = Math.cos(state.characterYaw);
+      const base = playerAvatar.group.position;
+      const at = (v: { x: number; y: number; z: number }) => ({
+        x: base.x + fx * v.z + fz * v.x,
+        y: base.y + v.y,
+        z: base.z + fz * v.z - fx * v.x,
+      });
+      followCamera.setCinematic(at(position), at(lookAt));
+    },
+    onWorld: (target, to, seconds) => runFinaleWorld(target, to, seconds),
     onHud: (title, text) => showCineHud(title, text),
     onAnim: (actor, clip, loop) => applyNpcAnim(npcs, actor, clip, loop, playerAvatar),
     onLight: (on, intensity, target) => act.cutsceneLight(on, intensity, target),
@@ -869,15 +1000,18 @@ const beginNamedCutscene = (id: string) => {
   }).then((next) => {
     if (!next) {
       endCutscene();
-      act.onCutsceneFailed(id);
+      if (isFinale(id)) presentLevelEnd();
+      else act.onCutsceneFailed(id);
       return;
     }
     activeCutscene = next;
-    act.relock(id);
+    if (!isFinale(id)) act.relock(id);
   });
 };
 
 const musicTriggerPlayer = createMusicTriggerPlayer();
+/** A story beat can drop the level's bed to silence (The Desk's mirror). 1 leaves it as the level plays it. */
+let bedDuck = 1;
 const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
   if (isMusicTrigger(trigger)) return;
   // Walk-up cutscenes wait for the action button. The press is the audio gesture.
@@ -920,6 +1054,9 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     train.dispose();
     morning.dispose();
     apex.dispose();
+    boardHall.dispose();
+    apexLife.dispose();
+    touch.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
@@ -944,6 +1081,8 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     if (isTrainLevel()) await train.mount();
     // Runtime dressing that is not in the level file (city under the office, basement air, station kit, the train car).
     dressing.mount({ levelId: loaded?.data.id ?? '', powers: isReturnLevel() });
+    touch.mount(getLevelDefinition(state.level).libraryId);
+    preloadClips(TOUCH_SOUNDS);
     await Promise.all([
       waitAvatarReady(playerAvatar),
       whenSkyboxReady(scene),
@@ -959,10 +1098,26 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       // Level ready first (it mounts the bathroom mirror, sets the opening objective), so the compile pass below
       // covers what Start would otherwise add on its first frames.
       act.onLevelReady();
-      if (isApexPeakLevel()) apex.mount();
-      dressedLevelId = state.level;
-      // One cap for both passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
+      // One cap for all the passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
       const deadline = performance.now() + SHADERS_READY_MAX_MS;
+      if (isApexPeakLevel()) {
+        apex.mount();
+        apexLife.mount();
+        boardHall.mount();
+        // The cleaner, the guard, the reader, the cooler analyst and the caller are GLBs: wait for them here, or
+        // they finish loading (parse, skin, first shader compile) while Pierce walks the hall.
+        let cap = 0;
+        await Promise.race([
+          Promise.all([apex.ready(), apexLife.ready(), boardHall.ready()]),
+          new Promise<void>((resolve) => { cap = window.setTimeout(resolve, Math.max(0, deadline - performance.now())); }),
+        ]);
+        window.clearTimeout(cap);
+      }
+      // The Desk's mirror and papers and The Morning's room are built at Start otherwise: build them now so their
+      // shaders and render target are ready under the chapter card.
+      if (isDeskLevel()) desk.prepare();
+      if (isMorningLevel()) morning.prepare();
+      dressedLevelId = state.level;
       await warmStartState(deadline);
       await whenShadersCompiled(deadline);
     }
@@ -992,7 +1147,12 @@ type SaveData = {
   missions?: Record<string, string[]>;
   /** Lore entries unlocked by finishing a level (chapter numbers). */
   lore?: number[];
+  /** How far Voss trusts Pierce (-2..+2), moved by what he says on Voss's calls. */
+  vossTrust?: number;
+  /** How hot Hale runs against Pierce (-2..+2), moved by what he says on Hale's calls. */
+  haleTemper?: number;
 };
+const clampStat = (value: unknown) => Math.max(STAT_MIN, Math.min(STAT_MAX, Math.round(Number(value) || 0)));
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
 const MAX_HEALTH = 100;
 
@@ -1047,6 +1207,8 @@ const parseSave = (raw: string): SaveData => {
     medkits: Number.isFinite(medkits) ? Math.max(0, Math.min(3, medkits)) : undefined,
     missions,
     lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
+    vossTrust: clampStat(parsed.vossTrust),
+    haleTemper: clampStat(parsed.haleTemper),
   };
 };
 
@@ -1069,6 +1231,36 @@ const loadSave = (): SaveData => {
   }
 };
 
+/**
+ * Cold open: a first visit (no save, nothing opened through a link, not another playtest) goes from Tap to play straight
+ * into the B3 hall with the flashlight on. `?cold=1` forces it, `?cold=0` turns it off.
+ */
+const COLD_SEEN_KEY = 'hawkes.coldOpenSeen';
+/** How long "Six hours earlier." stays up before the title (level 1 loads behind it). */
+const COLD_CARD_MS = 2000;
+const wantsColdOpen = () => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('cold') === '1') return true;
+  if (params.get('cold') === '0') return false;
+  for (const key of ['beat', 'level', 'cutscene']) if (params.get(key)) return false;
+  const test = params.get('playtest');
+  if (test && test !== 'first-five') return false;
+  try {
+    if (readCookie(SAVE_COOKIE) || localStorage.getItem(SAVE_STORAGE_KEY) || localStorage.getItem(COLD_SEEN_KEY) === '1') return false;
+  } catch { /* storage blocked: still a first visit */ }
+  return true;
+};
+let coldOpen = wantsColdOpen();
+let coldOpenTapped = false;
+let coldOpenRunning = false;
+let coldOpenAt = 0;
+/** First-use warm under Tap to play before the cold open hall (shaders, textures, creature SFX). */
+let coldOpenWarm: Promise<unknown> | null = null;
+let coldOpenWarmDone = false;
+/** Last warm stats (chapter card or cold open). Re-emitted when a playtest starts mid-warm. */
+let lastWarmStats: Record<string, unknown> | null = null;
+if (coldOpen) document.body.classList.add('cold-open');
+
 let save = loadSave();
 
 const saveGame = (next: Partial<SaveData>) => {
@@ -1081,6 +1273,8 @@ const saveGame = (next: Partial<SaveData>) => {
     medkits: next.medkits ?? save.medkits,
     missions: next.missions ?? save.missions,
     lore: next.lore ?? save.lore,
+    vossTrust: clampStat(next.vossTrust ?? save.vossTrust),
+    haleTemper: clampStat(next.haleTemper ?? save.haleTemper),
   };
   writeSaveCookie(save);
   return save;
@@ -1180,7 +1374,6 @@ const pickups: Array<{
 const SFX = {
   shot: '/assets/audio/sfx/pistol-shot.ogg',
   jump: '/assets/audio/sfx/jump.ogg',
-  walk: '/assets/audio/sfx/walk.ogg',
   hurt: '/assets/audio/sfx/hurt.ogg',
   reload: '/assets/audio/sfx/reload.ogg',
   draw: '/assets/audio/sfx/pistol-draw.ogg',
@@ -1192,19 +1385,13 @@ const SFX = {
   /** Pressing E on a story action; falls back to the flashlight click until the file is made (soundFallback.ts). */
   click: '/assets/audio/sfx/interact.ogg',
   pickup: '/assets/audio/sfx/pickup.ogg',
-  walkConcrete: '/assets/audio/sfx/walk-concrete.ogg',
-  walkHard: '/assets/audio/sfx/walk-hard.ogg',
 } as const;
-/** Footsteps by floor: concrete on the street, the platform and B3; a hard floor in the apartment and the train; office carpet elsewhere. */
-const walkSound = () => {
-  const id = getLevelDefinition(state.level).libraryId;
-  if (id === 'going-home' || id === 'the-station' || id === 'b3-basement') return SFX.walkConcrete;
-  if (id === 'the-morning' || id === 'the-train') return SFX.walkHard;
-  return SFX.walk;
-};
 const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-morning' ? MORNING_ENDING_TRACK : getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
-let walkLoop: ClipHandle | null = null;
 let walkWanted = false;
+const footsteps = createFootsteps((url, rate) => {
+  const level = mixVolume(url, 0.34);
+  playClip(url, level, { rate });
+});
 let endingSong: HTMLAudioElement | null = null;
 
 const stopEndingSong = () => {
@@ -1254,34 +1441,25 @@ const audio = {
     osc.stop(this.ctx.currentTime + duration);
   },
   /** One-shots play from a decoded buffer, so a phone hears them without a finger on the screen. */
-  play(url: string, volume: number) {
+  play(url: string, volume: number, rate?: number) {
     if (!this.enabled) return;
     this.ensure();
     const level = mixVolume(url, volume);
     const fallback = soundFallback(url);
-    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume)); } : undefined;
-    if (playClip(url, level, { onError })) return;
+    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume), { rate }); } : undefined;
+    if (playClip(url, level, { onError, rate })) return;
     playElementOnce(fallback ?? url, level);
   },
+  /** Footsteps are one-shots on each foot plant (footsteps.ts); this only says whether he is walking. */
   setWalk(playing: boolean) {
     walkWanted = Boolean(playing && this.enabled);
-    if (!walkWanted) {
-      walkLoop?.stop(0.05);
-      walkLoop = null;
-      return;
-    }
-    if (walkLoop && !walkLoop.done()) return;
+    if (!walkWanted) footsteps.reset();
+  },
+  /** Metres walked this frame: a plant per STEP_LENGTH, on the surface under him. */
+  stepAdvance(metres: number) {
+    if (!walkWanted || !(metres > 0)) return;
     this.ensure();
-    const url = walkSound();
-    const fallback = soundFallback(url);
-    const loop: ClipHandle | null = playClip(url, mixVolume(url, 0.28), {
-      loop: true,
-      onError: fallback ? () => {
-        if (walkLoop !== loop || !walkWanted) return;
-        walkLoop = playClip(fallback, mixVolume(fallback, 0.28), { loop: true });
-      } : undefined,
-    });
-    walkLoop = loop;
+    footsteps.advance(metres, surfaceFor(getLevelDefinition(state.level).libraryId, state.player.x, state.player.z));
   },
   hit() { this.play(SFX.hurt, 0.45); },
   shoot() { this.play(SFX.shot, 0.78); },
@@ -1400,6 +1578,34 @@ const syncPhoneHud = () => {
   }
   if (phoneSpeaker) phoneSpeaker.textContent = view.speaker && view.line ? view.speaker : '';
   if (phoneLine) phoneLine.textContent = view.line;
+  if (callReplies) {
+    const key = view.replies.map((r) => r.text).join('|');
+    if (key !== callRepliesKey) {
+      callRepliesKey = key;
+      callReplies.hidden = !key;
+      callRepliesBar = null;
+      callReplies.replaceChildren();
+      if (key) {
+        callRepliesBar = document.createElement('div');
+        callRepliesBar.className = 'cr-timer';
+        callReplies.appendChild(callRepliesBar);
+        for (const [i, reply] of view.replies.entries()) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cr-option';
+          btn.dataset.reply = String(i);
+          const cap = document.createElement('span');
+          cap.className = 'cr-key';
+          cap.textContent = String(reply.key);
+          const label = document.createElement('span');
+          label.textContent = reply.text;
+          btn.append(cap, label);
+          callReplies.appendChild(btn);
+        }
+      }
+    }
+    if (callRepliesBar && view.repliesTotal > 0) callRepliesBar.style.transform = `scaleX(${Math.max(0, view.repliesLeft / view.repliesTotal).toFixed(3)})`;
+  }
   phoneAnswer?.toggleAttribute('hidden', !view.showAnswer);
   phoneEnd?.toggleAttribute('hidden', !view.showEnd);
   phoneFlash?.toggleAttribute('hidden', !view.showFlash);
@@ -1449,7 +1655,7 @@ const syncPhoneHud = () => {
     phoneBadge.hidden = !view.badge;
     phoneBadge.textContent = view.badge;
   }
-  followCamera.setCallFrame(phone.wantsCallCamera() && !state.inCutscene);
+  followCamera.setCallFrame(phone.wantsCallCamera() && !state.inCutscene && !callWalk);
   const phoneHoldsPointer = phone.locksBody() || phone.isScreenOpen();
   if (phoneHoldsPointer) {
     unlockPointer();
@@ -1547,7 +1753,11 @@ const renderMissions = () => {
   const kicker = objectiveHud?.querySelector('.objective-kicker')?.textContent?.trim() || 'Main';
   const detail = objectiveText?.textContent?.trim() || 'Follow the objective.';
   if (missionsTitle) missionsTitle.textContent = `Missions ${missionLabel(level.libraryId, [...done])}`;
-  missionsList.innerHTML = quests.map((quest) => {
+  const goal = goalLine(state.level);
+  const goalRow = goal
+    ? `<div class="mission-row reward-row" id="missionGoal"><span class="inventory-label">${missionText(lineText('ui.reward.goal', 'On finish'))}<span></span></span><strong>${missionText(goal)}</strong><span class="inventory-note">${missionText(levelReward(state.level)?.hook ?? '')}</span></div>`
+    : '';
+  missionsList.innerHTML = goalRow + quests.map((quest) => {
     const title = quest.id === 'main' ? kicker : quest.title;
     const note = quest.id === 'main' ? detail : quest.detail;
     const complete = done.has(quest.id);
@@ -1713,13 +1923,18 @@ const syncStartButtonLabel = () => {
   loadModelBtn.disabled = loading;
   newGameBtn.disabled = loading;
   if (loading) {
-    startBtn.textContent = 'Loading…';
+    startBtn.textContent = 'Start';
     startBtn.setAttribute('aria-busy', 'true');
     startBtn.style.display = '';
     newGameBtn.style.display = 'none';
-    if (messageTitle.textContent === 'PH Origins') messageText.textContent = levelLoadingLine();
+    if (messageTitle.textContent === 'PH Origins') {
+      messageText.textContent = '';
+      loadLine.textContent = levelLoadingLine();
+      loadLine.hidden = false;
+    }
     return;
   }
+  loadLine.hidden = true;
   startBtn.removeAttribute('aria-busy');
 
   const mode = menuMode();
@@ -1984,12 +2199,17 @@ const scenePlaying = () =>
   || train.playing()
   || morning.playing();
 
+const acidSkippable = () => state.running && act.acidActive() && act.vatSeen() && act.acidTime() > 1;
 const performSkip = () => {
+  if (!activeCutscene && acidSkippable()) {
+    act.skipAcid();
+    return;
+  }
   if (activeCutscene) {
     const finished = activeCutscene;
     cutsceneSkippedAt = finished.time;
     skipToEnd(finished);
-    act.beforeCutsceneStep(finished.id, finished.duration);
+    if (!isFinale(finished.id)) act.beforeCutsceneStep(finished.id, finished.duration);
     endCutscene();
     return;
   }
@@ -2063,6 +2283,7 @@ shadowHint?.addEventListener('click', (event) => {
       markMission('power-shadow');
       analytics?.used('shadow-mode');
     }
+    music.power(shadowPlay().shadowMode());
     if (!shadowPlay().shadowMode()) {
       playerAvatar.setArmed(false);
       syncEquippedCamera();
@@ -2090,6 +2311,13 @@ phoneHint?.addEventListener('click', onPhoneControl);
 phoneBtn?.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   onPhoneControl(event);
+});
+callReplies?.addEventListener('click', (event) => {
+  const btn = (event.target as HTMLElement).closest<HTMLElement>('[data-reply]');
+  if (!btn) return;
+  event.preventDefault();
+  btn.classList.add('picked');
+  phone.chooseReply(Number(btn.dataset.reply));
 });
 phoneAnswer?.addEventListener('click', (event) => {
   event.stopPropagation();
@@ -2206,8 +2434,30 @@ const showLore = (n: number) => {
   analytics?.feature('lore-unlocked', n);
 };
 
+/** Level Complete: the rank and tool the run earned, and the hook into the next level. */
+const showReward = (n: number) => {
+  if (!rewardCard) return;
+  const reward = n ? levelReward(n) : null;
+  if (!reward) {
+    rewardCard.hidden = true;
+    return;
+  }
+  const libraryId = getLevelDefinition(n).libraryId;
+  const side = missionsFor(libraryId).filter((quest) => quest.group === 'side');
+  const done = new Set(doneMissionIds(libraryId));
+  const full = side.length > 0 && side.every((quest) => done.has(quest.id));
+  const row = (label: string, value: string, cls = '') => `<div class="reward-row ${cls}"><span>${missionText(label)}</span><strong>${missionText(value)}</strong></div>`;
+  rewardCard.innerHTML = row(lineText('ui.reward.rank', 'Rank'), reward.rank)
+    + row(lineText('ui.reward.unlocked', 'Unlocked'), reward.tool)
+    + (full ? row('★', lineText('ui.reward.full', 'Full marks'), 'full') : '')
+    + (reward.hook ? `<p class="reward-hook"><span>${missionText(lineText('ui.reward.next', 'Next'))}</span> ${missionText(reward.hook)}</p>` : '');
+  rewardCard.hidden = false;
+  analytics?.feature('reward', n);
+};
+
 const showMessage = (title: string, text: string) => {
   messageBox.classList.remove('leaving');
+  music.stop();
   messageTitle.textContent = title;
   messageText.textContent = text;
   syncStartButtonLabel();
@@ -2223,6 +2473,7 @@ const showMessage = (title: string, text: string) => {
   if (title === 'Level Complete' || title === 'Mission Clear') startLevelCredits(state.level);
   else stopLevelCredits();
   showLore(title === 'Level Complete' ? state.level : 0);
+  showReward(title === 'Level Complete' ? state.level : 0);
   if (missionScore) {
     const showScore = title === 'Level Complete';
     missionScore.hidden = !showScore;
@@ -2335,7 +2586,7 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
   if (fresh) {
-    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {} });
+    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0 });
   } else if (typeof save.health === 'number') {
     state.health = save.health;
     state.inventory.items.ammo = save.ammo ?? 0;
@@ -2345,6 +2596,68 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   state.characterYaw = 0;
   applyLevelConfig(getLevelDefinition(selectedLevel));
   followCamera.reset();
+};
+
+/** The acid in the vat break bends the controls (act1.ts `stepAcid`). Null is normal control. */
+let impair: ImpairState | null = null;
+const impairLog: Array<{ at: number; x: number; y: number }> = [];
+const setImpair = (next: ImpairState | null) => {
+  impair = next;
+  if (!next) impairLog.length = 0;
+};
+/** Delayed input: the stick as it was `lag` seconds ago. */
+const lagInput = (moveX: number, moveZ: number, lag: number) => {
+  const now = performance.now();
+  impairLog.push({ at: now, x: moveX, y: moveZ });
+  const cutoff = now - 1200;
+  while (impairLog.length > 1 && impairLog[0].at < cutoff) impairLog.shift();
+  const want = now - lag * 1000;
+  let pick = impairLog[0];
+  for (const row of impairLog) {
+    if (row.at <= want) pick = row;
+    else break;
+  }
+  return { moveX: pick.x, moveZ: pick.y };
+};
+
+/** Hunt retry: the creature downs Pierce, a 0.6 s red fade, back at the room's checkpoint. No card, no reload. */
+const RETRY_FADE = 0.6;
+let retryLeft = 0;
+let retryStartedAt = 0;
+let retryRespawned = false;
+const huntStats = { huntRetries: 0, retrySeconds: [] as number[], lastRetrySeconds: 0 };
+(window as unknown as { __phHunt?: typeof huntStats }).__phHunt = huntStats;
+const startHuntRetry = () => {
+  retryLeft = RETRY_FADE + 0.35;
+  retryRespawned = false;
+  retryStartedAt = performance.now();
+  huntStats.huntRetries += 1;
+  clearInputState();
+  playerAvatar.playClip('fallingdown', false, 1.4);
+  audio.play('/assets/audio/sfx/creature/wound.wav', 0.62);
+  screenFade.setColor('#4a0508');
+  screenFade.to(1, RETRY_FADE);
+  analytics?.feature('hunt-retry');
+};
+const stepHuntRetry = (delta: number) => {
+  if (retryLeft <= 0) return;
+  retryLeft = Math.max(0, retryLeft - delta);
+  if (!retryRespawned && retryLeft <= 0.35) {
+    retryRespawned = true;
+    const spot = act.huntRetry();
+    state.health = MAX_HEALTH;
+    state.lastDamageAt = performance.now();
+    placePierce(spot.x, spot.z, spot.yaw);
+    playerAvatar.resumeLocomotion();
+    updateHud();
+    screenFade.to(0, 0.35);
+  }
+  if (retryLeft <= 0) {
+    screenFade.setColor('');
+    const seconds = (performance.now() - retryStartedAt) / 1000;
+    huntStats.lastRetrySeconds = seconds;
+    huntStats.retrySeconds.push(Number(seconds.toFixed(2)));
+  }
 };
 
 let applyHurt = (_amount: number, _cause?: string) => {};
@@ -2380,6 +2693,7 @@ act = createAct1({
   seatHead: seatPlayerAtHeadChair,
   leaveHead: leavePlayerAtHeadChair,
   beginCutscene: beginNamedCutscene,
+  callWalk: (on) => { callWalk = on; },
   ringCall: (id) => {
     const ring = () => {
       clearHands();
@@ -2406,6 +2720,7 @@ act = createAct1({
   offerEnd: (title, text) => offerLevelEnd(title, text),
   haltPlay: () => { state.running = false; },
   clearInput: () => clearInputState(),
+  coldOpenDone: () => endColdOpen(),
   unlockNext: () => unlockProgress(),
   refreshHud: () => updateHud(),
   setCarry: (items) => { storyCarry = items; },
@@ -2423,6 +2738,18 @@ act = createAct1({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  impair: (next) => setImpair(next),
+  flashlight: (on) => {
+    if (on && !phone.isRaised()) phone.setRaised(true);
+    if (phone.flashlightOn() !== on) phone.setFlashlight(on);
+  },
+  flashlightOn: () => phone.flashlightOn(),
+  vatSeen: () => {
+    try { return localStorage.getItem('hawkes.vatSeen') === '1'; } catch { return false; }
+  },
+  rememberVat: () => {
+    try { localStorage.setItem('hawkes.vatSeen', '1'); } catch { /* private mode */ }
+  },
   raiseLight: () => {
     phone.setRaised(true);
     phone.setFlashlight(true);
@@ -2470,6 +2797,34 @@ const apex: ApexSlice = createApexSlice({
   standVisual: () => {
     playerAvatar.group.position.y = playerMeshY(PLAYER_STAND_Y);
   },
+});
+
+const apexLife = createApexLife({
+  scene,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  active: () => state.running && !state.inCutscene && !apex.playing(),
+  lowPower: () => lowPowerGraphics,
+  playFile: (url, volume) => audio.play(url, volume),
+  showLine: (title, text) => showCineHud(title, text),
+});
+
+/** Board plot through the hall: desk person, locked door, Hale silhouette — no call required. */
+const boardHall = createApexBoardHall({
+  scene,
+  isApex: isApexPeakLevel,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  running: () => state.running,
+  inCutscene: () => state.inCutscene && !apex.playing(),
+  playFile: (url, volume) => audio.play(url, volume),
+  showLine: (title, text) => showCineHud(title, text),
+  impair: (next) => setImpair(next),
+});
+
+/** Things that answer Interact on the 58th floor, the station platform and the train (touchables.ts). */
+const touch = createTouchables({
+  scene,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  playFile: (url, volume) => audio.play(url, volume),
 });
 
 const home: GoingHome = createGoingHome({
@@ -2522,6 +2877,13 @@ const home: GoingHome = createGoingHome({
     updateHud();
   },
   ability: () => shadowPick,
+  setAbility: (id) => { shadowPick = id; updateHud(); },
+  unlock: (power) => pulseUnlock(power),
+  stepLogged: (power, step, setup, seconds) => {
+    const log = ((window as unknown as { __phLesson?: unknown[] }).__phLesson ??= []);
+    log.push({ power, step, setup, t: seconds });
+    analytics?.feature('lesson', `${power}.${step}`);
+  },
 });
 
 const desk: TheDesk = createTheDesk({
@@ -2530,19 +2892,25 @@ const desk: TheDesk = createTheDesk({
   playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  faceCamera: (yaw) => followCamera.face(yaw),
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
     state.inCutscene = held;
-    if (held) audio.setWalk(false);
+    if (held) {
+      audio.setWalk(false);
+      unlockPointer();
+    }
   },
   clearMarker: () => objectiveMarker.setTarget(null),
   showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
   setObjective,
-  playFile: (url, volume) => { audio.play(url, volume); },
+  playFile: (url, volume, rate) => { audio.play(url, volume, rate); },
+  setBedDuck: (amount) => { bedDuck = amount; },
   setWalk: (moving) => audio.setWalk(moving),
   setCarry: (items) => { storyCarry = items; },
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  playerYaw: () => state.characterYaw,
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
   win: () => audio.win(),
   showMessage,
@@ -2691,6 +3059,7 @@ const train: TheTrain = createTheTrain({
   },
   callBusy: () => phone.locksBody(),
   car: () => dressing.train(),
+  impair: (next) => setImpair(next),
 });
 
 storyObjectiveId = () => {
@@ -2709,6 +3078,7 @@ let freshStart = false;
 
 const beginGame = () => {
   if (!gameReady) return;
+  messageBox.classList.remove('quiet');
   pendingEnd = null;
   meleeAbility = 'punch';
   shadowPick = 'shock';
@@ -2732,6 +3102,7 @@ const beginGame = () => {
   syncStartButtonLabel();
   updateHud();
   hideMessage();
+  music.chapterStart(state.level, isMorningLevel() ? 'silence' : 'calm');
   act.onStart();
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
@@ -2751,6 +3122,88 @@ const beginGame = () => {
   });
 };
 
+/**
+ * Tap to play on a first visit: control in the hall. Needs the tap and the loaded hall, in either order.
+ * Awaits the cold-open warm (corridor, creature, creature SFX) up to +1.5 s so the chase does not compile mid-walk.
+ */
+function maybeStartColdOpen() {
+  if (!coldOpen || coldOpenRunning || !coldOpenTapped || !gameReady || loadFailed()) return;
+  coldOpenRunning = true;
+  void (async () => {
+    if (coldOpenWarm && !coldOpenWarmDone) {
+      await Promise.race([
+        coldOpenWarm,
+        new Promise<void>((resolve) => window.setTimeout(resolve, WARM_AFTER_CARD_MS)),
+      ]);
+    }
+    // Warm must never keep compiling on the render thread once Pierce can walk.
+    stopLevelWarm();
+    coldOpenWarmDone = true;
+    coldOpenAt = performance.now();
+    state.level = 2;
+    state.progression.currentLevel = 2;
+    fullscreen.enterForPlay();
+    lockPlayPointer();
+    beginGame();
+    const emit = (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit;
+    emit?.('cold-open', 'start');
+    // The warm often finishes under Tap to play before the playtest installs __phEmit: re-emit so first-five sees it.
+    const stats = lastWarmStats ?? { cold: true, ms: 0, note: 'warm raced Tap to play' };
+    emit?.('warm', JSON.stringify(stats));
+  })();
+}
+
+/** The scream and the cut to black are done: "Six hours earlier.", level 1 loads behind it, then the title over the 58th floor. */
+function endColdOpen() {
+  if (!coldOpenRunning) return;
+  coldOpenRunning = false;
+  coldOpen = false;
+  try { localStorage.setItem(COLD_SEEN_KEY, '1'); } catch { /* private mode */ }
+  state.running = false;
+  clearInputState();
+  audio.setWalk(false);
+  unlockPointer();
+  const card = document.getElementById('coldCard');
+  window.setTimeout(() => card?.classList.add('on'), 400);
+  void (async () => {
+    const level = getLevelDefinition(1);
+    state.level = level.id;
+    state.progression.currentLevel = level.id;
+    applyLevelConfig(level);
+    // Level 1 loads behind the line; the line never waits for it (a slow load held the card for ~90 s).
+    const loading = withLoadTimeout(loadMissionScene(level.path));
+    // About 2 s on screen, then the title appears at once. Start reads "Loading" until the level is ready.
+    await new Promise<void>((resolve) => window.setTimeout(resolve, COLD_CARD_MS + 400));
+    document.body.classList.remove('cold-open');
+    messageBox.classList.add('quiet');
+    showMessage('PH Origins', levelStartLine());
+    card?.classList.remove('on');
+    await loading;
+    menuCameraActive = true;
+    activateMenuCamera(scene, menuCamera);
+    screenFade.to(0, 0.9);
+  })().catch((error) => showLoadError('level', error));
+}
+
+/** A playtest scenario other than first-five (started without a URL hint) opens on the title, as before. */
+const cancelColdOpen = async () => {
+  if (!coldOpen || coldOpenRunning) return;
+  coldOpen = false;
+  stopLevelWarm();
+  coldOpenWarm = null;
+  coldOpenWarmDone = true;
+  document.body.classList.remove('cold-open');
+  act.cancelColdOpen();
+  const level = getLevelDefinition(1);
+  state.level = level.id;
+  state.progression.currentLevel = level.id;
+  applyLevelConfig(level);
+  await withLoadTimeout(loadMissionScene(level.path));
+  menuCameraActive = true;
+  activateMenuCamera(scene, menuCamera);
+  showMessage('PH Origins', levelStartLine());
+};
+
 let startingLevel = false;
 
 /** After the chapter card closes, first-use warm may still finish — never hold Start more than this past the card. */
@@ -2764,6 +3217,18 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
   startingLevel = true;
   freshStart = fresh;
   unlockAudio();
+  // A start straight from a running level (restart, Load Level, a test shortcut) must end that level first: its
+  // scripted scene (The Morning's opening, the train, the lobby) otherwise keeps "playing" under the black veil for
+  // the whole load and warm, and anything watching `running()` / `scripted()` sees a frozen cutscene.
+  if (state.running) {
+    state.running = false;
+    home.dispose();
+    desk.dispose();
+    station.dispose();
+    train.dispose();
+    morning.dispose();
+    syncSkipButton();
+  }
   try {
     state.level = level.id;
     state.progression.currentLevel = level.id;
@@ -2780,6 +3245,7 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
     // Defeat retries and ?beat= entries skip the card: warm in the background, do not hold beginGame.
     const warmDeadline = performance.now() + (chapter ? 4600 + WARM_AFTER_CARD_MS : WARM_AFTER_CARD_MS);
     const warm = warmLevelFirstUse(scene, level.path, warmDeadline).then((stats) => {
+      lastWarmStats = stats as Record<string, unknown>;
       console.info('warm', stats);
       (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void })
         .__phEmit?.('warm', JSON.stringify(stats));
@@ -2794,6 +3260,8 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
     } else {
       void warm;
     }
+    // Whatever is left of the warm stops here: it must never compile or upload while the level renders.
+    stopLevelWarm();
     beginGame();
   } catch (error) {
     showLoadError('level', error);
@@ -2804,14 +3272,33 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
 
 void (async () => {
   await loadLevelLibrary();
-  const bootLevel = getLevelDefinition(savedLevelId());
+  const bootLevel = getLevelDefinition(coldOpen ? 2 : savedLevelId());
   state.level = bootLevel.id;
   state.progression.currentLevel = bootLevel.id;
   applyLevelConfig(bootLevel);
   await loadMissionScene(bootLevel.path);
+  if (coldOpen) {
+    // The title card stays down: the tap goes into the hall. Only the B3 hall and the creature were loaded.
+    // Warm shaders, textures and creature audio under Tap to play so the doorway pass does not hitch at 2–5 fps.
+    hideMessage();
+    act.armColdOpen();
+    const warmDeadline = performance.now() + 8000;
+    coldOpenWarm = warmLevelFirstUse(scene, bootLevel.path, warmDeadline).then((stats) => {
+      coldOpenWarmDone = true;
+      lastWarmStats = stats as Record<string, unknown>;
+      console.info('cold-warm', stats);
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void })
+        .__phEmit?.('warm', JSON.stringify(stats));
+      return stats;
+    }).catch(() => {
+      coldOpenWarmDone = true;
+      return null;
+    });
+  }
   phBoot?.ready();
   analytics?.ready();
   recoverFromStall();
+  maybeStartColdOpen();
   const params = new URLSearchParams(location.search);
   const beat = params.get('beat');
   const cutscene = params.get('cutscene');
@@ -2948,6 +3435,7 @@ const updateQuestTracker = () => {
 
 const finishGame = (won = false) => {
   state.running = false;
+  music.stop();
   saveGame({ unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
   updateHud();
 
@@ -2965,6 +3453,7 @@ const finishGame = (won = false) => {
 
 applyHurt = (amount: number, cause = 'story') => {
   if (!state.running || state.inCutscene) return;
+  if (retryLeft > 0) return;
   lastHurtCause = cause;
   state.health = Math.max(0, state.health - amount);
   state.lastDamageAt = performance.now();
@@ -2972,7 +3461,13 @@ applyHurt = (amount: number, cause = 'story') => {
   alarmFlash?.classList.add('visible');
   window.setTimeout(() => alarmFlash?.classList.remove('visible'), 140);
   updateHud();
-  if (state.health <= 0) finishGame(false);
+  if (state.health <= 0) {
+    if (act.huntDowned()) {
+      startHuntRetry();
+      return;
+    }
+    finishGame(false);
+  }
 };
 
 stockSidearm = () => {
@@ -3218,28 +3713,41 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
-  if (state.inCutscene || phone.locksBody()) {
+  if (state.inCutscene || (phone.locksBody() && !callWalk) || retryLeft > 0 || impair?.locked) {
     state.player.jumpWindup = 0;
     state.input.jump = false;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
-    if (phone.locksBody()) playerAvatar.setLocomotion(false, true);
+    if (phone.locksBody() && !callWalk) playerAvatar.setLocomotion(false, true);
     audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
   const yaw = followCamera.getYaw();
   fillMoveAxes(yaw);
-  const { moveX, moveZ } = readMoveXZ();
+  let { moveX, moveZ } = readMoveXZ();
+  if (impair) {
+    ({ moveX, moveZ } = lagInput(moveX, moveZ, impair.lag));
+    state.input.jump = false;
+  }
   desiredMove.set(
     moveForward.x * moveZ + moveRight.x * moveX,
     0,
     moveForward.z * moveZ + moveRight.z * moveX,
   );
+  if (impair) {
+    // The acid: the heading drifts, and he is pulled (the pool, then the door).
+    const len = desiredMove.length();
+    const cos = Math.cos(impair.drift);
+    const sin = Math.sin(impair.drift);
+    const dx = desiredMove.x * cos - desiredMove.z * sin;
+    const dz = desiredMove.x * sin + desiredMove.z * cos;
+    desiredMove.set(dx + impair.pull.x * (len > 0.05 ? 0.5 : 0.18), 0, dz + impair.pull.z * (len > 0.05 ? 0.5 : 0.18));
+  }
   strideFrom.x = state.player.x;
   strideFrom.z = state.player.z;
   groundSpeed = walkedBefore;
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
-    const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
+    const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1) * (impair?.speed ?? 1);
     // A stalled frame (a slow GPU, a shader compile) must not carry him metres in one step and tunnel a wall corner,
     // but it must not slow him either (a 2 fps run then walks at a tenth of speed). Spend the frame in steps of at most
     // MAX_MOVE_DELTA, each collided and floor-checked, up to MAX_MOVE_FRAME of real time.
@@ -3256,8 +3764,12 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
   }
 
+  if (impair && state.player.x > impair.maxX) {
+    state.player.x = impair.maxX;
+    playerCollider.position.set(state.player.x, state.player.y, state.player.z);
+  }
   const walkMagnitude = Math.hypot(moveX, moveZ);
-  const moving = walkMagnitude > 0.05;
+  const moving = impair ? desiredMove.lengthSquared() > 0.0025 : walkMagnitude > 0.05;
   const moveHeading = desiredMove.lengthSquared() > 0
     ? Math.atan2(desiredMove.x, desiredMove.z)
     : null;
@@ -3324,6 +3836,7 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     && !panelsOpen()
     && messageBox.classList.contains('hidden'),
   );
+  audio.stepAdvance(travelled > maxStep ? 0 : travelled);
   syncShadowBed(runningShadow, moving);
 
   const forwardDot = moveHeading === null ? 0 : Math.sin(yaw) * Math.sin(moveHeading) + Math.cos(yaw) * Math.cos(moveHeading);
@@ -3421,6 +3934,7 @@ const presentLevelEnd = () => {
     return;
   }
   const card = pendingEnd;
+  music.chapterEnd();
   pendingEnd = null;
   phone.silence();
   followCamera.setCallFrame(false);
@@ -3443,10 +3957,11 @@ const storyAction = (): string | null => {
   if (panelsOpen() || home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing()) return null;
   if (phone.locksBody() || phone.isScreenOpen()) return null;
   if (isDeskLevel()) return desk.action();
-  if (isTrainLevel()) return train.action();
+  if (isTrainLevel()) return train.action() ?? touch.action();
   if (isMorningLevel()) return morning.action();
-  if (isHomeLevel() || isStationLevel()) return null;
-  return act.action() ?? (isApexPeakLevel() ? apex.action() : null);
+  if (isStationLevel()) return touch.action();
+  if (isHomeLevel()) return null;
+  return act.action() ?? (isApexPeakLevel() ? (boardHall.action() ?? apex.action() ?? touch.action()) : null);
 };
 
 const confirmStoryAction = () => {
@@ -3454,15 +3969,23 @@ const confirmStoryAction = () => {
   unlockAudio();
   audio.interact();
   if (pendingEnd) {
-    presentLevelEnd();
+    // Chapters 1, 3, 5, 6 and 8 end on one short in-world event (cutscenes/finale-N.json), then the card.
+    if (FINALE_LEVELS.has(state.level) && !state.inCutscene) {
+      const level = state.level;
+      phone.silence();
+      clearInputState();
+      audio.setWalk(false);
+      beginNamedCutscene(`finale-${level}`);
+    } else presentLevelEnd();
     syncActionHint();
     return true;
   }
   if (isDeskLevel()) desk.confirm();
-  else if (isTrainLevel()) train.confirm();
+  else if (isTrainLevel()) { if (train.action()) train.confirm(); else touch.confirm(); }
   else if (isMorningLevel()) morning.confirm();
+  else if (isStationLevel()) touch.confirm();
   else if (act.confirm()) { /* story walk-up */ }
-  else if (isApexPeakLevel()) apex.confirm();
+  else if (isApexPeakLevel()) { if (!boardHall.confirm() && !apex.confirm()) touch.confirm(); }
   syncActionHint();
   return true;
 };
@@ -3710,6 +4233,12 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   const key = event.key.toLowerCase();
+  if ((key === '1' || key === '2' || key === '3') && phone.view().replies.length) {
+    event.preventDefault();
+    callReplies?.querySelector(`[data-reply="${Number(key) - 1}"]`)?.classList.add('picked');
+    phone.chooseReply(Number(key) - 1);
+    return;
+  }
   if (key === 'w' || key === 'arrowup') state.input.forward = true;
   if (key === 's' || key === 'arrowdown') state.input.backward = true;
   if (key === 'a' || key === 'arrowleft') state.input.left = true;
@@ -3762,6 +4291,7 @@ window.addEventListener('keydown', (event) => {
         markMission('power-shadow');
         analytics?.used('shadow-mode');
       }
+      music.power(shadowPlay().shadowMode());
       if (!shadowPlay().shadowMode()) {
         playerAvatar.setArmed(false);
         syncEquippedCamera();
@@ -3897,7 +4427,7 @@ canvas.addEventListener('touchcancel', () => { touchState.active = false; }, { p
 leftStickZone.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   state.stickDragging = true;
-  leftStickZone.setPointerCapture(event.pointerId);
+  try { leftStickZone.setPointerCapture(event.pointerId); } catch { /* a synthetic touch has no live pointer to capture */ }
   const rect = leftStickZone.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
@@ -4080,7 +4610,9 @@ const tapState = (window as { __phTap?: { tapped: boolean; onTap: (() => void) |
 // The capture listeners above already unlocked sound during this tap; this tops the pool up once more.
 const warmSounds = () => {
   unlockAudio();
-  preloadClips([SFX.walk, SFX.jump, SFX.start, SFX.objective, SFX.levelComplete, SFX.draw, SFX.holster, SFX.hurt]);
+  coldOpenTapped = true;
+  maybeStartColdOpen();
+  preloadClips([...stepUrls('carpet'), SFX.jump, SFX.start, SFX.objective, SFX.levelComplete, SFX.draw, SFX.holster, SFX.hurt]);
 };
 if (tapState) tapState.onTap = warmSounds;
 if (tapState?.tapped) warmSounds();
@@ -4221,6 +4753,7 @@ const setPaused = (on: boolean) => {
     unlockPointer();
     holdAllAudio();
     holdClips();
+    music.hold(true);
     scene.animationsEnabled = false;
     resumeBtn.focus({ preventScroll: true });
   } else {
@@ -4228,6 +4761,7 @@ const setPaused = (on: boolean) => {
     scene.animationsEnabled = true;
     releaseAllAudio();
     releaseClips();
+    music.hold(false);
     lockGameplayPointer();
   }
 };
@@ -4244,6 +4778,22 @@ const objectiveWaypoint = createObjectiveWaypoint(root, engine, scene, camera, (
   out.distance = objectiveMarker.distanceTo(state.player.x, state.player.z);
 });
 scene.onAfterRenderObservable.add(objectiveWaypoint.update);
+
+// Context prompt (src/game/powerPrompt.ts): the power Going Home is teaching, on its target or touch button.
+const promptWorld = new BABYLON.Vector3();
+const powerPrompt = createPowerPrompt(root, engine, scene, (out) => {
+  const p = isHomeLevel() ? home.prompt() : null;
+  out.active = Boolean(p) && state.running && !paused && !state.inCutscene && messageBox.classList.contains('hidden')
+    && !settingsOpen() && !scriptedNow() && !panelsOpen();
+  if (!out.active || !p) return;
+  out.icon = p.icon;
+  const touch = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+  out.key = touch ? p.touchKey : p.key;
+  out.label = p.label;
+  out.button = p.button;
+  out.world = p.target ? promptWorld.set(p.target.x, p.target.y, p.target.z) : null;
+});
+scene.onAfterRenderObservable.add(powerPrompt.update);
 
 // "Lost? Return to objective" (src/game/returnToObjective.ts): after 60 s of real play with no progress a prompt
 // shows (R or a tap), and Pause always offers the same move. Pierce is placed on safe ground beside the live objective.
@@ -4390,12 +4940,34 @@ resetBtn.addEventListener('click', () => {
   activateMenuCamera(scene, menuCamera);
 });
 
+/** Screen box (CSS px) of the lab doorway at the end of the cold-open hall, or null when it is not in view. */
+const projectColdDoorway = (): { x: number; y: number; w: number; h: number } | null => {
+  if (!coldOpenRunning || scene.activeCamera !== camera) return null;
+  const rect = canvas.getBoundingClientRect();
+  const rw = engine.getRenderWidth();
+  const rh = engine.getRenderHeight();
+  const viewport = camera.viewport.toGlobal(rw, rh);
+  const matrix = scene.getTransformMatrix();
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y, z] of [[16.4, 0, 36], [16.4, 0, 40], [16.4, 2.4, 36], [16.4, 2.4, 40]]) {
+    const p = BABYLON.Vector3.Project(new BABYLON.Vector3(x, y, z), BABYLON.Matrix.IdentityReadOnly, matrix, viewport);
+    if (p.z < 0 || p.z > 1) return null;
+    minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+    minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+  }
+  const sx = rect.width / rw;
+  const sy = rect.height / rh;
+  const box = { x: rect.left + minX * sx, y: rect.top + minY * sy, w: (maxX - minX) * sx, h: (maxY - minY) * sy };
+  if (box.x + box.w < rect.left || box.x > rect.right || box.y + box.h < rect.top || box.y > rect.bottom) return null;
+  return box;
+};
+
 /**
  * The train car sways: roll the game camera with the car (around the car's long axis, x). The follow camera sets
  * its up vector back to +y every frame it updates, so this only ever adds this frame's roll.
  */
 const applyCarSway = () => {
-  const roll = state.running && scene.activeCamera === camera ? dressing.roll() : 0;
+  const roll = state.running && scene.activeCamera === camera ? dressing.roll() + act.cabRoll() : 0;
   if (roll === 0) {
     if (camera.upVector.y !== 1) camera.upVector.set(0, 1, 0);
     return;
@@ -4406,7 +4978,7 @@ const applyCarSway = () => {
 /** Skip shows whenever a cutscene or a scripted scene runs. Also called when a scene starts, so it is there from the first frame. */
 const syncSkipButton = () => {
   if (!skipCutsceneBtn) return;
-  const canSkip = state.running && scenePlaying();
+  const canSkip = state.running && (scenePlaying() || acidSkippable());
   skipCutsceneBtn.hidden = !canSkip;
   if (!canSkip) clearSkipHold();
 };
@@ -4431,6 +5003,7 @@ const renderLoop = () => {
   const delta = engine.getDeltaTime() / 1000;
   screenFade.update(delta);
   syncActionHint();
+  stepHuntRetry(delta);
   if (defeatLeft > 0) {
     defeatLeft = Math.max(0, defeatLeft - delta);
     if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
@@ -4449,13 +5022,15 @@ const renderLoop = () => {
     if (state.inCutscene && activeCutscene) {
       audio.setWalk(false);
       grade.setFear(act.fearLevel());
-      act.beforeCutsceneStep(activeCutscene.id, activeCutscene.time);
+      const finale = isFinale(activeCutscene.id);
+      if (!finale) act.beforeCutsceneStep(activeCutscene.id, activeCutscene.time);
+      else stepFinaleWorld(delta);
       const playing = stepCutscene(activeCutscene, delta);
       if (!playing) endCutscene();
       act.alarmTick(delta);
       objectiveMarker.update(delta);
       updateCamera(delta, false, null);
-      if (activeCutscene) act.afterCamera(activeCutscene.time);
+      if (activeCutscene && !isFinale(activeCutscene.id)) act.afterCamera(activeCutscene.time);
     } else if (home.playing()) {
       home.step(delta);
       updateCamera(delta, false, null);
@@ -4509,11 +5084,14 @@ const renderLoop = () => {
     triggerRunner.update(state.player);
     act.stepWorld(delta);
     apex.step(delta);
+    boardHall.step(delta);
+    if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
     home.step(delta);
     station.step(delta);
     train.step(delta);
     morning.step(delta);
-    const streetShake = home.shake();
+    if (isDeskLevel()) desk.step(delta);
+    const streetShake = Math.max(home.shake(), desk.shake());
     if (streetShake > 0) {
       camera.position.x += (Math.random() - 0.5) * streetShake;
       camera.position.y += (Math.random() - 0.5) * streetShake * 0.65;
@@ -4597,7 +5175,7 @@ const renderLoop = () => {
     camera.position,
     delta,
     state.running && audio.enabled,
-    state.inCutscene ? 0.18 : 1,
+    state.inCutscene ? 0.18 * bedDuck : bedDuck,
   );
 
   if (possessBar && possessFill) {
@@ -4657,6 +5235,7 @@ const cycleTheme = () => {
 
 const isLocalPlay = () => (import.meta as { env?: { DEV?: boolean } }).env?.DEV === true;
 
+// Release builds never show the DEV toggle; local dev only, and only with ?debug on touch (CSS hides it there).
 if (isLocalPlay()) devToggle.hidden = false;
 const hasDebugQuery = () => new URLSearchParams(location.search).has('debug');
 // The FPS / MEM readout shows only when ?debug is in the URL or the dev panel is toggled open.
@@ -4902,9 +5481,27 @@ installPhPlaytest({
     const view = phone.view();
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
   },
+  replies: () => {
+    const view = phone.view();
+    const box = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+    return {
+      open: view.replies.length > 0,
+      options: view.replies.map((r, i) => ({ key: r.key, text: r.text, rect: (() => { const el = callReplies?.querySelector(`[data-reply="${i}"]`); return el ? box(el) : null; })() })),
+      left: view.repliesLeft,
+      total: view.repliesTotal,
+      log: phone.replyLog(),
+      caption: phonePanel && !phonePanel.hidden ? box(phonePanel) : null,
+      stats: { vossTrust: clampStat(save.vossTrust), haleTemper: clampStat(save.haleTemper), min: STAT_MIN, max: STAT_MAX },
+    };
+  },
+  /** Test shortcut: ring a scripted call (as the story does) and set the saved trust values. */
+  callTest: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => {
+    if (seed) saveGame({ vossTrust: seed.vossTrust ?? save.vossTrust, haleTemper: seed.haleTemper ?? save.haleTemper });
+    phone.ring(id);
+  },
   chapter: () => chapterCard.view(),
   hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
-  worldLuma: () => sampleWorldLitShare(),
+  worldLuma: () => worldLitShare(),
   menu: () => ({
     open: !messageBox.classList.contains('hidden'),
     title: messageTitle.textContent ?? '',
@@ -4926,6 +5523,22 @@ installPhPlaytest({
       return r.top > innerHeight * 0.55;
     })(),
   }),
+  coldOpen: () => {
+    const base = act.coldOpenState();
+    const door = projectColdDoorway();
+    return {
+      ...base,
+      pending: coldOpen && !coldOpenRunning,
+      running: coldOpenRunning,
+      sinceTapSeconds: coldOpenRunning ? (performance.now() - coldOpenAt) / 1000 : 0,
+      flashlight: phone.flashlightOn(),
+      doorway: door,
+      cardUp: document.getElementById('coldCard')?.classList.contains('on') ?? false,
+      warmed: coldOpenWarmDone || Boolean(lastWarmStats?.cold),
+      warmMs: typeof lastWarmStats?.ms === 'number' ? lastWarmStats.ms : 0,
+    };
+  },
+  cancelColdOpen: () => cancelColdOpen(),
   creature: () => {
     const at = act.aimPoint();
     return at ? { x: at.x, y: at.y, z: at.z } : null;
@@ -4939,16 +5552,28 @@ installPhPlaytest({
     ability: shadowPlay().shadowMode() ? shadowPick : meleeAbility,
     lessonStarted: isHomeLevel() ? home.shoveShown() : true,
   }),
+  lesson: () => ({
+    log: isHomeLevel() ? home.lessonLog() : [],
+    power: isHomeLevel() ? home.lessonPower() : '',
+    prompt: powerPrompt.view(),
+    unlocks: (window as unknown as { __phUnlocks?: { power: string; t: number }[] }).__phUnlocks ?? [],
+    gates: isHomeLevel() ? home.gateState() : [],
+    linked: isHomeLevel() && home.linked() ? home.linkFocus() : null,
+  }),
   people: () => [
     ...(isHomeLevel() ? home.map()?.blips ?? [] : [])
       .filter((blip) => blip.kind !== 'shop' && blip.kind !== 'linked')
       .map((blip) => ({ x: blip.x, z: blip.z, kind: blip.kind })),
-    ...(isApexPeakLevel() ? apex.blips() : []),
+    ...(isApexPeakLevel() ? [...apex.blips(), ...boardHall.blips()] : []),
   ],
   /** Apex Peak vertical-slice quality readings for the playtest. */
+  desk: () => desk.stats(),
+  life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
-    ? { maxQuietSeconds: apex.maxQuietSeconds(), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
+    ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
     : null),
+  /** Board plot through the Apex hall (desk, locked door, Hale threat) — no call required. */
+  boardHall: () => (isApexPeakLevel() ? boardHall.snapshot() : null),
   pickups: () => pickups
     .filter((pickup) => pickup.active && !pickup.mesh.isDisposed() && pickup.mesh.isEnabled())
     .map((pickup) => ({ x: pickup.mesh.position.x, z: pickup.mesh.position.z, item: pickup.item })),
@@ -4958,6 +5583,28 @@ installPhPlaytest({
   newGameButton: newGameBtn,
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
+  setupBeat: (kind) => {
+    if (kind === 'hunt') {
+      placePierce(15, 38, -Math.PI / 2);
+      act.debugHunt();
+    } else {
+      placePierce(18.5, 38, -Math.PI / 2);
+      beginNamedCutscene('b3-vat-break');
+    }
+  },
+  hunt: () => ({ ...huntStats, retrying: retryLeft > 0, health: state.health, fade: Number((document.getElementById('screenFade') as HTMLElement | null)?.style.opacity ?? 0) }),
+  acid: () => ({
+    ...act.acidInfo(),
+    lag: impair?.lag ?? 0,
+    drift: impair?.drift ?? 0,
+    speed: impair?.speed ?? 1,
+    locked: impair?.locked ?? false,
+    flashlight: phone.flashlightOn(),
+    skipShown: Boolean(skipCutsceneBtn && !skipCutsceneBtn.hidden),
+    x: state.player.x,
+    z: state.player.z,
+    yaw: state.characterYaw,
+  }),
   place: (x, z, yaw) => placePierce(x, z, yaw),
   // The feel sensor's rays skip Pierce himself (capsule, figure, gun, phone), effects, pickups and markers.
   feel: {
@@ -5021,6 +5668,13 @@ installPhPlaytest({
       ...contextStats,
     }),
   },
+  /** Test shortcut (`living-places`): show this level's Level Complete card now, as End Level would. */
+  showLevelComplete: () => {
+    if (!state.running || state.inCutscene) return false;
+    offerLevelEnd('Level Complete', 'Test card');
+    presentLevelEnd();
+    return true;
+  },
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;
     applyHurt(Math.max(1, state.health), 'playtest');
@@ -5057,7 +5711,10 @@ installPhPlaytest({
     settings: soundSettings(),
     bed: musicTriggerPlayer.active(),
     bedPlaying: musicTriggerPlayer.playing(),
-    footsteps: Boolean(walkLoop && !walkLoop.done()),
+    footsteps: walkWanted,
+    stepCount: footsteps.count(),
+    steps: footsteps.events(),
+    music: music.probe(),
   }),
   playSettings: () => gameSettings(),
 });
