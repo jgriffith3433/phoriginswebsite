@@ -18,6 +18,7 @@ export const createChapterCard = (root: HTMLElement) => {
   const kickerEl = root.querySelector('.chapter-kicker') as HTMLElement;
   const titleEl = root.querySelector('.chapter-title') as HTMLElement;
   const lineEl = root.querySelector('.chapter-line') as HTMLElement;
+  const skipEl = root.querySelector('.chapter-skip') as HTMLElement | null;
   let active: Promise<void> | null = null;
   let closing = false;
   let releasing = false;
@@ -30,6 +31,8 @@ export const createChapterCard = (root: HTMLElement) => {
     titleEl.textContent = copy.title;
     lineEl.textContent = copy.line;
     lineEl.hidden = !copy.line;
+    // Touch players have no key to press.
+    if (skipEl) skipEl.textContent = document.body.dataset.device === 'desktop' ? 'Press any key to continue' : 'Tap to continue';
     root.hidden = false;
     closing = false;
     void root.offsetWidth;
