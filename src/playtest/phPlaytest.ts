@@ -2194,6 +2194,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let doorSamples = 0;
       let doorOverlaps = 0;
       let objectiveShown = false;
+      let rushAt = -1;
+      let rushStart: { x: number; z: number } | null = null;
+      let ranAway = false;
       let titleDuringHall = false;
       let lastWords = 0;
       const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls .stick-ring, .controls button, #pauseBtn, #objectiveHud')]
@@ -2234,6 +2237,14 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               firstThreat = now;
               t.event('first-threat', `the creature is on screen ${now.toFixed(1)} s after the tap`);
             }
+            if (co.rushing) {
+              // The response: run back up the hall, away from it, on the stick (or S). The cut comes later than a stand-still.
+              if (rushAt < 0) { rushAt = now; t.event('threat', `the creature rushes at ${now.toFixed(1)} s; the player has control and runs`); }
+              if (touch) stick(0, 1); else { setHeld('s'); }
+              const p = probe.player();
+              if (rushStart && Math.hypot(p.x - rushStart.x, p.z - rushStart.z) > 2) ranAway = true;
+              if (!rushStart) rushStart = { x: p.x, z: p.z };
+            }
             // The first success: he walked into the dark hall and his own flashlight found what was in it.
             if (!firstSuccess && firstInput >= 0 && co.creatureOnScreen && co.flashlight) {
               firstSuccess = true;
@@ -2258,6 +2269,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             cutAt = now;
             stop();
             t.event('cut', `the creature got him: cut to black ${now.toFixed(1)} s after the tap`);
+            if (rushAt >= 0) {
+              t.metric('chaseSeconds', Number((now - rushAt).toFixed(1)));
+              t.metric('controlAfterThreat', ranAway ? 1 : 0);
+              if (!ranAway) t.problem('bug', 'the player could not move after the creature appeared');
+              if (now - rushAt < 4) t.problem('bug', `the cut came ${(now - rushAt).toFixed(1)} s after the rush: no time to respond`);
+            }
           }
           if (cutAt >= 0 && titleAt < 0 && probe.menu().open && probe.menu().title === 'PH Origins' && !co.cardUp) {
             titleAt = now;
