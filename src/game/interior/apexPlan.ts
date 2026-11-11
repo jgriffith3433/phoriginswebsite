@@ -37,10 +37,11 @@ const restroomDoorway = (k: Kit) => {
   k.set(IS.WOOD, 0.2, 0.12, 0.07);
   for (const x of [17.16, 18.74]) k.box(x, 0, 29.68, 0.05, 2.72, 0.15, W);
   k.box(17.95, 2.6, 29.68, 0.84, 0.12, 0.15, W);
-  // Open leaf, square to the wall, inside the restroom (authored position).
-  k.box(17.345, 0, 29.02, 0.0225, 2.1, 0.44, W);
+  // Open leaf swung flat against the north wall (hinged at the west jamb), so it does not stand in the
+  // room beside the mirror shot and fill the camera's left third.
+  k.box(16.62, 0, 29.45, 0.44, 2.1, 0.0225, W);
   k.set(IS.METAL, 0.62, 0.64, 0.66);
-  k.box(17.39, 0.96, 29.32, 0.02, 0.12, 0.015, W);
+  k.box(16.4, 0.96, 29.4125, 0.015, 0.12, 0.02, W);
   // Header faces: plaster on the hall side, tile on the restroom side.
   k.set(IS.OFFICE_WALL, 1, 1, 1, 0, 0.15);
   k.g.quad([17.2, 2.72, 29.805], [18.7, 2.72, 29.805], [18.7, 3.2, 29.805], [17.2, 3.2, 29.805], [0, 0, 1], [[17.2, 2.72], [18.7, 2.72], [18.7, 3.2], [17.2, 3.2]]);
