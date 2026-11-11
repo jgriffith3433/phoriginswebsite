@@ -2832,13 +2832,48 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
 
       // Level 8 opening
       t.event('setup', 'start at level 8');
+      probe.phoneFrame(true, false);
       await probe.setupLevel(8);
       await t.until(() => probe.running() && (probe.scripted() || probe.cutscene()), 90000, 'morning opening');
       await sleep(600);
-      checkCinematic('level-8 opening');
-      await auditSkipAt(`${innerWidth}x${innerHeight}`);
-      if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
-      await sleep(1500);
+      checkCinematic('level-8 opening (phone 390x844)');
+      await auditSkipAt('390x844 level 8');
+      // Phone, touch only: sticks stay hidden and every caption fits on one line for the whole scene, then one
+      // held touch on Skip (hold ~0.85 s) completes it.
+      const sticksHidden = () => ['leftStickZone', 'rightStickZone', 'fireBtn', 'jumpBtn'].every((id) => {
+        const el = byId(id);
+        if (!el) return true;
+        const cs = getComputedStyle(el);
+        return cs.visibility === 'hidden' || Number(cs.opacity) < 0.05 || cs.display === 'none';
+      });
+      let sticksOk = true;
+      let captionOk = true;
+      const phoneSkip = probe.skipButton;
+      if (phoneSkip && !phoneSkip.hidden) {
+        const r = phoneSkip.getBoundingClientRect();
+        const init = { pointerType: 'touch', pointerId: 61, isPrimary: true, button: 0, buttons: 1, bubbles: true, cancelable: true, composed: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+        phoneSkip.dispatchEvent(new PointerEvent('pointerdown', init));
+        t.log('touch hold on Skip');
+        const holdEnd = performance.now() + 2500;
+        while (performance.now() < holdEnd && probe.cinematic?.().on) {
+          await sleep(100);
+          if (!sticksHidden()) sticksOk = false;
+          const line = byId('cineText');
+          if (line && (line.textContent ?? '').trim()) {
+            const box = byId('cineHud')?.getBoundingClientRect();
+            if (getComputedStyle(line).whiteSpace !== 'nowrap' || (box && (box.left < -1 || box.right > innerWidth + 1))) captionOk = false;
+          }
+        }
+        phoneSkip.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0 }));
+      } else t.problem('bug', 'level 8 phone: Skip is not shown');
+      if (!sticksOk) t.problem('bug', 'level 8 phone: touch controls showed during the scene');
+      else t.event('sticks-hidden-whole-scene', 'level 8 at 390x844');
+      if (!captionOk) t.problem('bug', 'level 8 phone: a caption wrapped or left the screen at 390x844');
+      else t.event('caption-fits-phone', 'level 8 at 390x844');
+      await sleep(800);
+      if (probe.cinematic?.().on) t.problem('bug', 'level 8 phone: one held touch on Skip did not end the scene');
+      else t.event('hold-skip-completed', 'level 8 at 390x844');
+      probe.phoneFrame(false);
       t.progress(0.95);
 
       if (carried.original === null) localStorage.removeItem(SETTINGS_KEY);
