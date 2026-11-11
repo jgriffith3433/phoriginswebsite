@@ -864,6 +864,36 @@ const restoreGearAfterCutscene = (gear: CutsceneGear) => {
 /** Where Skip was pressed in the running timeline (seconds), for analytics; null when it played out. */
 let cutsceneSkippedAt: number | null = null;
 
+/** The in-world ending event of a chapter (cutscenes/finale-N.json): plays when End Level is pressed, then the card. */
+const FINALE_LEVELS = new Set([1, 3, 5, 6, 8]);
+const isFinale = (id: string) => id.startsWith('finale-');
+/** `world` events ease a value (tower floors) over a few seconds; stepped with the scene. */
+let worldTweens: Array<{ apply: (v: number) => void; from: number; to: number; t: number; d: number }> = [];
+let finaleWorldRestore: Array<() => void> = [];
+const stopFinaleWorld = () => {
+  worldTweens = [];
+  finaleWorldRestore.forEach((undo) => undo());
+  finaleWorldRestore = [];
+};
+const stepFinaleWorld = (delta: number) => {
+  for (const tween of worldTweens) {
+    tween.t = Math.min(tween.d, tween.t + delta);
+    const k = tween.d > 0 ? tween.t / tween.d : 1;
+    tween.apply(tween.from + (tween.to - tween.from) * k);
+  }
+  worldTweens = worldTweens.filter((tween) => tween.t < tween.d);
+};
+const runFinaleWorld = (target: string, to: number, seconds: number) => {
+  const tween = (apply: (v: number) => void, from: number, restore?: () => void) => {
+    if (restore) finaleWorldRestore.push(restore);
+    if (seconds > 0) worldTweens.push({ apply, from, to, t: 0, d: seconds });
+    else apply(to);
+  };
+  if (target === 'tower-cut') tween((v) => home.setTowerCut(v), 70, () => home.setTowerCut(999));
+  else if (target === 'board-stop') { dressing.setBoardStop(to > 0); finaleWorldRestore.push(() => dressing.setBoardStop(false)); }
+  else if (target === 'tv-report') morning.tvReport(to > 0);
+};
+
 const endCutscene = () => {
   const finished = activeCutscene;
   const skippedAt = cutsceneSkippedAt;
@@ -889,6 +919,11 @@ const endCutscene = () => {
     else phone.setFlashlight(false);
   }
   if (reequip && gear) restoreGearAfterCutscene({ ...gear, light: restoreLight });
+  if (finished && isFinale(finished.id)) {
+    stopFinaleWorld();
+    presentLevelEnd();
+    return;
+  }
   if (finished) act.onCutsceneEnded(finished.id);
 };
 
@@ -903,7 +938,23 @@ const beginNamedCutscene = (id: string) => {
   unlockPointer();
   analytics?.cutscenePlay(id);
   void startCutscene(id, {
-    onCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+    onCamera: (position, lookAt, rel) => {
+      if (!rel) {
+        followCamera.setCinematic(position, lookAt);
+        return;
+      }
+      // Offsets from Pierce: x right, y up from his feet, z along his facing.
+      const fx = Math.sin(state.characterYaw);
+      const fz = Math.cos(state.characterYaw);
+      const base = playerAvatar.group.position;
+      const at = (v: { x: number; y: number; z: number }) => ({
+        x: base.x + fx * v.z + fz * v.x,
+        y: base.y + v.y,
+        z: base.z + fz * v.z - fx * v.x,
+      });
+      followCamera.setCinematic(at(position), at(lookAt));
+    },
+    onWorld: (target, to, seconds) => runFinaleWorld(target, to, seconds),
     onHud: (title, text) => showCineHud(title, text),
     onAnim: (actor, clip, loop) => applyNpcAnim(npcs, actor, clip, loop, playerAvatar),
     onLight: (on, intensity, target) => act.cutsceneLight(on, intensity, target),
@@ -916,11 +967,12 @@ const beginNamedCutscene = (id: string) => {
   }).then((next) => {
     if (!next) {
       endCutscene();
-      act.onCutsceneFailed(id);
+      if (isFinale(id)) presentLevelEnd();
+      else act.onCutsceneFailed(id);
       return;
     }
     activeCutscene = next;
-    act.relock(id);
+    if (!isFinale(id)) act.relock(id);
   });
 };
 
@@ -2069,7 +2121,7 @@ const performSkip = () => {
     const finished = activeCutscene;
     cutsceneSkippedAt = finished.time;
     skipToEnd(finished);
-    act.beforeCutsceneStep(finished.id, finished.duration);
+    if (!isFinale(finished.id)) act.beforeCutsceneStep(finished.id, finished.duration);
     endCutscene();
     return;
   }
@@ -3738,7 +3790,14 @@ const confirmStoryAction = () => {
   unlockAudio();
   audio.interact();
   if (pendingEnd) {
-    presentLevelEnd();
+    // Chapters 1, 3, 5, 6 and 8 end on one short in-world event (cutscenes/finale-N.json), then the card.
+    if (FINALE_LEVELS.has(state.level) && !state.inCutscene) {
+      const level = state.level;
+      phone.silence();
+      clearInputState();
+      audio.setWalk(false);
+      beginNamedCutscene(`finale-${level}`);
+    } else presentLevelEnd();
     syncActionHint();
     return true;
   }
@@ -4759,13 +4818,15 @@ const renderLoop = () => {
     if (state.inCutscene && activeCutscene) {
       audio.setWalk(false);
       grade.setFear(act.fearLevel());
-      act.beforeCutsceneStep(activeCutscene.id, activeCutscene.time);
+      const finale = isFinale(activeCutscene.id);
+      if (!finale) act.beforeCutsceneStep(activeCutscene.id, activeCutscene.time);
+      else stepFinaleWorld(delta);
       const playing = stepCutscene(activeCutscene, delta);
       if (!playing) endCutscene();
       act.alarmTick(delta);
       objectiveMarker.update(delta);
       updateCamera(delta, false, null);
-      if (activeCutscene) act.afterCamera(activeCutscene.time);
+      if (activeCutscene && !isFinale(activeCutscene.id)) act.afterCamera(activeCutscene.time);
     } else if (home.playing()) {
       home.step(delta);
       updateCamera(delta, false, null);

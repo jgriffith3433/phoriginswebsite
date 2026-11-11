@@ -210,6 +210,8 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
     flareScale: 1,
   };
   let clock = 0;
+  /** Floors above this index of the Apex tower are dark (999: all lit). Driven by Going Home's ending. */
+  let towerCut = 999;
   const signals = (t: number): SignalState => {
     const c = ((t % 30) + 30) % 30;
     let x = 2;
@@ -246,6 +248,7 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
       m.setFloat('time', clock);
       m.setVector4('sig', sigVec);
       m.setFloat('boost', env.boost);
+      m.setFloat('towerCut', towerCut);
       m.setTexture('lightMap', lmTex);
     }
     glowMat.setVector3('cameraPos', camPos);
@@ -1401,6 +1404,7 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
     walkSpot,
     nearestWalk,
     signals: () => signals(clock),
+    setTowerCut: (floors: number) => { towerCut = floors; },
     mount: (x: number, z: number) => {
       disposed = false;
       root = new BABYLON.TransformNode('city-world', scene);

@@ -311,15 +311,19 @@ export const createStationDress = (scene: BABYLON.Scene) => {
   };
 
   let boardTick = -1;
+  /** Level 6's ending: the board flips to a stop with no name, boarding now. */
+  let boardStop = false;
   const drawBoard = (now: number) => {
     const b = box(ATLAS.board);
     ctx.fillStyle = '#050403';
     ctx.fillRect(b.x, b.y, b.w, b.h);
     const up = Math.max(0, 1 - Math.floor(now / 40) % 2);
-    const rows = [
-      `6  UPTOWN   ${up === 0 ? 'NOW ARRIVING' : (2 - Math.floor((now % 40) / 20)) + ' MIN'}`,
-      `6  DOWNTOWN    ${7 - Math.floor((now % 120) / 20)} MIN`,
-    ];
+    const rows = boardStop
+      ? ['6  UPTOWN   NOW BOARDING', '   NEXT STOP   ........']
+      : [
+        `6  UPTOWN   ${up === 0 ? 'NOW ARRIVING' : (2 - Math.floor((now % 40) / 20)) + ' MIN'}`,
+        `6  DOWNTOWN    ${7 - Math.floor((now % 120) / 20)} MIN`,
+      ];
     ctx.font = 'bold 46px "Courier New", monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
@@ -515,6 +519,11 @@ export const createStationDress = (scene: BABYLON.Scene) => {
         drawBoard(tick);
         atlas.update(true);
       }
+    },
+    /** The departure board shows the unnamed stop (level 6's ending). */
+    setBoardStop: (on: boolean) => {
+      boardStop = on;
+      lastBoard = -1;
     },
     /** Tube positions, for other systems (dust, shafts). */
     tubes: TUBES,

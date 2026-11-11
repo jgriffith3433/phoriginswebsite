@@ -2978,7 +2978,7 @@
       "id": "credit.1.left.0.0",
       "type": "credit",
       "speaker": "Pierce",
-      "text": "Had Built A Company",
+      "text": "Could Have Stayed Upstairs",
       "audio": "",
       "note": "Level 1 left column"
     },
@@ -2986,465 +2986,9 @@
       "id": "credit.1.left.0.1",
       "type": "credit",
       "speaker": "Pierce",
-      "text": "That Promised Control",
+      "text": "He Took The Ride Down",
       "audio": "",
       "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.0.2",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "Over What Once Seemed",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.0.3",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "Impossible To Change",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Zurich",
-      "audio": "",
-      "note": "Level 1 left column title"
-    },
-    {
-      "id": "credit.1.left.1.0",
-      "type": "credit",
-      "speaker": "Zurich",
-      "text": "Was Promised A Future",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.1.1",
-      "type": "credit",
-      "speaker": "Zurich",
-      "text": "But Never Shown",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.1.2",
-      "type": "credit",
-      "speaker": "Zurich",
-      "text": "What It Had Cost",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.1.3",
-      "type": "credit",
-      "speaker": "Zurich",
-      "text": "To Build It",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Patients",
-      "audio": "",
-      "note": "Level 1 left column title"
-    },
-    {
-      "id": "credit.1.left.2.0",
-      "type": "credit",
-      "speaker": "The Patients",
-      "text": "Were The Work",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.2.1",
-      "type": "credit",
-      "speaker": "The Patients",
-      "text": "Behind Every Promise",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.2.2",
-      "type": "credit",
-      "speaker": "The Patients",
-      "text": "The Company Made",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Those Who Leave",
-      "audio": "",
-      "note": "Level 1 left column title"
-    },
-    {
-      "id": "credit.1.left.3.0",
-      "type": "credit",
-      "speaker": "Those Who Leave",
-      "text": "Would Write The Decade",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.3.1",
-      "type": "credit",
-      "speaker": "Those Who Leave",
-      "text": "Pierce Promised Zurich",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Grace",
-      "audio": "",
-      "note": "Level 1 left column title"
-    },
-    {
-      "id": "credit.1.left.4.0",
-      "type": "credit",
-      "speaker": "Grace",
-      "text": "Was Always An Option",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.4.1",
-      "type": "credit",
-      "speaker": "Grace",
-      "text": "For Someone Else",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Glass",
-      "audio": "",
-      "note": "Level 1 left column title"
-    },
-    {
-      "id": "credit.1.left.5.0",
-      "type": "credit",
-      "speaker": "The Glass",
-      "text": "Was Built To Keep",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.5.1",
-      "type": "credit",
-      "speaker": "The Glass",
-      "text": "Something Inside",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.6.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "His Promise",
-      "audio": "",
-      "note": "Level 1 left column title"
-    },
-    {
-      "id": "credit.1.left.6.0",
-      "type": "credit",
-      "speaker": "His Promise",
-      "text": "Was That B3",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.6.1",
-      "type": "credit",
-      "speaker": "His Promise",
-      "text": "Would Stay Dark",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.7.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Dark",
-      "audio": "",
-      "note": "Level 1 left column title"
-    },
-    {
-      "id": "credit.1.left.7.0",
-      "type": "credit",
-      "speaker": "The Dark",
-      "text": "Was Never His",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.left.7.1",
-      "type": "credit",
-      "speaker": "The Dark",
-      "text": "To Promise",
-      "audio": "",
-      "note": "Level 1 left column"
-    },
-    {
-      "id": "credit.1.right.0.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Voss",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.0.0",
-      "type": "credit",
-      "speaker": "Voss",
-      "text": "Still Called Them Patients",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.0.1",
-      "type": "credit",
-      "speaker": "Voss",
-      "text": "Not Prototypes",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Hale",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.1.0",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Had Feared What",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.1.1",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Would Happen",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.1.2",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "If The Basement",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.1.3",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Ever Came",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.1.4",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "To Light",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Board",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.2.0",
-      "type": "credit",
-      "speaker": "The Board",
-      "text": "Could Debate The Future",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.2.1",
-      "type": "credit",
-      "speaker": "The Board",
-      "text": "Without Looking Down",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Lang",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.3.0",
-      "type": "credit",
-      "speaker": "Lang",
-      "text": "Only Needed A Date",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.3.1",
-      "type": "credit",
-      "speaker": "Lang",
-      "text": "Zurich Needed A Promise",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Charter",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.4.0",
-      "type": "credit",
-      "speaker": "The Charter",
-      "text": "Asked For A Seal",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.4.1",
-      "type": "credit",
-      "speaker": "The Charter",
-      "text": "And An End To B3",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Voss",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.5.0",
-      "type": "credit",
-      "speaker": "Voss",
-      "text": "Called Pierce First",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.5.1",
-      "type": "credit",
-      "speaker": "Voss",
-      "text": "Then Sent One Message",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.5.2",
-      "type": "credit",
-      "speaker": "Voss",
-      "text": "Pick Up The Terminal",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.6.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Terminal",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.6.0",
-      "type": "credit",
-      "speaker": "The Terminal",
-      "text": "Showed Something Moving",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.6.1",
-      "type": "credit",
-      "speaker": "The Terminal",
-      "text": "Deep Inside B3",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.6.2",
-      "type": "credit",
-      "speaker": "The Terminal",
-      "text": "Something No Report",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.6.3",
-      "type": "credit",
-      "speaker": "The Terminal",
-      "text": "Had Prepared Them For",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.7.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Pierce",
-      "audio": "",
-      "note": "Level 1 right column title"
-    },
-    {
-      "id": "credit.1.right.7.0",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "Could Have Stayed Upstairs",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.7.1",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "Instead He Took",
-      "audio": "",
-      "note": "Level 1 right column"
-    },
-    {
-      "id": "credit.1.right.7.2",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "The Ride Down",
-      "audio": "",
-      "note": "Level 1 right column"
     },
     {
       "id": "credit.2.left.0.role",
@@ -3466,836 +3010,44 @@
       "id": "credit.2.left.0.1",
       "type": "credit",
       "speaker": "The Creature",
-      "text": "It Knew Where",
+      "text": "It Was Going Home",
       "audio": "",
       "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.0.2",
-      "type": "credit",
-      "speaker": "The Creature",
-      "text": "It Was Going",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Halls",
-      "audio": "",
-      "note": "Level 2 left column title"
-    },
-    {
-      "id": "credit.2.left.1.0",
-      "type": "credit",
-      "speaker": "The Halls",
-      "text": "Were The Long Way",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.1.1",
-      "type": "credit",
-      "speaker": "The Halls",
-      "text": "Back To The Vat",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Vat",
-      "audio": "",
-      "note": "Level 2 left column title"
-    },
-    {
-      "id": "credit.2.left.2.0",
-      "type": "credit",
-      "speaker": "The Vat",
-      "text": "Was Home",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.2.1",
-      "type": "credit",
-      "speaker": "The Vat",
-      "text": "And The Creature",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.2.2",
-      "type": "credit",
-      "speaker": "The Vat",
-      "text": "Was Trying To Return",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Containment Team",
-      "audio": "",
-      "note": "Level 2 left column title"
-    },
-    {
-      "id": "credit.2.left.3.0",
-      "type": "credit",
-      "speaker": "The Containment Team",
-      "text": "Saw A Threat",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.3.1",
-      "type": "credit",
-      "speaker": "The Containment Team",
-      "text": "They Could Not Control",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.3.2",
-      "type": "credit",
-      "speaker": "The Containment Team",
-      "text": "Not Something Trying",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.3.3",
-      "type": "credit",
-      "speaker": "The Containment Team",
-      "text": "To Get Home",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Glass",
-      "audio": "",
-      "note": "Level 2 left column title"
-    },
-    {
-      "id": "credit.2.left.4.0",
-      "type": "credit",
-      "speaker": "The Glass",
-      "text": "Was The Door",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.4.1",
-      "type": "credit",
-      "speaker": "The Glass",
-      "text": "That Stood Between",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.4.2",
-      "type": "credit",
-      "speaker": "The Glass",
-      "text": "The Creature And Home",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Pierce",
-      "audio": "",
-      "note": "Level 2 left column title"
-    },
-    {
-      "id": "credit.2.left.5.0",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "Went Down To Close",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.5.1",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "A File",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.5.2",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "He Never Expected",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.left.5.3",
-      "type": "credit",
-      "speaker": "Pierce",
-      "text": "To Become Part Of",
-      "audio": "",
-      "note": "Level 2 left column"
-    },
-    {
-      "id": "credit.2.right.0.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Hale",
-      "audio": "",
-      "note": "Level 2 right column title"
-    },
-    {
-      "id": "credit.2.right.0.0",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Had Feared What",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.0.1",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Would Happen",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.0.2",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "If The Basement",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.0.3",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Ever Came",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.0.4",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "To Light",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Acid",
-      "audio": "",
-      "note": "Level 2 right column title"
-    },
-    {
-      "id": "credit.2.right.1.0",
-      "type": "credit",
-      "speaker": "The Acid",
-      "text": "Changed Pierce",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.1.1",
-      "type": "credit",
-      "speaker": "The Acid",
-      "text": "Beyond Recognition",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.1.2",
-      "type": "credit",
-      "speaker": "The Acid",
-      "text": "But Left Him",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.1.3",
-      "type": "credit",
-      "speaker": "The Acid",
-      "text": "With Every Memory",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Voice",
-      "audio": "",
-      "note": "Level 2 right column title"
-    },
-    {
-      "id": "credit.2.right.2.0",
-      "type": "credit",
-      "speaker": "The Voice",
-      "text": "Stayed His Own",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.2.1",
-      "type": "credit",
-      "speaker": "The Voice",
-      "text": "Even When His Body",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.2.2",
-      "type": "credit",
-      "speaker": "The Voice",
-      "text": "No Longer Was",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Basement",
-      "audio": "",
-      "note": "Level 2 right column title"
-    },
-    {
-      "id": "credit.2.right.3.0",
-      "type": "credit",
-      "speaker": "The Basement",
-      "text": "Would Remain Sealed",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.3.1",
-      "type": "credit",
-      "speaker": "The Basement",
-      "text": "But Pierce Would",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.3.2",
-      "type": "credit",
-      "speaker": "The Basement",
-      "text": "Never Leave It",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.3.3",
-      "type": "credit",
-      "speaker": "The Basement",
-      "text": "Behind",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Company",
-      "audio": "",
-      "note": "Level 2 right column title"
-    },
-    {
-      "id": "credit.2.right.4.0",
-      "type": "credit",
-      "speaker": "The Company",
-      "text": "Could Seal The Doors",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.4.1",
-      "type": "credit",
-      "speaker": "The Company",
-      "text": "And Hide The Records",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.4.2",
-      "type": "credit",
-      "speaker": "The Company",
-      "text": "But Could Not Undo",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.4.3",
-      "type": "credit",
-      "speaker": "The Company",
-      "text": "What Had Happened",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Tape",
-      "audio": "",
-      "note": "Level 2 right column title"
-    },
-    {
-      "id": "credit.2.right.5.0",
-      "type": "credit",
-      "speaker": "The Tape",
-      "text": "Would Keep The Record",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.5.1",
-      "type": "credit",
-      "speaker": "The Tape",
-      "text": "Of What Happened",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.5.2",
-      "type": "credit",
-      "speaker": "The Tape",
-      "text": "That Night",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.6.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Pierce Hawkes",
-      "audio": "",
-      "note": "Level 2 right column title"
-    },
-    {
-      "id": "credit.2.right.6.0",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Could Still Remember",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.6.1",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "The Man He Was",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.6.2",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "He Would Have To Live",
-      "audio": "",
-      "note": "Level 2 right column"
-    },
-    {
-      "id": "credit.2.right.6.3",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "With What Remained",
-      "audio": "",
-      "note": "Level 2 right column"
     },
     {
       "id": "credit.3.left.0.role",
       "type": "credit",
       "speaker": "",
-      "text": "The Desk",
+      "text": "Pierce Hawkes",
       "audio": "",
       "note": "Level 3 left column title"
     },
     {
       "id": "credit.3.left.0.0",
       "type": "credit",
-      "speaker": "The Desk",
-      "text": "Still Had The Work",
+      "speaker": "Pierce Hawkes",
+      "text": "Still Knew The Way",
       "audio": "",
       "note": "Level 3 left column"
     },
     {
       "id": "credit.3.left.0.1",
       "type": "credit",
-      "speaker": "The Desk",
-      "text": "He Had Meant To Finish",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.0.2",
-      "type": "credit",
-      "speaker": "The Desk",
-      "text": "Before Going Home",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Hall",
-      "audio": "",
-      "note": "Level 3 left column title"
-    },
-    {
-      "id": "credit.3.left.1.0",
-      "type": "credit",
-      "speaker": "The Hall",
-      "text": "Was Brighter Than",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.1.1",
-      "type": "credit",
-      "speaker": "The Hall",
-      "text": "Any Lamp He Remembered",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Hale",
-      "audio": "",
-      "note": "Level 3 left column title"
-    },
-    {
-      "id": "credit.3.left.2.0",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Was Already Speaking",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.2.1",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "With The Other Investors",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Elevator",
-      "audio": "",
-      "note": "Level 3 left column title"
-    },
-    {
-      "id": "credit.3.left.3.0",
-      "type": "credit",
-      "speaker": "The Elevator",
-      "text": "Only Proved",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.3.1",
-      "type": "credit",
-      "speaker": "The Elevator",
-      "text": "That It Was Climbing",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Hands",
-      "audio": "",
-      "note": "Level 3 left column title"
-    },
-    {
-      "id": "credit.3.left.4.0",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "Were Not The Ones",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.4.1",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "He Took Downstairs",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Home",
-      "audio": "",
-      "note": "Level 3 left column title"
-    },
-    {
-      "id": "credit.3.left.5.0",
-      "type": "credit",
-      "speaker": "Home",
-      "text": "Was Still The Plan",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.5.1",
-      "type": "credit",
-      "speaker": "Home",
-      "text": "The Plan Had Not",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.left.5.2",
-      "type": "credit",
-      "speaker": "Home",
-      "text": "Seen The Glass",
-      "audio": "",
-      "note": "Level 3 left column"
-    },
-    {
-      "id": "credit.3.right.0.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Investors",
-      "audio": "",
-      "note": "Level 3 right column title"
-    },
-    {
-      "id": "credit.3.right.0.0",
-      "type": "credit",
-      "speaker": "The Investors",
-      "text": "Would Hear He Walked Out",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.0.1",
-      "type": "credit",
-      "speaker": "The Investors",
-      "text": "They Would Not Hear",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.0.2",
-      "type": "credit",
-      "speaker": "The Investors",
-      "text": "What Rode The Elevator",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Meeting",
-      "audio": "",
-      "note": "Level 3 right column title"
-    },
-    {
-      "id": "credit.3.right.1.0",
-      "type": "credit",
-      "speaker": "The Meeting",
-      "text": "Stayed On The Books",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.1.1",
-      "type": "credit",
-      "speaker": "The Meeting",
-      "text": "The Man Who Left It",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.1.2",
-      "type": "credit",
-      "speaker": "The Meeting",
-      "text": "Did Not",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Mirror",
-      "audio": "",
-      "note": "Level 3 right column title"
-    },
-    {
-      "id": "credit.3.right.2.0",
-      "type": "credit",
-      "speaker": "The Mirror",
-      "text": "Agreed With Him",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.2.1",
-      "type": "credit",
-      "speaker": "The Mirror",
-      "text": "And Offered",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.2.2",
-      "type": "credit",
-      "speaker": "The Mirror",
-      "text": "No Explanation",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Office",
-      "audio": "",
-      "note": "Level 3 right column title"
-    },
-    {
-      "id": "credit.3.right.3.0",
-      "type": "credit",
-      "speaker": "The Office",
-      "text": "Remembered A Man",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.3.1",
-      "type": "credit",
-      "speaker": "The Office",
-      "text": "It Would Have To Learn",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.3.2",
-      "type": "credit",
-      "speaker": "The Office",
-      "text": "The Rest",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Light",
-      "audio": "",
-      "note": "Level 3 right column title"
-    },
-    {
-      "id": "credit.3.right.4.0",
-      "type": "credit",
-      "speaker": "The Light",
-      "text": "Had Been Left Off",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.4.1",
-      "type": "credit",
-      "speaker": "The Light",
-      "text": "The Room Was Not",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Pierce Hawkes",
-      "audio": "",
-      "note": "Level 3 right column title"
-    },
-    {
-      "id": "credit.3.right.5.0",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Still Knew The Way",
-      "audio": "",
-      "note": "Level 3 right column"
-    },
-    {
-      "id": "credit.3.right.5.1",
-      "type": "credit",
       "speaker": "Pierce Hawkes",
       "text": "To His Own Floor",
       "audio": "",
-      "note": "Level 3 right column"
+      "note": "Level 3 left column"
     },
     {
       "id": "credit.4.left.0.role",
       "type": "credit",
       "speaker": "",
-      "text": "The Bathroom",
-      "audio": "",
-      "note": "Level 4 left column title"
-    },
-    {
-      "id": "credit.4.left.0.0",
-      "type": "credit",
-      "speaker": "The Bathroom",
-      "text": "Had A Door",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.0.1",
-      "type": "credit",
-      "speaker": "The Bathroom",
-      "text": "The Rest Of The Floor",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.0.2",
-      "type": "credit",
-      "speaker": "The Bathroom",
-      "text": "Did Not Need One",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.1.role",
-      "type": "credit",
-      "speaker": "",
       "text": "The Mirror",
       "audio": "",
       "note": "Level 4 left column title"
     },
     {
-      "id": "credit.4.left.1.0",
+      "id": "credit.4.left.0.0",
       "type": "credit",
       "speaker": "The Mirror",
       "text": "Kept Its Answer",
@@ -4303,1140 +3055,60 @@
       "note": "Level 4 left column"
     },
     {
-      "id": "credit.4.left.1.1",
+      "id": "credit.4.left.0.1",
       "type": "credit",
       "speaker": "The Mirror",
-      "text": "And Would Not",
+      "text": "And Would Not Soften It",
       "audio": "",
       "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.1.2",
-      "type": "credit",
-      "speaker": "The Mirror",
-      "text": "Soften It",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Work",
-      "audio": "",
-      "note": "Level 4 left column title"
-    },
-    {
-      "id": "credit.4.left.2.0",
-      "type": "credit",
-      "speaker": "The Work",
-      "text": "Waited Where",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.2.1",
-      "type": "credit",
-      "speaker": "The Work",
-      "text": "He Had Left It",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.2.2",
-      "type": "credit",
-      "speaker": "The Work",
-      "text": "The Night Before",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Papers",
-      "audio": "",
-      "note": "Level 4 left column title"
-    },
-    {
-      "id": "credit.4.left.3.0",
-      "type": "credit",
-      "speaker": "The Papers",
-      "text": "Were Finished",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.3.1",
-      "type": "credit",
-      "speaker": "The Papers",
-      "text": "The Moment",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.3.2",
-      "type": "credit",
-      "speaker": "The Papers",
-      "text": "They Left The Desk",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Hall",
-      "audio": "",
-      "note": "Level 4 left column title"
-    },
-    {
-      "id": "credit.4.left.4.0",
-      "type": "credit",
-      "speaker": "The Hall",
-      "text": "Was Already Looking",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.4.1",
-      "type": "credit",
-      "speaker": "The Hall",
-      "text": "Before Anyone",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.4.2",
-      "type": "credit",
-      "speaker": "The Hall",
-      "text": "Was In It",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Pierce Hawkes",
-      "audio": "",
-      "note": "Level 4 left column title"
-    },
-    {
-      "id": "credit.4.left.5.0",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Left The Floor",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.5.1",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Whatever It Still",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.left.5.2",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Wanted From Him",
-      "audio": "",
-      "note": "Level 4 left column"
-    },
-    {
-      "id": "credit.4.right.0.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Hale",
-      "audio": "",
-      "note": "Level 4 right column title"
-    },
-    {
-      "id": "credit.4.right.0.0",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "Would Tell The Investors",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.0.1",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "A Man Had Walked Out",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.0.2",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "She Would Leave",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.0.3",
-      "type": "credit",
-      "speaker": "Hale",
-      "text": "The Rest Unsaid",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Investors",
-      "audio": "",
-      "note": "Level 4 right column title"
-    },
-    {
-      "id": "credit.4.right.1.0",
-      "type": "credit",
-      "speaker": "The Investors",
-      "text": "Still Had A Meeting",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.1.1",
-      "type": "credit",
-      "speaker": "The Investors",
-      "text": "On A Floor",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.1.2",
-      "type": "credit",
-      "speaker": "The Investors",
-      "text": "He Was Leaving",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Brightness",
-      "audio": "",
-      "note": "Level 4 right column title"
-    },
-    {
-      "id": "credit.4.right.2.0",
-      "type": "credit",
-      "speaker": "The Brightness",
-      "text": "Belonged To The Building",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.2.1",
-      "type": "credit",
-      "speaker": "The Brightness",
-      "text": "He Had Stopped",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.2.2",
-      "type": "credit",
-      "speaker": "The Brightness",
-      "text": "Belonging To It",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Elevator",
-      "audio": "",
-      "note": "Level 4 right column title"
-    },
-    {
-      "id": "credit.4.right.3.0",
-      "type": "credit",
-      "speaker": "The Elevator",
-      "text": "Knew The Way Down",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.3.1",
-      "type": "credit",
-      "speaker": "The Elevator",
-      "text": "He Only Had",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.3.2",
-      "type": "credit",
-      "speaker": "The Elevator",
-      "text": "To Stand In It",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Home",
-      "audio": "",
-      "note": "Level 4 right column title"
-    },
-    {
-      "id": "credit.4.right.4.0",
-      "type": "credit",
-      "speaker": "Home",
-      "text": "Was A Word",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.4.1",
-      "type": "credit",
-      "speaker": "Home",
-      "text": "He Still Used",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.4.2",
-      "type": "credit",
-      "speaker": "Home",
-      "text": "For A Place",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.4.3",
-      "type": "credit",
-      "speaker": "Home",
-      "text": "That Had Not Seen Him",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Hands",
-      "audio": "",
-      "note": "Level 4 right column title"
-    },
-    {
-      "id": "credit.4.right.5.0",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "Were The First Thing",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.5.1",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "The Mirror",
-      "audio": "",
-      "note": "Level 4 right column"
-    },
-    {
-      "id": "credit.4.right.5.2",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "Had Been Honest About",
-      "audio": "",
-      "note": "Level 4 right column"
     },
     {
       "id": "credit.5.left.0.role",
       "type": "credit",
       "speaker": "",
-      "text": "The Lobby",
+      "text": "Pierce Hawkes",
       "audio": "",
       "note": "Level 5 left column title"
     },
     {
       "id": "credit.5.left.0.0",
       "type": "credit",
-      "speaker": "The Lobby",
-      "text": "Still Had A Shift",
+      "speaker": "Pierce Hawkes",
+      "text": "Went Down",
       "audio": "",
       "note": "Level 5 left column"
     },
     {
       "id": "credit.5.left.0.1",
       "type": "credit",
-      "speaker": "The Lobby",
-      "text": "And A Phone",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.0.2",
-      "type": "credit",
-      "speaker": "The Lobby",
-      "text": "Within Reach",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Receptionist",
-      "audio": "",
-      "note": "Level 5 left column title"
-    },
-    {
-      "id": "credit.5.left.1.0",
-      "type": "credit",
-      "speaker": "The Receptionist",
-      "text": "Said His Name",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.1.1",
-      "type": "credit",
-      "speaker": "The Receptionist",
-      "text": "To Someone",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.1.2",
-      "type": "credit",
-      "speaker": "The Receptionist",
-      "text": "Who Was Not There",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Police",
-      "audio": "",
-      "note": "Level 5 left column title"
-    },
-    {
-      "id": "credit.5.left.2.0",
-      "type": "credit",
-      "speaker": "The Police",
-      "text": "Were Given A Floor",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.2.1",
-      "type": "credit",
-      "speaker": "The Police",
-      "text": "And A Description",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.2.2",
-      "type": "credit",
-      "speaker": "The Police",
-      "text": "The Directory",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.2.3",
-      "type": "credit",
-      "speaker": "The Police",
-      "text": "Could Not Match",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Street",
-      "audio": "",
-      "note": "Level 5 left column title"
-    },
-    {
-      "id": "credit.5.left.3.0",
-      "type": "credit",
-      "speaker": "The Street",
-      "text": "Took Him In",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.3.1",
-      "type": "credit",
-      "speaker": "The Street",
-      "text": "Without Asking",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.3.2",
-      "type": "credit",
-      "speaker": "The Street",
-      "text": "For Identification",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Crowd",
-      "audio": "",
-      "note": "Level 5 left column title"
-    },
-    {
-      "id": "credit.5.left.4.0",
-      "type": "credit",
-      "speaker": "The Crowd",
-      "text": "Mostly Kept",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.4.1",
-      "type": "credit",
-      "speaker": "The Crowd",
-      "text": "Their Errands",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Few",
-      "audio": "",
-      "note": "Level 5 left column title"
-    },
-    {
-      "id": "credit.5.left.5.0",
-      "type": "credit",
-      "speaker": "The Few",
-      "text": "Who Ran",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.5.1",
-      "type": "credit",
-      "speaker": "The Few",
-      "text": "Had To Be",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.left.5.2",
-      "type": "credit",
-      "speaker": "The Few",
-      "text": "Close Enough To See",
-      "audio": "",
-      "note": "Level 5 left column"
-    },
-    {
-      "id": "credit.5.right.0.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Cars",
-      "audio": "",
-      "note": "Level 5 right column title"
-    },
-    {
-      "id": "credit.5.right.0.0",
-      "type": "credit",
-      "speaker": "The Cars",
-      "text": "Kept The Lane",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.0.1",
-      "type": "credit",
-      "speaker": "The Cars",
-      "text": "And The Right",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.0.2",
-      "type": "credit",
-      "speaker": "The Cars",
-      "text": "Of Way",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Hands",
-      "audio": "",
-      "note": "Level 5 right column title"
-    },
-    {
-      "id": "credit.5.right.1.0",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "Found People",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.1.1",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "The Way A Gaze Finds",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.1.2",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "A Face In A Crowd",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Tower",
-      "audio": "",
-      "note": "Level 5 right column title"
-    },
-    {
-      "id": "credit.5.right.2.0",
-      "type": "credit",
-      "speaker": "The Tower",
-      "text": "Stayed Lit",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.2.1",
-      "type": "credit",
-      "speaker": "The Tower",
-      "text": "Behind Him",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.2.2",
-      "type": "credit",
-      "speaker": "The Tower",
-      "text": "On A Floor",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.2.3",
-      "type": "credit",
-      "speaker": "The Tower",
-      "text": "He Was Done With",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Sidewalk",
-      "audio": "",
-      "note": "Level 5 right column title"
-    },
-    {
-      "id": "credit.5.right.3.0",
-      "type": "credit",
-      "speaker": "The Sidewalk",
-      "text": "Ran For Blocks",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.3.1",
-      "type": "credit",
-      "speaker": "The Sidewalk",
-      "text": "And Ended",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.3.2",
-      "type": "credit",
-      "speaker": "The Sidewalk",
-      "text": "At A Stair",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Sign",
-      "audio": "",
-      "note": "Level 5 right column title"
-    },
-    {
-      "id": "credit.5.right.4.0",
-      "type": "credit",
-      "speaker": "The Sign",
-      "text": "Promised A Train",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.4.1",
-      "type": "credit",
-      "speaker": "The Sign",
-      "text": "Where A Door",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.4.2",
-      "type": "credit",
-      "speaker": "The Sign",
-      "text": "Would Have Promised",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.4.3",
-      "type": "credit",
-      "speaker": "The Sign",
-      "text": "A Room",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Pierce Hawkes",
-      "audio": "",
-      "note": "Level 5 right column title"
-    },
-    {
-      "id": "credit.5.right.5.0",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Went Down",
-      "audio": "",
-      "note": "Level 5 right column"
-    },
-    {
-      "id": "credit.5.right.5.1",
-      "type": "credit",
       "speaker": "Pierce Hawkes",
       "text": "Instead Of In",
       "audio": "",
-      "note": "Level 5 right column"
+      "note": "Level 5 left column"
     },
     {
       "id": "credit.6.left.0.role",
       "type": "credit",
       "speaker": "",
-      "text": "The Stairs",
+      "text": "The Train",
       "audio": "",
       "note": "Level 6 left column title"
     },
     {
       "id": "credit.6.left.0.0",
       "type": "credit",
-      "speaker": "The Stairs",
-      "text": "Took The Street",
+      "speaker": "The Train",
+      "text": "Sat With A Door",
       "audio": "",
       "note": "Level 6 left column"
     },
     {
       "id": "credit.6.left.0.1",
       "type": "credit",
-      "speaker": "The Stairs",
-      "text": "Off His Shoulders",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.0.2",
-      "type": "credit",
-      "speaker": "The Stairs",
-      "text": "One Flight",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.0.3",
-      "type": "credit",
-      "speaker": "The Stairs",
-      "text": "At A Time",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Lights",
-      "audio": "",
-      "note": "Level 6 left column title"
-    },
-    {
-      "id": "credit.6.left.1.0",
-      "type": "credit",
-      "speaker": "The Lights",
-      "text": "Had Been On",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.1.1",
-      "type": "credit",
-      "speaker": "The Lights",
-      "text": "Longer Than",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.1.2",
-      "type": "credit",
-      "speaker": "The Lights",
-      "text": "The City Above",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Turnstiles",
-      "audio": "",
-      "note": "Level 6 left column title"
-    },
-    {
-      "id": "credit.6.left.2.0",
-      "type": "credit",
-      "speaker": "The Turnstiles",
-      "text": "Counted No One",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.2.1",
-      "type": "credit",
-      "speaker": "The Turnstiles",
-      "text": "Who Mattered",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Platform",
-      "audio": "",
-      "note": "Level 6 left column title"
-    },
-    {
-      "id": "credit.6.left.3.0",
-      "type": "credit",
-      "speaker": "The Platform",
-      "text": "Held Its Line",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.3.1",
-      "type": "credit",
-      "speaker": "The Platform",
-      "text": "In Yellow",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.3.2",
-      "type": "credit",
-      "speaker": "The Platform",
-      "text": "And Waited",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Commuters",
-      "audio": "",
-      "note": "Level 6 left column title"
-    },
-    {
-      "id": "credit.6.left.4.0",
-      "type": "credit",
-      "speaker": "The Commuters",
-      "text": "Had Somewhere",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.4.1",
-      "type": "credit",
-      "speaker": "The Commuters",
-      "text": "They Still Believed",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.4.2",
-      "type": "credit",
-      "speaker": "The Commuters",
-      "text": "They Were Going",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Quiet",
-      "audio": "",
-      "note": "Level 6 left column title"
-    },
-    {
-      "id": "credit.6.left.5.0",
-      "type": "credit",
-      "speaker": "The Quiet",
-      "text": "Was The Street",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.5.1",
-      "type": "credit",
-      "speaker": "The Quiet",
-      "text": "With The Sky",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.left.5.2",
-      "type": "credit",
-      "speaker": "The Quiet",
-      "text": "Taken Off It",
-      "audio": "",
-      "note": "Level 6 left column"
-    },
-    {
-      "id": "credit.6.right.0.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Train",
-      "audio": "",
-      "note": "Level 6 right column title"
-    },
-    {
-      "id": "credit.6.right.0.0",
-      "type": "credit",
       "speaker": "The Train",
-      "text": "Sat With A Door",
+      "text": "Open On Nothing He Could Name",
       "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.0.1",
-      "type": "credit",
-      "speaker": "The Train",
-      "text": "Open On Nothing",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.0.2",
-      "type": "credit",
-      "speaker": "The Train",
-      "text": "He Could Name",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.1.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Tracks",
-      "audio": "",
-      "note": "Level 6 right column title"
-    },
-    {
-      "id": "credit.6.right.1.0",
-      "type": "credit",
-      "speaker": "The Tracks",
-      "text": "Went On",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.1.1",
-      "type": "credit",
-      "speaker": "The Tracks",
-      "text": "Past The Light",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.1.2",
-      "type": "credit",
-      "speaker": "The Tracks",
-      "text": "He Was Standing In",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.2.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Hands",
-      "audio": "",
-      "note": "Level 6 right column title"
-    },
-    {
-      "id": "credit.6.right.2.0",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "Still Knew",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.2.1",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "How To Close",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.2.2",
-      "type": "credit",
-      "speaker": "The Hands",
-      "text": "A Distance",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.3.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Above",
-      "audio": "",
-      "note": "Level 6 right column title"
-    },
-    {
-      "id": "credit.6.right.3.0",
-      "type": "credit",
-      "speaker": "Above",
-      "text": "The Tower Kept",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.3.1",
-      "type": "credit",
-      "speaker": "Above",
-      "text": "Its Meeting",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.3.2",
-      "type": "credit",
-      "speaker": "Above",
-      "text": "And Its Name",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.3.3",
-      "type": "credit",
-      "speaker": "Above",
-      "text": "On The Directory",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.4.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "The Phone",
-      "audio": "",
-      "note": "Level 6 right column title"
-    },
-    {
-      "id": "credit.6.right.4.0",
-      "type": "credit",
-      "speaker": "The Phone",
-      "text": "Had Nothing",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.4.1",
-      "type": "credit",
-      "speaker": "The Phone",
-      "text": "Left To Ring For",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.5.role",
-      "type": "credit",
-      "speaker": "",
-      "text": "Pierce Hawkes",
-      "audio": "",
-      "note": "Level 6 right column title"
-    },
-    {
-      "id": "credit.6.right.5.0",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Stepped Toward",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.5.1",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "A Door",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.5.2",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "That Did Not Ask",
-      "audio": "",
-      "note": "Level 6 right column"
-    },
-    {
-      "id": "credit.6.right.5.3",
-      "type": "credit",
-      "speaker": "Pierce Hawkes",
-      "text": "Him To Explain",
-      "audio": "",
-      "note": "Level 6 right column"
+      "note": "Level 6 left column"
     },
     {
       "id": "dialogue.morning.hand",
@@ -6131,6 +3803,175 @@
       "audio": "",
       "performance": "default",
       "note": "Apex Peak: staff at the hall cooler"
+    },
+    {
+      "id": "dialogue.finale-1.01",
+      "type": "dialogue",
+      "speaker": "Lang",
+      "text": "I need a date. Zurich needs a promise.",
+      "audio": "/assets/audio/cutscenes/finale-1/01-lang-date.ogg",
+      "audioText": "",
+      "performance": "default",
+      "audioVoice": "2UMI2FME0FFUFMlUoRER",
+      "note": "Level 1 ending event (finale-1). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-1.02",
+      "type": "dialogue",
+      "speaker": "Hale",
+      "text": "The charter wants B3 sealed.",
+      "audio": "/assets/audio/cutscenes/finale-1/02-hale-seal.ogg",
+      "audioText": "",
+      "performance": "default",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Level 1 ending event (finale-1). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-1.03",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Nobody in that room looked down.",
+      "audio": "/assets/audio/cutscenes/finale-1/03-pierce-looked-down.ogg",
+      "audioText": "",
+      "performance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Level 1 ending event (finale-1). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-3.01",
+      "type": "dialogue",
+      "speaker": "Hale",
+      "text": "He walked out. That is all they hear.",
+      "audio": "/assets/audio/cutscenes/finale-3/01-hale-walked-out.ogg",
+      "audioText": "",
+      "performance": "default",
+      "audioVoice": "XW70ikSsadUbinwLMZ5w",
+      "note": "Level 3 ending event (finale-3). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-3.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Not what rode the elevator.",
+      "audio": "/assets/audio/cutscenes/finale-3/02-pierce-elevator.ogg",
+      "audioText": "",
+      "performance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Level 3 ending event (finale-3). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-5.01",
+      "type": "dialogue",
+      "speaker": "Police",
+      "text": "Tower says the 58th floor is empty.",
+      "audio": "/assets/audio/cutscenes/finale-5/01-police-empty.ogg",
+      "audioText": "",
+      "performance": "default",
+      "audioVoice": "IRHApOXLvnW57QJPQH2P",
+      "note": "Level 5 ending event (finale-5). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-5.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Down, then.",
+      "audio": "/assets/audio/cutscenes/finale-5/02-pierce-down.ogg",
+      "audioText": "",
+      "performance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Level 5 ending event (finale-5). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-6.01",
+      "type": "dialogue",
+      "speaker": "Platform PA",
+      "text": "Uptown six, now boarding. Stand clear.",
+      "audio": "/assets/audio/cutscenes/finale-6/01-pa-boarding.ogg",
+      "audioText": "",
+      "performance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX",
+      "note": "Level 6 ending event (finale-6). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-6.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Nobody left to ring.",
+      "audio": "/assets/audio/cutscenes/finale-6/02-pierce-ring.ogg",
+      "audioText": "",
+      "performance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Level 6 ending event (finale-6). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-8.01",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Hawkes Tower: the board voted. Called it stable.",
+      "audio": "/assets/audio/cutscenes/finale-8/01-anchor-stable.ogg",
+      "audioText": "",
+      "performance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Level 8 ending event (finale-8). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "dialogue.finale-8.02",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Stable.",
+      "audio": "/assets/audio/cutscenes/finale-8/02-pierce-stable.ogg",
+      "audioText": "",
+      "performance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Level 8 ending event (finale-8). Silent placeholder until Hawkes Gen makes the take."
+    },
+    {
+      "id": "credit.7.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Other One",
+      "audio": "",
+      "note": "Level 7 left column title"
+    },
+    {
+      "id": "credit.7.left.0.0",
+      "type": "credit",
+      "speaker": "The Other One",
+      "text": "Never Turned Around",
+      "audio": "",
+      "note": "Level 7 left column"
+    },
+    {
+      "id": "credit.7.left.0.1",
+      "type": "credit",
+      "speaker": "The Other One",
+      "text": "The Train Went Uptown",
+      "audio": "",
+      "note": "Level 7 left column"
+    },
+    {
+      "id": "credit.8.left.0.role",
+      "type": "credit",
+      "speaker": "",
+      "text": "The Door",
+      "audio": "",
+      "note": "Level 8 left column title"
+    },
+    {
+      "id": "credit.8.left.0.0",
+      "type": "credit",
+      "speaker": "The Door",
+      "text": "Closed Behind Him",
+      "audio": "",
+      "note": "Level 8 left column"
+    },
+    {
+      "id": "credit.8.left.0.1",
+      "type": "credit",
+      "speaker": "The Door",
+      "text": "On A Television Saying His Name",
+      "audio": "",
+      "note": "Level 8 left column"
     }
   ]
 }

@@ -78,6 +78,8 @@ Levels 1 through 8 are playable: Apex Peak, B3, The Return, The Desk, Going Home
 - The Train (level 7): `call-hale`, answering Hale at the stop (or dialing her there).
 - The main quest id is `main`. It is marked in `presentLevelEnd`, when **End Level** is confirmed, so the Level Complete card includes the finish. Load Level rows show `reward · n/m`. The card line is `Missions n/m`.
 
+**Chapter ending events.** On levels 1, 3, 5, 6 and 8 the End Level press first plays `cutscenes/finale-N.json` (under 8 s, cinematic, Skip), then the card; every card crawls at most three lines (`credits.ts`). Facts and where they went: `docs/story/events.md`. Timelines can use `camera` `rel` (offsets from Pierce) and `world` events (`tower-cut`, `board-stop`, `tv-report`, `main.ts` `runFinaleWorld`). Playtest `world-events`.
+
 **End Level is not a walk-up.** `finishLevel` in `src/story/act1.ts` returns unless `which` matches `isApex`, `isB3`, or `isReturn`. `stepWorld` and the board-seat setup run only on those three. `pendingEnd` stores `levelId`, and the **End Level** button shows only when that id is `state.level`. The Return phase `mirror-look` is the look that ends level 3. The Desk starts with its own **Look in mirror**, which calls `theDesk.beginLook`. That scene must not call `finishLevel('return')`. The Desk offers End Level only when its own scene finishes.
 
 `offerEnd` leaves the world visible. The action button reads **End Level**, and Pierce stays put: no walk, jump, or shadow run. That press silences the phone, stops play, plays `ending-{level}`, fades to black, and starts the credit crawl. The card then offers **Continue** and **Exit**. Do not fade or start the song before that press.
