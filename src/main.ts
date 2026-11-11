@@ -392,6 +392,8 @@ playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
 let storyObjectiveId = () => 'seat';
 let callQuestOpenFor = (_contactId: string) => false;
+/** The opening call on level 1 is taken on the move: Pierce keeps walking while Voss talks. */
+let callWalk = false;
 const phone = createPhone(scene, {
   soundOn: () => audio.enabled,
   objectiveId: () => storyObjectiveId(),
@@ -1522,7 +1524,7 @@ const syncPhoneHud = () => {
     phoneBadge.hidden = !view.badge;
     phoneBadge.textContent = view.badge;
   }
-  followCamera.setCallFrame(phone.wantsCallCamera() && !state.inCutscene);
+  followCamera.setCallFrame(phone.wantsCallCamera() && !state.inCutscene && !callWalk);
   const phoneHoldsPointer = phone.locksBody() || phone.isScreenOpen();
   if (phoneHoldsPointer) {
     unlockPointer();
@@ -2520,6 +2522,7 @@ act = createAct1({
   seatHead: seatPlayerAtHeadChair,
   leaveHead: leavePlayerAtHeadChair,
   beginCutscene: beginNamedCutscene,
+  callWalk: (on) => { callWalk = on; },
   ringCall: (id) => {
     const ring = () => {
       clearHands();
@@ -3480,11 +3483,11 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
-  if (state.inCutscene || phone.locksBody() || retryLeft > 0 || impair?.locked) {
+  if (state.inCutscene || (phone.locksBody() && !callWalk) || retryLeft > 0 || impair?.locked) {
     state.player.jumpWindup = 0;
     state.input.jump = false;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
-    if (phone.locksBody()) playerAvatar.setLocomotion(false, true);
+    if (phone.locksBody() && !callWalk) playerAvatar.setLocomotion(false, true);
     audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
@@ -4701,7 +4704,7 @@ const projectColdDoorway = (): { x: number; y: number; w: number; h: number } | 
  * its up vector back to +y every frame it updates, so this only ever adds this frame's roll.
  */
 const applyCarSway = () => {
-  const roll = state.running && scene.activeCamera === camera ? dressing.roll() : 0;
+  const roll = state.running && scene.activeCamera === camera ? dressing.roll() + act.cabRoll() : 0;
   if (roll === 0) {
     if (camera.upVector.y !== 1) camera.upVector.set(0, 1, 0);
     return;

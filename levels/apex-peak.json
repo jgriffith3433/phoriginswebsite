@@ -1438,7 +1438,7 @@
       "name": "Player",
       "x": 0,
       "y": 0,
-      "z": 4.087249279022217,
+      "z": 13.5,
       "components": [
         "Transform",
         "Collider"
