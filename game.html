@@ -3158,6 +3158,23 @@
       }
       .tap-note { font-size: 14px; letter-spacing: 0.08em; color: var(--hb-dim); }
 
+      /* The gate owns the screen: the title card (menu rows, loading line) stays hidden until Tap to play is dismissed. */
+      body:has(#tapToPlay:not([hidden])) .message .panel { visibility: hidden; }
+      .tap-to-play { background: #03060a; }
+      /* One progress line under the button while the level loads; gone once Start works. */
+      .message .load-line {
+        margin: 14px 0 0;
+        font-family: var(--hb-sans);
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--hb-gold-hi, #e6cf9a);
+        text-align: center;
+      }
+      .message .load-line[hidden] { display: none; }
+      .message .subtitle:empty { display: none; }
+      .tap-note { color: #b9c2cb; font-size: 15px; }
+
       /* Turn your phone sideways: touch devices held in portrait (src/game/screenMode.ts). Over the tap prompt, below nothing. */
       .turn-phone {
         position: fixed;
@@ -3630,7 +3647,7 @@
           </header>
           <div class="eyebrow" id="messageEyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
-          <p class="subtitle" id="messageText">Loading</p>
+          <p class="subtitle" id="messageText"></p>
           <p class="mission-score" id="missionScore" hidden></p>
           <aside class="lore-entry" id="loreEntry" hidden aria-live="polite">
             <div class="lore-kicker" id="loreKicker"></div>
@@ -3650,12 +3667,13 @@
           </div>
 
           <div class="button-row">
-            <button class="primary" id="startBtn" disabled aria-busy="true">Loading…</button>
+            <button class="primary" id="startBtn" disabled aria-busy="true">Start</button>
             <button class="secondary" id="newGameBtn" type="button" style="display:none">New Game</button>
             <button class="secondary" id="resetBtn">Reset</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
             <button class="secondary" id="settingsBtn" type="button">Settings</button>
           </div>
+          <p class="load-line" id="loadLine" role="status" aria-live="polite">Loading…</p>
           <a class="build-version" href="/whatsnew.html" target="_blank" rel="noopener" data-hawkes-version data-prefix="Version " hidden></a>
           <footer class="corp-foot" aria-hidden="true"><span>Confidential · Board use only</span><span>HB-58 / NIGHT</span></footer>
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />

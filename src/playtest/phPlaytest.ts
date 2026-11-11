@@ -1581,7 +1581,27 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     const livingPlacesRun = async (): Promise<Outcome> => {
       levelsTotal = 3;
       const phone = Boolean(options.phone);
-      if (probe.sound().prompt) await tapToPlay();
+      if (probe.sound().prompt) {
+        // Menus: the title card stays hidden behind the gate; once it is dismissed, loading is one line under the button.
+        const panel = document.querySelector<HTMLElement>('#messageBox .panel');
+        const hiddenBehind = !panel || getComputedStyle(panel).visibility === 'hidden';
+        t.event('check', `menus: title card ${hiddenBehind ? 'hidden' : 'VISIBLE'} behind the Tap to play gate`);
+        if (!hiddenBehind) t.problem('bug', 'menus: the title card shows through the Tap to play gate');
+        await tapToPlay();
+        const line = document.getElementById('loadLine') as HTMLElement | null;
+        const sub = document.getElementById('messageText') as HTMLElement | null;
+        const btn = document.getElementById('startBtn') as HTMLElement | null;
+        if (line && !line.hidden && btn) {
+          const below = line.getBoundingClientRect().top >= btn.getBoundingClientRect().bottom - 1;
+          const subShown = !!sub && sub.offsetParent !== null && (sub.textContent ?? '').trim() !== '';
+          t.event('check', `menus: one loading line "${line.textContent}" ${below ? 'below' : 'NOT below'} the button${subShown ? ', memo line also showing' : ''}`);
+          if (!below || subShown) t.problem('bug', 'menus: loading text is not a single line below the button');
+        }
+        if (phone) {
+          const w = document.documentElement.scrollWidth;
+          if (w > window.innerWidth + 1) t.problem('bug', `menus: title card scrolls sideways (${w} > ${window.innerWidth})`);
+        }
+      }
       if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
       t.metric('feel.coyoteMs', 120);
       const places: { name: string; place: string; enter: () => Promise<void>; minPeople: number; touchables: number }[] = [
