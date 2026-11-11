@@ -95,6 +95,7 @@ const healthFill = document.getElementById('healthFill') as HTMLSpanElement;
 const messageBox = document.getElementById('messageBox') as HTMLDivElement;
 const messageTitle = document.getElementById('messageTitle') as HTMLHeadingElement;
 const messageText = document.getElementById('messageText') as HTMLParagraphElement;
+const loadLine = document.getElementById('loadLine') as HTMLParagraphElement;
 const messageEyebrow = document.getElementById('messageEyebrow');
 if (messageEyebrow) messageEyebrow.textContent = lineText('ui.menu.eyebrow', 'Board session · One night');
 installMenuNav(messageBox);
@@ -102,7 +103,7 @@ const startBtn = document.getElementById('startBtn') as HTMLButtonElement;
 const settingsBtn = document.getElementById('settingsBtn') as HTMLButtonElement;
 if (!loadFailed()) {
   startBtn.disabled = true;
-  startBtn.textContent = 'Loading…';
+  startBtn.textContent = 'Start';
   startBtn.setAttribute('aria-busy', 'true');
 }
 const newGameBtn = document.getElementById('newGameBtn') as HTMLButtonElement;
@@ -1853,13 +1854,18 @@ const syncStartButtonLabel = () => {
   loadModelBtn.disabled = loading;
   newGameBtn.disabled = loading;
   if (loading) {
-    startBtn.textContent = 'Loading…';
+    startBtn.textContent = 'Start';
     startBtn.setAttribute('aria-busy', 'true');
     startBtn.style.display = '';
     newGameBtn.style.display = 'none';
-    if (messageTitle.textContent === 'PH Origins') messageText.textContent = levelLoadingLine();
+    if (messageTitle.textContent === 'PH Origins') {
+      messageText.textContent = '';
+      loadLine.textContent = levelLoadingLine();
+      loadLine.hidden = false;
+    }
     return;
   }
+  loadLine.hidden = true;
   startBtn.removeAttribute('aria-busy');
 
   const mode = menuMode();
