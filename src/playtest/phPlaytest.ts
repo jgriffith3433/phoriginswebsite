@@ -68,6 +68,15 @@ export type PhProbe = {
   cancelColdOpen?: () => Promise<void>;
   aimLocked: () => boolean;
   shadow: () => { controls: boolean; on: boolean; handsOut: boolean; linked: boolean; ability: string; lessonStarted: boolean };
+  /** Going Home's power lessons: the introduction log, the context prompt now, unlock pulses and the tape gates. */
+  lesson?: () => {
+    log: { t: number; power: string; step: string; setup: string; control: string }[];
+    power: string;
+    prompt: { shown: boolean; text: string; on: string; words: number; rect: { x: number; y: number; w: number; h: number } | null };
+    unlocks: { power: string; t: number }[];
+    gates: { id: string; open: boolean; passed: boolean }[];
+    linked: { x: number; z: number } | null;
+  };
   people: () => { x: number; z: number; kind: string }[];
   /** Apex Peak vertical slice quality (null off that level). */
   /** Living world: people on routines, glances, what answered Interact, and the longest quiet stretch. */
@@ -658,6 +667,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 2 (test shortcut) and the hunt from the lab door. Pierce is downed (test shortcut, as a bite would): there must be no Defeat card, chapter card or reload, a red fade of about 0.6 s, control back inside 3 s (metrics huntRetries, retrySeconds), health full, and the creature out of sight. Then the vat break shot plays (it must end within 5.5 s, no camera hold over 5 s) and control returns in the acid. Laid out as a 390x844 phone, the bot plays the acid with the left stick only (pointer drags, no keys): it logs the input lag, heading drift, stagger and the falls, the flashlight failing, checks the touch controls stay visible and 44 px, that there is at least 15 s of movement input, that the avatar swaps during a fall, and that it ends as Pierce reaches the door and End Level is offered. Metrics: acidSeconds, acidInputSeconds, huntRetries, retrySeconds.',
         seconds: 300,
         tags: ['level', 'phone'],
+      },
+      {
+        id: 'street-powers',
+        title: 'Going Home: each power arrives alone (Shadow, Shock, Possess, Consume, then Punch/Kick), taught by a context prompt, played with taps (390x844 touch with options.phone)',
+        description: 'Starts Going Home (test shortcut), skips the lobby and plays the street by real input: the bot reads no objective text, it follows the context prompt. Shadow on its own button, walks through the crowd until people lose him; the police pair (Shock, one tap on the fire button); the taped sidewalk (Possess the guard, walk him to the tape); the station guard (Possess, then a second tap to Consume); and Punch/Kick only after he drops Shadow and is shoved. Logs each introduction step with its street setup and time (power-step events). Checks: introductions in order Shadow, Shock, Possess, Consume, Punch/Kick; at least 30 s between new controls; each power first used at a street setup; Punch/Kick only after an unshadowed shove; every objective.home.* line is 8 words or fewer; every context prompt is 4 words or fewer, on screen and clear of other controls, and each power\'s first use lands on one tap. Phone: taps and stick drags only.',
+        seconds: 480,
+        tags: ['level', 'phone', 'story'],
       },
       {
         id: 'desk-beats',
@@ -3212,6 +3228,192 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     };
 
     // ---- desk-beats: the mirror walked up to, the desk cleared by a held drag
+    /** Going Home's power lessons, played from the context prompts with taps (phone) or clicks. */
+    const streetPowersRun = async (): Promise<Outcome> => {
+      const phone = Boolean(options.phone);
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
+      t.metric('feel.coyoteMs', 120);
+      t.scene('Going Home: the powers');
+      await enterLevel(5);
+      await waitControl('Going Home');
+      for (let i = 0; i < 120 && probe.scripted(); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(400);
+      }
+      await t.until(() => probe.running() && !probe.scripted() && !!probe.lesson && probe.lesson().power !== '', 30000, 'control on the street');
+      await sleep(600);
+      const zone = document.getElementById('leftStickZone') as HTMLElement | null;
+      let down = false;
+      const stick = (ux: number, uy: number) => {
+        if (!zone) return;
+        const zr = zone.getBoundingClientRect();
+        const type = down ? 'pointermove' : 'pointerdown';
+        down = true;
+        zone.dispatchEvent(new PointerEvent(type, { pointerId: 29, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38, clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38 }));
+      };
+      const lift = () => {
+        if (down && zone) zone.dispatchEvent(new PointerEvent('pointerup', { pointerId: 29, pointerType: 'touch', bubbles: true }));
+        down = false;
+      };
+      const walkToward = (to: Point, from: Point = probe.player()) => {
+        const heading = Math.atan2(to.x - from.x, to.z - from.z);
+        if (phone) {
+          const rel = wrap(heading - probe.cameraYaw());
+          stick(Math.sin(rel), -Math.cos(rel));
+        } else steer(to, true);
+      };
+      const stopWalking = () => { if (phone) lift(); else releaseAll(); };
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const logged = new Set<string>();
+      const flagged = new Set<string>();
+      const sawPrompts = new Set<string>();
+      const firstUse = new Map<string, number>();
+      const started = performance.now();
+      const seconds = () => (performance.now() - started) / 1000;
+      const L = () => probe.lesson!();
+      const syncLog = () => {
+        for (const row of L().log) {
+          const key = `${row.power}.${row.step}`;
+          if (logged.has(key)) continue;
+          logged.add(key);
+          t.event('power-step', `${row.power} ${row.step} at the ${row.setup} setup (${row.control}) t=${row.t}s`);
+          if (!firstUse.has(row.power)) firstUse.set(row.power, row.t);
+        }
+      };
+      const unlocksSeen = new Set<string>();
+      const checkPrompt = () => {
+        const state = L();
+        for (const u of state.unlocks) {
+          if (!unlocksSeen.has(u.power)) { unlocksSeen.add(u.power); t.event('unlock-pulse', `${u.power} unlocked: its button pulses once`); }
+        }
+        const pr = state.prompt;
+        if (!pr.shown || !pr.rect) return;
+        if (!sawPrompts.has(pr.text)) { sawPrompts.add(pr.text); t.event('prompt', `"${pr.text}" on the ${pr.on}`); }
+        if (pr.words > 4 && !flagged.has(`w${pr.text}`)) { flagged.add(`w${pr.text}`); t.problem('bug', `context prompt "${pr.text}" is ${pr.words} words (max 4)`); }
+        const r = pr.rect;
+        if (r.x < 0 || r.y < 0 || r.x + r.w > innerWidth + 1 || r.y + r.h > innerHeight + 1) {
+          if (!flagged.has(`s${pr.text}`)) { flagged.add(`s${pr.text}`); t.problem('bug', `context prompt "${pr.text}" runs off the screen (${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.w)}x${Math.round(r.h)})`); }
+        }
+        if (phone) {
+          for (const el of document.querySelectorAll('button')) {
+            const b = (el as HTMLElement).getBoundingClientRect();
+            if (!b.width || (el as HTMLElement).hidden || getComputedStyle(el).visibility === 'hidden' || getComputedStyle(el).display === 'none') continue;
+            const overlap = Math.min(r.x + r.w, b.right) - Math.max(r.x, b.left) > 2 && Math.min(r.y + r.h, b.bottom) - Math.max(r.y, b.top) > 2;
+            if (overlap && !flagged.has(`o${pr.text}${el.id}`)) {
+              flagged.add(`o${pr.text}${el.id}`);
+              t.problem('bug', `context prompt "${pr.text}" sits on top of #${el.id || el.className}`);
+            }
+          }
+        }
+      };
+      const wantAfter = async (label: string) => {
+        await tapAt(label === 'shadow' ? byId('shadowHint') : label === 'fire' ? byId('fireBtn') : byId('abilityHint'), label);
+        await sleep(500);
+      };
+      const near = (kind: string, max = 40) => {
+        const p = probe.player();
+        return probe.people().filter((x) => x.kind === kind && dist(p, x) < max).sort((a, b) => dist(p, a) - dist(p, b))[0] ?? null;
+      };
+      const aimAndTap = async (target: Point, within: number) => {
+        const p = probe.player();
+        const d = dist(p, target);
+        if (d > within) { walkToward(target); return false; }
+        stopWalking();
+        face(Math.atan2(target.x - p.x, target.z - p.z));
+        await sleep(250);
+        await wantAfter('fire');
+        return true;
+      };
+
+      const deadline = performance.now() + 420_000;
+      let lastLog = '';
+      while (performance.now() < deadline) {
+        await tick();
+        if (probe.menu().open) break;
+        syncLog();
+        checkPrompt();
+        const state = L();
+        const sh = probe.shadow();
+        const here = probe.player();
+        if (state.log.some((r) => r.power === 'melee' && r.step === 'payoff') || here.x > 161) break;
+        const key = `${state.power}|${state.log.length}|${sh.on}|${sh.linked}`;
+        if (key !== lastLog) { lastLog = key; t.log(`lesson ${key}`); }
+        const power = state.log.some((r) => r.power === 'consume' && r.step === 'payoff') ? 'melee' : state.power;
+        const east = { x: here.x + 8, z: 22.6 };
+        if (power === 'shadow') {
+          if (!sh.on) { stopWalking(); await wantAfter('shadow'); continue; }
+          const crowd = near('person', 14);
+          walkToward(crowd ?? east);
+        } else if (power === 'shock') {
+          if (!sh.on) { stopWalking(); await wantAfter('shadow'); continue; }
+          const cop = near('police', 60);
+          if (!cop) { walkToward(east); continue; }
+          if (await aimAndTap(cop, 4.2)) t.event('first-use-tap', 'Shadow Shock: one tap on the fire button');
+        } else if (power === 'possess') {
+          if (!sh.on) { stopWalking(); await wantAfter('shadow'); continue; }
+          if (state.linked) { walkToward({ x: 84, z: 22.6 }, state.linked); continue; }
+          const guard = near('person', 30);
+          if (!guard || here.x < 56) { walkToward({ x: Math.min(here.x + 8, 78), z: 22.6 }); continue; }
+          if (await aimAndTap(guard, 4.2)) t.event('first-use-tap', 'Possess: one tap on the fire button');
+        } else if (power === 'consume') {
+          if (!sh.on) { stopWalking(); await wantAfter('shadow'); continue; }
+          if (state.linked) {
+            const prompt = state.prompt;
+            if (prompt.shown && /consume/i.test(prompt.text)) { stopWalking(); await wantAfter('fire'); t.event('first-use-tap', 'Consume: the second tap on the fire button'); }
+            else await sleep(200);
+            continue;
+          }
+          const guard = near('person', 30);
+          if (!guard || here.x < 118) { walkToward({ x: Math.min(here.x + 8, 134), z: 22.6 }); continue; }
+          await aimAndTap(guard, 4.2);
+        } else {
+          // Punch and Kick: drop Shadow, let him come, hit back.
+          if (sh.on) { stopWalking(); await wantAfter('shadow'); continue; }
+          const foe = near('hostile', 30);
+          if (!foe) { walkToward({ x: Math.min(here.x + 6, 156), z: 22.6 }); continue; }
+          const d = dist(here, foe);
+          if (d > 1.9) { walkToward(foe); continue; }
+          stopWalking();
+          face(Math.atan2(foe.x - here.x, foe.z - here.z));
+          await sleep(200);
+          await wantAfter('fire');
+        }
+      }
+      stopWalking();
+      syncLog();
+
+      // ---- Judge it.
+      const log = L().log;
+      const order = ['shadow', 'shock', 'possess', 'consume', 'melee'];
+      const firstOf = order.map((power) => ({ power, row: log.find((r) => r.power === power) })).filter((x) => x.row);
+      t.metric('powersIntroduced', firstOf.length);
+      t.event('introduction-log', firstOf.map((x) => `${x.power}@${x.row!.t}s`).join(', '));
+      for (let i = 0; i < firstOf.length; i += 1) {
+        if (order.indexOf(firstOf[i].power) !== i) t.problem('bug', `powers introduced out of order: ${firstOf.map((x) => x.power).join(', ')}`);
+        if (i > 0 && firstOf[i].row!.t - firstOf[i - 1].row!.t < 30) t.problem('bug', `${firstOf[i].power} introduced ${(firstOf[i].row!.t - firstOf[i - 1].row!.t).toFixed(1)} s after ${firstOf[i - 1].power}: a new control needs 30 s alone`);
+      }
+      const setups: Record<string, string> = { shadow: 'crowd', shock: 'police', possess: 'block', consume: 'station', melee: 'shove' };
+      for (const x of firstOf) if (x.row!.setup !== setups[x.power]) t.problem('bug', `${x.power} first used at "${x.row!.setup}", not the ${setups[x.power]} setup`);
+      for (const power of order) if (!firstOf.some((x) => x.power === power)) t.problem('bug', `${power} was never introduced on the street in 7 minutes`);
+      const melee = log.find((r) => r.power === 'melee');
+      const consumeDone = log.find((r) => r.power === 'consume' && r.step === 'payoff');
+      if (melee && (!consumeDone || melee.t < consumeDone.t)) t.problem('bug', 'Punch/Kick was introduced before the other powers were done');
+      if (!firstOf.length) t.problem('bug', 'no power step was ever logged');
+      if (sawPrompts.size < 4) t.problem('bug', `only ${sawPrompts.size} context prompts were ever shown (${[...sawPrompts].join(' | ')})`);
+      t.metric('promptsSeen', sawPrompts.size);
+      t.metric('lessonSeconds', Math.round(seconds()));
+      try {
+        const res = await fetch('/locales/en.json', { cache: 'no-store' });
+        const json = await res.json() as { lines: { id: string; text?: string }[] };
+        const longest = json.lines.filter((l) => l.id.startsWith('objective.home') && l.text).map((l) => ({ id: l.id, words: l.text!.split(/\s+/).filter(Boolean).length }));
+        t.metric('longestHomeObjectiveWords', Math.max(...longest.map((l) => l.words)));
+        for (const l of longest) if (l.words > 8) t.problem('bug', `${l.id} is ${l.words} words (max 8)`);
+      } catch { t.problem('warning', 'could not read locales/en.json to count objective words'); }
+      if (phone) probe.phoneFrame(false);
+      return 'done';
+    };
+
     const deskBeatsRun = async (): Promise<Outcome> => {
       levelsTotal = 1;
       const phone = Boolean(options.phone);
@@ -5440,6 +5642,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       for (const key of ['meshes', 'materials', 'textures', 'animationGroups'] as const) {
         if (again[key] > one[key] * 1.05 + 10) t.problem('bug', `${key} grew from ${one[key]} to ${again[key]} after level 1 -> 2 -> 1: the previous level was not freed`);
       }
+      return;
+    }
+
+    if (id === 'street-powers') {
+      const outcome = await streetPowersRun();
+      t.finish(outcome);
       return;
     }
 

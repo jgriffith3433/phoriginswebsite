@@ -291,6 +291,14 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 | 28 | **Leave.** | Door | "Somebody is going to have to tell them which one of us walks in." End Level | line, ending-6, credits |
 
 ### Built this pass
+- **36. The street teaches one power at a time.** *Exists* (`src/story/streetTutorial.ts`, `goingHome.ts`, playtest
+  `street-powers`): Going Home, level 5 — each power in four steps (safe use, harder use, a twist, a payoff), never two
+  at once and never closer than 30 s. Shadow in the crowd (people lose him; one startled walker runs and loses him);
+  Shock on a police pair (the second officer charges, blind to the dark for a few seconds); Possess on a taped-off
+  sidewalk (the guard walks to the tape and lifts it); Consume on the station guard who holds the stairs; Punch and
+  Kick only after he drops Shadow and a man shoves him. A context prompt (icon, key, at most four words) hangs on the
+  target or on the matching touch button while the power can be used; the button pulses once when its power unlocks.
+  Told by play, not text: objective lines are eight words or fewer.
 - **35. Board through the hall.** *Exists* (`src/story/apexBoardHall.ts`, playtest `living-places`): Apex hall 1–2,
   level 1 — a late associate at a desk says Hale is already standing; a side door marked IN SESSION rattles locked when
   Pierce tries it; through the board doorway a standing silhouette of Hale makes him flinch and say "She's standing."
