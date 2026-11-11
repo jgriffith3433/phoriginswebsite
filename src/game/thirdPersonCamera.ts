@@ -109,6 +109,10 @@ export const createThirdPersonCamera = (
   let lookStickY = 0;
   let lookInputTimer = 0;
   let mouseFlick = false;
+  /** Invert Y (Settings). Default off: mouse down looks up relative to the old baked sign. */
+  let invertY = false;
+  let mouseScale = 1;
+  let stickScale = 1;
   let holdAim = false;
   const aimSpot = new BABYLON.Vector3();
   let recenterIdle = 0;
@@ -143,8 +147,10 @@ export const createThirdPersonCamera = (
   const addLook = (dx: number, dy: number) => {
     if (callTarget > 0) return;
     if (dx === 0 && dy === 0) return;
-    yaw += dx * cfg.mouseSensitivity;
-    pitch = clampValue(pitch + dy * cfg.mouseSensitivity * 0.78, cfg.minPitch, cfg.maxPitch);
+    const ySign = invertY ? 1 : -1;
+    const sens = cfg.mouseSensitivity * mouseScale;
+    yaw += dx * sens;
+    pitch = clampValue(pitch + dy * ySign * sens * 0.78, cfg.minPitch, cfg.maxPitch);
     if (Math.hypot(dx, dy) > 16) mouseFlick = true;
     lookInputTimer = 0.12;
     recenterIdle = 0;
@@ -339,8 +345,10 @@ export const createThirdPersonCamera = (
     const stickMag = Math.hypot(lookStickX, lookStickY);
     const stickBreak = stickMag > 0.82;
     if (stickMag > 0.04 && !(holdAim && !stickBreak)) {
-      yaw += lookStickX * cfg.stickSensitivity * clampedDt;
-      pitch = clampValue(pitch - lookStickY * cfg.stickSensitivity * 0.85 * clampedDt, cfg.minPitch, cfg.maxPitch);
+      const stick = cfg.stickSensitivity * stickScale;
+      const ySign = invertY ? 1 : -1;
+      yaw += lookStickX * stick * clampedDt;
+      pitch = clampValue(pitch - lookStickY * ySign * stick * 0.85 * clampedDt, cfg.minPitch, cfg.maxPitch);
       lookInputTimer = 0.12;
       recenterIdle = 0;
     }
@@ -619,6 +627,12 @@ export const createThirdPersonCamera = (
     config: cfg,
     addLook,
     setLookStick,
+    /** Apply Settings: invert Y and 0.5×–2× mouse / touch sensitivity. */
+    setLookOptions: (opts: { invertY?: boolean; mouseScale?: number; stickScale?: number }) => {
+      if (opts.invertY !== undefined) invertY = opts.invertY;
+      if (opts.mouseScale !== undefined) mouseScale = Math.max(0.5, Math.min(2, opts.mouseScale));
+      if (opts.stickScale !== undefined) stickScale = Math.max(0.5, Math.min(2, opts.stickScale));
+    },
     reset,
     snapTo,
     update,

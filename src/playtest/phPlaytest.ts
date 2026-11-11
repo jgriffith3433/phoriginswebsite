@@ -47,6 +47,13 @@ export type PhProbe = {
   chapter: () => { open: boolean; kicker: string; title: string; line: string; closing: boolean };
   menu: () => { open: boolean; title: string; text: string; start: string | null; startEnabled: boolean; newGame: boolean };
   subtitle: () => { speaker: string; text: string };
+  /** Letterbox + HUD-hidden presentation during cutscenes / scripted scenes. */
+  cinematic?: () => { on: boolean; letterbox: boolean; skipBottom: boolean };
+  /** Camera + subtitle choices (localStorage hawkes.settings). */
+  playSettings?: () => {
+    invertY: boolean; mouseSens: number; touchSens: number;
+    subtitles: boolean; subtitleSize: string; subtitleBox: boolean;
+  };
   creature: () => { x: number; y: number; z: number } | null;
   aimLocked: () => boolean;
   shadow: () => { controls: boolean; on: boolean; handsOut: boolean; linked: boolean; ability: string; lessonStarted: boolean };
@@ -520,6 +527,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Shows the Tap to play prompt, taps it with a pointer press on the spot (hit-tested, so a covered prompt fails) and checks the AudioContext is running. Opens Settings from the title, turns Sound off and Music to 40%, reloads the page (the run carries on after the reload through ?playtest=sound-settings), checks the prompt and the saved choice are back, then opens Settings again from Pause in level 1. The player\'s own hawkes.sound is put back at the end.',
         seconds: 120,
         tags: ['menus', 'sound'],
+      },
+      {
+        id: 'cutscene-ui',
+        title: 'Cinematic HUD/letterbox/Skip clear of health; Settings invert Y, sensitivity and subtitles persist; phone layouts',
+        description: 'Opens Settings from the title: checks Invert camera Y, mouse and touch sensitivity, Subtitles, subtitle size and box are present and fit at 390x844. Turns Invert on, mouse sens to 1.5×, subtitle size Large, reloads and checks they survive. Starts level 1, walks to the board Join meeting: during the cutscene health, Pause and the objective marker are hidden, letterbox is up, Skip sits bottom-right and overlaps nothing at 1280×720, 844×390 and 390×844 (touch sticks hidden). Skips, then opens level 7 and 8 openings and checks the same HUD fade. Captions stay one line.',
+        seconds: 360,
+        tags: ['menus', 'ui'],
       },
       {
         id: 'feel-audio',
@@ -2180,6 +2194,226 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.finish(sceneSeen ? 'done' : 'stuck');
     };
 
+    // ---- cutscene-ui: cinematic HUD/letterbox/Skip + camera/subtitle Settings
+    const cutsceneUiRun = async () => {
+      const byId = (id: string) => document.getElementById(id);
+      const SETTINGS_KEY = 'hawkes.settings';
+      const SETTINGS_RUN_KEY = 'hawkes.playtest.cutscene-ui';
+      const savedSettings = () => {
+        try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null') as Record<string, unknown> | null; } catch { return null; }
+      };
+      const carried = (() => {
+        try {
+          return JSON.parse(sessionStorage.getItem(SETTINGS_RUN_KEY) ?? 'null') as {
+            original: string | null; soundOriginal: string | null;
+          } | null;
+        } catch { return null; }
+      })();
+      const slide = (input: HTMLInputElement | null, value: number, label: string) => {
+        if (!input) return;
+        input.value = String(value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        t.add('interactions');
+        t.log(`slide ${label} to ${value}`);
+      };
+      const overlaps = (a: DOMRect, b: DOMRect) =>
+        !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      const checkCinematic = (where: string) => {
+        const cine = probe.cinematic?.();
+        if (!cine?.on) t.problem('bug', `${where}: body is not cinematic during the scene`);
+        else t.event('cinematic-on', where);
+        if (!cine?.letterbox) t.problem('bug', `${where}: letterbox bars missing`);
+        else t.event('letterbox', where);
+        const health = byId('healthBar');
+        const pause = byId('pauseBtn');
+        const objective = byId('objectiveHud');
+        const skip = probe.skipButton;
+        for (const [name, el] of [['health', health], ['pause', pause], ['objective', objective]] as const) {
+          if (!el) continue;
+          const vis = getComputedStyle(el).visibility;
+          const op = Number(getComputedStyle(el).opacity);
+          if (vis !== 'hidden' && op > 0.05 && !el.hasAttribute('hidden')) {
+            t.problem('bug', `${where}: ${name} still visible during the scene`);
+          } else t.event('hud-hidden', `${where}: ${name}`);
+        }
+        if (!skip || skip.hidden) {
+          t.problem('bug', `${where}: Skip is not shown`);
+          return;
+        }
+        const sr = skip.getBoundingClientRect();
+        if (sr.top < innerHeight * 0.5) t.problem('bug', `${where}: Skip is not in the bottom half (${Math.round(sr.top)} of ${innerHeight})`);
+        else t.event('skip-bottom', `${where}: top ${Math.round(sr.top)}`);
+        const healthR = health?.getBoundingClientRect();
+        const healthVisible = Boolean(health && Number(getComputedStyle(health).opacity) > 0.05 && getComputedStyle(health).visibility !== 'hidden');
+        if (healthVisible && healthR && overlaps(sr, healthR)) {
+          t.problem('bug', `${where}: Skip overlaps the health bar`);
+        } else t.event('skip-clear', where);
+        const left = byId('leftStickZone');
+        const right = byId('rightStickZone');
+        for (const stick of [left, right]) {
+          if (!stick) continue;
+          const cs = getComputedStyle(stick);
+          if (cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05 && cs.display !== 'none') {
+            t.problem('bug', `${where}: touch stick still visible during the scene`);
+          }
+        }
+        const line = byId('cineText');
+        if (line) {
+          const cs = getComputedStyle(line);
+          if (cs.whiteSpace !== 'nowrap' && (line.textContent ?? '').trim()) {
+            t.problem('bug', `${where}: caption is not one line (white-space ${cs.whiteSpace})`);
+          } else if ((line.textContent ?? '').trim()) t.event('caption-one-line', where);
+        }
+        t.scene(`Cinematic ${where}`);
+      };
+      const auditSkipAt = async (vp: string) => {
+        await sleep(400);
+        const skip = probe.skipButton;
+        if (!skip || skip.hidden) {
+          t.problem('bug', `${vp}: Skip missing while auditing layout`);
+          return;
+        }
+        const sr = skip.getBoundingClientRect();
+        if (sr.left < -1 || sr.top < -1 || sr.right > innerWidth + 1 || sr.bottom > innerHeight + 1) {
+          t.problem('bug', `${vp}: Skip leaves the screen (${Math.round(sr.left)},${Math.round(sr.top)} ${Math.round(sr.width)}x${Math.round(sr.height)})`);
+        } else t.event('skip-on-screen', `${vp}: ${Math.round(sr.left)},${Math.round(sr.top)}`);
+        const others = ['healthBar', 'pauseBtn', 'objectiveHud', 'objectiveWaypoint', 'cineHud', 'leftStickZone', 'rightStickZone', 'fireBtn', 'jumpBtn']
+          .map((id) => byId(id))
+          .filter((el): el is HTMLElement => Boolean(el));
+        for (const el of others) {
+          const cs = getComputedStyle(el);
+          if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.05 || cs.display === 'none' || el.hasAttribute('hidden')) continue;
+          if (el.id === 'cineHud' && !el.classList.contains('on')) continue;
+          if (overlaps(sr, el.getBoundingClientRect())) t.problem('bug', `${vp}: Skip overlaps #${el.id}`);
+        }
+      };
+
+      if (!carried) {
+        if (probe.sound().prompt) await tapToPlay();
+        t.scene('Title');
+        await sleep(500);
+        await tapAt(byId('settingsBtn'), 'Settings (title)');
+        await t.until(() => probe.sound().settingsOpen, 3000, 'Settings to open');
+        t.scene('Settings');
+        for (const id of ['invertYSwitch', 'mouseSens', 'touchSens', 'subsSwitch', 'subsSize', 'subsBoxSwitch']) {
+          if (!byId(id)) t.problem('bug', `Settings missing #${id}`);
+          else t.event('settings-control', id);
+        }
+        probe.phoneFrame(true);
+        await sleep(500);
+        const panel = byId('settingsMenu')?.querySelector('.panel') as HTMLElement | null;
+        if (panel) {
+          const r = panel.getBoundingClientRect();
+          if (r.bottom > innerHeight + 2 || r.right > innerWidth + 2) {
+            t.problem('bug', `Settings card clips at 390x844 (${Math.round(r.width)}x${Math.round(r.height)})`);
+          } else t.event('settings-fits', `390x844 panel ${Math.round(r.width)}x${Math.round(r.height)}`);
+        }
+        probe.phoneFrame(false);
+        const original = localStorage.getItem(SETTINGS_KEY);
+        const soundOriginal = localStorage.getItem(SOUND_KEY);
+        if (byId('invertYSwitch')?.getAttribute('aria-checked') !== 'true') await tapAt(byId('invertYSwitch'), 'Invert Y on');
+        slide(byId('mouseSens') as HTMLInputElement, 150, 'Mouse sensitivity');
+        slide(byId('touchSens') as HTMLInputElement, 125, 'Touch sensitivity');
+        slide(byId('subsSize') as HTMLInputElement, 2, 'Subtitle size');
+        if (byId('subsBoxSwitch')?.getAttribute('aria-checked') !== 'true') await tapAt(byId('subsBoxSwitch'), 'Subtitle box on');
+        await sleep(400);
+        const now = savedSettings();
+        if (!now || now.invertY !== true || Math.abs(Number(now.mouseSens) - 1.5) > 0.02
+          || Math.abs(Number(now.touchSens) - 1.25) > 0.02 || now.subtitleSize !== 'lg' || now.subtitleBox !== true) {
+          t.problem('bug', `hawkes.settings did not save invert/sens/size/box: ${JSON.stringify(now)}`);
+        } else t.event('setting-saved', JSON.stringify(now));
+        const live = probe.playSettings?.();
+        if (!live?.invertY || Math.abs((live.mouseSens ?? 0) - 1.5) > 0.02
+          || Math.abs((live.touchSens ?? 0) - 1.25) > 0.02 || live.subtitleSize !== 'lg' || live.subtitleBox !== true) {
+          t.problem('bug', 'Settings did not apply at once');
+        } else t.event('setting-applied', JSON.stringify(live));
+        await tapAt(byId('settingsDoneBtn'), 'Done');
+        sessionStorage.setItem(SETTINGS_RUN_KEY, JSON.stringify({ original, soundOriginal }));
+        t.event('reload', 'page reloads; cutscene-ui continues');
+        const url = new URL(location.href);
+        url.searchParams.set('playtest', 'cutscene-ui');
+        url.searchParams.set('seed', String(options.seed ?? 1));
+        url.searchParams.set('speed', String(options.speed ?? 1));
+        await sleep(200);
+        location.replace(url.toString());
+        await new Promise(() => {});
+        return;
+      }
+
+      sessionStorage.removeItem(SETTINGS_RUN_KEY);
+      if (probe.sound().prompt) await tapToPlay();
+      const back = probe.playSettings?.();
+      if (!back || back.invertY !== true || Math.abs(back.mouseSens - 1.5) > 0.02
+        || Math.abs(back.touchSens - 1.25) > 0.02 || back.subtitleSize !== 'lg' || back.subtitleBox !== true) {
+        t.problem('bug', `settings did not survive reload: ${JSON.stringify(back)}`);
+      } else t.event('setting-survived-reload', JSON.stringify(back));
+      t.progress(0.2);
+
+      // Level 1 board cutscene
+      await enterLevel(1);
+      t.scene(LEVELS[0].name);
+      const until = performance.now() + 150000;
+      let boardSeen = false;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()) { boardSeen = true; break; }
+        if (!controllable()) continue;
+        if (probe.phone().incoming) { await once('f', 1500, 'answer'); continue; }
+        if (probe.phone().busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) { releaseAll(); await once('e', 1500, label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      if (!boardSeen) t.problem('bug', 'level 1 board cutscene did not start');
+      else {
+        await sleep(800);
+        checkCinematic('level-1 board');
+        await auditSkipAt(`${innerWidth}x${innerHeight}`);
+        probe.phoneFrame(true, true);
+        await auditSkipAt('844x390');
+        probe.phoneFrame(true, false);
+        await auditSkipAt('390x844');
+        probe.phoneFrame(false);
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await t.until(() => !probe.cutscene(), 8000, 'board cutscene ends');
+        t.event('cinematic-off', 'after Skip on level 1');
+        if (probe.cinematic?.().on) t.problem('bug', 'cinematic stayed on after the board scene');
+      }
+      t.progress(0.55);
+
+      // Level 7 opening (scripted scene)
+      t.event('setup', 'start at level 7 (the-train)');
+      await probe.setupHidden('the-train');
+      await t.until(() => probe.running() && (probe.scripted() || probe.cutscene()), 90000, 'train opening');
+      await sleep(600);
+      checkCinematic('level-7 opening');
+      await auditSkipAt(`${innerWidth}x${innerHeight}`);
+      if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+      await t.until(() => controllable(), 8000, 'control after train Skip');
+      t.progress(0.75);
+
+      // Level 8 opening
+      t.event('setup', 'start at level 8');
+      await probe.setupLevel(8);
+      await t.until(() => probe.running() && (probe.scripted() || probe.cutscene()), 90000, 'morning opening');
+      await sleep(600);
+      checkCinematic('level-8 opening');
+      await auditSkipAt(`${innerWidth}x${innerHeight}`);
+      if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+      await sleep(1500);
+      t.progress(0.95);
+
+      if (carried.original === null) localStorage.removeItem(SETTINGS_KEY);
+      else localStorage.setItem(SETTINGS_KEY, carried.original);
+      if (carried.soundOriginal === null) localStorage.removeItem(SOUND_KEY);
+      else localStorage.setItem(SOUND_KEY, carried.soundOriginal);
+      t.progress(1);
+      t.finish(boardSeen ? 'done' : 'stuck');
+    };
+
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
     const b3RetryRun = async () => {
       levelsTotal = 1;
@@ -2913,7 +3147,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
     // A player taps the splash at once; the tap never waits for the load. Scenarios that test the splash or lay the
     // page out themselves tap it in their own run.
-    const ownsSplash = ['sound-settings', 'ui-style', 'load-error', 'screen-mode', 'stuck-recovery', 'objective-marker'];
+    const ownsSplash = ['sound-settings', 'cutscene-ui', 'ui-style', 'load-error', 'screen-mode', 'stuck-recovery', 'objective-marker'];
     if (!ownsSplash.includes(id) && probe.sound().prompt) await tapToPlay();
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'stuck-recovery') {
@@ -2922,6 +3156,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
+      return;
+    }
+    if (id === 'cutscene-ui') {
+      await cutsceneUiRun();
       return;
     }
     if (id === 'screen-mode') {

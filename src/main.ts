@@ -63,6 +63,12 @@ import { installPhPlaytest } from './playtest/phPlaytest';
 import { createFullscreen, createOrientationGuard, screenAttempts, setTestTouch } from './game/screenMode';
 import { createGameAnalytics, type GameAnalytics } from './game/analytics';
 import { onSoundSettings, setSoundSettings, soundSettings } from './game/soundSettings';
+import {
+  gameSettings,
+  onGameSettings,
+  setGameSettings,
+  type SubtitleSize,
+} from './game/gameSettings';
 import type { InventoryItemType, InventoryState, LevelDefinition, ProgressionState, QuestState } from './game/types';
 
 // The load-error card lives in game.html's inline script, so it still shows when this module never runs.
@@ -698,17 +704,27 @@ const isTrainLevel = () => getLevelDefinition(state.level).libraryId === 'the-tr
 /** Level 8, The Morning: Pierce's apartment. `?beat=morning` enters it; Continue after The Train does too. */
 const isMorningLevel = () => getLevelDefinition(state.level).libraryId === 'the-morning';
 
-const cineHud = document.createElement('div');
-cineHud.style.cssText = 'position:absolute;left:0;right:0;bottom:11%;text-align:center;pointer-events:none;z-index:24;display:none;';
-cineHud.innerHTML = '<div style="font-size:11px;letter-spacing:0.28em;text-transform:uppercase;color:#d4b483;margin-bottom:8px;"></div><div style="font-size:18px;color:#f3f1ea;text-shadow:0 2px 16px #000;"></div>';
-root.appendChild(cineHud);
-const cineTitle = cineHud.children[0] as HTMLDivElement;
-const cineText = cineHud.children[1] as HTMLDivElement;
+const cineHud = document.getElementById('cineHud') as HTMLDivElement;
+const cineSpeaker = document.getElementById('cineSpeaker') as HTMLSpanElement;
+const cineText = document.getElementById('cineText') as HTMLSpanElement;
+const skipFill = document.getElementById('skipFill') as HTMLSpanElement | null;
+
+const applyCaptionStyle = () => {
+  const s = gameSettings();
+  cineHud.dataset.size = s.subtitleSize;
+  cineHud.dataset.box = String(s.subtitleBox);
+  cineHud.dataset.off = String(!s.subtitles);
+};
 
 const showCineHud = (title?: string, text?: string) => {
-  cineTitle.textContent = title ?? '';
-  cineText.textContent = text ?? '';
-  cineHud.style.display = title || text ? 'block' : 'none';
+  const speaker = (title ?? '').trim();
+  const line = (text ?? '').trim();
+  cineSpeaker.textContent = speaker;
+  cineSpeaker.hidden = !speaker;
+  cineText.textContent = line;
+  const on = Boolean(speaker || line);
+  cineHud.classList.toggle('on', on);
+  applyCaptionStyle();
 };
 
 const resetCutsceneState = () => {
@@ -1960,9 +1976,15 @@ abilityHint?.addEventListener('click', (event) => {
   abilityHint?.blur();
   switchAbility();
 });
-skipCutsceneBtn?.addEventListener('click', (event) => {
-  event.preventDefault();
-  event.stopPropagation();
+const scenePlaying = () =>
+  (state.inCutscene && !!activeCutscene)
+  || home.playing()
+  || desk.playing()
+  || station.playing()
+  || train.playing()
+  || morning.playing();
+
+const performSkip = () => {
   if (activeCutscene) {
     const finished = activeCutscene;
     cutsceneSkippedAt = finished.time;
@@ -1978,6 +2000,61 @@ skipCutsceneBtn?.addEventListener('click', (event) => {
   else if (train.playing()) train.skip();
   else if (morning.playing()) morning.skip();
   lockGameplayPointer();
+};
+
+/** Desktop: click or Enter. Touch: hold ~0.85 s (fill bar) so a brush past Skip does not end the scene. */
+const SKIP_HOLD_MS = 850;
+let skipHoldTimer: number | null = null;
+let skipHoldStarted = 0;
+/** True after a mouse pointerdown or a finished touch hold so the leftover click does not double-skip. */
+let skipConsumedByHold = false;
+const clearSkipHold = () => {
+  if (skipHoldTimer !== null) {
+    window.clearInterval(skipHoldTimer);
+    skipHoldTimer = null;
+  }
+  skipHoldStarted = 0;
+  if (skipFill) skipFill.style.width = '0%';
+};
+const beginSkipHold = () => {
+  clearSkipHold();
+  skipHoldStarted = performance.now();
+  skipHoldTimer = window.setInterval(() => {
+    const t = (performance.now() - skipHoldStarted) / SKIP_HOLD_MS;
+    if (skipFill) skipFill.style.width = `${Math.min(100, t * 100)}%`;
+    if (t >= 1) {
+      clearSkipHold();
+      skipConsumedByHold = true;
+      performSkip();
+    }
+  }, 40);
+};
+skipCutsceneBtn?.addEventListener('pointerdown', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+    skipConsumedByHold = false;
+    beginSkipHold();
+    return;
+  }
+  // Real mouse pointerdown: skip now; ignore the following click.
+  skipConsumedByHold = true;
+  performSkip();
+});
+skipCutsceneBtn?.addEventListener('pointerup', (event) => {
+  if (event.pointerType === 'touch' || event.pointerType === 'pen') clearSkipHold();
+});
+skipCutsceneBtn?.addEventListener('pointerleave', clearSkipHold);
+skipCutsceneBtn?.addEventListener('pointercancel', clearSkipHold);
+skipCutsceneBtn?.addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  // Playtest `press()` and some browsers only fire click (no pointerdown). Touch hold already skipped.
+  if (skipConsumedByHold) {
+    skipConsumedByHold = false;
+    return;
+  }
+  performSkip();
 });
 shadowHint?.addEventListener('click', (event) => {
   event.preventDefault();
@@ -3621,11 +3698,17 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
     if (settingsOpen()) closeSettings();
     else if (isPaused()) setPaused(false);
-    else setPaused(true);
+    else if (!scenePlaying()) setPaused(true);
     return;
   }
   // While paused or in Settings, keys belong to the menu.
   if (isPaused() || settingsOpen()) return;
+  // Desktop skip key during a scene (touch holds the Skip button instead).
+  if (event.key === 'Enter' && state.running && scenePlaying() && skipCutsceneBtn && !skipCutsceneBtn.hidden) {
+    event.preventDefault();
+    performSkip();
+    return;
+  }
   const key = event.key.toLowerCase();
   if (key === 'w' || key === 'arrowup') state.input.forward = true;
   if (key === 's' || key === 'arrowdown') state.input.backward = true;
@@ -4014,6 +4097,24 @@ const musicVolume = document.getElementById('musicVolume') as HTMLInputElement;
 const sfxVolume = document.getElementById('sfxVolume') as HTMLInputElement;
 const musicVolumeOut = document.getElementById('musicVolumeOut') as HTMLOutputElement;
 const sfxVolumeOut = document.getElementById('sfxVolumeOut') as HTMLOutputElement;
+const invertYSwitch = document.getElementById('invertYSwitch') as HTMLButtonElement;
+const mouseSens = document.getElementById('mouseSens') as HTMLInputElement;
+const touchSens = document.getElementById('touchSens') as HTMLInputElement;
+const mouseSensOut = document.getElementById('mouseSensOut') as HTMLOutputElement;
+const touchSensOut = document.getElementById('touchSensOut') as HTMLOutputElement;
+const subsSwitch = document.getElementById('subsSwitch') as HTMLButtonElement;
+const subsSize = document.getElementById('subsSize') as HTMLInputElement;
+const subsSizeOut = document.getElementById('subsSizeOut') as HTMLOutputElement;
+const subsBoxSwitch = document.getElementById('subsBoxSwitch') as HTMLButtonElement;
+
+const SUB_SIZE_LABELS: SubtitleSize[] = ['sm', 'md', 'lg'];
+const SUB_SIZE_WORDS = ['Small', 'Medium', 'Large'];
+
+const applyLookFromSettings = () => {
+  const s = gameSettings();
+  followCamera.setLookOptions({ invertY: s.invertY, mouseScale: s.mouseSens, stickScale: s.touchSens });
+  applyCaptionStyle();
+};
 
 const renderSoundSettings = () => {
   const settings = soundSettings();
@@ -4025,8 +4126,36 @@ const renderSoundSettings = () => {
   musicVolumeOut.textContent = `${musicVolume.value}%`;
   sfxVolumeOut.textContent = `${sfxVolume.value}%`;
 };
-renderSoundSettings();
+
+const renderGameSettings = () => {
+  const s = gameSettings();
+  invertYSwitch.setAttribute('aria-checked', String(s.invertY));
+  invertYSwitch.textContent = s.invertY ? 'On' : 'Off';
+  mouseSens.value = String(Math.round(s.mouseSens * 100));
+  touchSens.value = String(Math.round(s.touchSens * 100));
+  mouseSensOut.textContent = `${(s.mouseSens).toFixed(1)}×`;
+  touchSensOut.textContent = `${(s.touchSens).toFixed(1)}×`;
+  subsSwitch.setAttribute('aria-checked', String(s.subtitles));
+  subsSwitch.textContent = s.subtitles ? 'On' : 'Off';
+  settingsRows.dataset.subsOff = String(!s.subtitles);
+  const sizeIdx = Math.max(0, SUB_SIZE_LABELS.indexOf(s.subtitleSize));
+  subsSize.value = String(sizeIdx);
+  subsSizeOut.textContent = SUB_SIZE_WORDS[sizeIdx];
+  subsBoxSwitch.setAttribute('aria-checked', String(s.subtitleBox));
+  subsBoxSwitch.textContent = s.subtitleBox ? 'On' : 'Off';
+};
+
+const renderSettings = () => {
+  renderSoundSettings();
+  renderGameSettings();
+};
+renderSettings();
 onSoundSettings(renderSoundSettings);
+onGameSettings(() => {
+  renderGameSettings();
+  applyLookFromSettings();
+});
+applyLookFromSettings();
 
 soundSwitch.addEventListener('click', () => {
   setSoundSettings({ on: !soundSettings().on });
@@ -4041,13 +4170,35 @@ sfxVolume.addEventListener('input', () => {
 // A short tick at the new level, so the slider is heard as it moves.
 sfxVolume.addEventListener('change', () => audio.tone(660, 0.09, 'sine', 0.05));
 
+invertYSwitch.addEventListener('click', () => {
+  setGameSettings({ invertY: !gameSettings().invertY });
+  analytics?.setting('invertY', gameSettings().invertY ? 'on' : 'off');
+});
+mouseSens.addEventListener('input', () => setGameSettings({ mouseSens: Number(mouseSens.value) / 100 }));
+mouseSens.addEventListener('change', () => analytics?.setting('mouseSens', Number(mouseSens.value)));
+touchSens.addEventListener('input', () => setGameSettings({ touchSens: Number(touchSens.value) / 100 }));
+touchSens.addEventListener('change', () => analytics?.setting('touchSens', Number(touchSens.value)));
+subsSwitch.addEventListener('click', () => {
+  setGameSettings({ subtitles: !gameSettings().subtitles });
+  analytics?.setting('subtitles', gameSettings().subtitles ? 'on' : 'off');
+});
+subsSize.addEventListener('input', () => {
+  const idx = Math.max(0, Math.min(2, Number(subsSize.value) | 0));
+  setGameSettings({ subtitleSize: SUB_SIZE_LABELS[idx] });
+});
+subsSize.addEventListener('change', () => analytics?.setting('subtitleSize', gameSettings().subtitleSize));
+subsBoxSwitch.addEventListener('click', () => {
+  setGameSettings({ subtitleBox: !gameSettings().subtitleBox });
+  analytics?.setting('subtitleBox', gameSettings().subtitleBox ? 'on' : 'off');
+});
+
 const settingsOpen = () => !settingsMenu.hidden;
 const openSettings = () => {
   analytics?.screen(state.running ? 'settings-pause' : 'settings-title');
-  renderSoundSettings();
+  renderSettings();
   settingsMenu.hidden = false;
   unlockPointer();
-  soundSwitch.focus({ preventScroll: true });
+  invertYSwitch.focus({ preventScroll: true });
 };
 const closeSettings = () => {
   if (!settingsMenu.hidden) analytics?.screen(paused ? 'pause' : state.running ? 'level' : 'title');
@@ -4255,15 +4406,23 @@ const applyCarSway = () => {
 /** Skip shows whenever a cutscene or a scripted scene runs. Also called when a scene starts, so it is there from the first frame. */
 const syncSkipButton = () => {
   if (!skipCutsceneBtn) return;
-  const canSkip = state.running && ((state.inCutscene && !!activeCutscene) || home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing());
+  const canSkip = state.running && scenePlaying();
   skipCutsceneBtn.hidden = !canSkip;
+  if (!canSkip) clearSkipHold();
+};
+
+/** Letterbox + HUD fade while a cutscene or scripted scene (lobby, desk, station, train, morning TV) plays. */
+const syncCinematic = (on: boolean) => {
+  document.body.classList.toggle('cinematic', on);
+  if (!on) clearSkipHold();
 };
 
 const renderLoop = () => {
   if (contextLost) return;
   // Pause (and the rest of the HUD via CSS) stay down while the chapter card is held or crossfading —
-  // never over the black veil between card and world (f_b5c2f6c070b4).
-  pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden') && !chapterCard.showing());
+  // never over the black veil between card and world (f_b5c2f6c070b4). Hidden again during cinematic scenes.
+  const cineNow = state.running && scenePlaying();
+  pauseBtn.hidden = !(state.running && !paused && messageBox.classList.contains('hidden') && !chapterCard.showing() && !cineNow);
   if (paused) {
     // Hold the frame: no story, camera or cutscene time passes until Resume.
     scene.render();
@@ -4276,7 +4435,8 @@ const renderLoop = () => {
     defeatLeft = Math.max(0, defeatLeft - delta);
     if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
   }
-  const cine = state.inCutscene || home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing();
+  const cine = cineNow;
+  syncCinematic(cine);
   updateMinimap(delta);
   dressing.step(delta);
   if (wasInCutscene && !cine) lockGameplayPointer();
@@ -4754,8 +4914,17 @@ installPhPlaytest({
     newGame: newGameBtn.style.display !== 'none',
   }),
   subtitle: () => ({
-    speaker: cineTitle.textContent ?? '',
-    text: cineHud.style.display === 'none' ? '' : cineText.textContent ?? '',
+    speaker: cineSpeaker.hidden ? '' : cineSpeaker.textContent ?? '',
+    text: cineHud.classList.contains('on') && cineHud.dataset.off !== 'true' ? cineText.textContent ?? '' : '',
+  }),
+  cinematic: () => ({
+    on: document.body.classList.contains('cinematic'),
+    letterbox: Boolean(document.getElementById('letterboxTop')),
+    skipBottom: (() => {
+      if (!skipCutsceneBtn || skipCutsceneBtn.hidden) return false;
+      const r = skipCutsceneBtn.getBoundingClientRect();
+      return r.top > innerHeight * 0.55;
+    })(),
   }),
   creature: () => {
     const at = act.aimPoint();
@@ -4890,6 +5059,7 @@ installPhPlaytest({
     bedPlaying: musicTriggerPlayer.playing(),
     footsteps: Boolean(walkLoop && !walkLoop.done()),
   }),
+  playSettings: () => gameSettings(),
 });
 
 // The module ran: from here on, load failures are caught above (boot, Start) and by the load timeout.
