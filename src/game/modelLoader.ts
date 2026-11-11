@@ -507,7 +507,7 @@ const MODEL_RETRY_DELAYS = [400, 1200, 3000];
  * dispose it. That compiles any remaining materials and warms the instantiate path so a mid-level
  * spawn (dressing that arrives late, a cutscene prop) does not hitch on first use.
  */
-export const warmPropSources = async (scene: BABYLON.Scene, deadline: number): Promise<number> => {
+export const warmPropSources = async (scene: BABYLON.Scene, deadline: number, shouldStop: () => boolean = () => false): Promise<number> => {
   const map = propSources.get(scene);
   if (!map || map.size === 0) return 0;
   let warmed = 0;
@@ -515,10 +515,10 @@ export const warmPropSources = async (scene: BABYLON.Scene, deadline: number): P
   root.setEnabled(false);
   try {
     for (const [path, pending] of map) {
-      if (performance.now() >= deadline) break;
+      if (shouldStop() || performance.now() >= deadline) break;
       try {
         const source = await pending;
-        if (performance.now() >= deadline) break;
+        if (shouldStop() || performance.now() >= deadline) break;
         const prefix = `warm_${++instanceSeq}_`;
         const entries = source.instantiateModelsToScene((name) => `${prefix}${name}`, true, { doNotInstantiate: true });
         for (const node of entries.rootNodes) {
