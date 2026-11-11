@@ -291,6 +291,8 @@ export const createPhone = (
   let handMesh: BABYLON.AbstractMesh | null = null;
 
   let scannedMeshes = -1;
+  let scannedAvatar: PlayerAvatar | null = null;
+  let scannedAvatarMeshes = -1;
 
   const rememberExcluded = (mesh: BABYLON.AbstractMesh | null | undefined) => {
     if (!mesh || excludedSet.has(mesh)) return false;
@@ -302,7 +304,11 @@ export const createPhone = (
   const syncExcluded = () => {
     let grew = false;
     const avatar = boundAvatar;
-    if (avatar) {
+    // `getChildMeshes` builds a new array: walk the avatar only when the scene's mesh list changed (or the avatar did),
+    // not on every rendered frame.
+    if (avatar && (avatar !== scannedAvatar || scene.meshes.length !== scannedAvatarMeshes)) {
+      scannedAvatar = avatar;
+      scannedAvatarMeshes = scene.meshes.length;
       for (const mesh of avatar.group.getChildMeshes(false)) {
         if (rememberExcluded(mesh)) grew = true;
       }

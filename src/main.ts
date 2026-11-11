@@ -482,8 +482,43 @@ const meshesNotReady = () => {
   return names;
 };
 
-/** Share of 32×18 canvas samples brighter than near-black. Used to hold the chapter card over an empty frame. */
+/** Reused by `sampleWorldLitShare`: one 4×4 RGBA patch. */
+const litPatch = new Uint8Array(4 * 4 * 4);
+/**
+ * Share of an 8×5 grid of 4×4 pixel patches brighter than near-black. Used to hold the chapter card over an empty
+ * frame. It reads forty tiny patches from the framebuffer right after the frame renders; the old version drew the whole
+ * canvas into a 2D canvas and read that back, a full-frame GPU→CPU copy that is a long frame on a slow GPU.
+ */
 const sampleWorldLitShare = () => new Promise<number>((resolve) => {
+  scene.onAfterRenderObservable.addOnce(() => {
+    void (async () => {
+      try {
+        const w = engine.getRenderWidth();
+        const h = engine.getRenderHeight();
+        if (w < 8 || h < 8) { resolve(1); return; }
+        const cols = 8;
+        const rows = 5;
+        let lit = 0;
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = Math.min(w - 4, Math.floor(((c + 0.5) / cols) * w) - 2);
+            const y = Math.min(h - 4, Math.floor(((r + 0.5) / rows) * h) - 2);
+            await engine.readPixels(Math.max(0, x), Math.max(0, y), 4, 4, true, true, litPatch);
+            let sum = 0;
+            for (let i = 0; i < 64; i += 4) sum += litPatch[i] + litPatch[i + 1] + litPatch[i + 2];
+            if (sum / 16 > 36) lit++;
+          }
+        }
+        resolve(lit / (cols * rows));
+      } catch {
+        resolve(0);
+      }
+    })();
+  });
+});
+
+/** Share of 32×18 canvas samples brighter than near-black: the whole-canvas read, used only to confirm a dark frame. */
+const sampleWorldLitShareFull = () => new Promise<number>((resolve) => {
   scene.onAfterRenderObservable.addOnce(() => {
     try {
       const c = document.createElement('canvas');
@@ -501,6 +536,12 @@ const sampleWorldLitShare = () => new Promise<number>((resolve) => {
     }
   });
 });
+
+/** Patch read first (cheap); only a frame that reads dark gets the slow whole-canvas check, so a patch read that sees nothing cannot hold the card. */
+const worldLitShare = async () => {
+  const quick = await sampleWorldLitShare();
+  return quick >= WORLD_LIT_MIN ? quick : sampleWorldLitShareFull();
+};
 
 /** Minimum lit share before the chapter card may lift (matches the transition playtest). */
 const WORLD_LIT_MIN = 0.03;
@@ -555,7 +596,7 @@ const revealFromBlack = (alive: () => boolean, source: 'boot' | 'start' = 'start
         show(meshShadersReady() ? 'ready' : 'cap');
         return;
       }
-      const lit = await sampleWorldLitShare();
+      const lit = await worldLitShare();
       if (shown || !alive()) return;
       if (lit >= WORLD_LIT_MIN) {
         show('ready');
@@ -4931,7 +4972,7 @@ installPhPlaytest({
   },
   chapter: () => chapterCard.view(),
   hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
-  worldLuma: () => sampleWorldLitShare(),
+  worldLuma: () => worldLitShare(),
   menu: () => ({
     open: !messageBox.classList.contains('hidden'),
     title: messageTitle.textContent ?? '',

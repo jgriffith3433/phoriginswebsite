@@ -261,7 +261,7 @@ const isOccluderMesh = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.Abstract
 };
 
 /** Discrete props / door GLBs only — never the merged `interior-dress` kit (one mesh = whole floor). */
-const isFadeCandidate = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.AbstractMesh>) => {
+export const isFadeCandidate = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.AbstractMesh>) => {
   if (!isOccluderMesh(mesh, ignore)) return false;
   const meta = mesh.metadata as { noCameraFade?: boolean } | undefined;
   if (meta?.noCameraFade) return false;
