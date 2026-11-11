@@ -31,7 +31,7 @@ export type DeskHost = {
   refreshHud: () => void;
 };
 
-const MIRROR = { x: 19.05, z: 28.15, yaw: Math.PI / 2 };
+const MIRROR = { x: 18.65, z: 28.15, yaw: Math.PI / 2 };
 const DESK = { x: 48.05, z: 41.22, yaw: 0 };
 const CAB = { x: 44.15, z: 25.55, yaw: Math.PI };
 /** Night security on the radio, in the gaps between Pierce's lines (seconds into the walk). Skipped until voiced. */

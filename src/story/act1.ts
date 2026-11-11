@@ -129,7 +129,7 @@ const RETURN_BRIGHT: AsideLine[] = [
   { id: 'dialogue.return.lamps', duration: 4.37 },
 ];
 const BATH_DOOR = { x: 18, z: 30.35 };
-const MIRROR_STAND = { x: 19.05, z: 28.15, yaw: Math.PI / 2 };
+const MIRROR_STAND = { x: 18.65, z: 28.15, yaw: Math.PI / 2 };
 const MIRROR_GLASS = { x: 20.22, y: 1.5, z: 28.15 };
 const LAB_DOOR_L_CLOSED = 36.95;
 const LAB_DOOR_R_CLOSED = 39.05;
