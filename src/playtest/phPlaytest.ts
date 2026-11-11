@@ -686,6 +686,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['level', 'story'],
       },
       {
+        id: 'world-events',
+        title: 'Levels 1, 3, 5, 6 and 8: each chapter ends on one in-world event under 8 s (voice and SFX), Skip works, HUD and touch controls fade, one caption line, the end card crawls at most 3 lines',
+        description: 'Plays levels 1, 3, 5 and 6 as level-N does (laid out as a 390x844 touch phone unless options.phone is false), then level 8. When End Level is pressed the chapter\'s ending event (cutscenes/finale-N.json: the board hush in the cab, the practicals coming on, the tower going dark, the departure board flipping, the TV report) must start; the bot logs it (world-event), checks it is under 8 s, that body.cinematic hides the HUD and touch controls, that the caption is one line, presses Skip, and counts the lines the Level Complete card crawls (at most 3). Lines use silent placeholder clips until Hawkes Gen makes the voices.',
+        seconds: 1500,
+        tags: ['level', 'story'],
+      },
+      {
         id: 'level-8-release',
         title: 'The Train Continue enters The Morning; the whole of level 8 follows',
         description: 'Plays The Train (as level-7) to its card, checks Continue and Load Level list level 8, presses Continue and plays The Morning as level-8 does.',
@@ -852,6 +859,47 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       button.click();
       t.add('interactions');
       t.log(`click ${label}`);
+    };
+    /**
+     * Chapters 1, 3, 5, 6 and 8 end on one in-world event (cutscenes/finale-N.json) when End Level is pressed:
+     * it must play under 8 s with the cinematic HUD (touch controls and HUD hidden, one caption line), Skip must
+     * work, and the card that follows may crawl at most three lines.
+     */
+    const observeFinale = async (level: number) => {
+      if (![1, 3, 5, 6, 8].includes(level)) return;
+      const doc = document;
+      const started = performance.now();
+      while (performance.now() - started < 5000 && !(probe.cutscene()?.id ?? '').startsWith('finale-')) await sleep(100);
+      const scene = probe.cutscene();
+      if (!scene || !scene.id.startsWith('finale-')) {
+        t.problem('bug', `level ${level}: End Level did not play its ending event`);
+        return;
+      }
+      t.event('world-event', `${scene.id} plays (${scene.duration.toFixed(1)} s)`);
+      if (scene.duration >= 8) t.problem('bug', `${scene.id} runs ${scene.duration.toFixed(1)} s (limit 8)`);
+      await sleep(1800);
+      if (!doc.body.classList.contains('cinematic')) t.problem('bug', `${scene.id}: the HUD and touch controls are not faded out (body.cinematic missing)`);
+      for (const name of ['healthBar', 'pauseBtn', 'leftStickZone', 'rightStickZone', 'fireBtn', 'jumpBtn', 'interactBtn']) {
+        const el = doc.getElementById(name);
+        if (!el) continue;
+        const cs = getComputedStyle(el);
+        if (cs.display !== 'none' && cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05) t.problem('bug', `${scene.id}: #${name} is still visible during the event`);
+      }
+      const caption = doc.getElementById('cineText');
+      const lines = Math.round((caption?.getBoundingClientRect().height ?? 0) / Math.max(1, parseFloat(getComputedStyle(caption ?? doc.body).lineHeight) || 20));
+      t.event('world-event-caption', `"${(caption?.textContent ?? '').trim()}" (${lines} line${lines === 1 ? '' : 's'})`);
+      if ((caption?.textContent ?? '').trim() && lines > 1) t.problem('bug', `${scene.id}: the caption wraps to ${lines} lines`);
+      const skip = probe.skipButton;
+      if (!skip || skip.hidden) t.problem('bug', `${scene.id}: Skip is not shown during the event`);
+      else press(skip, 'Skip (world event)');
+      const ended = performance.now();
+      while (performance.now() - ended < 4000 && (doc.getElementById('messageTitle')?.textContent ?? '') !== 'Level Complete') await sleep(100);
+      if ((doc.getElementById('messageTitle')?.textContent ?? '') !== 'Level Complete') t.problem('bug', `${scene.id}: Skip did not lead to the Level Complete card`);
+      else {
+        const crawl = doc.querySelectorAll('#levelCredits .credit-roll p').length;
+        t.event('crawl-lines', `level ${level} card crawl: ${crawl} lines`);
+        if (crawl > 3) t.problem('bug', `level ${level}: the end card crawls ${crawl} lines (limit 3)`);
+      }
     };
     const full = id === 'full';
     const smokeN = Number(/^smoke-l([1-8])$/.exec(id)?.[1] ?? 0);
@@ -1703,7 +1751,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             if (optional) touchedLabels.add(label);
             levelSteps += 1;
             mark();
-            if (label === 'End Level') endPressed = true;
+            if (label === 'End Level') { endPressed = true; await observeFinale(n); }
           }
           continue;
         }
@@ -3618,6 +3666,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               t.event('end-level', `offered on beat ${endBeat || 'unknown'}`);
               if (endBeat !== 'done') t.problem('bug', `End Level showed before the story finished (beat ${endBeat || 'none'})`);
               endPressed = true;
+              await observeFinale(8);
             }
           }
           continue;
@@ -5138,6 +5187,23 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         t.event('stuck', e.message);
         finishLevelRun('stuck');
       }
+      return;
+    }
+
+    if (id === 'world-events') {
+      // Levels 1, 3, 5, 6 and 8: each chapter's ending event, as a 390x844 touch phone unless options.phone is false.
+      if (options.phone !== false) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(300); }
+      levelsTotal = 5;
+      let outcome: Outcome = 'won';
+      for (const n of [1, 3, 5, 6]) {
+        await enterLevel(n);
+        outcome = await playLevel(n);
+        levelIndex += 1;
+        if (outcome !== 'won' && outcome !== 'done') break;
+      }
+      if (outcome === 'won' || outcome === 'done') outcome = await morningRun(true).catch(() => 'lost' as Outcome);
+      t.progress(1);
+      t.finish(outcome);
       return;
     }
 

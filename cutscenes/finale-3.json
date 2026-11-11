@@ -1,0 +1,131 @@
+{
+  "id": "finale-3",
+  "name": "The lights come on",
+  "duration": 7.2,
+  "reequip": false,
+  "notes": "Pierce at the mirror. The dead practicals come on one by one; Hale is already telling the investors he walked out; he knows what they will not hear.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": {
+        "x": 1.1,
+        "y": 1.65,
+        "z": -1.5
+      },
+      "lookAt": {
+        "x": 0,
+        "y": 1.45,
+        "z": 0.9
+      },
+      "rel": true
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0,
+      "type": "light",
+      "target": "light-bath",
+      "on": false
+    },
+    {
+      "at": 0,
+      "type": "light",
+      "target": "light-h2-a",
+      "on": false
+    },
+    {
+      "at": 0,
+      "type": "light",
+      "target": "light-h2-b",
+      "on": false
+    },
+    {
+      "at": 0,
+      "type": "light",
+      "target": "light-h2-c",
+      "on": false
+    },
+    {
+      "at": 0.8,
+      "type": "light",
+      "target": "light-bath",
+      "on": true
+    },
+    {
+      "at": 0.8,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/troffer-flicker.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 1.5,
+      "type": "light",
+      "target": "light-h2-a",
+      "on": true
+    },
+    {
+      "at": 1.5,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/troffer-flicker.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.4
+    },
+    {
+      "at": 2.2,
+      "type": "light",
+      "target": "light-h2-b",
+      "on": true
+    },
+    {
+      "at": 2.2,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/troffer-flicker.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.4
+    },
+    {
+      "at": 2.9,
+      "type": "light",
+      "target": "light-h2-c",
+      "on": true
+    },
+    {
+      "at": 2.9,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/troffer-flicker.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.4
+    },
+    {
+      "at": 1,
+      "type": "line",
+      "duration": 2.8,
+      "volume": 0.8,
+      "line": "dialogue.finale-3.01"
+    },
+    {
+      "at": 4.4,
+      "type": "line",
+      "duration": 2.2,
+      "volume": 0.92,
+      "line": "dialogue.finale-3.02",
+      "actor": "pierce",
+      "anim": "idle"
+    },
+    {
+      "at": 7.2,
+      "type": "end"
+    }
+  ]
+}
