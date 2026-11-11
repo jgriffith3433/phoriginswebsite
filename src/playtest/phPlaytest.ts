@@ -127,6 +127,8 @@ export type PhProbe = {
   acid: () => { active: boolean; t: number; falls: number; swapped: boolean; lag: number; drift: number; speed: number; locked: boolean; flashlight: boolean; skipShown: boolean; x: number; z: number; yaw: number };
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
+  /** Test shortcut (`living-places`): show the running level's Level Complete card now. */
+  showLevelComplete: () => boolean;
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
   counts: () => SceneCounts;
   /** Test setup: lay the page out as a 390x844 phone (for a desktop viewport). */
@@ -1541,6 +1543,40 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return quiet <= 10 ? 'done' : 'lost';
     };
 
+    /** The run goal: the Missions panel names the reward while the level is open, and Level Complete pays rank + tool and ends on a hook. */
+    const rewardGoalCheck = async (phone: boolean) => {
+      const text = (el: Element | null) => (el?.textContent ?? '').trim().replace(/\s+/g, ' ');
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      t.scene('Run goal: Missions panel');
+      await tapAt(byId('missionsHint'), 'Missions');
+      await sleep(500);
+      const goal = document.getElementById('missionGoal');
+      const goalText = text(goal);
+      t.event('run-goal', `Missions panel shows: ${goalText}`);
+      if (!goal || !shown(goal) || goalText.length < 20) t.problem('bug', `run goal: the Missions panel shows no reward line (${goalText})`);
+      if (RAW_KEY.test(goalText)) t.problem('bug', 'run goal: raw locale id in the Missions panel');
+      await tapAt(byId('missionsClose'), 'Close missions');
+      await sleep(300);
+      t.scene('Run goal: Level Complete reward');
+      if (!probe.showLevelComplete()) { t.problem('bug', 'run goal: could not show the Level Complete card'); return; }
+      await sleep(1500);
+      const card = document.getElementById('rewardEntry');
+      const rows = [...(card?.querySelectorAll('.reward-row') ?? [])].map((r) => text(r));
+      const hook = text(card?.querySelector('.reward-hook') ?? null);
+      t.event('reward', `${rows.join(' | ')} || hook: ${hook}`);
+      if (card) (card as HTMLElement).style.outline = `2px solid ${shown(card) ? '#d4b483' : '#ff4d4d'}`;
+      if (!card || !shown(card) || rows.length < 2) t.problem('bug', `run goal: Level Complete shows no rank and unlocked tool (${rows.join(' | ')})`);
+      if (hook.length < 20) t.problem('bug', 'run goal: Level Complete ends with no hook into the next level');
+      if (RAW_KEY.test(`${rows.join(' ')} ${hook}`)) t.problem('bug', 'run goal: raw locale id on the reward block');
+      if (phone) {
+        const scrollW = document.documentElement.scrollWidth;
+        if (scrollW > window.innerWidth + 1) t.problem('bug', `run goal: Level Complete scrolls sideways on the phone (${scrollW} > ${window.innerWidth})`);
+        const small = [...document.querySelectorAll<HTMLElement>('#messageBox .button-row button')].filter((b) => shown(b) && b.getBoundingClientRect().height < 44);
+        if (small.length) t.problem('bug', `run goal: ${small.length} card buttons under 44 px`);
+      }
+      t.metric('runGoalShown', 1);
+    };
+
     /** The 58th floor, the station and the train lived in: footsteps per foot plant, people on routines who look at Pierce, touchables that answer Interact. */
     const livingPlacesRun = async (): Promise<Outcome> => {
       levelsTotal = 3;
@@ -1619,6 +1655,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         worstQuiet = Math.max(worstQuiet, quiet);
         t.metric(`quality.maxQuietSeconds.${where.place}`, quiet);
         if (quiet > 10) t.problem('bug', `quality.quiet-gap: ${where.name} quiet stretch ${quiet}s (limit 10)`);
+        if (where.place === 'apex') await rewardGoalCheck(phone);
         for (const st of sound.steps ?? []) stepsSeen.push({ surface: st.surface, variant: st.variant });
         t.add('levels');
         done += 1;
