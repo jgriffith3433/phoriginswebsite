@@ -671,7 +671,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'hitch-board',
         title: 'Level 1 spawn to board table with named hitch causes; phone sample of levels 1, 4 and 8',
-        description: 'Starts level 1 with Start (chapter card up while first-use warm runs), logs the warm event, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
+        description: 'Starts level 1 with Start (chapter card up while first-use warm runs and awaits audio decode), logs the warm event, resets the frame trace once Pierce can walk, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, resets the trace after control, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
         seconds: 240,
         tags: ['smoke', 'perf', 'level'],
       },
@@ -2962,9 +2962,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         prevEmit?.(type, detail);
       };
 
-      frameTrace.reset();
       t.scene('L1 desktop');
       await enterLevel(1);
+      // Grace and hitchFailOver100 start when Pierce can walk — not during the chapter card / warm.
+      // (A reset before enterLevel let the 1 s grace expire under the card, so the first play frames failed.)
+      frameTrace.reset();
       // Chapter card + warm already finished inside enterLevel / Start.
       if (warmMs > 6100) t.problem('bug', `chapter warm held Start for ${warmMs} ms (cap ~4600+1500)`);
       t.event('play', 'spawn to board');
@@ -3022,10 +3024,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let phoneFail = 0;
       for (const n of [1, 4, 8]) {
         levelIndex = n;
-        frameTrace.reset();
         t.scene(`L${n} phone`);
         t.event('setup', `hitch-board phone level ${n}`);
         await enterLevel(n);
+        // Grace after control, not under the chapter card.
+        frameTrace.reset();
         await sleep(1200);
         const walkUntil = performance.now() + 4500;
         while (performance.now() < walkUntil) {
@@ -3344,11 +3347,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       levelsTotal = 16; // 8 levels × desktop + phone
       const sampleLevel = async (n: number, device: 'desktop' | 'phone') => {
         levelIndex = (device === 'phone' ? 8 : 0) + (n - 1);
-        frameTrace.reset();
         t.scene(`L${n} ${device}`);
         t.event('setup', `frame-trace level ${n} on ${device}`);
         if (n === 7) await probe.setupHidden('the-train');
         else await enterLevel(n);
+        // Grace after Pierce can walk — chapter card / warm must not burn the first second.
+        frameTrace.reset();
         // Let the first-second grace pass, then walk a few seconds so frames accumulate.
         await sleep(1200);
         const until = performance.now() + 4500;
@@ -3550,7 +3554,6 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       // Beta only runs smoke: cover hitch-board's L1 work-time hitch bar and transition's black-frame check here
       // so a smoke-only beta run can judge those tasks (m_98ce28cc5577).
       levelsTotal = 17; // L1 board + transition samples (L1 already counted, then L2-8 desktop + L1-8 phone = 15) ≈ progress steps
-      frameTrace.reset();
       // Start L1: wait for the chapter card (Start path), sample black-frame, then walk.
       // Do not soft-skip if the card is late — that was the live path the level-start task needed.
       {
@@ -3565,6 +3568,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           await tick();
         }
       }
+      // Hitch grace starts once Pierce can walk (same rule as hitch-board).
+      frameTrace.reset();
       t.scene(LEVELS[0].name);
       t.event('level-start', LEVELS[0].name);
       await measureLook();
@@ -4095,6 +4100,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           outcome = await trainStoryRun(true);
         } else {
           await enterLevel(smokeN);
+          // Hitch grace after control (chapter card / warm excluded).
+          frameTrace.reset();
           outcome = await playLevel(smokeN);
         }
         finishLevelRun(outcome);

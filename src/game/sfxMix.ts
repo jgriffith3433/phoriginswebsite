@@ -163,6 +163,34 @@ export const preloadClips = (urls: Iterable<string>) => {
   }
 };
 
+/**
+ * Same as preloadClips, but waits until each buffer is decoded (or `deadline` passes).
+ * Behind the chapter card this keeps phone / cutscene / door first-play off the walk frames.
+ * Past the deadline, leftover URLs still kick off (fire-and-forget) so decode continues under
+ * the warm's level-setup mark instead of the first mid-walk play.
+ */
+export const preloadClipsReady = async (urls: Iterable<string>, deadline = Infinity): Promise<number> => {
+  const ctx = getSharedAudioContext();
+  if (!ctx) return 0;
+  const list = [...new Set([...urls].filter(Boolean).map(clean))];
+  if (!list.length) return 0;
+  let done = 0;
+  let i = 0;
+  for (; i < list.length; i += 1) {
+    if (performance.now() >= deadline) break;
+    const url = list[i]!;
+    try {
+      await loadBuffer(url, ctx);
+      done += 1;
+    } catch { /* best effort */ }
+  }
+  // Kick the rest so they are at least fetching/decoding before the walk.
+  for (; i < list.length; i += 1) {
+    void loadBuffer(list[i]!, ctx).catch(() => {});
+  }
+  return done;
+};
+
 export type ClipHandle = {
   setVolume: (volume: number, ramp?: number) => void;
   stop: (fade?: number) => void;
