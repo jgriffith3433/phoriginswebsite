@@ -37,7 +37,7 @@ import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './ga
 import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
-import { createAct1, type Act1, type StoryCarry } from './story/act1';
+import { createAct1, type Act1, type ImpairState, type StoryCarry } from './story/act1';
 import { createFootsteps, surfaceFor, stepUrls } from './game/footsteps';
 import { createApexSlice, type ApexSlice } from './story/apexSlice';
 import { createApexLife } from './story/apexLife';
@@ -2032,7 +2032,12 @@ const scenePlaying = () =>
   || train.playing()
   || morning.playing();
 
+const acidSkippable = () => state.running && act.acidActive() && act.vatSeen() && act.acidTime() > 1;
 const performSkip = () => {
+  if (!activeCutscene && acidSkippable()) {
+    act.skipAcid();
+    return;
+  }
   if (activeCutscene) {
     const finished = activeCutscene;
     cutsceneSkippedAt = finished.time;
@@ -2395,6 +2400,68 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   followCamera.reset();
 };
 
+/** The acid in the vat break bends the controls (act1.ts `stepAcid`). Null is normal control. */
+let impair: ImpairState | null = null;
+const impairLog: Array<{ at: number; x: number; y: number }> = [];
+const setImpair = (next: ImpairState | null) => {
+  impair = next;
+  if (!next) impairLog.length = 0;
+};
+/** Delayed input: the stick as it was `lag` seconds ago. */
+const lagInput = (moveX: number, moveZ: number, lag: number) => {
+  const now = performance.now();
+  impairLog.push({ at: now, x: moveX, y: moveZ });
+  const cutoff = now - 1200;
+  while (impairLog.length > 1 && impairLog[0].at < cutoff) impairLog.shift();
+  const want = now - lag * 1000;
+  let pick = impairLog[0];
+  for (const row of impairLog) {
+    if (row.at <= want) pick = row;
+    else break;
+  }
+  return { moveX: pick.x, moveZ: pick.y };
+};
+
+/** Hunt retry: the creature downs Pierce, a 0.6 s red fade, back at the room's checkpoint. No card, no reload. */
+const RETRY_FADE = 0.6;
+let retryLeft = 0;
+let retryStartedAt = 0;
+let retryRespawned = false;
+const huntStats = { huntRetries: 0, retrySeconds: [] as number[], lastRetrySeconds: 0 };
+(window as unknown as { __phHunt?: typeof huntStats }).__phHunt = huntStats;
+const startHuntRetry = () => {
+  retryLeft = RETRY_FADE + 0.35;
+  retryRespawned = false;
+  retryStartedAt = performance.now();
+  huntStats.huntRetries += 1;
+  clearInputState();
+  playerAvatar.playClip('fallingdown', false, 1.4);
+  audio.play('/assets/audio/sfx/creature/wound.wav', 0.62);
+  screenFade.setColor('#4a0508');
+  screenFade.to(1, RETRY_FADE);
+  analytics?.feature('hunt-retry');
+};
+const stepHuntRetry = (delta: number) => {
+  if (retryLeft <= 0) return;
+  retryLeft = Math.max(0, retryLeft - delta);
+  if (!retryRespawned && retryLeft <= 0.35) {
+    retryRespawned = true;
+    const spot = act.huntRetry();
+    state.health = MAX_HEALTH;
+    state.lastDamageAt = performance.now();
+    placePierce(spot.x, spot.z, spot.yaw);
+    playerAvatar.resumeLocomotion();
+    updateHud();
+    screenFade.to(0, 0.35);
+  }
+  if (retryLeft <= 0) {
+    screenFade.setColor('');
+    const seconds = (performance.now() - retryStartedAt) / 1000;
+    huntStats.lastRetrySeconds = seconds;
+    huntStats.retrySeconds.push(Number(seconds.toFixed(2)));
+  }
+};
+
 let applyHurt = (_amount: number, _cause?: string) => {};
 /** What hurt Pierce last: the death's cause for analytics. */
 let lastHurtCause = 'unknown';
@@ -2471,6 +2538,17 @@ act = createAct1({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
+  impair: (next) => setImpair(next),
+  flashlight: (on) => {
+    if (on && !phone.isRaised()) phone.setRaised(true);
+    if (phone.flashlightOn() !== on) phone.setFlashlight(on);
+  },
+  vatSeen: () => {
+    try { return localStorage.getItem('hawkes.vatSeen') === '1'; } catch { return false; }
+  },
+  rememberVat: () => {
+    try { localStorage.setItem('hawkes.vatSeen', '1'); } catch { /* private mode */ }
+  },
   raiseLight: () => {
     phone.setRaised(true);
     phone.setFlashlight(true);
@@ -3031,6 +3109,7 @@ const finishGame = (won = false) => {
 
 applyHurt = (amount: number, cause = 'story') => {
   if (!state.running || state.inCutscene) return;
+  if (retryLeft > 0) return;
   lastHurtCause = cause;
   state.health = Math.max(0, state.health - amount);
   state.lastDamageAt = performance.now();
@@ -3038,7 +3117,13 @@ applyHurt = (amount: number, cause = 'story') => {
   alarmFlash?.classList.add('visible');
   window.setTimeout(() => alarmFlash?.classList.remove('visible'), 140);
   updateHud();
-  if (state.health <= 0) finishGame(false);
+  if (state.health <= 0) {
+    if (act.huntDowned()) {
+      startHuntRetry();
+      return;
+    }
+    finishGame(false);
+  }
 };
 
 stockSidearm = () => {
@@ -3284,7 +3369,7 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
-  if (state.inCutscene || phone.locksBody()) {
+  if (state.inCutscene || phone.locksBody() || retryLeft > 0 || impair?.locked) {
     state.player.jumpWindup = 0;
     state.input.jump = false;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
@@ -3294,18 +3379,31 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   }
   const yaw = followCamera.getYaw();
   fillMoveAxes(yaw);
-  const { moveX, moveZ } = readMoveXZ();
+  let { moveX, moveZ } = readMoveXZ();
+  if (impair) {
+    ({ moveX, moveZ } = lagInput(moveX, moveZ, impair.lag));
+    state.input.jump = false;
+  }
   desiredMove.set(
     moveForward.x * moveZ + moveRight.x * moveX,
     0,
     moveForward.z * moveZ + moveRight.z * moveX,
   );
+  if (impair) {
+    // The acid: the heading drifts, and he is pulled (the pool, then the door).
+    const len = desiredMove.length();
+    const cos = Math.cos(impair.drift);
+    const sin = Math.sin(impair.drift);
+    const dx = desiredMove.x * cos - desiredMove.z * sin;
+    const dz = desiredMove.x * sin + desiredMove.z * cos;
+    desiredMove.set(dx + impair.pull.x * (len > 0.05 ? 0.5 : 0.18), 0, dz + impair.pull.z * (len > 0.05 ? 0.5 : 0.18));
+  }
   strideFrom.x = state.player.x;
   strideFrom.z = state.player.z;
   groundSpeed = walkedBefore;
   if (desiredMove.lengthSquared() > 0) {
     desiredMove.normalize();
-    const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1);
+    const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1) * (impair?.speed ?? 1);
     // A stalled frame (a slow GPU, a shader compile) must not carry him metres in one step and tunnel a wall corner,
     // but it must not slow him either (a 2 fps run then walks at a tenth of speed). Spend the frame in steps of at most
     // MAX_MOVE_DELTA, each collided and floor-checked, up to MAX_MOVE_FRAME of real time.
@@ -3322,8 +3420,12 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
   }
 
+  if (impair && state.player.x > impair.maxX) {
+    state.player.x = impair.maxX;
+    playerCollider.position.set(state.player.x, state.player.y, state.player.z);
+  }
   const walkMagnitude = Math.hypot(moveX, moveZ);
-  const moving = walkMagnitude > 0.05;
+  const moving = impair ? desiredMove.lengthSquared() > 0.0025 : walkMagnitude > 0.05;
   const moveHeading = desiredMove.lengthSquared() > 0
     ? Math.atan2(desiredMove.x, desiredMove.z)
     : null;
@@ -3966,7 +4068,7 @@ canvas.addEventListener('touchcancel', () => { touchState.active = false; }, { p
 leftStickZone.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   state.stickDragging = true;
-  leftStickZone.setPointerCapture(event.pointerId);
+  try { leftStickZone.setPointerCapture(event.pointerId); } catch { /* a synthetic touch has no live pointer to capture */ }
   const rect = leftStickZone.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
@@ -4475,7 +4577,7 @@ const applyCarSway = () => {
 /** Skip shows whenever a cutscene or a scripted scene runs. Also called when a scene starts, so it is there from the first frame. */
 const syncSkipButton = () => {
   if (!skipCutsceneBtn) return;
-  const canSkip = state.running && scenePlaying();
+  const canSkip = state.running && (scenePlaying() || acidSkippable());
   skipCutsceneBtn.hidden = !canSkip;
   if (!canSkip) clearSkipHold();
 };
@@ -4500,6 +4602,7 @@ const renderLoop = () => {
   const delta = engine.getDeltaTime() / 1000;
   screenFade.update(delta);
   syncActionHint();
+  stepHuntRetry(delta);
   if (defeatLeft > 0) {
     defeatLeft = Math.max(0, defeatLeft - delta);
     if (defeatLeft === 0) showMessage('Defeat', GAME_COPY.defeat);
@@ -5029,6 +5132,28 @@ installPhPlaytest({
   newGameButton: newGameBtn,
   skipButton: skipCutsceneBtn,
   setupLevel: (id) => startAtLevel(id, true, true),
+  setupBeat: (kind) => {
+    if (kind === 'hunt') {
+      placePierce(15, 38, -Math.PI / 2);
+      act.debugHunt();
+    } else {
+      placePierce(18.5, 38, -Math.PI / 2);
+      beginNamedCutscene('b3-vat-break');
+    }
+  },
+  hunt: () => ({ ...huntStats, retrying: retryLeft > 0, health: state.health, fade: Number((document.getElementById('screenFade') as HTMLElement | null)?.style.opacity ?? 0) }),
+  acid: () => ({
+    ...act.acidInfo(),
+    lag: impair?.lag ?? 0,
+    drift: impair?.drift ?? 0,
+    speed: impair?.speed ?? 1,
+    locked: impair?.locked ?? false,
+    flashlight: phone.flashlightOn(),
+    skipShown: Boolean(skipCutsceneBtn && !skipCutsceneBtn.hidden),
+    x: state.player.x,
+    z: state.player.z,
+    yaw: state.characterYaw,
+  }),
   place: (x, z, yaw) => placePierce(x, z, yaw),
   // The feel sensor's rays skip Pierce himself (capsule, figure, gun, phone), effects, pickups and markers.
   feel: {

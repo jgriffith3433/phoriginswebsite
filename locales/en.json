@@ -1639,6 +1639,14 @@
       "note": "Objective vat. speaker is the short title."
     },
     {
+      "id": "objective.acid",
+      "type": "objective",
+      "speaker": "Get out",
+      "text": "Get to the door.",
+      "audio": "",
+      "note": "Objective during the playable acid. speaker is the short title."
+    },
+    {
       "id": "objective.return",
       "type": "objective",
       "speaker": "Get upstairs",
