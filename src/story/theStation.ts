@@ -7,6 +7,7 @@ import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
+import { lifeStats } from '../game/lifeStats';
 import { createLinePool, PLACE_SFX, STATION_BARKS, STATION_PA, type PlaceLine } from './placeVoices';
 
 export type TheStationHost = {
@@ -151,6 +152,9 @@ type Person = {
   resting: boolean;
   poseHold: number;
   floorY: number;
+  /** Seconds left looking at Pierce, and the wait before the next look. */
+  notice: number;
+  cool: number;
 };
 
 export type TheStation = ReturnType<typeof createTheStation>;
@@ -540,7 +544,10 @@ export const createTheStation = (host: TheStationHost) => {
       resting: false,
       poseHold: 0,
       floorY: 0,
+      notice: 0,
+      cool: 3 + Math.random() * 3,
     };
+    lifeStats.person(id, 'station', 'platform-pace');
     face(person, Math.PI / 2);
     avatar.whenReady(() => {
       if (!person.down && person !== tether) person.avatar.setLocomotion(true, true);
@@ -933,10 +940,14 @@ export const createTheStation = (host: TheStationHost) => {
           // The platform's own remarks once they are voiced; the street's until then.
           const own = commuterLine();
           const pool = STREET_BARKS.flat();
-          const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
-          host.showLine(own?.speaker || 'Commuter', copy.text);
-          host.playFile(copy.url, 0.6);
-          remarkLeft = 3.2;
+          // Voiced platform lines never repeat inside 5 minutes: while they cool down the platform stays quiet.
+          if (own || !commuterLine.hasVoice()) {
+            const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
+            host.showLine(own?.speaker || 'Commuter', copy.text);
+            host.playFile(copy.url, 0.6);
+            lifeStats.bark('station', own?.speaker || 'Commuter', own?.id ?? 'street');
+            remarkLeft = 3.2;
+          }
           barkIn = 14 + Math.random() * 8;
         } else barkIn = 1.5;
       }
@@ -1022,6 +1033,21 @@ export const createTheStation = (host: TheStationHost) => {
           if (!person.screamed) {
             person.screamed = true;
             host.playFile(lineAudio('shout.street.pedestrian', SHOUT), 0.55);
+          }
+        }
+        // A passenger on the platform looks up as Pierce comes close: stops, turns to him, then goes on pacing.
+        if (!person.fleeing && !shadowOn) {
+          person.cool -= stepDt;
+          if (person.notice <= 0 && person.cool <= 0 && dist < 3.4) {
+            person.notice = 1.7;
+            person.cool = 14;
+            lifeStats.glance('station', person.mesh.name);
+          }
+          if (person.notice > 0) {
+            person.notice -= stepDt;
+            if (person.moving) { person.moving = false; person.avatar.setLocomotion(false, true); }
+            face(person, Math.atan2(-dx, -dz));
+            continue;
           }
         }
         const speed = person.fleeing ? 3.4 : 1.15;

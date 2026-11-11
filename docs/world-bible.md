@@ -329,3 +329,12 @@ tasks.
 - May the cleaner speak one line (voice cents, no GPU)?
 - Is the lobby clock's 9:41 acceptable as the board time?
 - Do we keep "which of you" (Voss, Morning call) or cut to preserve "nobody names it"? (Q6 in the level-8 beat sheet.)
+
+
+## Living places (58th floor, station, train)
+
+- **Areas:** Apex Peak halls and office, The Station platform and concourse, The Train car.
+- **Landmarks:** the hall cooler and light switch, the boardroom coffee machine and the desk phone (Apex); the ticket machine, turnstiles, newsstand bell (Station); the center pole, the strap, the stop button (Train).
+- **Who lives here:** **new** a night guard (rounds in hall 1, tries each east door), a late associate reading on the waiting chairs and another on the phone, an analyst at the hall cooler (all "Night shift" voice, no first names); the station's four platform walkers; the train's riders (one reads, one sleeps, one sways). They look up when Pierce passes. Nobody mentions B3.
+- **What happens:** footsteps on every plant by floor; every touchable answers with a motion and a sound; the guard rattles a handle; a rider stirs; barks never repeat within five minutes.
+- **Story beats:** none new. Life only; the sleeping rider never wakes, and the old body is never a rider.

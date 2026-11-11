@@ -210,6 +210,7 @@ type LiveClip = {
   stopping: boolean;
   finished: boolean;
   onEnded?: () => void;
+  rate: number;
 };
 
 const liveClips = new Set<LiveClip>();
@@ -235,6 +236,7 @@ const startSource = (clip: LiveClip) => {
   const source = clip.ctx.createBufferSource();
   source.buffer = clip.buffer;
   source.loop = clip.loop;
+  source.playbackRate.value = clip.rate;
   source.connect(clip.gain);
   const offset = clip.loop ? clip.offset % clip.buffer.duration : clip.offset;
   if (!clip.loop && offset >= clip.buffer.duration) {
@@ -267,7 +269,7 @@ const pauseSource = (clip: LiveClip) => {
 export const playClip = (
   url: string,
   volume: number,
-  options: { loop?: boolean; bus?: SoundBus; onEnded?: () => void; onError?: () => void } = {},
+  options: { loop?: boolean; bus?: SoundBus; rate?: number; onEnded?: () => void; onError?: () => void } = {},
 ): ClipHandle | null => {
   const ctx = getSharedAudioContext();
   if (!ctx) return null;
@@ -286,6 +288,7 @@ export const playClip = (
     stopping: false,
     finished: false,
     onEnded: options.onEnded,
+    rate: options.rate ?? 1,
   };
   liveClips.add(clip);
   loadBuffer(clean(url), ctx).then((buffer) => {

@@ -46,7 +46,7 @@ const PHONE_TONES = [
 const COMMON_EXTRA = [
   '/assets/audio/sfx/start.ogg',
   '/assets/audio/sfx/objective.ogg',
-  '/assets/audio/sfx/walk.ogg',
+  ...(['carpet', 'tile', 'concrete', 'train'] as const).flatMap((k) => [1, 2, 3, 4].map((i) => `/assets/audio/sfx/step/${k}-${i}.ogg`)),
   '/assets/audio/sfx/jump.ogg',
   '/assets/audio/cutscenes/elevator-b3/doors.wav',
   '/assets/audio/cutscenes/elevator-b3/beep.wav',

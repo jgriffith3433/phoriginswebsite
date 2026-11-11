@@ -59,6 +59,8 @@ export type PhProbe = {
   shadow: () => { controls: boolean; on: boolean; handsOut: boolean; linked: boolean; ability: string; lessonStarted: boolean };
   people: () => { x: number; z: number; kind: string }[];
   /** Apex Peak vertical slice quality (null off that level). */
+  /** Living world: people on routines, glances, what answered Interact, and the longest quiet stretch. */
+  life?: () => { people: { id: string; place: string; routine: string }[]; glanceCount: number; glances: { place: string; who: string }[]; touchCount: number; touchIds: string[]; touches: { place: string; id: string; motion: string; sound: string }[]; barks: { place: string; line: string }[]; maxQuietSeconds: number; touchables: { id: string; label: string; x: number; z: number; r: number }[]; interactShown: boolean; interactLabel: string };
   apexSlice?: () => { maxQuietSeconds: number; textOnlyBeats: number; events: number } | null;
   pickups: () => { x: number; z: number; item: string }[];
   scene: BABYLON.Scene;
@@ -131,6 +133,8 @@ export type PhProbe = {
     bed: string | null; bedPlaying: boolean;
     /** The walk (footstep) loop is playing. */
     footsteps: boolean;
+    stepCount?: number;
+    steps?: { surface: string; variant: number; rate: number; foot: string }[];
   };
   /**
    * Frame-time trace: last frame ms, hitch counts over 50/100 ms, and the worst five with a
@@ -611,6 +615,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
         seconds: 360,
         tags: ['level', 'analytics'],
+      },
+      {
+        id: 'living-places',
+        title: 'The 58th floor, the station and the train lived in: a footstep per plant, people on routines who look at Pierce, touchables that answer Interact',
+        description: 'Enters level 1, the station (level 6) and the train (test shortcuts), skips scripted openings, and in each walks to every touchable (desk phone, coffee machine, light switch; ticket machine, turnstile, newsstand bell, bin; pole, strap, stop button, emergency handle) and presses Interact through real input, logging the motion and sound each answered with and whether the Interact button was shown. Logs the people on routines (guard, readers, cooler, platform walkers, riders) and who glanced at Pierce, counts footsteps (one per foot plant, 3+ variants, never the same twice in a row), and reports quality.maxQuietSeconds per place (≤ 10). options.phone: true lays the page out as a 390x844 touch phone and requires the Interact button at each touchable; heapMB is reported.',
+        seconds: 420,
+        tags: ['level', 'quality', 'story', 'sound'],
       },
       {
         id: 'apex-slice',
@@ -1419,6 +1430,108 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       releaseAll();
       t.event('level-end', 'Apex Peak vertical slice');
       return quiet <= 10 ? 'done' : 'lost';
+    };
+
+    /** The 58th floor, the station and the train lived in: footsteps per foot plant, people on routines who look at Pierce, touchables that answer Interact. */
+    const livingPlacesRun = async (): Promise<Outcome> => {
+      levelsTotal = 3;
+      const phone = Boolean(options.phone);
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
+      t.metric('feel.coyoteMs', 120);
+      const places: { name: string; place: string; enter: () => Promise<void>; minPeople: number; touchables: number }[] = [
+        { name: 'The Apex Peak', place: 'apex', minPeople: 4, touchables: 3, enter: async () => { await probe.setupLevel(1); } },
+        { name: 'The Station', place: 'station', minPeople: 0, touchables: 4, enter: async () => { await probe.setupLevel(6); } },
+        { name: 'The Train', place: 'train', minPeople: 4, touchables: 4, enter: async () => { await probe.setupHidden('the-train'); } },
+      ];
+      let worstQuiet = 0;
+      const stepsSeen: { surface: string; variant: number }[] = [];
+      let done = 0;
+      for (const where of places) {
+        t.scene(where.name);
+        t.event('setup', `enter ${where.name} directly (test shortcut)`);
+        await where.enter();
+        const until = performance.now() + 60000;
+        while (performance.now() < until && !(probe.running() && !probe.menu().open && !probe.scripted() && !probe.cutscene())) {
+          if (probe.skipButton && !probe.skipButton.hidden && (probe.scripted() || probe.cutscene())) press(probe.skipButton, 'Skip');
+          const ph = probe.phone();
+          if (ph.incoming) { releaseAll(); await once('f', 1500, 'answer call'); }
+          await tick();
+        }
+        await waitControl(where.name);
+        t.event('level-start', where.name);
+        const list = probe.life?.()?.touchables ?? [];
+        t.event('check', `${where.name}: ${list.length} touchables mounted (${list.map((x) => x.id).join(', ')})`);
+        if (list.length < where.touchables) t.problem('bug', `living-places: ${where.name} has ${list.length} touchables, wants ${where.touchables}+`);
+        const answered = new Set<string>();
+        for (const item of list) {
+          const deadline = performance.now() + 45000;
+          let pressed = false;
+          while (performance.now() < deadline && !pressed) {
+            await tick();
+            const ph = probe.phone();
+            if (ph.incoming) { releaseAll(); await once('f', 1500, 'answer call'); continue; }
+            if (ph.busy || probe.cutscene() || probe.scripted()) { releaseAll(); continue; }
+            const label = probe.action();
+            if (label && label.includes(item.label)) {
+              releaseAll();
+              const shown = probe.life?.()?.interactShown ?? false;
+              if (phone && !shown) t.problem('bug', `living-places: Interact button hidden at "${item.label}" on the phone layout`);
+              else t.event('interact-button', `${shown ? 'shown' : 'not shown (desktop)'} at "${item.label}"`);
+              const before = probe.life?.()?.touchCount ?? 0;
+              if (await once('e', 1200, label)) {
+                await sleep(700);
+                const after = probe.life?.();
+                if ((after?.touchCount ?? 0) > before) {
+                  const hit = after!.touches[after!.touches.length - 1];
+                  t.event('action', `${label} -> ${hit.motion}; sound ${hit.sound}`);
+                  t.add('interactions');
+                  answered.add(item.id);
+                  pressed = true;
+                  await sleep(Math.min(2500, 900));
+                }
+              }
+              continue;
+            }
+            await walkTo({ x: item.x, z: item.z }, `touch-${item.id}`, Math.max(0.5, item.r * 0.7));
+          }
+          if (!pressed) t.problem('bug', `living-places: could not reach "${item.label}" in ${where.name}`);
+        }
+        releaseAll();
+        // Wait a beat so the people on their routines can look up as he stands among them.
+        await sleep(1500);
+        const life = probe.life?.();
+        const sound = probe.sound();
+        t.event('life', `${where.name}: ${life?.people.length ?? 0} people on routines (${(life?.people ?? []).map((x) => `${x.id}:${x.routine}`).join(', ')}), ${life?.glanceCount ?? 0} glances, ${answered.size}/${list.length} touchables answered, steps ${sound.stepCount ?? 0}`);
+        for (const g of (life?.glances ?? []).slice(0, 3)) t.event('glance', `${g.who} looked at Pierce (${g.place})`);
+        if ((life?.people.length ?? 0) < where.minPeople) t.problem('bug', `living-places: only ${life?.people.length ?? 0} people on routines in ${where.name} (wants ${where.minPeople}+)`);
+        if (answered.size < Math.min(4, list.length) && where.place !== 'apex') t.problem('bug', `living-places: ${where.name} answered ${answered.size} touchables`);
+        const quiet = life?.maxQuietSeconds ?? 99;
+        worstQuiet = Math.max(worstQuiet, quiet);
+        t.metric(`quality.maxQuietSeconds.${where.place}`, quiet);
+        if (quiet > 10) t.problem('bug', `quality.quiet-gap: ${where.name} quiet stretch ${quiet}s (limit 10)`);
+        for (const st of sound.steps ?? []) stepsSeen.push({ surface: st.surface, variant: st.variant });
+        t.add('levels');
+        done += 1;
+        t.progress(done / places.length);
+      }
+      // Footsteps: one per plant, variants never twice in a row.
+      const variants = new Set(stepsSeen.map((x) => `${x.surface}:${x.variant}`));
+      let repeats = 0;
+      for (let i = 1; i < stepsSeen.length; i += 1) {
+        if (stepsSeen[i].surface === stepsSeen[i - 1].surface && stepsSeen[i].variant === stepsSeen[i - 1].variant) repeats += 1;
+      }
+      t.metric('footstepEvents', stepsSeen.length);
+      t.metric('footstepVariants', variants.size);
+      t.metric('footstepRepeats', repeats);
+      t.event('footsteps', `${stepsSeen.length} foot plants, ${variants.size} surface/variant pairs, ${repeats} immediate repeats`);
+      if (stepsSeen.length < 6) t.problem('bug', `living-places: only ${stepsSeen.length} footstep events while walking`);
+      if (variants.size < 3) t.problem('bug', `living-places: ${variants.size} footstep variants heard (wants 3+)`);
+      if (repeats > 0) t.problem('bug', `living-places: ${repeats} footsteps repeated the same variant back to back`);
+      const heap = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize;
+      if (heap) t.metric('heapMB', Math.round(heap / 1048576));
+      if (phone) probe.phoneFrame(false);
+      return worstQuiet <= 10 ? 'done' : 'lost';
     };
 
     // ---- one level, start to the Level Complete card
@@ -4253,6 +4366,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
       t.metric('analyticsProgress', counts.progress ?? 0);
       t.metric('analyticsVideo', counts.video ?? 0);
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'living-places') {
+      const outcome = await livingPlacesRun();
       t.progress(1);
       t.finish(outcome);
       return;

@@ -10,6 +10,7 @@ import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
+import { lifeStats } from '../game/lifeStats';
 import { createLinePool, TRAIN_BARKS, TRAIN_PA } from './placeVoices';
 
 /**
@@ -140,6 +141,11 @@ type Rider = {
   resting: boolean;
   poseHold: number;
   floorY: number;
+  /** What the rider is doing while the car rolls: reading, asleep, or just swaying on the pole. */
+  routine: 'read' | 'sleep' | 'sway';
+  phase: number;
+  notice: number;
+  cool: number;
 };
 
 type Beat = 'opening' | 'cars' | 'stop' | 'door' | 'closing' | 'done';
@@ -294,7 +300,11 @@ export const createTheTrain = (host: TheTrainHost) => {
       const avatar = createCharacterAvatar(host.scene, id, RIDER_ASSETS[(car + index) % RIDER_ASSETS.length]);
       avatar.group.parent = mesh;
       avatar.group.position.y = -PLAYER_MESH_Y_OFFSET;
-      const rider: Rider = { mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0 };
+      const rider: Rider = {
+        mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0,
+        routine: (['read', 'sleep', 'sway'] as const)[index % 3], phase: Math.random() * 6, notice: 0, cool: 2 + Math.random() * 2,
+      };
+      lifeStats.person(id, 'train', rider.routine);
       face(avatar, yaw);
       avatar.whenReady(() => {
         if (!rider.down && rider !== tether) avatar.setLocomotion(false, true);
@@ -724,6 +734,31 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const controls = () => active && !finished && !playing && crossing < 0;
 
+  /** The rider's routine: a lean and a rock that follow the car, and a look at Pierce when he comes close. */
+  const routineStep = (rider: Rider, dt: number) => {
+    rider.phase += dt;
+    const group = rider.avatar.group;
+    const lean = rider.routine === 'sleep' ? 0.32 + Math.sin(rider.phase * 0.9) * 0.015 : rider.routine === 'read' ? 0.13 + Math.max(0, Math.sin(rider.phase * 1.3)) * 0.03 : 0;
+    const rock = Math.sin(rider.phase * 1.7) * (rider.routine === 'sway' ? 0.045 : 0.02);
+    group.rotation.x += (lean - group.rotation.x) * Math.min(1, dt * 4);
+    group.rotation.z += (rock - group.rotation.z) * Math.min(1, dt * 4);
+    if (rider.routine === 'sleep' || shadowOn) return;
+    const at = host.player();
+    const dx = at.x - rider.mesh.position.x;
+    const dz = at.z - rider.mesh.position.z;
+    rider.cool -= dt;
+    if (rider.notice <= 0 && rider.cool <= 0 && Math.hypot(dx, dz) < 3.2) {
+      rider.notice = 1.8;
+      rider.cool = 12;
+      lifeStats.glance('train', rider.mesh.name);
+    }
+    if (rider.notice > 0) {
+      rider.notice -= dt;
+      const want = rider.notice > 0 ? Math.atan2(dx, dz) : rider.yaw;
+      face(rider.avatar, want);
+    }
+  };
+
   const stepRiders = (dt: number) => {
     const buried: Rider[] = [];
     for (const rider of riders) {
@@ -756,6 +791,7 @@ export const createTheTrain = (host: TheTrainHost) => {
         rider.moving = false;
         rider.avatar.setLocomotion(false, true);
       }
+      routineStep(rider, dt);
     }
     for (const rider of buried) bury(rider);
   };
@@ -964,10 +1000,14 @@ export const createTheTrain = (host: TheTrainHost) => {
           // The riders' own remarks once they are voiced; the street's until then.
           const own = riderLine();
           const pool = STREET_BARKS.flat();
-          const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
-          host.showLine(own?.speaker || 'Rider', copy.text);
-          host.playFile(copy.url, 0.55);
-          lineUntil = Math.max(lineUntil, sceneTime + 3.2);
+          // Voiced rider lines never repeat inside 5 minutes: while they cool down the car stays quiet.
+          if (own || !riderLine.hasVoice()) {
+            const copy = own ?? streetCopy(pool[Math.floor(Math.random() * pool.length)]);
+            host.showLine(own?.speaker || 'Rider', copy.text);
+            host.playFile(copy.url, 0.55);
+            lifeStats.bark('train', own?.speaker || 'Rider', own?.id ?? 'street');
+            lineUntil = Math.max(lineUntil, sceneTime + 3.2);
+          }
           barkIn = 16 + Math.random() * 10;
         } else barkIn = 1.5;
       }

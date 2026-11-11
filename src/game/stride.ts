@@ -19,3 +19,6 @@ export const JUMP_KEYS: Readonly<Record<string, readonly number[]>> = {
   jump: [0.6, 0.85, 1.1, 1.3, 1.7],
   pistoljump: [0.55, 0.85, 1.12, 1.4, 1.75],
 };
+
+/** Metres of ground per foot plant of the walk clip (STRIDE_MPS.walk over about 2.2 steps a second). */
+export const STEP_LENGTH = 0.78;

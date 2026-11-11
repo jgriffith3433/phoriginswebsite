@@ -8063,5 +8063,183 @@
         "volume": 0.2
       }
     }
-  ]
+  ],
+  "cameraVolumes": [
+      {
+        "id": "vol-b3-pipe",
+        "profile": "hallway",
+        "minX": 41.5,
+        "maxX": 46.5,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 24,
+        "maxZ": 35.6,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-hallB",
+        "profile": "hallway",
+        "minX": 16.4,
+        "maxX": 46.75,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 35.6,
+        "maxZ": 40.45,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-corridor",
+        "profile": "hallway",
+        "minX": 0.3,
+        "maxX": 63,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 52.8,
+        "maxZ": 56.5,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-lab",
+        "profile": "open",
+        "minX": 0,
+        "maxX": 16.4,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 30.9,
+        "maxZ": 45.1,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-decon",
+        "profile": "open",
+        "minX": 1.1,
+        "maxX": 14.9,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 22.1,
+        "maxZ": 30.9,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-chemA",
+        "profile": "open",
+        "minX": 18.5,
+        "maxX": 28.6,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 27,
+        "maxZ": 35.6,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-chemB",
+        "profile": "open",
+        "minX": 28.6,
+        "maxX": 40.3,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 27,
+        "maxZ": 35.6,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-cell",
+        "profile": "open",
+        "minX": 18.7,
+        "maxX": 40.4,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 40.45,
+        "maxZ": 52.8,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-service",
+        "profile": "hallway",
+        "minX": 40.4,
+        "maxX": 46.5,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 40.45,
+        "maxZ": 52.8,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-control",
+        "profile": "open",
+        "minX": 0.2,
+        "maxX": 16.4,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 45.1,
+        "maxZ": 52.8,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-transform",
+        "profile": "open",
+        "minX": 46.75,
+        "maxX": 63,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 30,
+        "maxZ": 52.85,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-utility",
+        "profile": "open",
+        "minX": 16,
+        "maxX": 44,
+        "minY": 0,
+        "maxY": 3.6,
+        "minZ": 56.5,
+        "maxZ": 63,
+        "priority": 1
+      },
+      {
+        "id": "vol-b3-door-lab",
+        "profile": "doorway",
+        "minX": 15.4,
+        "maxX": 17.8,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 36.5,
+        "maxZ": 39.5,
+        "priority": 3
+      },
+      {
+        "id": "vol-b3-door-decon",
+        "profile": "doorway",
+        "minX": 5.7,
+        "maxX": 8.1,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 29.7,
+        "maxZ": 32.1,
+        "priority": 3
+      },
+      {
+        "id": "vol-b3-door-pipe-hall",
+        "profile": "doorway",
+        "minX": 41.5,
+        "maxX": 46.5,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 34.4,
+        "maxZ": 36.8,
+        "priority": 3
+      },
+      {
+        "id": "vol-b3-door-transform",
+        "profile": "doorway",
+        "minX": 45.5,
+        "maxX": 48.0,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 36.5,
+        "maxZ": 39.3,
+        "priority": 3
+      }
+    ]
 }

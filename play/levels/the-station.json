@@ -1514,5 +1514,40 @@
         "fadeSeconds": 1.5
       }
     }
-  ]
+  ],
+  "cameraVolumes": [
+      {
+        "id": "vol-st-concourse",
+        "profile": "hallway",
+        "minX": 0,
+        "maxX": 90,
+        "minY": 0,
+        "maxY": 4,
+        "minZ": -10,
+        "maxZ": -1.2,
+        "priority": 1
+      },
+      {
+        "id": "vol-st-platform",
+        "profile": "open",
+        "minX": 0,
+        "maxX": 90,
+        "minY": 0,
+        "maxY": 4,
+        "minZ": -1.2,
+        "maxZ": 8,
+        "priority": 1
+      },
+      {
+        "id": "vol-st-door",
+        "profile": "doorway",
+        "minX": 28,
+        "maxX": 36,
+        "minY": 0,
+        "maxY": 3.2,
+        "minZ": -2.4,
+        "maxZ": 1.2,
+        "priority": 3
+      }
+    ]
 }

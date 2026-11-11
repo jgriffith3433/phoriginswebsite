@@ -38,6 +38,150 @@
       "note": "Jump."
     },
     {
+      "id": "sfx.player.step-carpet-1",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on office carpet, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/carpet-1.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-carpet-2",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on office carpet, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/carpet-2.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-carpet-3",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on office carpet, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/carpet-3.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-carpet-4",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on office carpet, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/carpet-4.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-tile-1",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on hard glazed tile, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/tile-1.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-tile-2",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on hard glazed tile, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/tile-2.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-tile-3",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on hard glazed tile, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/tile-3.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-tile-4",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on hard glazed tile, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/tile-4.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-concrete-1",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on gritty concrete, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/concrete-1.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-concrete-2",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on gritty concrete, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/concrete-2.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-concrete-3",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on gritty concrete, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/concrete-3.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-concrete-4",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on gritty concrete, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/concrete-4.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-train-1",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on a subway car floor, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/train-1.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-train-2",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on a subway car floor, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/train-2.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-train-3",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on a subway car floor, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/train-3.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
+      "id": "sfx.player.step-train-4",
+      "group": "player",
+      "text": "One-shot single footstep, a leather dress shoe on a subway car floor, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/step/train-4.ogg",
+      "influence": 0.65,
+      "volume": 0.34,
+      "note": "One foot plant, fired from the stride clock (footsteps.ts). Cut from the old walk loops; pitch varies per plant."
+    },
+    {
       "id": "sfx.player.hurt",
       "group": "player",
       "text": "One-shot a dull body impact, a short thud of a hit landing, close foley, no voices, no music.",
@@ -56,17 +200,6 @@
       "influence": 0.7,
       "volume": 0.5,
       "note": "A successful reload."
-    },
-    {
-      "id": "sfx.player.walk",
-      "group": "player",
-      "text": "Seamless loop of three leather dress-shoe steps on office carpet, steady pace, close foley, no voices, no music.",
-      "audio": "/assets/audio/sfx/walk.ogg",
-      "loop": true,
-      "duration": 2.4,
-      "influence": 0.65,
-      "volume": 0.28,
-      "note": "The game loops this file. Play it once."
     },
     {
       "id": "sfx.ui.start",
@@ -716,28 +849,6 @@
       "note": "The Station: before a platform announcement."
     },
     {
-      "id": "sfx.player.walk-concrete",
-      "group": "player",
-      "text": "Seamless loop of three leather dress-shoe steps on gritty concrete pavement, steady pace, close foley, no voices, no music.",
-      "audio": "/assets/audio/sfx/walk-concrete.ogg",
-      "loop": true,
-      "duration": 2.4,
-      "influence": 0.65,
-      "volume": 0.28,
-      "note": "Footsteps on street, station and B3 concrete. The game loops this file."
-    },
-    {
-      "id": "sfx.player.walk-hard",
-      "group": "player",
-      "text": "Seamless loop of three leather dress-shoe steps on a hard wooden floor, steady pace, close foley, no voices, no music.",
-      "audio": "/assets/audio/sfx/walk-hard.ogg",
-      "loop": true,
-      "duration": 2.4,
-      "influence": 0.65,
-      "volume": 0.28,
-      "note": "Footsteps in the apartment and on the train floor. The game loops this file."
-    },
-    {
       "id": "sfx.apex.sofa",
       "group": "apex",
       "text": "One-shot leather office sofa cushion compresses as a man sits, soft fabric and a short wood frame creak, close foley, no voices, no music.",
@@ -781,6 +892,96 @@
       "influence": 0.65,
       "volume": 0.28,
       "note": "Apex Peak: hall 2 troffer flicker."
+    },
+    {
+      "id": "sfx.touch.desk-phone",
+      "group": "touch",
+      "text": "One-shot office desk phone: the handset lifted from its cradle with a plastic clunk, then a short soft ring chirp, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/desk-phone.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "Apex Peak: desk phone touchable. Stand-in: phone connect tone."
+    },
+    {
+      "id": "sfx.touch.coffee-machine",
+      "group": "touch",
+      "text": "One-shot office coffee machine brewing: a pump hum, hiss of steam and coffee trickling into a cup, then a soft done beep, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/coffee-machine.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "Apex Peak: boardroom coffee machine touchable. Stand-in: tv static hiss."
+    },
+    {
+      "id": "sfx.touch.light-switch",
+      "group": "touch",
+      "text": "One-shot wall light switch flipped, a crisp plastic click, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/light-switch.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "Apex Peak: hall light switch touchable (played twice, off then on). Stand-in: flashlight click."
+    },
+    {
+      "id": "sfx.touch.ticket-machine",
+      "group": "touch",
+      "text": "One-shot subway ticket vending machine: button beeps, a motor whirr and a card ticket printing out with a thunk, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/ticket-machine.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "The Station: ticket machine touchable. Stand-in: PA chime."
+    },
+    {
+      "id": "sfx.touch.turnstile",
+      "group": "touch",
+      "text": "One-shot subway turnstile: a metal bar pushed, ratchet clacks and a heavy thunk as it locks, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/turnstile.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "The Station: turnstile touchable. Stand-in: door slide."
+    },
+    {
+      "id": "sfx.touch.bin-lid",
+      "group": "touch",
+      "text": "One-shot metal mesh trash bin: the swing lid clanks and rattles, then settles, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/bin-lid.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "The Station: bin touchable. Stand-in: glass tick."
+    },
+    {
+      "id": "sfx.touch.pole-grip",
+      "group": "touch",
+      "text": "One-shot a hand grabbing a steel subway pole: a squeak of skin on metal and a soft creak as it takes weight, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/pole-grip.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "The Train: hold the pole. Stand-in: sofa creak."
+    },
+    {
+      "id": "sfx.touch.strap-swing",
+      "group": "touch",
+      "text": "One-shot a subway hand strap swinging: leather and a steel ring creaking back and forth on the rail, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/strap-swing.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "The Train: grab the strap. Stand-in: sofa creak."
+    },
+    {
+      "id": "sfx.touch.stop-request",
+      "group": "touch",
+      "text": "One-shot a subway stop-request button pressed: a firm click and a two-tone chime, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/stop-request.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "The Train: stop button. Stand-in: door close."
+    },
+    {
+      "id": "sfx.touch.emergency-handle",
+      "group": "touch",
+      "text": "One-shot a subway emergency handle pulled down: a heavy lever clunk and a short alarm buzz, no voices, no music.",
+      "audio": "/assets/audio/sfx/touch/emergency-handle.ogg",
+      "influence": 0.65,
+      "volume": 0.45,
+      "note": "The Train: emergency handle. Stand-in: holster click."
     }
   ]
 }
