@@ -923,6 +923,8 @@ const beginNamedCutscene = (id: string) => {
 };
 
 const musicTriggerPlayer = createMusicTriggerPlayer();
+/** A story beat can drop the level's bed to silence (The Desk's mirror). 1 leaves it as the level plays it. */
+let bedDuck = 1;
 const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
   if (isMusicTrigger(trigger)) return;
   // Walk-up cutscenes wait for the action button. The press is the audio gesture.
@@ -1311,13 +1313,13 @@ const audio = {
     osc.stop(this.ctx.currentTime + duration);
   },
   /** One-shots play from a decoded buffer, so a phone hears them without a finger on the screen. */
-  play(url: string, volume: number) {
+  play(url: string, volume: number, rate?: number) {
     if (!this.enabled) return;
     this.ensure();
     const level = mixVolume(url, volume);
     const fallback = soundFallback(url);
-    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume)); } : undefined;
-    if (playClip(url, level, { onError })) return;
+    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume), { rate }); } : undefined;
+    if (playClip(url, level, { onError, rate })) return;
     playElementOnce(fallback ?? url, level);
   },
   /** Footsteps are one-shots on each foot plant (footsteps.ts); this only says whether he is walking. */
@@ -2672,19 +2674,25 @@ const desk: TheDesk = createTheDesk({
   playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  faceCamera: (yaw) => followCamera.face(yaw),
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
     state.inCutscene = held;
-    if (held) audio.setWalk(false);
+    if (held) {
+      audio.setWalk(false);
+      unlockPointer();
+    }
   },
   clearMarker: () => objectiveMarker.setTarget(null),
   showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
   setObjective,
-  playFile: (url, volume) => { audio.play(url, volume); },
+  playFile: (url, volume, rate) => { audio.play(url, volume, rate); },
+  setBedDuck: (amount) => { bedDuck = amount; },
   setWalk: (moving) => audio.setWalk(moving),
   setCarry: (items) => { storyCarry = items; },
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  playerYaw: () => state.characterYaw,
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
   win: () => audio.win(),
   showMessage,
@@ -4698,7 +4706,8 @@ const renderLoop = () => {
     station.step(delta);
     train.step(delta);
     morning.step(delta);
-    const streetShake = home.shake();
+    if (isDeskLevel()) desk.step(delta);
+    const streetShake = Math.max(home.shake(), desk.shake());
     if (streetShake > 0) {
       camera.position.x += (Math.random() - 0.5) * streetShake;
       camera.position.y += (Math.random() - 0.5) * streetShake * 0.65;
@@ -4782,7 +4791,7 @@ const renderLoop = () => {
     camera.position,
     delta,
     state.running && audio.enabled,
-    state.inCutscene ? 0.18 : 1,
+    state.inCutscene ? 0.18 * bedDuck : bedDuck,
   );
 
   if (possessBar && possessFill) {
@@ -5131,6 +5140,7 @@ installPhPlaytest({
     ...(isApexPeakLevel() ? apex.blips() : []),
   ],
   /** Apex Peak vertical-slice quality readings for the playtest. */
+  desk: () => desk.stats(),
   life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }

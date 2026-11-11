@@ -195,6 +195,11 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 - **Own events:** the cab sways; floor LEDs cycle; Hale rings at x 44, z 30; phone buzzes; fluorescent hum in the bath.
 - **Sound:** cab hum, chimes, door slide, water, mirror breathing.
 - **Changes:** Pierce's reflection shows the new body; the powers grade; the desk becomes a mess.
+- **The Desk, played (built):** walking up to the glass (no prompt) eases the camera over his shoulder; the reflection
+  lags him up to 0.5 s and turns its head once before he does, the bed and his breath go silent, "That's me." plays.
+  At the desk a held drag (mouse or one finger) sweeps papers, folder, glass and terminal off with paper and impact
+  sounds; a harder drag moves more (the terminal wants a hard one). Canon: the reflection is a second body of the new
+  face; it never speaks and is never explained.
 - *Gap:* the Return basement run is the longest empty stretch. **New:** along the pipe hall at x 44 a row of dead
   practicals that come on one by one as he passes, on a chime, and a ghost of the creature's skitter on the left wall.
 

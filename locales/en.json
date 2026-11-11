@@ -1883,6 +1883,14 @@
       "note": "The Desk, opening objective"
     },
     {
+      "id": "objective.desk.desk",
+      "type": "objective",
+      "speaker": "Desk",
+      "text": "Your desk. The work is still on it.",
+      "audio": "",
+      "note": "The Desk, after the mirror: walk to the desk"
+    },
+    {
       "id": "dialogue.desk.accept",
       "type": "dialogue",
       "speaker": "Pierce Hawkes",

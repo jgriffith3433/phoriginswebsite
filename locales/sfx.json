@@ -982,6 +982,51 @@
       "influence": 0.65,
       "volume": 0.45,
       "note": "The Train: emergency handle. Stand-in: holster click."
+    },
+    {
+      "id": "sfx.desk.paper-slide",
+      "group": "desk",
+      "text": "One-shot a hand dragging a stack of loose office papers across a polished wooden desk, a dry sliding rustle with a soft end, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/desk/paper-slide.ogg",
+      "influence": 0.6,
+      "volume": 1,
+      "note": "The Desk: the sweep. Stand-in: sofa creak."
+    },
+    {
+      "id": "sfx.desk.paper-land",
+      "group": "desk",
+      "text": "One-shot a few sheets of paper and a card folder landing flat on an office carpet, soft papery slap, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/desk/paper-land.ogg",
+      "influence": 0.6,
+      "volume": 1,
+      "note": "The Desk: a sheet lands. Stand-in: holster click."
+    },
+    {
+      "id": "sfx.desk.impact",
+      "group": "desk",
+      "text": "One-shot a heavy crystal whiskey glass falling off a desk and thudding on carpet, a dull knock with a small glass ring, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/desk/desk-impact.ogg",
+      "influence": 0.6,
+      "volume": 1,
+      "note": "The Desk: the glass goes over. Stand-in: glass tick."
+    },
+    {
+      "id": "sfx.desk.terminal-crash",
+      "group": "desk",
+      "text": "One-shot a heavy computer monitor shoved off a desk and crashing onto the floor, plastic and glass crunch, then a few small parts skittering, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/desk/terminal-crash.ogg",
+      "influence": 0.7,
+      "volume": 1,
+      "note": "The Desk: the terminal falls. Stand-in: glass tick."
+    },
+    {
+      "id": "sfx.desk.breath",
+      "group": "desk",
+      "text": "One-shot a man's slow, close, uneven breath in a silent tiled room, in and out, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/desk/breath.ogg",
+      "influence": 0.65,
+      "volume": 1,
+      "note": "The Desk mirror: his breath, until the glass goes quiet. No stand-in: silent until made."
     }
   ]
 }

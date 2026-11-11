@@ -7,8 +7,8 @@ buttons, the touch controls stay visible) and a way for a repeat player to skip 
 touch, a click or Enter on desktop; for the vat break it only shows once the player has finished the beat once,
 `hawkes.vatSeen` in localStorage).
 
-Status: **the vat break is built** (this change). The mirror, desk shove and train pursuit are specified here and keep
-their current scripted form until each is built; their rows say what the player will do.
+Status: **the vat break, the Desk's mirror and the desk sweep are built**. The train pursuit is specified here and keeps
+its current form until tuned; its row says what the player will do.
 
 ## Vat break (B3, level 2) — built
 
@@ -30,24 +30,37 @@ their current scripted form until each is built; their rows say what the player 
 - Code: `src/story/act1.ts` (`beginAcid`, `stepAcid`, `ImpairState`), `src/main.ts` (`impair`, `lagInput`),
   `cutscenes/b3-vat-break.json` (the 5 s shot). Playtest: `vat-acid`.
 
-## The mirror (The Return, level 3; The Desk, level 4) — to build
+## The mirror (The Desk, level 4) — built
 
-- **Verb:** wipe the glass and look. Pierce's reflection starts as the old man; the player rubs the condensation off
-  (a held E or press-and-drag over the mirror) until the face is clear. The wiped area is where the new face shows.
-- **How it is taught, wordless:** the mirror is fogged only where Pierce's breath has been; the first smear is shown
-  by his hand coming up when the player first presses near it; the glass answers with a streak of clear and a sound.
-- **Touch:** drag one finger across the mirror (the camera is locked to the glass for the beat, the left stick is not
-  used); the Look in mirror button stays the entry.
-- **Hold-to-skip:** Skip clears the glass at once and plays the line "That's me. I'm not seeing things."
+- **Verb:** walk up to the glass and move. No prompt. The Return's own mirror (level 3's ending) is unchanged: it is
+  still the **Look in mirror** walk-up that ends that level.
+- **What happens:** Pierce starts inside the hall bathroom, a few steps from the glass. Walking within ~0.5 m of it
+  (x >= 18.15) eases the camera (about 0.7 s) to an over-the-shoulder frame, a little behind and left of him, looking
+  at the reflection, and holds it while the player keeps the stick. The reflection is a second `asset-ch44-hero` body
+  that exists only in the mirror pass (layer `DOUBLE_LAYER`, `bathroomMirror.setDouble`). It copies his position and
+  heading from a pose history, late: the lag grows from 0 to 0.5 s over ~7.5 s. Once the lag is there and he has
+  walked 1.6 m (or 18 s have passed) it turns its head once (head and neck about the bone's up axis, 0.45 s out,
+  0.9 s hold, 0.5 s back) while he has not. The level bed and his breath drop to silence, then "That's me. I'm not
+  seeing things." plays; the lag eases back and the camera is handed back. "Look at this. Nobody is going to accept
+  me." and "That is just human nature." follow while he walks to the desk.
+- **Touch:** the left stick only; the camera is not touched. **Hold-to-skip:** none needed (not a scene).
+- Code: `src/story/theDesk.ts` (`stepMirror`), `src/story/bathroomMirror.ts`. Probe `desk().mirror`
+  (`maxLagMs`, `headTurns`, `quiet`, `thatsMe`).
 
-## The desk shove (The Desk, level 4) — to build
+## The desk sweep (The Desk, level 4) — built
 
-- **Verb:** sweep. Hold toward the desk and flick across it to shove the papers off, as hard as the player means it.
-  The harder the swipe, the more falls; the line after is the same either way.
-- **How it is taught, wordless:** the papers sit square and still; Pierce's hand hovers over them and shakes while the
-  player is not pushing, and the first push moves them a little with a rustle.
-- **Touch:** the left stick pushed toward the desk and released (a flick), or a swipe across the desk.
-- **Hold-to-skip:** Skip shoves them all at once.
+- **Verb:** drag. Press and hold, then drag across the desk (mouse, or one finger anywhere on the screen). A hand
+  follows the drag on the desk plane and pushes what it touches along the drag direction, at the drag's speed.
+- **How it is taught, wordless:** a pale hand floats over the papers and sweeps across them on its own until the first
+  push (and again after 5 s idle).
+- **Harder sweeps more:** each prop needs a hand speed to move at all: papers 0.45 m/s, the folder 0.8, the glass
+  1.6, the terminal 2.7 (m/s, world). Sliding props lose speed to friction and go over the desk edge, fall, and land
+  with a sound (paper, impact, crash). All paper-class props on the floor, then "I am not staying here to be stared
+  at. I am going home.", then End Level.
+- **Hold-to-skip:** the Skip button shoves everything at once.
+- Code: `src/story/theDesk.ts`. Probe `desk().desk`. Playtest `desk-beats` (`{"phone":true}` for 390x844 touch).
+- Sounds: `sfx.desk.*` in `locales/sfx.json`, stand-ins in `soundFallback.ts` (the breath has none and is silent
+  until Gen makes it).
 
 ## The train pursuit (The Train, level 7) — built as walking; the chase is to tune
 
