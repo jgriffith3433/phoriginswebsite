@@ -253,7 +253,9 @@ export const createTheMorning = (host: MorningHost) => {
   const setTv = (on: boolean, next: typeof still) => {
     tvOn = on;
     still = on ? next : 'off';
-    if (tvMaterial) tvMaterial.emissiveColor = on ? new BABYLON.Color3(1, 1, 1) : new BABYLON.Color3(0.15, 0.15, 0.15);
+    // StandardMaterial ADDS emissiveColor to the emissive texture (it does not multiply), so a white colour
+    // saturated the whole screen to solid white. The canvas carries the picture; the colour stays black.
+    if (tvMaterial) tvMaterial.emissiveColor = BABYLON.Color3.Black();
     drawTv();
   };
 
@@ -291,6 +293,7 @@ export const createTheMorning = (host: MorningHost) => {
     tvMaterial = new BABYLON.StandardMaterial('morning-tv-mat', s);
     tvMaterial.disableLighting = true;
     tvMaterial.emissiveTexture = tvTexture;
+    tvMaterial.emissiveColor = BABYLON.Color3.Black();
     tvMaterial.diffuseColor = BABYLON.Color3.Black();
     tvMaterial.specularColor = BABYLON.Color3.Black();
     tvMaterial.backFaceCulling = false;
@@ -525,7 +528,11 @@ export const createTheMorning = (host: MorningHost) => {
       setTv(true, 'static');
       host.playFile(PLACE_SFX.newsSting, 0.4);
     }
-    host.frameCamera({ x: 4.5, y: 1.55, z: 1.2 }, { x: TV.x, y: 1.3, z: TV.z });
+    // A portrait phone sees a narrow slice: back the camera up (inside the south wall) until the whole set fits.
+    const eng = host.scene.getEngine();
+    const aspect = eng.getRenderWidth() / Math.max(1, eng.getRenderHeight());
+    const fit = Math.min(2.55, Math.max(1.2, 1.15 / (0.4228 * Math.max(0.3, aspect)) - 4.15 + 1.2));
+    host.frameCamera({ x: 4.1 + (fit - 1.2) * 0.1, y: 1.55, z: Math.min(fit, 2.55) }, { x: TV.x, y: 1.3, z: TV.z });
     // Captions in order; the first one lands as the programme's opening sting ends.
     let at = 2.4;
     let shown = -1;
