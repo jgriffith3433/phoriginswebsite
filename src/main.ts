@@ -23,6 +23,7 @@ import { installMenuNav } from './game/menuNav';
 import { lineText } from './game/locale';
 import { chapterCopy, createChapterCard } from './game/chapterCard';
 import { loreEntry, withLore } from './game/lore';
+import { goalLine, levelReward } from './game/rewards';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
@@ -137,6 +138,7 @@ const missionsList = document.getElementById('missionsList') as HTMLDivElement |
 const missionsTitle = document.getElementById('missionsTitle') as HTMLElement | null;
 const missionScore = document.getElementById('missionScore') as HTMLParagraphElement | null;
 const loreCard = document.getElementById('loreEntry') as HTMLElement | null;
+const rewardCard = document.getElementById('rewardEntry') as HTMLElement | null;
 const loreKicker = document.getElementById('loreKicker');
 const loreTitle = document.getElementById('loreTitle');
 const loreText = document.getElementById('loreText');
@@ -1681,7 +1683,11 @@ const renderMissions = () => {
   const kicker = objectiveHud?.querySelector('.objective-kicker')?.textContent?.trim() || 'Main';
   const detail = objectiveText?.textContent?.trim() || 'Follow the objective.';
   if (missionsTitle) missionsTitle.textContent = `Missions ${missionLabel(level.libraryId, [...done])}`;
-  missionsList.innerHTML = quests.map((quest) => {
+  const goal = goalLine(state.level);
+  const goalRow = goal
+    ? `<div class="mission-row reward-row" id="missionGoal"><span class="inventory-label">${missionText(lineText('ui.reward.goal', 'On finish'))}<span></span></span><strong>${missionText(goal)}</strong><span class="inventory-note">${missionText(levelReward(state.level)?.hook ?? '')}</span></div>`
+    : '';
+  missionsList.innerHTML = goalRow + quests.map((quest) => {
     const title = quest.id === 'main' ? kicker : quest.title;
     const note = quest.id === 'main' ? detail : quest.detail;
     const complete = done.has(quest.id);
@@ -2345,6 +2351,27 @@ const showLore = (n: number) => {
   analytics?.feature('lore-unlocked', n);
 };
 
+/** Level Complete: the rank and tool the run earned, and the hook into the next level. */
+const showReward = (n: number) => {
+  if (!rewardCard) return;
+  const reward = n ? levelReward(n) : null;
+  if (!reward) {
+    rewardCard.hidden = true;
+    return;
+  }
+  const libraryId = getLevelDefinition(n).libraryId;
+  const side = missionsFor(libraryId).filter((quest) => quest.group === 'side');
+  const done = new Set(doneMissionIds(libraryId));
+  const full = side.length > 0 && side.every((quest) => done.has(quest.id));
+  const row = (label: string, value: string, cls = '') => `<div class="reward-row ${cls}"><span>${missionText(label)}</span><strong>${missionText(value)}</strong></div>`;
+  rewardCard.innerHTML = row(lineText('ui.reward.rank', 'Rank'), reward.rank)
+    + row(lineText('ui.reward.unlocked', 'Unlocked'), reward.tool)
+    + (full ? row('★', lineText('ui.reward.full', 'Full marks'), 'full') : '')
+    + (reward.hook ? `<p class="reward-hook"><span>${missionText(lineText('ui.reward.next', 'Next'))}</span> ${missionText(reward.hook)}</p>` : '');
+  rewardCard.hidden = false;
+  analytics?.feature('reward', n);
+};
+
 const showMessage = (title: string, text: string) => {
   messageBox.classList.remove('leaving');
   messageTitle.textContent = title;
@@ -2362,6 +2389,7 @@ const showMessage = (title: string, text: string) => {
   if (title === 'Level Complete' || title === 'Mission Clear') startLevelCredits(state.level);
   else stopLevelCredits();
   showLore(title === 'Level Complete' ? state.level : 0);
+  showReward(title === 'Level Complete' ? state.level : 0);
   if (missionScore) {
     const showScore = title === 'Level Complete';
     missionScore.hidden = !showScore;
@@ -5479,6 +5507,13 @@ installPhPlaytest({
       overlayText: recoveringBox?.textContent?.trim() ?? '',
       ...contextStats,
     }),
+  },
+  /** Test shortcut (`living-places`): show this level's Level Complete card now, as End Level would. */
+  showLevelComplete: () => {
+    if (!state.running || state.inCutscene) return false;
+    offerLevelEnd('Level Complete', 'Test card');
+    presentLevelEnd();
+    return true;
   },
   forceDefeat: () => {
     if (!state.running || state.inCutscene) return false;

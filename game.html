@@ -2864,6 +2864,47 @@
       .message .lore-link::after { content: ' \2197'; }
       .message .lore-link:hover, .message .lore-link:focus-visible { color: #fff; }
 
+      /* Level Complete: the run goal's payout (rank, unlocked tool) and the hook into the next level. */
+      .message .reward-entry {
+        margin: 10px 0 4px;
+        padding: 10px 16px;
+        border: 1px solid rgba(212, 180, 131, 0.38);
+        border-left-width: 3px;
+        background: rgba(5, 8, 12, 0.55);
+        text-align: left;
+      }
+      .message .reward-entry .reward-row {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        padding: 3px 0;
+      }
+      .message .reward-entry .reward-row span {
+        flex: 0 0 84px;
+        font-family: var(--hb-sans);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--hb-gold);
+      }
+      .message .reward-entry .reward-row strong { font-size: 16px; font-weight: 500; }
+      .message .reward-entry .reward-row.full strong { color: var(--hb-gold); }
+      .message .reward-entry .reward-hook {
+        margin: 6px 0 0;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #c9d1d8;
+      }
+      .message .reward-entry .reward-hook span {
+        font-family: var(--hb-sans);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--hb-gold);
+        margin-right: 8px;
+      }
+      .mission-row.reward-row strong { color: var(--hb-gold, #d4b483); }
+
       /* Actions are an agenda: numbered rows, the first one set in ivory. */
       .message .button-row {
         counter-reset: agenda;
@@ -3597,6 +3638,8 @@
             <p class="lore-text" id="loreText"></p>
             <a class="lore-link" id="loreLink" href="#" target="_blank" rel="noopener"></a>
           </aside>
+
+          <aside class="reward-entry" id="rewardEntry" hidden aria-live="polite"></aside>
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">
