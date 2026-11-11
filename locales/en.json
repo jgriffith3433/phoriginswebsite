@@ -2563,8 +2563,10 @@
       "text": "Evening, Mr. Hawkes.",
       "audio": "/assets/audio/vo/bark.apex.cleaner.ogg",
       "note": "Apex Peak: night cleaner passes Pierce in hall 2",
-      "audioText": "",
-      "performance": "default"
+      "audioText": "Evening, Mr. Hawkes.",
+      "performance": "default",
+      "audioVoice": "FGY2WhTYpPnrIDTdsKH5",
+      "audioPerformance": "default"
     },
     {
       "id": "bark.apex.papers",
@@ -2573,8 +2575,10 @@
       "text": "Still warm. They left them open.",
       "audio": "/assets/audio/vo/bark.apex.papers.ogg",
       "note": "Apex Peak: Pierce reads the papers on his desk",
-      "audioText": "",
-      "performance": "default"
+      "audioText": "Still warm. They left them open.",
+      "performance": "default",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "audioPerformance": "default"
     },
     {
       "id": "ui.action.apex.sit",
@@ -5401,9 +5405,9 @@
       "text": "It still knows my hand.",
       "audio": "/assets/audio/cutscenes/morning/hand.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "It still knows my hand.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5413,9 +5417,9 @@
       "text": "Home.",
       "audio": "/assets/audio/cutscenes/morning/home.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "Home.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5425,9 +5429,9 @@
       "text": "I slept.",
       "audio": "/assets/audio/cutscenes/morning/slept.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "I slept.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5437,9 +5441,9 @@
       "text": "I don't sleep.",
       "audio": "/assets/audio/cutscenes/morning/dont.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "I don't sleep.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5449,9 +5453,9 @@
       "text": "They did it without me in the room.",
       "audio": "/assets/audio/cutscenes/morning/without.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "They did it without me in the room.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5461,9 +5465,9 @@
       "text": "Somebody is going to have to tell them which one of us walks in.",
       "audio": "/assets/audio/cutscenes/morning/walks.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "Somebody is going to have to tell them which one of us walks in.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5473,9 +5477,9 @@
       "text": "Pierce. Before you hear it from anyone else.",
       "audio": "/assets/audio/phone/voss-morning-01.ogg",
       "performance": "nervous",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "Pierce. Before you hear it from anyone else.",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5485,9 +5489,9 @@
       "text": "You saw I voted. I put it on the record because the charter says patients are not a number.",
       "audio": "/assets/audio/phone/voss-morning-02.ogg",
       "performance": "nervous",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "You saw I voted. I put it on the record because the charter says patients are not a number.",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5497,9 +5501,9 @@
       "text": "I called you first last night. You were already in the elevator.",
       "audio": "/assets/audio/phone/voss-morning-03.ogg",
       "performance": "nervous",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "I called you first last night. You were already in the elevator.",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5509,9 +5513,9 @@
       "text": "I called Hale, too. She answered with a vote.",
       "audio": "/assets/audio/phone/voss-morning-04.ogg",
       "performance": "nervous",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "I called Hale, too. She answered with a vote.",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5521,9 +5525,9 @@
       "text": "I sealed it. The doors, the records. The tape from last night stays with me, not with the company.",
       "audio": "/assets/audio/phone/voss-morning-05.ogg",
       "performance": "nervous",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "I sealed it. The doors, the records. The tape from last night stays with me, not with the company.",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5533,9 +5537,9 @@
       "text": "You're not on the tape, Pierce. The man in the photograph is.",
       "audio": "/assets/audio/phone/voss-morning-06.ogg",
       "performance": "nervous",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "You're not on the tape, Pierce. The man in the photograph is.",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5545,9 +5549,9 @@
       "text": "Stay off the street, and come to me. I'll be where I always am.",
       "audio": "/assets/audio/phone/voss-morning-07.ogg",
       "performance": "nervous",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "Stay off the street, and come to me. I'll be where I always am.",
+      "audioPerformance": "nervous",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Incoming call voss-morning (one-way: Voss talks, Pierce listens) (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5713,9 +5717,9 @@
       "text": "Mine.",
       "audio": "/assets/audio/cutscenes/morning/mine.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "Mine.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning, beat sheet S0 (silent placeholder clip until the voice is generated)"
     },
     {
@@ -5725,9 +5729,9 @@
       "text": "Three blocks. I can walk three blocks.",
       "audio": "/assets/audio/cutscenes/morning/blocks.ogg",
       "performance": "tired",
-      "audioText": "",
-      "audioPerformance": "",
-      "audioVoice": "",
+      "audioText": "Three blocks. I can walk three blocks.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
       "note": "Level 8, The Morning, beat sheet S1 (silent placeholder clip until the voice is generated)"
     },
     {

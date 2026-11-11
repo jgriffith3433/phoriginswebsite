@@ -1,6 +1,6 @@
 import type * as BABYLON from '@babylonjs/core';
 import { installPlaytest, type RunOptions, type Outcome, type Tracker } from '../hawkes-playtest.js';
-import { missingClip, storyLines } from '../game/locale';
+import { missingClip, spokenLine, storyLines } from '../game/locale';
 import { STRIDE_MPS } from '../game/stride';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
@@ -47,6 +47,13 @@ export type PhProbe = {
   chapter: () => { open: boolean; kicker: string; title: string; line: string; closing: boolean };
   menu: () => { open: boolean; title: string; text: string; start: string | null; startEnabled: boolean; newGame: boolean };
   subtitle: () => { speaker: string; text: string };
+  /** Letterbox + HUD-hidden presentation during cutscenes / scripted scenes. */
+  cinematic?: () => { on: boolean; letterbox: boolean; skipBottom: boolean };
+  /** Camera + subtitle choices (localStorage hawkes.settings). */
+  playSettings?: () => {
+    invertY: boolean; mouseSens: number; touchSens: number;
+    subtitles: boolean; subtitleSize: string; subtitleBox: boolean;
+  };
   creature: () => { x: number; y: number; z: number } | null;
   aimLocked: () => boolean;
   shadow: () => { controls: boolean; on: boolean; handsOut: boolean; linked: boolean; ability: string; lessonStarted: boolean };
@@ -65,6 +72,8 @@ export type PhProbe = {
   place?: (x: number, z: number, yaw: number) => void;
   /** The feel sensor's view of Pierce: his capsule, whether he stands on something, which meshes count as solid. */
   feel?: { collider: BABYLON.AbstractMesh; grounded: () => boolean; isSolid: (mesh: BABYLON.AbstractMesh) => boolean };
+  /** Interior camera volumes: active profile, faded occluder count, authored volume count. */
+  camera?: () => { profile: string; faded: number; volumes: number };
   /** Test shortcut (`train`): start a hidden (`comingSoon`) level by library id, as `?beat=train` does. */
   setupHidden: (libraryId: string) => Promise<void>;
   /** The rows Load Level shows, as rendered into its list (titles only). */
@@ -487,10 +496,17 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
       ...LEVEL_NAMES.map((name, i) => ({
         id: `explore-cam-l${i + 1}`,
-        title: `Explore camera, level ${i + 1} (${name}): wall-hugs hallways, turns in doorways, backs into corners on walkable routes; counts camera inside, blocked, near-wall, snaps and jitter, worst frames with screenshots`,
+        title: `Explore camera, level ${i + 1} (${name}): wall-hugs hallways, turns in doorways, backs into corners on walkable routes; counts camera inside, blocked, near-wall, snaps and jitter vs docs/camera.md baseline (≤10%); worst frames with screenshots`,
         seconds: 300,
         tags: ['camera', 'level'],
       })),
+      {
+        id: 'interior-cam',
+        title: 'Interior camera volumes: Level 1 halls (hallway profile, occlusion fade) and Level 8 apartment on desktop and 844x390',
+        description: 'Starts Level 1, skips openings, walks Hall 1 and Hall 2 hugging the wall and through doorways; checks hallway/doorway profile, faded occluders, and camera-inside/blocked ≤10% of the L1 baseline. Then Level 8 apartment the same way. Repeats both at 844x390. Metrics: cameraInside, cameraBlocked, cameraFadedPeak, cameraHallwayFrames, cameraProfileHall, cameraProfileOpen.',
+        seconds: 420,
+        tags: ['camera', 'level'],
+      },
       ...LEVEL_NAMES.map((name, i) => ({
         id: `smoke-l${i + 1}`,
         title: `Smoke, level ${i + 1} (${name}): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress`,
@@ -511,6 +527,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Shows the Tap to play prompt, taps it with a pointer press on the spot (hit-tested, so a covered prompt fails) and checks the AudioContext is running. Opens Settings from the title, turns Sound off and Music to 40%, reloads the page (the run carries on after the reload through ?playtest=sound-settings), checks the prompt and the saved choice are back, then opens Settings again from Pause in level 1. The player\'s own hawkes.sound is put back at the end.',
         seconds: 120,
         tags: ['menus', 'sound'],
+      },
+      {
+        id: 'cutscene-ui',
+        title: 'Cinematic HUD/letterbox/Skip clear of health; Settings invert Y, sensitivity and subtitles persist; phone layouts',
+        description: 'Opens Settings from the title: checks Invert camera Y, mouse and touch sensitivity, Subtitles, subtitle size and box are present and fit at 390x844. Turns Invert on, mouse sens to 1.5×, subtitle size Large, reloads and checks they survive. Starts level 1, walks to the board Join meeting: during the cutscene health, Pause and the objective marker are hidden, letterbox is up, Skip sits bottom-right and overlaps nothing at 1280×720, 844×390 and 390×844 (touch sticks hidden). Skips, then opens level 7 and 8 openings and checks the same HUD fade. Captions stay one line.',
+        seconds: 360,
+        tags: ['menus', 'ui'],
       },
       {
         id: 'feel-audio',
@@ -662,7 +685,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'hitch-board',
         title: 'Level 1 spawn to board table with named hitch causes; phone sample of levels 1, 4 and 8',
-        description: 'Starts level 1 with Start (chapter card up while first-use warm runs), logs the warm event, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
+        description: 'Starts level 1 with Start (chapter card up while first-use warm runs and awaits audio decode), logs the warm event, resets the frame trace once Pierce can walk, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, resets the trace after control, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
         seconds: 240,
         tags: ['smoke', 'perf', 'level'],
       },
@@ -2171,6 +2194,226 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.finish(sceneSeen ? 'done' : 'stuck');
     };
 
+    // ---- cutscene-ui: cinematic HUD/letterbox/Skip + camera/subtitle Settings
+    const cutsceneUiRun = async () => {
+      const byId = (id: string) => document.getElementById(id);
+      const SETTINGS_KEY = 'hawkes.settings';
+      const SETTINGS_RUN_KEY = 'hawkes.playtest.cutscene-ui';
+      const savedSettings = () => {
+        try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null') as Record<string, unknown> | null; } catch { return null; }
+      };
+      const carried = (() => {
+        try {
+          return JSON.parse(sessionStorage.getItem(SETTINGS_RUN_KEY) ?? 'null') as {
+            original: string | null; soundOriginal: string | null;
+          } | null;
+        } catch { return null; }
+      })();
+      const slide = (input: HTMLInputElement | null, value: number, label: string) => {
+        if (!input) return;
+        input.value = String(value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        t.add('interactions');
+        t.log(`slide ${label} to ${value}`);
+      };
+      const overlaps = (a: DOMRect, b: DOMRect) =>
+        !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      const checkCinematic = (where: string) => {
+        const cine = probe.cinematic?.();
+        if (!cine?.on) t.problem('bug', `${where}: body is not cinematic during the scene`);
+        else t.event('cinematic-on', where);
+        if (!cine?.letterbox) t.problem('bug', `${where}: letterbox bars missing`);
+        else t.event('letterbox', where);
+        const health = byId('healthBar');
+        const pause = byId('pauseBtn');
+        const objective = byId('objectiveHud');
+        const skip = probe.skipButton;
+        for (const [name, el] of [['health', health], ['pause', pause], ['objective', objective]] as const) {
+          if (!el) continue;
+          const vis = getComputedStyle(el).visibility;
+          const op = Number(getComputedStyle(el).opacity);
+          if (vis !== 'hidden' && op > 0.05 && !el.hasAttribute('hidden')) {
+            t.problem('bug', `${where}: ${name} still visible during the scene`);
+          } else t.event('hud-hidden', `${where}: ${name}`);
+        }
+        if (!skip || skip.hidden) {
+          t.problem('bug', `${where}: Skip is not shown`);
+          return;
+        }
+        const sr = skip.getBoundingClientRect();
+        if (sr.top < innerHeight * 0.5) t.problem('bug', `${where}: Skip is not in the bottom half (${Math.round(sr.top)} of ${innerHeight})`);
+        else t.event('skip-bottom', `${where}: top ${Math.round(sr.top)}`);
+        const healthR = health?.getBoundingClientRect();
+        const healthVisible = Boolean(health && Number(getComputedStyle(health).opacity) > 0.05 && getComputedStyle(health).visibility !== 'hidden');
+        if (healthVisible && healthR && overlaps(sr, healthR)) {
+          t.problem('bug', `${where}: Skip overlaps the health bar`);
+        } else t.event('skip-clear', where);
+        const left = byId('leftStickZone');
+        const right = byId('rightStickZone');
+        for (const stick of [left, right]) {
+          if (!stick) continue;
+          const cs = getComputedStyle(stick);
+          if (cs.visibility !== 'hidden' && Number(cs.opacity) > 0.05 && cs.display !== 'none') {
+            t.problem('bug', `${where}: touch stick still visible during the scene`);
+          }
+        }
+        const line = byId('cineText');
+        if (line) {
+          const cs = getComputedStyle(line);
+          if (cs.whiteSpace !== 'nowrap' && (line.textContent ?? '').trim()) {
+            t.problem('bug', `${where}: caption is not one line (white-space ${cs.whiteSpace})`);
+          } else if ((line.textContent ?? '').trim()) t.event('caption-one-line', where);
+        }
+        t.scene(`Cinematic ${where}`);
+      };
+      const auditSkipAt = async (vp: string) => {
+        await sleep(400);
+        const skip = probe.skipButton;
+        if (!skip || skip.hidden) {
+          t.problem('bug', `${vp}: Skip missing while auditing layout`);
+          return;
+        }
+        const sr = skip.getBoundingClientRect();
+        if (sr.left < -1 || sr.top < -1 || sr.right > innerWidth + 1 || sr.bottom > innerHeight + 1) {
+          t.problem('bug', `${vp}: Skip leaves the screen (${Math.round(sr.left)},${Math.round(sr.top)} ${Math.round(sr.width)}x${Math.round(sr.height)})`);
+        } else t.event('skip-on-screen', `${vp}: ${Math.round(sr.left)},${Math.round(sr.top)}`);
+        const others = ['healthBar', 'pauseBtn', 'objectiveHud', 'objectiveWaypoint', 'cineHud', 'leftStickZone', 'rightStickZone', 'fireBtn', 'jumpBtn']
+          .map((id) => byId(id))
+          .filter((el): el is HTMLElement => Boolean(el));
+        for (const el of others) {
+          const cs = getComputedStyle(el);
+          if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.05 || cs.display === 'none' || el.hasAttribute('hidden')) continue;
+          if (el.id === 'cineHud' && !el.classList.contains('on')) continue;
+          if (overlaps(sr, el.getBoundingClientRect())) t.problem('bug', `${vp}: Skip overlaps #${el.id}`);
+        }
+      };
+
+      if (!carried) {
+        if (probe.sound().prompt) await tapToPlay();
+        t.scene('Title');
+        await sleep(500);
+        await tapAt(byId('settingsBtn'), 'Settings (title)');
+        await t.until(() => probe.sound().settingsOpen, 3000, 'Settings to open');
+        t.scene('Settings');
+        for (const id of ['invertYSwitch', 'mouseSens', 'touchSens', 'subsSwitch', 'subsSize', 'subsBoxSwitch']) {
+          if (!byId(id)) t.problem('bug', `Settings missing #${id}`);
+          else t.event('settings-control', id);
+        }
+        probe.phoneFrame(true);
+        await sleep(500);
+        const panel = byId('settingsMenu')?.querySelector('.panel') as HTMLElement | null;
+        if (panel) {
+          const r = panel.getBoundingClientRect();
+          if (r.bottom > innerHeight + 2 || r.right > innerWidth + 2) {
+            t.problem('bug', `Settings card clips at 390x844 (${Math.round(r.width)}x${Math.round(r.height)})`);
+          } else t.event('settings-fits', `390x844 panel ${Math.round(r.width)}x${Math.round(r.height)}`);
+        }
+        probe.phoneFrame(false);
+        const original = localStorage.getItem(SETTINGS_KEY);
+        const soundOriginal = localStorage.getItem(SOUND_KEY);
+        if (byId('invertYSwitch')?.getAttribute('aria-checked') !== 'true') await tapAt(byId('invertYSwitch'), 'Invert Y on');
+        slide(byId('mouseSens') as HTMLInputElement, 150, 'Mouse sensitivity');
+        slide(byId('touchSens') as HTMLInputElement, 125, 'Touch sensitivity');
+        slide(byId('subsSize') as HTMLInputElement, 2, 'Subtitle size');
+        if (byId('subsBoxSwitch')?.getAttribute('aria-checked') !== 'true') await tapAt(byId('subsBoxSwitch'), 'Subtitle box on');
+        await sleep(400);
+        const now = savedSettings();
+        if (!now || now.invertY !== true || Math.abs(Number(now.mouseSens) - 1.5) > 0.02
+          || Math.abs(Number(now.touchSens) - 1.25) > 0.02 || now.subtitleSize !== 'lg' || now.subtitleBox !== true) {
+          t.problem('bug', `hawkes.settings did not save invert/sens/size/box: ${JSON.stringify(now)}`);
+        } else t.event('setting-saved', JSON.stringify(now));
+        const live = probe.playSettings?.();
+        if (!live?.invertY || Math.abs((live.mouseSens ?? 0) - 1.5) > 0.02
+          || Math.abs((live.touchSens ?? 0) - 1.25) > 0.02 || live.subtitleSize !== 'lg' || live.subtitleBox !== true) {
+          t.problem('bug', 'Settings did not apply at once');
+        } else t.event('setting-applied', JSON.stringify(live));
+        await tapAt(byId('settingsDoneBtn'), 'Done');
+        sessionStorage.setItem(SETTINGS_RUN_KEY, JSON.stringify({ original, soundOriginal }));
+        t.event('reload', 'page reloads; cutscene-ui continues');
+        const url = new URL(location.href);
+        url.searchParams.set('playtest', 'cutscene-ui');
+        url.searchParams.set('seed', String(options.seed ?? 1));
+        url.searchParams.set('speed', String(options.speed ?? 1));
+        await sleep(200);
+        location.replace(url.toString());
+        await new Promise(() => {});
+        return;
+      }
+
+      sessionStorage.removeItem(SETTINGS_RUN_KEY);
+      if (probe.sound().prompt) await tapToPlay();
+      const back = probe.playSettings?.();
+      if (!back || back.invertY !== true || Math.abs(back.mouseSens - 1.5) > 0.02
+        || Math.abs(back.touchSens - 1.25) > 0.02 || back.subtitleSize !== 'lg' || back.subtitleBox !== true) {
+        t.problem('bug', `settings did not survive reload: ${JSON.stringify(back)}`);
+      } else t.event('setting-survived-reload', JSON.stringify(back));
+      t.progress(0.2);
+
+      // Level 1 board cutscene
+      await enterLevel(1);
+      t.scene(LEVELS[0].name);
+      const until = performance.now() + 150000;
+      let boardSeen = false;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()) { boardSeen = true; break; }
+        if (!controllable()) continue;
+        if (probe.phone().incoming) { await once('f', 1500, 'answer'); continue; }
+        if (probe.phone().busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) { releaseAll(); await once('e', 1500, label); continue; }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      if (!boardSeen) t.problem('bug', 'level 1 board cutscene did not start');
+      else {
+        await sleep(800);
+        checkCinematic('level-1 board');
+        await auditSkipAt(`${innerWidth}x${innerHeight}`);
+        probe.phoneFrame(true, true);
+        await auditSkipAt('844x390');
+        probe.phoneFrame(true, false);
+        await auditSkipAt('390x844');
+        probe.phoneFrame(false);
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await t.until(() => !probe.cutscene(), 8000, 'board cutscene ends');
+        t.event('cinematic-off', 'after Skip on level 1');
+        if (probe.cinematic?.().on) t.problem('bug', 'cinematic stayed on after the board scene');
+      }
+      t.progress(0.55);
+
+      // Level 7 opening (scripted scene)
+      t.event('setup', 'start at level 7 (the-train)');
+      await probe.setupHidden('the-train');
+      await t.until(() => probe.running() && (probe.scripted() || probe.cutscene()), 90000, 'train opening');
+      await sleep(600);
+      checkCinematic('level-7 opening');
+      await auditSkipAt(`${innerWidth}x${innerHeight}`);
+      if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+      await t.until(() => controllable(), 8000, 'control after train Skip');
+      t.progress(0.75);
+
+      // Level 8 opening
+      t.event('setup', 'start at level 8');
+      await probe.setupLevel(8);
+      await t.until(() => probe.running() && (probe.scripted() || probe.cutscene()), 90000, 'morning opening');
+      await sleep(600);
+      checkCinematic('level-8 opening');
+      await auditSkipAt(`${innerWidth}x${innerHeight}`);
+      if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+      await sleep(1500);
+      t.progress(0.95);
+
+      if (carried.original === null) localStorage.removeItem(SETTINGS_KEY);
+      else localStorage.setItem(SETTINGS_KEY, carried.original);
+      if (carried.soundOriginal === null) localStorage.removeItem(SOUND_KEY);
+      else localStorage.setItem(SOUND_KEY, carried.soundOriginal);
+      t.progress(1);
+      t.finish(boardSeen ? 'done' : 'stuck');
+    };
+
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
     const b3RetryRun = async () => {
       levelsTotal = 1;
@@ -2904,7 +3147,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
     // A player taps the splash at once; the tap never waits for the load. Scenarios that test the splash or lay the
     // page out themselves tap it in their own run.
-    const ownsSplash = ['sound-settings', 'ui-style', 'load-error', 'screen-mode', 'stuck-recovery', 'objective-marker'];
+    const ownsSplash = ['sound-settings', 'cutscene-ui', 'ui-style', 'load-error', 'screen-mode', 'stuck-recovery', 'objective-marker'];
     if (!ownsSplash.includes(id) && probe.sound().prompt) await tapToPlay();
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'stuck-recovery') {
@@ -2913,6 +3156,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
     if (id === 'sound-settings') {
       await soundSettingsRun(t, tapAt, tapToPlay, sleep, enterLevel, options);
+      return;
+    }
+    if (id === 'cutscene-ui') {
+      await cutsceneUiRun();
       return;
     }
     if (id === 'screen-mode') {
@@ -2953,9 +3200,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         prevEmit?.(type, detail);
       };
 
-      frameTrace.reset();
       t.scene('L1 desktop');
       await enterLevel(1);
+      // Grace and hitchFailOver100 start when Pierce can walk — not during the chapter card / warm.
+      // (A reset before enterLevel let the 1 s grace expire under the card, so the first play frames failed.)
+      frameTrace.reset();
       // Chapter card + warm already finished inside enterLevel / Start.
       if (warmMs > 6100) t.problem('bug', `chapter warm held Start for ${warmMs} ms (cap ~4600+1500)`);
       t.event('play', 'spawn to board');
@@ -3013,10 +3262,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let phoneFail = 0;
       for (const n of [1, 4, 8]) {
         levelIndex = n;
-        frameTrace.reset();
         t.scene(`L${n} phone`);
         t.event('setup', `hitch-board phone level ${n}`);
         await enterLevel(n);
+        // Grace after control, not under the chapter card.
+        frameTrace.reset();
         await sleep(1200);
         const walkUntil = performance.now() + 4500;
         while (performance.now() < walkUntil) {
@@ -3053,15 +3303,37 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return;
     }
 
+    // Patch-era baselines from docs/camera.md — inside/blocked must drop ≥90%.
+    const CAM_BASELINE: { inside: number; blocked: number }[] = [
+      { inside: 120, blocked: 280 },
+      { inside: 100, blocked: 240 },
+      { inside: 110, blocked: 260 },
+      { inside: 100, blocked: 240 },
+      { inside: 40, blocked: 60 },
+      { inside: 80, blocked: 180 },
+      { inside: 60, blocked: 120 },
+      { inside: 50, blocked: 100 },
+    ];
+
     const exploreN = Number(/^explore-cam-l([1-8])$/.exec(id)?.[1] ?? 0);
     if (exploreN > 0) {
       levelsTotal = 1;
       const feel = probe.feel;
+      let fadedPeak = 0;
+      let hallwayFrames = 0;
       const cw = installCameraWatch({
         scene: () => probe.scene,
         player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
         isSolid: (m) => (feel ? feel.isSolid(m) : true),
-        active: () => probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted(),
+        active: () => {
+          if (!(probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted())) return false;
+          const cam = probe.camera?.();
+          if (cam) {
+            fadedPeak = Math.max(fadedPeak, cam.faded);
+            if (cam.profile === 'hallway' || cam.profile === 'doorway') hallwayFrames += 1;
+          }
+          return true;
+        },
         label: () => `L${exploreN}`,
         emit: (type, detail) => t.event(type, detail),
       });
@@ -3150,11 +3422,162 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.metric('cameraSnaps', sum.snaps);
       t.metric('cameraJitter', sum.jitter);
       t.metric('cameraMaxCoverage', Math.round(sum.maxCoverage * 100) / 100);
-      t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })) }));
+      t.metric('cameraFadedPeak', fadedPeak);
+      t.metric('cameraHallwayFrames', hallwayFrames);
+      t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })), fadedPeak, hallwayFrames }));
       sum.worst.forEach((w, i) => { if (w.shot) t.event('camera-screenshot', JSON.stringify({ rank: i + 1, kind: w.kind, detail: w.detail, image: w.shot })); });
       if (sum.inside > 0) t.problem('bug', `camera inside geometry on ${LEVEL_NAMES[exploreN - 1]}: ${sum.inside} frames`);
+      const base = CAM_BASELINE[exploreN - 1]!;
+      const insideCap = Math.max(1, Math.ceil(base.inside * 0.1));
+      const blockedCap = Math.max(1, Math.ceil(base.blocked * 0.1));
+      if (sum.inside > insideCap) {
+        t.problem('bug', `cameraInside ${sum.inside} on L${exploreN} exceeds 10% of baseline ${base.inside} (cap ${insideCap})`);
+      }
+      if (sum.blocked > blockedCap) {
+        t.problem('bug', `cameraBlocked ${sum.blocked} on L${exploreN} exceeds 10% of baseline ${base.blocked} (cap ${blockedCap})`);
+      }
       t.progress(1);
-      t.finish('done');
+      t.finish(sum.inside <= insideCap && sum.blocked <= blockedCap ? 'done' : 'lost');
+      return;
+    }
+
+    if (id === 'interior-cam') {
+      levelsTotal = 2;
+      const feel = probe.feel;
+      type Pass = { label: string; level: number; phone: boolean };
+      const passes: Pass[] = [
+        { label: 'L1-desktop', level: 1, phone: false },
+        { label: 'L8-desktop', level: 8, phone: false },
+        { label: 'L1-844x390', level: 1, phone: true },
+        { label: 'L8-844x390', level: 8, phone: true },
+      ];
+      let passOk = 0;
+      let hallSeen = 0;
+      let openSeen = 0;
+      let fadeSeen = 0;
+      let totalInside = 0;
+      let totalBlocked = 0;
+      for (let pi = 0; pi < passes.length; pi += 1) {
+        const pass = passes[pi]!;
+        if (pass.phone) probe.phoneFrame(true, true, { w: 844, h: 390 });
+        else probe.phoneFrame(false);
+        t.scene(`interior-cam ${pass.label}`);
+        let fadedPeak = 0;
+        let hallwayFrames = 0;
+        let openFrames = 0;
+        const cw = installCameraWatch({
+          scene: () => probe.scene,
+          player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
+          isSolid: (m) => (feel ? feel.isSolid(m) : true),
+          active: () => {
+            if (!(probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted())) return false;
+            const cam = probe.camera?.();
+            if (cam) {
+              fadedPeak = Math.max(fadedPeak, cam.faded);
+              if (cam.profile === 'hallway' || cam.profile === 'doorway') hallwayFrames += 1;
+              if (cam.profile === 'open') openFrames += 1;
+            }
+            return true;
+          },
+          label: () => pass.label,
+          emit: (type, detail) => t.event(type, detail),
+        });
+        try {
+          await enterLevel(pass.level);
+          for (let i = 0; i < 400 && (probe.cutscene() || probe.scripted() || probe.menu().open); i += 1) {
+            const skip = probe.skipButton;
+            if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            await tick();
+          }
+          await measureLook();
+          await sleep(800);
+          cw.start();
+          const goals: Point[] = pass.level === 1
+            ? [
+              { x: 0, z: 12 },
+              { x: 0, z: 28 },
+              { x: 8, z: 32 },
+              { x: 18, z: 32 },
+              { x: 30, z: 32 },
+            ]
+            : [
+              { x: 2, z: 0 },
+              { x: 4, z: -1.5 },
+              { x: 6, z: 1.2 },
+              { x: 4, z: 0 },
+            ];
+          let arrivedN = 0;
+          for (const g of goals) {
+            const t1 = performance.now();
+            let ok = false;
+            while (performance.now() - t1 < 20000 && !(ok = await walkTo(g, `ic-${pass.label}-${arrivedN}`, 0.85))) {
+              if (probe.cutscene() || probe.scripted()) break;
+              await tick();
+            }
+            releaseAll();
+            if (ok) {
+              arrivedN += 1;
+              for (let i = 0; i < 6; i += 1) { dragLook(12); await tick(); }
+              for (let i = 0; i < 6; i += 1) { dragLook(-12); await tick(); }
+              // Hug the wall briefly so door frames can sit between lens and Pierce (fade check).
+              setHeld('d');
+              const u = performance.now() + 900;
+              while (performance.now() < u) await tick();
+              releaseAll();
+            }
+          }
+          t.event('interior-pass', JSON.stringify({
+            label: pass.label, arrived: arrivedN, fadedPeak, hallwayFrames, openFrames,
+            profile: probe.camera?.()?.profile ?? null, volumes: probe.camera?.()?.volumes ?? 0,
+          }));
+        } catch (e) {
+          t.event('interior-error', `${pass.label}: ${String(e)}`);
+        }
+        releaseAll();
+        cw.stop();
+        const sum = cw.summary();
+        lastCam = sum;
+        totalInside += sum.inside;
+        totalBlocked += sum.blocked;
+        hallSeen += hallwayFrames;
+        openSeen += openFrames;
+        fadeSeen = Math.max(fadeSeen, fadedPeak);
+        const base = CAM_BASELINE[pass.level - 1]!;
+        const insideCap = Math.max(1, Math.ceil(base.inside * 0.1));
+        const blockedCap = Math.max(1, Math.ceil(base.blocked * 0.1));
+        if (sum.inside > insideCap) {
+          t.problem('bug', `${pass.label}: cameraInside ${sum.inside} > 10% of baseline ${base.inside}`);
+        }
+        if (sum.blocked > blockedCap) {
+          t.problem('bug', `${pass.label}: cameraBlocked ${sum.blocked} > 10% of baseline ${base.blocked}`);
+        }
+        if (pass.level === 1 && hallwayFrames < 5) {
+          t.problem('bug', `${pass.label}: hallway/doorway profile never held (frames ${hallwayFrames}) — volumes missing or not blending`);
+        }
+        if (pass.level === 1 && fadedPeak < 1) {
+          // Door GLBs / props between lens and Pierce must fade; a zero peak means fade never armed.
+          t.problem('bug', `${pass.label}: no occluder faded while wall-hugging (peak ${fadedPeak})`);
+        }
+        if (pass.level === 8 && openFrames < 5) {
+          t.problem('bug', `${pass.label}: open profile never held in the apartment (frames ${openFrames})`);
+        }
+        const fadeOk = pass.level !== 1 || fadedPeak >= 1;
+        if (sum.inside <= insideCap && sum.blocked <= blockedCap && (pass.level !== 1 || hallwayFrames >= 5) && fadeOk) passOk += 1;
+        t.metric(`cameraInside_${pass.label}`, sum.inside);
+        t.metric(`cameraBlocked_${pass.label}`, sum.blocked);
+        t.metric(`cameraFadedPeak_${pass.label}`, fadedPeak);
+        t.progress((pi + 1) / passes.length);
+      }
+      probe.phoneFrame(false);
+      t.metric('cameraInside', totalInside);
+      t.metric('cameraBlocked', totalBlocked);
+      t.metric('cameraFadedPeak', fadeSeen);
+      t.metric('cameraHallwayFrames', hallSeen);
+      t.metric('cameraProfileHall', hallSeen);
+      t.metric('cameraProfileOpen', openSeen);
+      t.metric('interiorPassesOk', passOk);
+      t.progress(1);
+      t.finish(passOk >= 3 ? 'done' : 'lost');
       return;
     }
 
@@ -3162,11 +3585,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       levelsTotal = 16; // 8 levels × desktop + phone
       const sampleLevel = async (n: number, device: 'desktop' | 'phone') => {
         levelIndex = (device === 'phone' ? 8 : 0) + (n - 1);
-        frameTrace.reset();
         t.scene(`L${n} ${device}`);
         t.event('setup', `frame-trace level ${n} on ${device}`);
         if (n === 7) await probe.setupHidden('the-train');
         else await enterLevel(n);
+        // Grace after Pierce can walk — chapter card / warm must not burn the first second.
+        frameTrace.reset();
         // Let the first-second grace pass, then walk a few seconds so frames accumulate.
         await sleep(1200);
         const until = performance.now() + 4500;
@@ -3368,7 +3792,6 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       // Beta only runs smoke: cover hitch-board's L1 work-time hitch bar and transition's black-frame check here
       // so a smoke-only beta run can judge those tasks (m_98ce28cc5577).
       levelsTotal = 17; // L1 board + transition samples (L1 already counted, then L2-8 desktop + L1-8 phone = 15) ≈ progress steps
-      frameTrace.reset();
       // Start L1: wait for the chapter card (Start path), sample black-frame, then walk.
       // Do not soft-skip if the card is late — that was the live path the level-start task needed.
       {
@@ -3383,6 +3806,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           await tick();
         }
       }
+      // Hitch grace starts once Pierce can walk (same rule as hitch-board).
+      frameTrace.reset();
       t.scene(LEVELS[0].name);
       t.event('level-start', LEVELS[0].name);
       await measureLook();
@@ -3913,6 +4338,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           outcome = await trainStoryRun(true);
         } else {
           await enterLevel(smokeN);
+          // Hitch grace after control (chapter card / warm excluded).
+          frameTrace.reset();
           outcome = await playLevel(smokeN);
         }
         finishLevelRun(outcome);
@@ -4333,7 +4760,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
   const watchProblems = (t: Tracker) => {
     const missing = storyLines().filter(missingClip);
     if (missing.length) {
-      t.problem('polish', `${missing.length} spoken line${missing.length === 1 ? ' has' : 's have'} no audio clip: ${missing.slice(0, 6).map((row) => row.id).join(', ')}${missing.length > 6 ? '…' : ''}`);
+      t.problem('bug', `${missing.length} spoken line${missing.length === 1 ? ' has' : 's have'} no audio clip: ${missing.slice(0, 6).map((row) => row.id).join(', ')}${missing.length > 6 ? '…' : ''}`);
+    }
+    const silent = storyLines().filter((row) => spokenLine(row) && row.audio.trim() && !row.audioText.trim());
+    if (silent.length) {
+      t.problem('bug', `${silent.length} spoken line${silent.length === 1 ? ' is' : 's are'} silent placeholders (empty audioText): ${silent.slice(0, 6).map((row) => row.id).join(', ')}${silent.length > 6 ? '…' : ''}`);
     }
     const seen = new Set<string>();
     const report = (url: string, status: number) => {

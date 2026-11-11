@@ -1,5 +1,13 @@
 import * as BABYLON from '@babylonjs/core';
 
+import {
+  createOcclusionFader,
+  createVolumeBlend,
+  parseCameraVolumes,
+  stepVolumeBlend,
+  type CameraVolume,
+  type OcclusionFader,
+} from './cameraVolumes';
 import { clampValue } from './physics';
 import { playerMeshY } from './player';
 
@@ -19,7 +27,10 @@ export type ThirdPersonCameraConfig = {
   collisionInStiffness: number;
   collisionOutStiffness: number;
   enableMoveRecenter: boolean;
+  /** Seconds without look input while moving before yaw recentres behind Pierce. */
   recenterDelay: number;
+  /** Seconds without look input while standing still before yaw recentres. */
+  idleRecenterDelay: number;
   recenterStiffness: number;
   fov: number;
   minZ: number;
@@ -48,7 +59,9 @@ export const DEFAULT_CAMERA_CONFIG: ThirdPersonCameraConfig = {
   collisionInStiffness: 32,
   collisionOutStiffness: 7.5,
   enableMoveRecenter: true,
-  recenterDelay: 0.32,
+  // Moving: ease behind him soon. Standing still after a look: settle after ~2 s.
+  recenterDelay: 0.45,
+  idleRecenterDelay: 2.0,
   recenterStiffness: 2.8,
   fov: 0.9,
   minZ: 0.12,
@@ -96,9 +109,14 @@ export const createThirdPersonCamera = (
   let lookStickY = 0;
   let lookInputTimer = 0;
   let mouseFlick = false;
+  /** Invert Y (Settings). Default off: mouse down looks up relative to the old baked sign. */
+  let invertY = false;
+  let mouseScale = 1;
+  let stickScale = 1;
   let holdAim = false;
   const aimSpot = new BABYLON.Vector3();
   let recenterIdle = 0;
+  let lastMoveHeading: number | null = null;
   let shoulderTarget = 0;
   let shoulderMix = 0;
   let toolClose = false;
@@ -115,15 +133,24 @@ export const createThirdPersonCamera = (
   const downDir = BABYLON.Vector3.Down();
   const ray = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward(), 1);
   const ceilingClearance = Math.max(cfg.minZ + 0.08, 0.2);
+  const feelDir = new BABYLON.Vector3();
+  const pushOut = new BABYLON.Vector3();
 
   let callTarget = 0;
   let callMix = 0;
 
+  let volumes: CameraVolume[] = [];
+  const volumeBlend = createVolumeBlend();
+  const fader: OcclusionFader = createOcclusionFader();
+  let lastFaded = 0;
+
   const addLook = (dx: number, dy: number) => {
     if (callTarget > 0) return;
     if (dx === 0 && dy === 0) return;
-    yaw += dx * cfg.mouseSensitivity;
-    pitch = clampValue(pitch + dy * cfg.mouseSensitivity * 0.78, cfg.minPitch, cfg.maxPitch);
+    const ySign = invertY ? 1 : -1;
+    const sens = cfg.mouseSensitivity * mouseScale;
+    yaw += dx * sens;
+    pitch = clampValue(pitch + dy * ySign * sens * 0.78, cfg.minPitch, cfg.maxPitch);
     if (Math.hypot(dx, dy) > 16) mouseFlick = true;
     lookInputTimer = 0.12;
     recenterIdle = 0;
@@ -151,21 +178,32 @@ export const createThirdPersonCamera = (
     squeeze = 0;
     callTarget = 0;
     callMix = 0;
+    fader.clear();
+    lastFaded = 0;
+    volumeBlend.current.distance = cfg.distance;
+    volumeBlend.current.fov = cfg.fov;
+    volumeBlend.current.heightLift = 0;
+    volumeBlend.current.shoulderSigned = 0;
+    volumeBlend.current.openYaw = 0;
+    volumeBlend.current.blend = 0;
+    volumeBlend.current.profile = 'open';
+    volumeBlend.targetId = 'open';
     pivot.set(0, cfg.pivotHeight, 0);
     lookAt.copyFrom(pivot);
     smoothedPos.set(0, cfg.pivotHeight + cfg.height + 2.2, -cfg.distance);
     camera.position.copyFrom(smoothedPos);
+    camera.fov = cfg.fov;
     camera.setTarget(pivot);
   };
 
   const isLooking = () => lookInputTimer > 0 || Math.hypot(lookStickX, lookStickY) > 0.08;
 
-  const desiredOffset = (distance: number, into: BABYLON.Vector3, usePitch = pitch) => {
+  const desiredOffset = (distance: number, into: BABYLON.Vector3, usePitch = pitch, useYaw = yaw) => {
     const cosPitch = Math.cos(usePitch);
     into.set(
-      -Math.sin(yaw) * cosPitch * distance,
+      -Math.sin(useYaw) * cosPitch * distance,
       cfg.height + Math.sin(usePitch) * distance,
-      -Math.cos(yaw) * cosPitch * distance,
+      -Math.cos(useYaw) * cosPitch * distance,
     );
     return into;
   };
@@ -173,8 +211,11 @@ export const createThirdPersonCamera = (
   const isCameraObstacle = (mesh: BABYLON.AbstractMesh | undefined, ignore: Set<BABYLON.AbstractMesh>) => {
     if (!mesh || !mesh.isEnabled() || mesh.visibility <= 0) return false;
     if (ignore.has(mesh)) return false;
-    const meta = mesh.metadata as { sceneTriggerId?: string; cameraClip?: boolean; trainCollider?: boolean } | undefined;
+    // Occlusion fade owns these; do not shorten the boom into Pierce because of them.
+    if (fader.isFaded(mesh)) return false;
+    const meta = mesh.metadata as { sceneTriggerId?: string; cameraClip?: boolean; trainCollider?: boolean; cameraFade?: number } | undefined;
     if (meta?.sceneTriggerId || meta?.trainCollider) return false;
+    if ((meta?.cameraFade ?? 0) > 0.35) return false;
     if (meta?.cameraClip || mesh.checkCollisions) return true;
     return mesh.isVisible && mesh.isPickable;
   };
@@ -205,14 +246,12 @@ export const createThirdPersonCamera = (
     if (hit?.hit && typeof hit.distance === 'number') {
       best = clampValue(hit.distance + skin - cfg.collisionRadius, cfg.minDistance, maxDist);
     }
-    // The boom is a line, the lens is not: a door jamb or wall end that stands
-    // beside the line (hall doorways) can still fill the view. Probe two parallel
-    // rays to either side so the camera stops short of anything within its radius.
+    // Side probes catch a jamb that sits beside the boom line (fade will clear most of these).
     const sideX = -offsetDir.z;
     const sideZ = offsetDir.x;
     const sideLen = Math.hypot(sideX, sideZ);
     if (sideLen > 0.01) {
-      const r = cfg.collisionRadius * 0.85;
+      const r = cfg.collisionRadius * 0.7;
       const ox = (sideX / sideLen) * r;
       const oz = (sideZ / sideLen) * r;
       for (const sign of [1, -1]) {
@@ -228,27 +267,16 @@ export const createThirdPersonCamera = (
     return best;
   };
 
-  const pushOut = new BABYLON.Vector3();
-  const feelDir = new BABYLON.Vector3();
-  const FEEL_DIRS = 8;
-  /** Fills pushOut with the horizontal shove that keeps `pos` a lens-width off nearby walls. */
+  /**
+   * Last-resort shove only: keep the near plane out of solid geometry.
+   * Hall framing and occlusion fade own the rest — do not grow this reach again.
+   */
   const clearancePush = (pos: BABYLON.Vector3, ignore: Set<BABYLON.AbstractMesh>) => {
-    // Two collision radii: a plaster wall 0.4 m off a lens that is turned a little toward it
-    // still fills a third of the frame (reads as the camera pressed into the wall), so keep
-    // clear of it by more than the near plane's reach.
-    // A camera trailing Pierce along a hall wall at ~0.8 m put each passing door frame
-    // (casing and slab, proud of the plaster) a metre from the lens, filling a third of
-    // the view and reading as a door cutting through the wall. 2.6 radii (0.88 m) keeps
-    // doors at a distance; the shove grows from zero with the gap, so it never snaps.
-    // Still, the follow lens on a hall run sat ~0.5 m off the door slab (the shove is a
-    // fraction of the shortfall once the other wall's rays pull back), so a door leaf
-    // filled the lower right of the view. 3.5 radii (1.19 m) keeps the lens a door's
-    // width off; the 4.4 m halls still leave the centre line free of any shove.
-    const reach = Math.max(cfg.collisionRadius * 3.5, cfg.minZ * 3);
+    const reach = Math.max(cfg.collisionRadius, cfg.minZ * 2.5);
     pushOut.set(0, 0, 0);
     let any = false;
-    for (let i = 0; i < FEEL_DIRS; i++) {
-      const a = (i / FEEL_DIRS) * Math.PI * 2;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
       feelDir.set(Math.sin(a), 0, Math.cos(a));
       const hit = pickAlong(pos, feelDir, reach, ignore);
       if (hit?.hit && typeof hit.distance === 'number' && hit.distance < reach) {
@@ -258,13 +286,11 @@ export const createThirdPersonCamera = (
         any = true;
       }
     }
-    // Opposite walls (a narrow gap) cancel out; cap the move so it never throws the lens far.
     const len = Math.hypot(pushOut.x, pushOut.z);
     if (len > reach) pushOut.scaleInPlace(reach / len);
     return any;
   };
 
-  /** World Y of the first ceiling/overhang above a point; boom rays barely change Y under a flat slab. */
   const ceilingWorldY = (x: number, y: number, z: number, ignore: Set<BABYLON.AbstractMesh>) => {
     probeOrigin.set(x, y, z);
     const hit = pickAlong(probeOrigin, upDir, 12, ignore);
@@ -272,12 +298,19 @@ export const createThirdPersonCamera = (
     return Number.POSITIVE_INFINITY;
   };
 
-  /** World Y of the ground under a point. The look-up boom sinks through a thin plane the ray only grazes. */
   const floorWorldY = (x: number, y: number, z: number, ignore: Set<BABYLON.AbstractMesh>) => {
     probeOrigin.set(x, y, z);
     const hit = pickAlong(probeOrigin, downDir, Math.max(0.4, y + 2), ignore);
     if (hit?.hit && hit.pickedPoint) return hit.pickedPoint.y;
     return Number.NEGATIVE_INFINITY;
+  };
+
+  const sideClearance = (px: number, py: number, pz: number, dirX: number, dirZ: number, ignore: Set<BABYLON.AbstractMesh>) => {
+    probeOrigin.set(px, py, pz);
+    feelDir.set(dirX, 0, dirZ);
+    const hit = pickAlong(probeOrigin, feelDir, 4, ignore);
+    if (hit?.hit && typeof hit.distance === 'number') return hit.distance;
+    return 4;
   };
 
   const update = (
@@ -291,8 +324,6 @@ export const createThirdPersonCamera = (
     if (cinematicPos && cinematicLook) {
       if (cinematicFresh) {
         cinematicFresh = false;
-        // The first shot of a scene: if the straight flight from the follow camera to it runs through a wall,
-        // table or ceiling, cut there instead. Gliding through them shows the inside of geometry (a black frame).
         const dist = BABYLON.Vector3.Distance(camera.position, cinematicPos);
         if (dist > 0.5 && collideDistance(camera.position, cinematicPos, new Set(ignoreMeshes)) < dist - 0.05) {
           camera.position.copyFrom(cinematicPos);
@@ -314,47 +345,64 @@ export const createThirdPersonCamera = (
     const stickMag = Math.hypot(lookStickX, lookStickY);
     const stickBreak = stickMag > 0.82;
     if (stickMag > 0.04 && !(holdAim && !stickBreak)) {
-      yaw += lookStickX * cfg.stickSensitivity * clampedDt;
-      pitch = clampValue(pitch - lookStickY * cfg.stickSensitivity * 0.85 * clampedDt, cfg.minPitch, cfg.maxPitch);
+      const stick = cfg.stickSensitivity * stickScale;
+      const ySign = invertY ? 1 : -1;
+      yaw += lookStickX * stick * clampedDt;
+      pitch = clampValue(pitch - lookStickY * ySign * stick * 0.85 * clampedDt, cfg.minPitch, cfg.maxPitch);
       lookInputTimer = 0.12;
       recenterIdle = 0;
     }
 
     lookInputTimer = Math.max(0, lookInputTimer - clampedDt);
 
-    if (cfg.enableMoveRecenter && moving && moveHeading !== null && !isLooking() && !holdAim) {
+    const eyeY = playerMeshY(player.y) + 1.5;
+    const rightX = Math.cos(yaw);
+    const rightZ = -Math.sin(yaw);
+    const clearR = sideClearance(player.x, eyeY, player.z, rightX, rightZ, ignore);
+    const clearL = sideClearance(player.x, eyeY, player.z, -rightX, -rightZ, ignore);
+    const pose = stepVolumeBlend(volumeBlend, volumes, player, yaw, clampedDt, clearL, clearR);
+
+    camera.fov = expDamp(camera.fov, toolClose ? Math.min(pose.fov, cfg.fov) : pose.fov, 8, clampedDt);
+
+    if (moveHeading !== null) lastMoveHeading = moveHeading;
+    if (cfg.enableMoveRecenter && !isLooking() && !holdAim) {
       recenterIdle += clampedDt;
-      if (squeeze > 0.35) {
-        // Rounding a hall corner the boom points into the wall behind him and would sit
-        // on his collar. Swing behind him now, in proportion to how squeezed it is,
-        // instead of waiting out the usual recenter delay.
-        yaw = dampAngle(yaw, moveHeading, cfg.recenterStiffness + squeeze * 9, clampedDt);
-      } else if (recenterIdle >= cfg.recenterDelay) {
-        yaw = dampAngle(yaw, moveHeading, cfg.recenterStiffness, clampedDt);
+      const heading = moveHeading ?? lastMoveHeading;
+      const delay = moving ? cfg.recenterDelay : cfg.idleRecenterDelay;
+      if (heading !== null && squeeze > 0.35 && moving) {
+        // Corner escape: swing behind him when the last-resort boom is hard into a wall.
+        yaw = dampAngle(yaw, heading + pose.openYaw, cfg.recenterStiffness + squeeze * 9, clampedDt);
+      } else if (heading !== null && recenterIdle >= delay) {
+        yaw = dampAngle(yaw, heading + pose.openYaw, cfg.recenterStiffness, clampedDt);
       }
     } else {
       recenterIdle = 0;
     }
 
     shoulderMix = expDamp(shoulderMix, shoulderTarget, cfg.shoulderStiffness, clampedDt);
-    desiredDistance = toolClose ? cfg.equippedDistance : cfg.distance;
-    const rightX = Math.cos(yaw);
-    const rightZ = -Math.sin(yaw);
-    const shoulder = cfg.shoulderOffset * shoulderMix;
+    // Volume shoulder (hallway open-side) blends with the armed over-shoulder.
+    const volumeShoulder = pose.shoulderSigned * (1 - shoulderMix * 0.35);
+    const armedShoulder = cfg.shoulderOffset * shoulderMix;
+    const shoulder = armedShoulder + volumeShoulder * cfg.shoulderOffset;
+
+    const profileDistance = toolClose ? cfg.equippedDistance : pose.distance;
+    desiredDistance = profileDistance;
     const aimDistance = clampValue(
       desiredDistance + cfg.drawnDistanceDelta * shoulderMix,
       cfg.minDistance,
       cfg.maxDistance,
     );
 
-    const pivotTargetX = player.x + rightX * shoulder;
+    const useYaw = yaw + pose.openYaw * (1 - shoulderMix);
+    const pivotTargetX = player.x + Math.cos(useYaw) * shoulder;
     const pivotTargetY = playerMeshY(player.y) + cfg.pivotHeight;
-    const pivotTargetZ = player.z + rightZ * shoulder;
+    const pivotTargetZ = player.z + -Math.sin(useYaw) * shoulder;
     pivot.x = expDamp(pivot.x, pivotTargetX, cfg.followStiffness, clampedDt);
     pivot.y = expDamp(pivot.y, pivotTargetY, cfg.followStiffness, clampedDt);
     pivot.z = expDamp(pivot.z, pivotTargetZ, cfg.followStiffness, clampedDt);
 
-    desiredOffset(aimDistance, desiredPos);
+    desiredOffset(aimDistance, desiredPos, pitch, useYaw);
+    desiredPos.y += pose.heightLift;
     desiredPos.addInPlace(pivot);
 
     const midX = (pivot.x + desiredPos.x) * 0.5;
@@ -365,22 +413,21 @@ export const createThirdPersonCamera = (
       ceilingWorldY(midX, pivot.y, midZ, ignore),
     );
     const maxCamY = ceilingY - ceilingClearance;
-    // Under a low ceiling, look-up pitch used to shorten the boom until the lens sat on
-    // the character's back. Slide the lens down the ceiling instead: lower the effective
-    // pitch so the camera keeps its distance and only drops lower behind him.
     let effPitch = pitch;
     if (Number.isFinite(maxCamY) && Math.sin(pitch) > 0.02) {
-      const capSin = (maxCamY - pivot.y - cfg.height) / aimDistance;
+      const capSin = (maxCamY - pivot.y - cfg.height - pose.heightLift) / aimDistance;
       if (capSin < Math.sin(pitch)) effPitch = Math.asin(clampValue(capSin, 0, 1));
-      desiredOffset(aimDistance, desiredPos, effPitch);
+      desiredOffset(aimDistance, desiredPos, effPitch, useYaw);
+      desiredPos.y += pose.heightLift;
       desiredPos.addInPlace(pivot);
     }
 
+    // Prefer full boom; fade handles most occluders. Collision only when something solid remains.
     let blocked = collideDistance(pivot, desiredPos, ignore);
 
     const pitchLift = Math.sin(effPitch);
     if (Number.isFinite(maxCamY) && pitchLift > 0.02) {
-      const maxDistY = (maxCamY - pivot.y - cfg.height) / pitchLift;
+      const maxDistY = (maxCamY - pivot.y - cfg.height - pose.heightLift) / pitchLift;
       if (maxDistY < blocked) {
         blocked = clampValue(maxDistY, cfg.minDistance, blocked);
       }
@@ -390,7 +437,8 @@ export const createThirdPersonCamera = (
     currentDistance = expDamp(currentDistance, Math.min(aimDistance, blocked), stiffness, clampedDt);
     squeeze = clampValue((aimDistance * 0.7 - blocked) / Math.max(0.1, aimDistance * 0.7 - cfg.minDistance), 0, 1);
 
-    desiredOffset(currentDistance, smoothedPos, effPitch);
+    desiredOffset(currentDistance, smoothedPos, effPitch, useYaw);
+    smoothedPos.y += pose.heightLift;
     smoothedPos.addInPlace(pivot);
     if (smoothedPos.y > maxCamY) smoothedPos.y = maxCamY;
 
@@ -398,9 +446,9 @@ export const createThirdPersonCamera = (
     if (holdAim) {
       lookAt.copyFrom(aimSpot);
     } else {
-      lookAt.x = expDamp(lookAt.x, pivot.x + Math.sin(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
+      lookAt.x = expDamp(lookAt.x, pivot.x + Math.sin(useYaw) * lookForward, cfg.lookAtStiffness, clampedDt);
       lookAt.y = expDamp(lookAt.y, pivot.y, cfg.lookAtStiffness, clampedDt);
-      lookAt.z = expDamp(lookAt.z, pivot.z + Math.cos(yaw) * lookForward, cfg.lookAtStiffness, clampedDt);
+      lookAt.z = expDamp(lookAt.z, pivot.z + Math.cos(useYaw) * lookForward, cfg.lookAtStiffness, clampedDt);
     }
 
     callMix = expDamp(callMix, callTarget, 5.2, clampedDt);
@@ -422,8 +470,6 @@ export const createThirdPersonCamera = (
       lookAt.x = lookAt.x * (1 - callMix) + lookX * callMix;
       lookAt.y = lookAt.y * (1 - callMix) + lookY * callMix;
       lookAt.z = lookAt.z * (1 - callMix) + lookZ * callMix;
-      // The wide shot is a fixed offset. Pull it back to the near side of a wall
-      // so the blend cannot sit the lens in the next room.
       offsetDir.copyFrom(smoothedPos).subtractInPlace(pivot);
       const span = offsetDir.length();
       if (span > 0.05) {
@@ -445,20 +491,18 @@ export const createThirdPersonCamera = (
     const minCamY = floorY + ceilingClearance;
     if (smoothedPos.y < minCamY) smoothedPos.y = minCamY;
 
-    // The boom is a line, so a camera that runs parallel to a wall (a hall corner, a
-    // doorway jamb) can still sit against it with the wall filling the lens. Feel
-    // outward from the final position in the horizontal plane and step off anything
-    // closer than the near-plane's reach.
+    // Fade walls / frames / props on the eye→lens line before any last-resort shove.
+    probeOrigin.set(player.x, eyeY, player.z);
+    lastFaded = fader.update(scene, smoothedPos, probeOrigin, ignore, clampedDt);
+
+    // Last resort only: near-plane out of solid geometry (faded meshes are ignored).
     if (clearancePush(smoothedPos, ignore)) {
       smoothedPos.x += pushOut.x;
       smoothedPos.z += pushOut.z;
     }
 
-    // Last guard: the boom starts at the damped pivot, which trails the body round a
-    // hall corner, so the lens can swing behind the corner while the body is in the
-    // next hall. Cast from the body's real eye to the lens and stop short of any wall
-    // between them. Runs after the shove so nothing can push the lens back through.
-    probeOrigin.set(player.x, playerMeshY(player.y) + 1.5, player.z);
+    // Eye→lens hard stop when something unfaded still stands between (pivot lag at corners).
+    probeOrigin.set(player.x, eyeY, player.z);
     offsetDir.copyFrom(smoothedPos).subtractInPlace(probeOrigin);
     const eyeSpan = offsetDir.length();
     if (eyeSpan > 0.3) {
@@ -496,18 +540,30 @@ export const createThirdPersonCamera = (
     recenterIdle = 0;
     shoulderMix = shoulderTarget;
     callMix = callTarget;
+    fader.clear();
+    lastFaded = 0;
     const ignore = new Set(ignoreMeshes);
-    const shoulder = cfg.shoulderOffset * shoulderMix;
+    const eyeY = playerMeshY(player.y) + 1.5;
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
+    const clearR = sideClearance(player.x, eyeY, player.z, rightX, rightZ, ignore);
+    const clearL = sideClearance(player.x, eyeY, player.z, -rightX, -rightZ, ignore);
+    // Snap volume blend to the room he is in so Start does not ease from open→hallway.
+    for (let i = 0; i < 12; i++) stepVolumeBlend(volumeBlend, volumes, player, yaw, 0.05, clearL, clearR);
+    const pose = volumeBlend.current;
+    camera.fov = pose.fov;
+    const volumeShoulder = pose.shoulderSigned * (1 - shoulderMix * 0.35);
+    const shoulder = cfg.shoulderOffset * shoulderMix + volumeShoulder * cfg.shoulderOffset;
+    const useYaw = yaw + pose.openYaw * (1 - shoulderMix);
     pivot.set(
-      player.x + rightX * shoulder,
+      player.x + Math.cos(useYaw) * shoulder,
       playerMeshY(player.y) + cfg.pivotHeight,
-      player.z + rightZ * shoulder,
+      player.z + -Math.sin(useYaw) * shoulder,
     );
-    const aimDistance = toolClose ? cfg.equippedDistance : cfg.distance;
+    const aimDistance = toolClose ? cfg.equippedDistance : pose.distance;
     desiredDistance = aimDistance;
-    desiredOffset(aimDistance, desiredPos);
+    desiredOffset(aimDistance, desiredPos, pitch, useYaw);
+    desiredPos.y += pose.heightLift;
     desiredPos.addInPlace(pivot);
     let blocked = collideDistance(pivot, desiredPos, ignore);
     const ceilingY = Math.min(
@@ -517,22 +573,25 @@ export const createThirdPersonCamera = (
     const maxCamY = ceilingY - ceilingClearance;
     const pitchLift = Math.sin(pitch);
     if (Number.isFinite(maxCamY) && pitchLift > 0.02) {
-      const maxDistY = (maxCamY - pivot.y - cfg.height) / pitchLift;
+      const maxDistY = (maxCamY - pivot.y - cfg.height - pose.heightLift) / pitchLift;
       if (maxDistY < blocked) blocked = clampValue(maxDistY, cfg.minDistance, blocked);
     }
     currentDistance = Math.min(aimDistance, blocked);
     squeeze = clampValue((aimDistance * 0.7 - blocked) / Math.max(0.1, aimDistance * 0.7 - cfg.minDistance), 0, 1);
-    desiredOffset(currentDistance, smoothedPos);
+    desiredOffset(currentDistance, smoothedPos, pitch, useYaw);
+    smoothedPos.y += pose.heightLift;
     smoothedPos.addInPlace(pivot);
     if (Number.isFinite(maxCamY) && smoothedPos.y > maxCamY) smoothedPos.y = maxCamY;
     const floorY = floorWorldY(smoothedPos.x, pivot.y + 0.25, smoothedPos.z, ignore);
     const minCamY = floorY + ceilingClearance;
     if (smoothedPos.y < minCamY) smoothedPos.y = minCamY;
+    probeOrigin.set(player.x, eyeY, player.z);
+    lastFaded = fader.update(scene, smoothedPos, probeOrigin, ignore, 1);
     if (clearancePush(smoothedPos, ignore)) {
       smoothedPos.x += pushOut.x;
       smoothedPos.z += pushOut.z;
     }
-    probeOrigin.set(player.x, playerMeshY(player.y) + 1.5, player.z);
+    probeOrigin.set(player.x, eyeY, player.z);
     offsetDir.copyFrom(smoothedPos).subtractInPlace(probeOrigin);
     const eyeSpan = offsetDir.length();
     if (eyeSpan > 0.3) {
@@ -544,7 +603,7 @@ export const createThirdPersonCamera = (
         currentDistance = Math.min(currentDistance, Math.max(cfg.minDistance, stop));
       }
     }
-    lookAt.set(pivot.x + Math.sin(yaw) * 0.35, pivot.y, pivot.z + Math.cos(yaw) * 0.35);
+    lookAt.set(pivot.x + Math.sin(useYaw) * 0.35, pivot.y, pivot.z + Math.cos(useYaw) * 0.35);
     camera.position.copyFrom(smoothedPos);
     camera.setTarget(lookAt);
     camera.upVector.set(0, 1, 0);
@@ -568,6 +627,12 @@ export const createThirdPersonCamera = (
     config: cfg,
     addLook,
     setLookStick,
+    /** Apply Settings: invert Y and 0.5×–2× mouse / touch sensitivity. */
+    setLookOptions: (opts: { invertY?: boolean; mouseScale?: number; stickScale?: number }) => {
+      if (opts.invertY !== undefined) invertY = opts.invertY;
+      if (opts.mouseScale !== undefined) mouseScale = Math.max(0.5, Math.min(2, opts.mouseScale));
+      if (opts.stickScale !== undefined) stickScale = Math.max(0.5, Math.min(2, opts.stickScale));
+    },
     reset,
     snapTo,
     update,
@@ -594,6 +659,19 @@ export const createThirdPersonCamera = (
       mouseFlick = false;
       return flicked;
     },
+    /** Authored interior volumes for this level (empty = open-room profile only). */
+    setVolumes: (next: CameraVolume[] | unknown) => {
+      volumes = Array.isArray(next) && next.length && typeof (next[0] as CameraVolume).minX === 'number'
+        ? (next as CameraVolume[])
+        : parseCameraVolumes(next);
+      fader.clear();
+      lastFaded = 0;
+    },
+    volumes: () => volumes,
+    /** Active blended profile id (open / hallway / doorway). */
+    profile: () => volumeBlend.current.profile,
+    fadedCount: () => lastFaded || fader.fadedCount(),
+    isOcclusionFaded: (mesh: BABYLON.AbstractMesh) => fader.isFaded(mesh),
     /** Point the view at a world point. The crosshair lands there this frame. */
     aimAt: (x: number, y: number, z: number) => {
       holdAim = true;
