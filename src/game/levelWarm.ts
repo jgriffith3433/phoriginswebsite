@@ -1,12 +1,13 @@
 /**
- * First-use warm-up behind the chapter card: shaders are already forced under the title
- * card (`warmStartState`); this pass covers texture upload, particle systems, pooled-prop
- * instantiate, and decoding the level's audio (level JSON, cutscenes, phone scripts).
+ * First-use warm-up behind the chapter card, and under Tap to play before the cold open:
+ * shaders are already forced at load (`warmStartState`); this pass covers texture upload,
+ * particle systems, pooled-prop instantiate, fade-variant compiles, the B3 corridor and
+ * creature (cold open), and decoding the level's audio (level JSON, cutscenes, phone, creature SFX).
  *
  * Work is chunked with requestIdleCallback (rAF fallback) — no setInterval polling.
- * Named hitch causes are pushed via `__phFrameMark` so smoke / hitch-board can say why.
+ * Named hitch causes are pushed via `__phFrameMark` so smoke / hitch-board / first-five can say why.
  */
-import type { AbstractMesh, Effect, Material, ParticleSystem, Scene } from '@babylonjs/core';
+import type { AbstractMesh, AnimationGroup, Effect, Material, ParticleSystem, Scene, TransformNode } from '@babylonjs/core';
 import { isFadeCandidate } from './cameraVolumes';
 import phoneCopy from '../story/phone.json';
 import { lineAudio, storyLine, storyLines } from './locale';
@@ -74,6 +75,31 @@ const APEX_EXTRA = [
 
 /** Level 1's scenes (the board meeting, the window, the terminal, the ride down). */
 const APEX_CUTSCENES = ['room-for-grace', 'apex-window', 'apex-terminal', 'elevator-b3'];
+
+/** B3 story scenes: the lab door reveal and the vat break (also feed the cold open's scream). */
+const B3_CUTSCENES = ['b3-door-reveal', 'b3-vat-break'];
+
+/**
+ * Cold-open / hunt one-shots live in story code, not level JSON. Without these the first skitter,
+ * doorway breath and rush shriek decode mid-chase (2–5 fps on a phone).
+ */
+const B3_CREATURE_SFX = [
+  '/assets/audio/sfx/creature/skitter.wav',
+  '/assets/audio/sfx/creature/scrape.wav',
+  '/assets/audio/sfx/creature/hiss.wav',
+  '/assets/audio/sfx/creature/shriek.wav',
+  '/assets/audio/sfx/creature/cry.wav',
+  '/assets/audio/sfx/creature/heartbeat.wav',
+  '/assets/audio/sfx/creature/snarl.wav',
+  '/assets/audio/sfx/creature/wound.wav',
+  '/assets/audio/sfx/creature/tick.wav',
+  '/assets/audio/sfx/creature/knock.wav',
+  '/assets/audio/sfx/creature/chitter.wav',
+  '/assets/audio/cutscenes/b3-door-reveal/creature-breath.wav',
+  '/assets/audio/cutscenes/b3-door-reveal/creature-run.wav',
+  '/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg',
+  '/assets/audio/sfx/glass-tick.ogg',
+];
 
 /**
  * Set once the level is running: warming then would compile shaders / upload textures on the render thread
@@ -182,6 +208,9 @@ const addExtras = (path: string, out: Set<string>) => {
     addCallLines('hale-train', out);
   } else if (/the-station/i.test(path)) {
     addCallLines('hale-board', out);
+  } else if (/b3-basement/i.test(path)) {
+    for (const url of B3_CREATURE_SFX) out.add(url);
+    lineAudioWithPrefix(['dialogue.b3-', 'bark.b3.', 'shout.b3.'], out);
   }
 };
 
@@ -195,6 +224,8 @@ export const warmLevelAudio = async (path: string, deadline = Infinity): Promise
     collectAudio(await (await fetch(path)).json(), primary, ids);
     // Apex's story scenes start from walk-ups, not always from a trigger in the level file: name them too.
     if (/apex-peak/i.test(path)) for (const id of APEX_CUTSCENES) ids.add(id);
+    // Cold open and the hunt play creature SFX from code; the reveal/vat timelines hold the rest of the VO.
+    if (/b3-basement/i.test(path)) for (const id of B3_CUTSCENES) ids.add(id);
     // `loadCutsceneTimeline` caches the parsed timeline, so a scene starting mid-walk does no fetch or JSON parse.
     const docs = await Promise.all(
       [...ids].map((id) => loadCutsceneTimeline(id).catch(() => null)),
@@ -291,6 +322,71 @@ const warmShaders = async (scene: Scene, deadline: number): Promise<number> => {
 };
 
 /**
+ * Cold open: Pierce walks the B3 long hall while the creature crosses the lit doorway, then rushes.
+ * Force-compile that corridor and the creature (including walk/attack clips) so the first show does
+ * not compile mid-chase. The creature starts enabled under the Tap to play veil; beginColdOpen hides it.
+ */
+const COLD_HALL = { minX: 10, maxX: 46, minZ: 32, maxZ: 44 };
+const clipByTail = (groups: AnimationGroup[] | undefined, tail: string) =>
+  groups?.find((group) => group.name.toLowerCase().endsWith(tail.toLowerCase()) || new RegExp(tail, 'i').test(group.name));
+
+const warmCorridorAndCreature = async (scene: Scene, deadline: number): Promise<number> => {
+  let done = 0;
+  const creatureRoots = scene.transformNodes.filter((node): node is TransformNode => {
+    const id = (node.metadata as { sceneAssetId?: string } | undefined)?.sceneAssetId;
+    return id === 'b3-creature' || /^b3-creature/i.test(node.name);
+  });
+  for (const root of creatureRoots) {
+    if (over(deadline)) break;
+    const wasEnabled = root.isEnabled();
+    root.setEnabled(true);
+    const groups = (root.metadata as { clipGroups?: AnimationGroup[] } | undefined)?.clipGroups;
+    const idle = clipByTail(groups, 'idle');
+    const walk = clipByTail(groups, 'walk');
+    const attack = clipByTail(groups, 'attack');
+    // Scrub the chase clips once so their pose buffers exist before the doorway pass.
+    for (const clip of [walk, attack]) {
+      if (!clip || over(deadline)) break;
+      try {
+        for (const other of groups ?? []) if (other !== clip && other.isPlaying) other.stop();
+        clip.speedRatio = 1;
+        clip.stop();
+        clip.start(false);
+        clip.stop();
+      } catch { /* best effort */ }
+    }
+    if (idle) {
+      try {
+        idle.speedRatio = 1;
+        idle.start(true);
+      } catch { /* ignore */ }
+    }
+    for (const mesh of root.getChildMeshes(true)) {
+      if (over(deadline)) break;
+      if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
+      frameMark('shader-compile', mesh.name || 'creature');
+      await mesh.material.forceCompilationAsync(mesh).catch(() => undefined);
+      done += 1;
+      await idleChunk(8);
+    }
+    if (!wasEnabled) root.setEnabled(false);
+  }
+  // Long hall walls, floors, the lab door frame and the practical that fails — first camera look.
+  for (const mesh of scene.meshes) {
+    if (over(deadline)) break;
+    if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
+    const p = mesh.getAbsolutePosition();
+    if (p.x < COLD_HALL.minX || p.x > COLD_HALL.maxX || p.z < COLD_HALL.minZ || p.z > COLD_HALL.maxZ) continue;
+    if (mesh.isReady(true)) continue;
+    frameMark('shader-compile', mesh.name || 'hall');
+    await mesh.material.forceCompilationAsync(mesh).catch(() => undefined);
+    done += 1;
+    await idleChunk(8);
+  }
+  return done;
+};
+
+/**
  * The camera's occlusion fader dims a wall, door frame or prop by lowering `mesh.visibility`. Below 1 the mesh draws in
  * the alpha-blend pass and its material compiles a second shader (`ALPHABLEND` is a define), so the first time a wall
  * fades mid-walk the render thread compiled it: a 100+ ms frame. Compile that variant now: each candidate's material is
@@ -337,20 +433,23 @@ const warmFadeVariants = async (scene: Scene, deadline: number): Promise<number>
 };
 
 /**
- * Full first-use warm while the chapter card is up. Caps at `deadline` so the card does not
- * hang more than about +1.5 s past its natural close. Marked as level-setup so hitchFailOver100
+ * Full first-use warm while the chapter card is up (or under Tap to play before the cold open).
+ * Caps at `deadline` so Start / the hall is not held long. Marked as level-setup so hitchFailOver100
  * does not count warm frames as play hitches.
  */
 export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadline: number) => {
   const started = performance.now();
   stopped = false;
-  frameSetup(true, 'chapter-warm');
+  const cold = /b3-basement/i.test(levelPath);
+  frameSetup(true, cold ? 'cold-warm' : 'chapter-warm');
   try {
     // Shaders first: a compile on the render thread is the hitch a player sees, while audio decode and texture
     // upload cost little when late. On a slow GPU the deadline can cut this pass short, so the order matters.
     // Decode runs off the main thread: start it now, await it last.
     const audioDone = warmLevelAudio(levelPath, deadline);
     let shaders = await warmShaders(scene, deadline);
+    // Cold open: corridor + creature walk/attack before control, so the doorway pass does not compile mid-chase.
+    if (cold) shaders += await warmCorridorAndCreature(scene, deadline);
     // The alpha-blend variant the occlusion fader switches to, so the first wall that fades does not compile.
     shaders += await warmFadeVariants(scene, deadline);
     await idleChunk(8);
@@ -370,6 +469,7 @@ export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadlin
       particles,
       props,
       shaders,
+      cold: cold || undefined,
     };
   } finally {
     frameSetup(false);
