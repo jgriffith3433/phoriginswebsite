@@ -219,7 +219,51 @@ type LiveClip = {
   onEnded?: () => void;
   rate: number;
   voiceEnd?: () => void;
+  url: string;
+  /** A spoken line: one at a time, in the order asked (the voice channel below). */
+  voice: boolean;
+  /** Set once the voice channel gave it the floor; the hook (duck, stinger) fires then, not when it was asked for. */
+  active: boolean;
+  askedAt: number;
+  startedWall: number;
+  /** Seconds of the file played when it was stopped, for the cut check. */
+  cutAt: number;
 };
+
+/** What the playtest's audio probe reads: every voice clip's start, end and whether a stop cut it short. */
+export type ClipEvent = {
+  url: string;
+  voice: boolean;
+  /** performance.now() seconds when the file began to sound (0 if it never did). */
+  start: number;
+  end: number;
+  /** Seconds the line waited behind another voice. */
+  waited: number;
+  duration: number;
+  state: 'ended' | 'stopped' | 'failed';
+  /** Stopped before the last 0.15 s of the file. */
+  cut: boolean;
+  /** Another voice clip was sounding when this one began (the channel makes this 0). */
+  overlapped: boolean;
+};
+const clipEvents: ClipEvent[] = [];
+export const clipLog = () => clipEvents;
+export const clearClipLog = () => { clipEvents.length = 0; };
+
+/**
+ * Voice lines are cutscene VO, phone voices and barks (not sfx or beds). Only one sounds at a time: a line asked
+ * for while another plays waits its turn (never cuts it, never overlaps it).
+ */
+export const isVoiceUrl = (url: string) => {
+  const u = url.split('?')[0]!;
+  if (/\/sfx\//.test(u)) return false;
+  return /\/audio\/cutscenes\/(?:[^/]+\/)*[^/]+\.(?:ogg|wav|mp3)$/.test(u) && !/(?:hum|rumble|alarm|beep|door|loop|bed)[^/]*\.(?:ogg|wav|mp3)$/.test(u)
+    || /\/audio\/phone\/[^/]+-[^/]+\.(?:ogg|wav|mp3)$/.test(u);
+};
+const voiceQueue: LiveClip[] = [];
+let voiceActive: LiveClip | null = null;
+/** Whether a voice line is sounding or waiting its turn. */
+export const voiceBusy = () => voiceActive !== null || voiceQueue.length > 0;
 
 const liveClips = new Set<LiveClip>();
 let clipsHeld = false;
@@ -250,6 +294,24 @@ export const forgetClip = (url: string) => {
 
 const finish = (clip: LiveClip, ended: boolean) => {
   if (clip.finished) return;
+  if (clip.voice) {
+    const now = performance.now() / 1000;
+    const played = clip.active;
+    const duration = clip.buffer?.duration ?? 0;
+    const at = clip.cutAt >= 0 ? clip.cutAt : duration;
+    clipEvents.push({
+      url: clip.url,
+      voice: true,
+      start: played ? clip.startedWall : 0,
+      end: now,
+      waited: played ? Math.max(0, clip.startedWall - clip.askedAt) : now - clip.askedAt,
+      duration,
+      state: ended ? 'ended' : played ? 'stopped' : 'failed',
+      cut: !ended && played && duration > 0 && at < duration - 0.15,
+      overlapped: false,
+    });
+    if (clipEvents.length > 400) clipEvents.shift();
+  }
   clip.finished = true;
   clip.voiceEnd?.();
   clip.voiceEnd = undefined;
@@ -258,8 +320,28 @@ const finish = (clip: LiveClip, ended: boolean) => {
   disconnect(clip.gain);
   clip.source = null;
   clip.buffer = null;
+  if (clip.voice) {
+    const at = voiceQueue.indexOf(clip);
+    if (at >= 0) voiceQueue.splice(at, 1);
+    if (voiceActive === clip) voiceActive = null;
+    pumpVoice();
+  }
   if (ended) clip.onEnded?.();
 };
+
+/** Gives the floor to the next waiting voice line once its file is decoded. */
+function pumpVoice() {
+  if (voiceActive && !voiceActive.finished) return;
+  voiceActive = null;
+  const next = voiceQueue[0];
+  if (!next || !next.buffer) return;
+  voiceQueue.shift();
+  voiceActive = next;
+  next.active = true;
+  next.startedWall = performance.now() / 1000;
+  next.voiceEnd = voiceHook?.(clean(next.url)) ?? undefined;
+  if (!next.held) startSource(next);
+}
 
 const startSource = (clip: LiveClip) => {
   if (!clip.buffer || clip.finished) return;
@@ -319,12 +401,23 @@ export const playClip = (
     finished: false,
     onEnded: options.onEnded,
     rate: options.rate ?? 1,
+    url: clean(url),
+    voice: !options.loop && options.bus !== 'music' && !options.destination && isVoiceUrl(url),
+    active: false,
+    askedAt: performance.now() / 1000,
+    startedWall: 0,
+    cutAt: -1,
   };
-  clip.voiceEnd = voiceHook?.(clean(url)) ?? undefined;
+  if (clip.voice) voiceQueue.push(clip);
+  else clip.voiceEnd = voiceHook?.(clean(url)) ?? undefined;
   liveClips.add(clip);
   loadBuffer(clean(url), ctx).then((buffer) => {
     if (clip.finished) return;
     clip.buffer = buffer;
+    if (clip.voice) {
+      pumpVoice();
+      return;
+    }
     if (!clip.held) startSource(clip);
   }, () => {
     if (clip.finished) return;
@@ -346,6 +439,7 @@ export const playClip = (
     },
     stop: (fade = 0) => {
       if (clip.finished) return;
+      if (clip.source) clip.cutAt = ctx.currentTime - clip.startedAt;
       if (fade > 0 && clip.source) {
         const now = ctx.currentTime;
         gain.gain.cancelScheduledValues(now);
