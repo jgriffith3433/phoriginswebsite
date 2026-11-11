@@ -2920,6 +2920,7 @@ const train: TheTrain = createTheTrain({
   },
   callBusy: () => phone.locksBody(),
   car: () => dressing.train(),
+  impair: (next) => setImpair(next),
 });
 
 storyObjectiveId = () => {
