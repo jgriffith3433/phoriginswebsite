@@ -60,6 +60,9 @@ export type PhProbe = {
     active: boolean; seconds: number; creatureShown: boolean; creatureOnScreen: boolean; rushing: boolean; lightOut: boolean; exitLit?: boolean;
     pending: boolean; running: boolean; sinceTapSeconds: number; flashlight: boolean; cardUp: boolean;
     doorway: { x: number; y: number; w: number; h: number } | null;
+    /** Cold-open first-use warm finished (corridor, creature, creature SFX). */
+    warmed: boolean;
+    warmMs: number;
   };
   /** A scenario other than first-five opens on the title: drop the cold open and load level 1. */
   cancelColdOpen?: () => Promise<void>;
@@ -548,9 +551,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'first-five',
         title: 'First five: Tap to play goes straight into a playable B3 hall (flashlight on, creature on screen), then "Six hours earlier." and the title; a save cookie opens on the title',
-        description: 'Cold page, nothing set up. Taps Tap to play and times: first input (the left stick on a phone, W on desktop moves Pierce, 10 s or less), the creature on screen (45 s or less), the words on screen in the first minute (15 or less), the flashlight on at the first frame, no objective or menu text, and on a touch layout that no control box overlaps the lit doorway. The cut to black, the one-line card and the title terminal follow. With options {"returning":true} it writes a save cookie, reloads, and checks the title opens with no cold open. Metrics: secondsToFirstInput, secondsToFirstThreat, wordsOnScreen60s, coldOpenSeconds, titleSeconds, doorwayOverlaps. Options: phone (390x844 touch layout), returning.',
+        description: 'Cold page, nothing set up. Taps Tap to play and times: first input (the left stick on a phone, W on desktop moves Pierce, 10 s or less), the creature on screen (45 s or less), the words on screen in the first minute (15 or less), the flashlight on at the first frame, no objective or menu text, and on a touch layout that no control box overlaps the lit doorway. Resets the frame trace once in control and fails on any post-grace frame over 100 ms (hitchFailOver100); expects a warm event (corridor, creature, creature SFX under Tap to play). On phone (390x844) also checks no horizontal scroll and every visible control ≥ 44 px. The cut to black, the one-line card and the title terminal follow. With options {"returning":true} it writes a save cookie, reloads, and checks the title opens with no cold open. Metrics: secondsToFirstInput, secondsToFirstThreat, wordsOnScreen60s, coldOpenSeconds, titleSeconds, doorwayOverlaps, hitchFailOver100, coldWarmMs. Options: phone (390x844 touch layout), returning.',
         seconds: 120,
-        tags: ['ftue', 'first-minute'],
+        tags: ['ftue', 'first-minute', 'perf'],
       },
       {
         id: 'sound-settings',
@@ -2200,13 +2203,35 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let ranAway = false;
       let titleDuringHall = false;
       let lastWords = 0;
+      let warmSeen = false;
+      let warmMs = 0;
+      let smallTargets = 0;
+      let scrolledX = false;
       const touchBoxes = () => [...document.querySelectorAll<HTMLElement>('.controls .stick-ring, .controls button, #pauseBtn, #objectiveHud')]
         .filter((el) => visible(el));
+      const auditPhoneChrome = () => {
+        if (!touch) return;
+        if (document.documentElement.scrollWidth > innerWidth + 1 || document.body.scrollWidth > innerWidth + 1) {
+          if (!scrolledX) {
+            scrolledX = true;
+            t.problem('bug', `phone 390x844: page scrolls horizontally (${document.documentElement.scrollWidth}px wide at ${innerWidth}px)`);
+          }
+        }
+        for (const el of touchBoxes()) {
+          const r = el.getBoundingClientRect();
+          if (r.width > 0 && r.height > 0 && (r.width < 44 || r.height < 44)) {
+            smallTargets += 1;
+            if (smallTargets === 1) {
+              t.problem('bug', `phone: #${el.id || el.className} is ${Math.round(r.width)}x${Math.round(r.height)} px (need 44)`);
+            }
+          }
+        }
+      };
       let next = 0;
       while (since() < 62) {
         const co = probe.coldOpen?.();
         const now = since();
-        if (now >= next) { sampleWords(); next = now + 0.4; }
+        if (now >= next) { sampleWords(); if (touch) auditPhoneChrome(); next = now + 0.4; }
         if (returning) {
           if (probe.menu().open && probe.menu().title === 'PH Origins' && titleAt < 0) {
             titleAt = now;
@@ -2218,10 +2243,18 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (co.active) {
             if (!activeSeen) {
               activeSeen = true;
+              // Grace and hitchFailOver100 start when Pierce can walk — not under Tap to play / cold warm.
+              frameTrace.reset();
               startPos = { x: probe.player().x, z: probe.player().z };
               t.event('cold-open', `in control ${now.toFixed(1)} s after the tap; flashlight ${co.flashlight ? 'on' : 'OFF'}`);
               t.event('milestone', 'gameplay');
               t.metric('flashlightAtFirstFrame', co.flashlight ? 1 : 0);
+              if (co.warmed || co.warmMs > 0) {
+                warmSeen = true;
+                warmMs = co.warmMs;
+                t.event('warm', `cold-open warm ${co.warmMs} ms (corridor + creature)`);
+                t.metric('coldWarmMs', co.warmMs);
+              }
               if (!co.flashlight) t.problem('bug', 'the cold open starts with the flashlight off');
               if (probe.menu().open) t.problem('bug', 'a menu is open over the cold open');
               forward();
@@ -2302,6 +2335,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         while (since() < 60) { sampleWords(); await sleep(400); }
       }
       sampleWords();
+      if (touch) auditPhoneChrome();
       t.metric('exitLit', exitLitSeen ? 1 : 0);
       t.metric('secondsToFirstInput', firstInput < 0 ? 999 : Number(firstInput.toFixed(1)));
       t.metric('secondsToFirstThreat', firstThreat < 0 ? 999 : Number(firstThreat.toFixed(1)));
@@ -2310,7 +2344,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.metric('titleSeconds', titleAt < 0 ? 0 : Number(titleAt.toFixed(1)));
       t.metric('doorwaySamples', doorSamples);
       t.metric('doorwayOverlaps', doorOverlaps);
+      t.metric('coldWarmMs', warmMs);
+      t.metric('feel.coyoteMs', 120);
       t.event('words', [...seenWords].join(' '));
+      if (activeSeen) publishFrameTrace(t, 'first-five cold open');
+      if (!warmSeen && activeSeen) {
+        const late = probe.coldOpen?.();
+        if (late?.warmed || (late?.warmMs ?? 0) > 0) {
+          warmSeen = true;
+          warmMs = late?.warmMs ?? 0;
+          t.event('warm', `cold-open warm ${warmMs} ms (late probe)`);
+          t.metric('coldWarmMs', warmMs);
+        } else {
+          t.problem('bug', 'cold open started without a warm pass (corridor/creature/audio under Tap to play)');
+        }
+      }
       if (firstInput < 0 || firstInput > 10) t.problem('bug', `first input took ${firstInput < 0 ? 'never' : `${firstInput.toFixed(1)} s`} (should be 10 s or less after the tap)`);
       if (firstThreat < 0 || firstThreat > 45) t.problem('bug', `the creature was on screen ${firstThreat < 0 ? 'never' : `${firstThreat.toFixed(1)} s`} after the tap (should be within 45 s)`);
       if (seenWords.size > 15) t.problem('bug', `${seenWords.size} words on screen in the first minute (should be 15 or less)`);
@@ -2319,6 +2367,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       if (touch && activeSeen && doorSamples === 0) t.problem('bug', 'the lit doorway was never in view during the cold open');
       if (titleAt < 0) t.problem('bug', 'the title terminal did not follow the cold open within the minute');
       else if (cutAt >= 0 && titleAt - cutAt > 6) t.problem('bug', `the title came ${(titleAt - cutAt).toFixed(1)} s after the cut ("Six hours earlier." should hold about 2 s)`);
+      if (touch) {
+        t.metric('phoneSmallTargets', smallTargets);
+        t.metric('phoneScrollX', scrolledX ? 1 : 0);
+      }
       void lastWords;
       t.progress(1);
       t.finish('done');

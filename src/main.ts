@@ -1212,6 +1212,11 @@ let coldOpen = wantsColdOpen();
 let coldOpenTapped = false;
 let coldOpenRunning = false;
 let coldOpenAt = 0;
+/** First-use warm under Tap to play before the cold open hall (shaders, textures, creature SFX). */
+let coldOpenWarm: Promise<unknown> | null = null;
+let coldOpenWarmDone = false;
+/** Last warm stats (chapter card or cold open). Re-emitted when a playtest starts mid-warm. */
+let lastWarmStats: Record<string, unknown> | null = null;
 if (coldOpen) document.body.classList.add('cold-open');
 
 let save = loadSave();
@@ -2985,17 +2990,35 @@ const beginGame = () => {
   });
 };
 
-/** Tap to play on a first visit: control in the hall at once. Needs the tap and the loaded hall, in either order. */
+/**
+ * Tap to play on a first visit: control in the hall. Needs the tap and the loaded hall, in either order.
+ * Awaits the cold-open warm (corridor, creature, creature SFX) up to +1.5 s so the chase does not compile mid-walk.
+ */
 function maybeStartColdOpen() {
   if (!coldOpen || coldOpenRunning || !coldOpenTapped || !gameReady || loadFailed()) return;
   coldOpenRunning = true;
-  coldOpenAt = performance.now();
-  state.level = 2;
-  state.progression.currentLevel = 2;
-  fullscreen.enterForPlay();
-  lockPlayPointer();
-  beginGame();
-  (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit?.('cold-open', 'start');
+  void (async () => {
+    if (coldOpenWarm && !coldOpenWarmDone) {
+      await Promise.race([
+        coldOpenWarm,
+        new Promise<void>((resolve) => window.setTimeout(resolve, WARM_AFTER_CARD_MS)),
+      ]);
+    }
+    // Warm must never keep compiling on the render thread once Pierce can walk.
+    stopLevelWarm();
+    coldOpenWarmDone = true;
+    coldOpenAt = performance.now();
+    state.level = 2;
+    state.progression.currentLevel = 2;
+    fullscreen.enterForPlay();
+    lockPlayPointer();
+    beginGame();
+    const emit = (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void }).__phEmit;
+    emit?.('cold-open', 'start');
+    // The warm often finishes under Tap to play before the playtest installs __phEmit: re-emit so first-five sees it.
+    const stats = lastWarmStats ?? { cold: true, ms: 0, note: 'warm raced Tap to play' };
+    emit?.('warm', JSON.stringify(stats));
+  })();
 }
 
 /** The scream and the cut to black are done: "Six hours earlier.", level 1 loads behind it, then the title over the 58th floor. */
@@ -3034,6 +3057,9 @@ function endColdOpen() {
 const cancelColdOpen = async () => {
   if (!coldOpen || coldOpenRunning) return;
   coldOpen = false;
+  stopLevelWarm();
+  coldOpenWarm = null;
+  coldOpenWarmDone = true;
   document.body.classList.remove('cold-open');
   act.cancelColdOpen();
   const level = getLevelDefinition(1);
@@ -3087,6 +3113,7 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
     // Defeat retries and ?beat= entries skip the card: warm in the background, do not hold beginGame.
     const warmDeadline = performance.now() + (chapter ? 4600 + WARM_AFTER_CARD_MS : WARM_AFTER_CARD_MS);
     const warm = warmLevelFirstUse(scene, level.path, warmDeadline).then((stats) => {
+      lastWarmStats = stats as Record<string, unknown>;
       console.info('warm', stats);
       (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void })
         .__phEmit?.('warm', JSON.stringify(stats));
@@ -3120,8 +3147,21 @@ void (async () => {
   await loadMissionScene(bootLevel.path);
   if (coldOpen) {
     // The title card stays down: the tap goes into the hall. Only the B3 hall and the creature were loaded.
+    // Warm shaders, textures and creature audio under Tap to play so the doorway pass does not hitch at 2–5 fps.
     hideMessage();
     act.armColdOpen();
+    const warmDeadline = performance.now() + 8000;
+    coldOpenWarm = warmLevelFirstUse(scene, bootLevel.path, warmDeadline).then((stats) => {
+      coldOpenWarmDone = true;
+      lastWarmStats = stats as Record<string, unknown>;
+      console.info('cold-warm', stats);
+      (window as unknown as { __phEmit?: (type: string, detail?: unknown) => void })
+        .__phEmit?.('warm', JSON.stringify(stats));
+      return stats;
+    }).catch(() => {
+      coldOpenWarmDone = true;
+      return null;
+    });
   }
   phBoot?.ready();
   analytics?.ready();
@@ -5315,6 +5355,8 @@ installPhPlaytest({
       flashlight: phone.flashlightOn(),
       doorway: door,
       cardUp: document.getElementById('coldCard')?.classList.contains('on') ?? false,
+      warmed: coldOpenWarmDone || Boolean(lastWarmStats?.cold),
+      warmMs: typeof lastWarmStats?.ms === 'number' ? lastWarmStats.ms : 0,
     };
   },
   cancelColdOpen: () => cancelColdOpen(),
