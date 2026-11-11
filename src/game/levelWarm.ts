@@ -8,7 +8,9 @@
  */
 import type { AbstractMesh, ParticleSystem, Scene } from '@babylonjs/core';
 import phoneCopy from '../story/phone.json';
-import { lineAudio, storyLine } from './locale';
+import { lineAudio, storyLine, storyLines } from './locale';
+import { APEX_BOARD, APEX_STAFF, PLACE_SFX } from '../story/placeVoices';
+import { TOUCH_SOUNDS } from './touchables';
 import { warmPropSources } from './modelLoader';
 import { preloadClips, preloadClipsReady } from './sfxMix';
 
@@ -52,6 +54,13 @@ const COMMON_EXTRA = [
   '/assets/audio/cutscenes/elevator-b3/beep.wav',
   '/assets/audio/cutscenes/elevator-b3/hum.wav',
 ];
+
+/** Locale lines a level's story code plays by id (not named in its JSON or timelines): first play must not decode. */
+const lineAudioWithPrefix = (prefixes: string[], out: Set<string>) => {
+  for (const row of storyLines()) {
+    if (row.audio && prefixes.some((prefix) => row.id.startsWith(prefix))) out.add(row.audio.startsWith('/') ? row.audio : `/${row.audio}`);
+  }
+};
 
 const APEX_EXTRA = [
   '/assets/audio/sfx/apex/sofa-creak.ogg',
@@ -136,10 +145,26 @@ const addExtras = (path: string, out: Set<string>) => {
     if (papers) out.add(papers);
     // Rings the moment Level 1 starts — must decode under the card, not on first ring.
     addCallLines('voss-late', out);
+    // The board's talk, the guard and staff remarks, and what Interact answers with.
+    for (const id of [...APEX_BOARD, ...APEX_STAFF]) {
+      const audio = lineAudio(id);
+      if (audio) out.add(audio);
+    }
+    for (const url of TOUCH_SOUNDS) out.add(url);
+    out.add('/assets/audio/sfx/home/door-open.ogg');
   } else if (/the-desk|the-return/i.test(path)) {
     for (const url of APEX_EXTRA) out.add(url);
+    if (/the-desk/i.test(path)) {
+      lineAudioWithPrefix(['dialogue.desk.', 'bark.desk.'], out);
+      out.add('/assets/audio/sfx/home/door-open.ogg');
+    }
   } else if (/the-morning/i.test(path)) {
     addCallLines('voss-morning', out);
+    lineAudioWithPrefix(['dialogue.morning.', 'news.morning.'], out);
+    for (const url of Object.values(PLACE_SFX)) out.add(url);
+    out.add('/assets/audio/train/rumble.ogg');
+    out.add('/assets/audio/train/brakes.ogg');
+    out.add('/assets/audio/train/doors-open.ogg');
   } else if (/the-train/i.test(path)) {
     addCallLines('hale-train', out);
   } else if (/the-station/i.test(path)) {

@@ -116,6 +116,8 @@ export const createTheDesk = (host: DeskHost) => {
   let shake = 0;
   let bathroomMirror: BathroomMirror | null = null;
   const sheets: Sheet[] = [];
+  /** `prepare` built the mirror and the papers under the chapter card; the next `onStart` keeps them. */
+  let prepared = false;
 
   const say = (title: string, text: string, url: string, volume: number, hold: number) => {
     host.showLine(title, text);
@@ -260,18 +262,34 @@ export const createTheDesk = (host: DeskHost) => {
     dispose: () => {
       active = false;
       playing = false;
+      prepared = false;
       clearMirror();
       for (const sheet of sheets) {
         if (!sheet.mesh.isDisposed()) sheet.mesh.dispose(false, true);
       }
       sheets.length = 0;
     },
-    onStart: () => {
+    /**
+     * Build the mirror (render target, materials) and the desk papers while the level loads, so their shaders
+     * compile under the chapter card and Start opens on nothing new. `onStart` keeps them.
+     */
+    prepare: () => {
       for (const sheet of sheets) {
         if (!sheet.mesh.isDisposed()) sheet.mesh.dispose(false, true);
       }
       sheets.length = 0;
-      clearMirror();
+      mountMirror();
+      spawnWork();
+      prepared = true;
+    },
+    onStart: () => {
+      if (!prepared) {
+        for (const sheet of sheets) {
+          if (!sheet.mesh.isDisposed()) sheet.mesh.dispose(false, true);
+        }
+        sheets.length = 0;
+        clearMirror();
+      }
       active = true;
       playing = false;
       finished = false;
@@ -290,8 +308,11 @@ export const createTheDesk = (host: DeskHost) => {
       host.setObjective(lineSpeaker('objective.desk.look', 'Look'), lineText('objective.desk.look', 'The hall bathroom. The mirror.'), { x: MIRROR.x, y: 1.5, z: MIRROR.z });
       host.showObjective(true);
       host.scene.getMeshByName('Office Ammo')?.setEnabled(false);
-      mountMirror();
-      spawnWork();
+      if (!prepared) {
+        mountMirror();
+        spawnWork();
+      }
+      prepared = false;
       host.placePierce(MIRROR.x, MIRROR.z, MIRROR.yaw);
       // playClip after resume locks the idle and blocks walk and jump.
       host.resumeLocomotion();

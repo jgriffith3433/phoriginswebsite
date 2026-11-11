@@ -169,24 +169,31 @@ export const preloadClips = (urls: Iterable<string>) => {
  * Past the deadline, leftover URLs still kick off (fire-and-forget) so decode continues under
  * the warm's level-setup mark instead of the first mid-walk play.
  */
+/** Clips fetched and decoded at once while warming. */
+const PRELOAD_LANES = 4;
+
 export const preloadClipsReady = async (urls: Iterable<string>, deadline = Infinity): Promise<number> => {
   const ctx = getSharedAudioContext();
   if (!ctx) return 0;
   const list = [...new Set([...urls].filter(Boolean).map(clean))];
   if (!list.length) return 0;
   let done = 0;
-  let i = 0;
-  for (; i < list.length; i += 1) {
-    if (performance.now() >= deadline) break;
-    const url = list[i]!;
-    try {
-      await loadBuffer(url, ctx);
-      done += 1;
-    } catch { /* best effort */ }
-  }
+  let next = 0;
+  // A few at a time: fetch and decode overlap, so a long list fits under the chapter card.
+  const worker = async () => {
+    while (next < list.length && performance.now() < deadline) {
+      const url = list[next]!;
+      next += 1;
+      try {
+        await loadBuffer(url, ctx);
+        done += 1;
+      } catch { /* best effort */ }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PRELOAD_LANES, list.length) }, worker));
   // Kick the rest so they are at least fetching/decoding before the walk.
-  for (; i < list.length; i += 1) {
-    void loadBuffer(list[i]!, ctx).catch(() => {});
+  for (; next < list.length; next += 1) {
+    void loadBuffer(list[next]!, ctx).catch(() => {});
   }
   return done;
 };
