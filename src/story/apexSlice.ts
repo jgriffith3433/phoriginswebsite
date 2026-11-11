@@ -447,6 +447,8 @@ export const createApexSlice = (host: ApexSliceHost) => {
   return {
     mount,
     dispose,
+    /** Resolves once the night cleaner's model has loaded (so its shaders compile under the chapter card). */
+    ready: () => (cleaner ? new Promise<void>((resolve) => cleaner!.avatar.whenReady(resolve)) : Promise.resolve()),
     playing: () => active && sitLeft > 0,
     blips: () => {
       const out: { x: number; z: number; kind: string }[] = [];

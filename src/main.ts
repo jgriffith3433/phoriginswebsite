@@ -967,10 +967,25 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       // Level ready first (it mounts the bathroom mirror, sets the opening objective), so the compile pass below
       // covers what Start would otherwise add on its first frames.
       act.onLevelReady();
-      if (isApexPeakLevel()) { apex.mount(); apexLife.mount(); }
-      dressedLevelId = state.level;
-      // One cap for both passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
+      // One cap for all the passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
       const deadline = performance.now() + SHADERS_READY_MAX_MS;
+      if (isApexPeakLevel()) {
+        apex.mount();
+        apexLife.mount();
+        // The cleaner, the guard, the reader, the cooler analyst and the caller are GLBs: wait for them here, or
+        // they finish loading (parse, skin, first shader compile) while Pierce walks the hall.
+        let cap = 0;
+        await Promise.race([
+          Promise.all([apex.ready(), apexLife.ready()]),
+          new Promise<void>((resolve) => { cap = window.setTimeout(resolve, Math.max(0, deadline - performance.now())); }),
+        ]);
+        window.clearTimeout(cap);
+      }
+      // The Desk's mirror and papers and The Morning's room are built at Start otherwise: build them now so their
+      // shaders and render target are ready under the chapter card.
+      if (isDeskLevel()) desk.prepare();
+      if (isMorningLevel()) morning.prepare();
+      dressedLevelId = state.level;
       await warmStartState(deadline);
       await whenShadersCompiled(deadline);
     }

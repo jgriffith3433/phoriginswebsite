@@ -137,6 +137,8 @@ export const createTheMorning = (host: MorningHost) => {
     if (scenes[scenes.length - 1] !== n) scenes.push(n);
   };
 
+  /** `prepare` built the room under the chapter card; the next `onStart` keeps it. */
+  let prepared = false;
   const owned: (BABYLON.Mesh | BABYLON.Material | BABYLON.BaseTexture)[] = [];
   let tvTexture: BABYLON.DynamicTexture | null = null;
   let tvMaterial: BABYLON.StandardMaterial | null = null;
@@ -615,10 +617,20 @@ export const createTheMorning = (host: MorningHost) => {
     dispose: () => {
       active = false;
       playing = false;
+      prepared = false;
       clearRoom();
     },
-    onStart: () => {
+    /**
+     * Build the room (about thirty meshes, the TV's canvas texture, its materials) while the level loads, so the
+     * shaders compile under the chapter card. `onStart` keeps it instead of building it on Start's first frame.
+     */
+    prepare: () => {
       clearRoom();
+      build();
+      prepared = true;
+    },
+    onStart: () => {
+      if (!prepared) clearRoom();
       active = true;
       playing = false;
       beat = 'home';
@@ -636,7 +648,8 @@ export const createTheMorning = (host: MorningHost) => {
       tvClock = 0;
       scenes = [];
       host.setCarry(carryItems('morning', CARRY));
-      build();
+      if (!prepared) build();
+      prepared = false;
       host.lie(false, 0, 0, 0, 0);
       host.placePierce(START.x, START.z, START.yaw);
       host.holdScene(false);

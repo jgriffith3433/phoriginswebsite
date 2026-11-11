@@ -213,6 +213,8 @@ export const createApexLife = (host: ApexLifeHost) => {
     step,
     blips: () => people.map((p) => ({ x: p.mesh.position.x, z: p.mesh.position.z, kind: p.routine })),
     count: () => people.length,
+    /** Resolves once every person's model has loaded (so their shaders compile under the chapter card). */
+    ready: () => Promise.all(people.map((p) => new Promise<void>((resolve) => p.avatar.whenReady(resolve)))).then(() => undefined),
   };
 };
 
