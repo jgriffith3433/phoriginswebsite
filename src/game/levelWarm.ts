@@ -346,20 +346,23 @@ export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadlin
   stopped = false;
   frameSetup(true, 'chapter-warm');
   try {
-    const audio = await warmLevelAudio(levelPath, deadline);
+    // Shaders first: a compile on the render thread is the hitch a player sees, while audio decode and texture
+    // upload cost little when late. On a slow GPU the deadline can cut this pass short, so the order matters.
+    // Decode runs off the main thread: start it now, await it last.
+    const audioDone = warmLevelAudio(levelPath, deadline);
+    let shaders = await warmShaders(scene, deadline);
+    // The alpha-blend variant the occlusion fader switches to, so the first wall that fades does not compile.
+    shaders += await warmFadeVariants(scene, deadline);
     await idleChunk(8);
     const textures = await warmTextures(scene, deadline);
     await idleChunk(8);
     const particles = await warmParticles(scene, deadline);
     await idleChunk(8);
     const props = await warmProps(scene, deadline);
-    // First pass for meshes already in the scene (handset, TV, cutscene props).
-    let shaders = await warmShaders(scene, deadline);
-    // A late avatar (night cleaner) may finish its GLB after the first pass — give it one more.
+    // Props just instantiated and late avatars (night cleaner) may add meshes: one more shader pass.
     await idleChunk(16);
     shaders += await warmShaders(scene, deadline);
-    // The alpha-blend variant the occlusion fader switches to, so the first wall that fades does not compile.
-    shaders += await warmFadeVariants(scene, deadline);
+    const audio = await audioDone;
     return {
       ms: Math.round(performance.now() - started),
       audio,
