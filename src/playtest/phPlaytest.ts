@@ -60,6 +60,12 @@ export type PhProbe = {
   people: () => { x: number; z: number; kind: string }[];
   /** Apex Peak vertical slice quality (null off that level). */
   /** Living world: people on routines, glances, what answered Interact, and the longest quiet stretch. */
+  /** The Desk's two played beats: the mirror's lag and head turn, and the drag that clears the desk. */
+  desk?: () => {
+    phase: string;
+    mirror: { engaged: boolean; maxLagMs: number; lagMs: number; headTurns: number; headTurnBeforeHeMoved: boolean; quiet: boolean; thatsMe: boolean; walkedMetres: number };
+    desk: { swept: boolean; drags: number; dragPx: number; peakSpeed: number; off: number; total: number; offAfterDrag: number[]; sounds: string[]; terminalOff: boolean; hintShown: boolean; skipped: boolean };
+  };
   life?: () => { people: { id: string; place: string; routine: string }[]; glanceCount: number; glances: { place: string; who: string }[]; touchCount: number; touchIds: string[]; touches: { place: string; id: string; motion: string; sound: string }[]; barks: { place: string; line: string }[]; maxQuietSeconds: number; touchables: { id: string; label: string; x: number; z: number; r: number }[]; interactShown: boolean; interactLabel: string };
   apexSlice?: () => { maxQuietSeconds: number; textOnlyBeats: number; events: number } | null;
   pickups: () => { x: number; z: number; item: string }[];
@@ -620,6 +626,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         title: 'B3: a hunt death costs under 3 s with no card; the vat break is played with the left stick (390x844 touch)',
         description: 'Starts level 2 (test shortcut) and the hunt from the lab door. Pierce is downed (test shortcut, as a bite would): there must be no Defeat card, chapter card or reload, a red fade of about 0.6 s, control back inside 3 s (metrics huntRetries, retrySeconds), health full, and the creature out of sight. Then the vat break shot plays (it must end within 5.5 s, no camera hold over 5 s) and control returns in the acid. Laid out as a 390x844 phone, the bot plays the acid with the left stick only (pointer drags, no keys): it logs the input lag, heading drift, stagger and the falls, the flashlight failing, checks the touch controls stay visible and 44 px, that there is at least 15 s of movement input, that the avatar swaps during a fall, and that it ends as Pierce reaches the door and End Level is offered. Metrics: acidSeconds, acidInputSeconds, huntRetries, retrySeconds.',
         seconds: 300,
+        tags: ['level', 'phone'],
+      },
+      {
+        id: 'desk-beats',
+        title: 'The Desk: the mirror is walked up to (no prompt; the reflection lags 0 to 0.5 s and turns its head first) and the desk is cleared by a held drag (390x844 touch with options.phone)',
+        description: 'Starts The Desk (test shortcut). There must be no "Look in mirror" prompt at any time. Pierce is walked with the left stick (phone: pointer drags on the stick; desktop: keys) to the glass and back and forth while the camera holds its over-the-shoulder frame: the reflection\'s lag must reach about 0.5 s, it must turn its head once before he does, the hum drops out and "That\'s me" plays. He then walks to the desk. Phone: one finger swipes across the desk (desktop: a mouse drag). A slow short drag moves a few sheets, a hard long drag sends more props off (papers, folder, glass, terminal) and logs paper and impact sound events; then "I\'m going home" and End Level. Camera detector: 0 frames inside geometry. Metrics: mirrorMaxLagMs, headTurns, propsOffGentle, propsOffHard, sweepSounds, cameraInside.',
+        seconds: 360,
         tags: ['level', 'phone'],
       },
       {
@@ -2666,6 +2679,162 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return 'done';
     };
 
+    // ---- desk-beats: the mirror walked up to, the desk cleared by a held drag
+    const deskBeatsRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const phone = Boolean(options.phone);
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
+      t.metric('feel.coyoteMs', 120);
+      t.scene('The Desk');
+      const feel = probe.feel;
+      const cw = installCameraWatch({
+        scene: () => probe.scene,
+        player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
+        isSolid: (m) => (feel ? feel.isSolid(m) : true),
+        active: () => probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted(),
+        label: () => 'The Desk',
+        emit: (type, detail) => t.event(type, detail),
+      });
+      await enterLevel(4);
+      await waitControl('The Desk');
+      for (let i = 0; i < 200 && (probe.cutscene() || probe.scripted()); i += 1) await tick();
+      await sleep(1200);
+      cw.start();
+      const zone = document.getElementById('leftStickZone') as HTMLElement | null;
+      let down = false;
+      const stick = (ux: number, uy: number) => {
+        if (!zone) return;
+        const zr = zone.getBoundingClientRect();
+        const type = down ? 'pointermove' : 'pointerdown';
+        down = true;
+        zone.dispatchEvent(new PointerEvent(type, { pointerId: 23, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38, clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38 }));
+      };
+      const lift = () => {
+        if (down && zone) zone.dispatchEvent(new PointerEvent('pointerup', { pointerId: 23, pointerType: 'touch', bubbles: true }));
+        down = false;
+      };
+      /** Forward (toward the glass, +x) or back; the camera is held facing +x. */
+      const walkMirror = (dir: 1 | -1) => {
+        if (phone) stick(0, -dir);
+        else setHeld(dir > 0 ? 'w' : 's');
+      };
+      const stopMirror = () => { if (phone) lift(); else releaseAll(); };
+
+      let sawPrompt = false;
+      const checkPrompt = () => { if (/look in mirror/i.test(probe.action() ?? '')) sawPrompt = true; };
+      t.event('mirror', `start at (${probe.player().x.toFixed(1)}, ${probe.player().z.toFixed(1)}); walking to the glass with ${phone ? 'the left stick' : 'W'}`);
+      const mirrorStart = performance.now();
+      let phase = 0;
+      let flip = performance.now();
+      let maxLag = 0;
+      let sawQuiet = false;
+      let engagedLogged = false;
+      let turnLogged = false;
+      let lagLogged = 0;
+      while (performance.now() - mirrorStart < 120000) {
+        await tick();
+        checkPrompt();
+        const d = probe.desk?.();
+        if (!d) break;
+        maxLag = Math.max(maxLag, d.mirror.maxLagMs);
+        if (d.mirror.quiet) sawQuiet = true;
+        if (d.mirror.engaged && !engagedLogged) { engagedLogged = true; t.event('mirror-engaged', `camera eases over the shoulder at x ${probe.player().x.toFixed(2)}`); }
+        if (d.mirror.lagMs >= lagLogged + 100) { lagLogged = d.mirror.lagMs; t.event('reflection-lag', `${d.mirror.lagMs} ms behind him`); }
+        if (d.mirror.headTurns > 0 && !turnLogged) { turnLogged = true; t.event('reflection-head-turn', `the reflection turned its head first (lag ${d.mirror.lagMs} ms, he walked ${d.mirror.walkedMetres} m)`); }
+        if (d.mirror.thatsMe && /that's me/i.test(probe.subtitle().text)) { t.event('dialogue', "That's me. I'm not seeing things."); }
+        if (d.phase === 'walk' || d.phase === 'arrive' || d.phase === 'sweep') break;
+        // Walk toward the glass until engaged, then back and forth in short strokes so the lag shows.
+        const x = probe.player().x;
+        if (!d.mirror.engaged) walkMirror(1);
+        else if (performance.now() - flip > 900) {
+          flip = performance.now();
+          phase = phase === 0 ? 1 : 0;
+          if (x > 19.2) phase = 1;
+          if (x < 17.8) phase = 0;
+          walkMirror(phase === 0 ? 1 : -1);
+        }
+      }
+      stopMirror();
+      const afterMirror = probe.desk?.();
+      t.metric('mirrorMaxLagMs', maxLag);
+      t.metric('headTurns', afterMirror?.mirror.headTurns ?? 0);
+      t.event('mirror-result', `max lag ${maxLag} ms, head turns ${afterMirror?.mirror.headTurns}, hum and breath dropped ${sawQuiet}, "That's me" played ${afterMirror?.mirror.thatsMe}`);
+      if (sawPrompt) t.problem('bug', 'a "Look in mirror" prompt showed');
+      if (!afterMirror?.mirror.engaged) t.problem('bug', 'walking up to the mirror never started the beat');
+      if (maxLag < 400 || maxLag > 650) t.problem('bug', `the reflection's lag peaked at ${maxLag} ms (expected about 500)`);
+      if ((afterMirror?.mirror.headTurns ?? 0) !== 1) t.problem('bug', `the reflection turned its head ${afterMirror?.mirror.headTurns} times (expected once)`);
+      if (!sawQuiet) t.problem('bug', 'the hum and breathing never dropped out for the head turn');
+      if (!afterMirror?.mirror.thatsMe) t.problem('bug', "\"That's me\" never played");
+      t.progress(0.45);
+
+      // To the desk.
+      t.scene('Walk to the desk');
+      const desk0 = performance.now();
+      while (performance.now() - desk0 < 90000) {
+        const d = probe.desk?.();
+        if (d && (d.phase === 'arrive' || d.phase === 'sweep')) break;
+        await walkTo({ x: 47.2, z: 40.6 }, 'desk', 0.7);
+        checkPrompt();
+        await tick();
+      }
+      releaseAll();
+      const sweepStart = performance.now();
+      while (probe.desk?.().phase !== 'sweep' && performance.now() - sweepStart < 20000) await tick();
+      if (probe.desk?.().phase !== 'sweep') t.problem('bug', 'never reached the desk beat');
+      await sleep(1800);
+      const canvas = probe.canvas;
+      const rect = canvas.getBoundingClientRect();
+      const pointerType = phone ? 'touch' : 'mouse';
+      const pid = phone ? 71 : 1;
+      let dragNo = 0;
+      const swipe = async (x0: number, x1: number, y: number, events: number, gapMs: number) => {
+        dragNo += 1;
+        const at = (fx: number) => ({ clientX: rect.left + rect.width * fx, clientY: rect.top + rect.height * y });
+        const init = (fx: number, buttons: number) => ({ pointerType, pointerId: pid, isPrimary: true, button: 0, buttons, bubbles: true, cancelable: true, composed: true, ...at(fx) });
+        canvas.dispatchEvent(new PointerEvent('pointerdown', init(x0, 1)));
+        for (let i = 1; i <= events; i += 1) {
+          await sleep(gapMs);
+          canvas.dispatchEvent(new PointerEvent('pointermove', init(x0 + ((x1 - x0) * i) / events, 1)));
+        }
+        canvas.dispatchEvent(new PointerEvent('pointerup', init(x1, 0)));
+        await sleep(1600);
+        const d = probe.desk!();
+        t.event('sweep', `drag ${dragNo} (${phone ? 'one finger' : 'mouse'}, ${events} steps of ${gapMs} ms): ${d.desk.off} of ${d.desk.total} props off the desk, peak hand speed ${d.desk.peakSpeed} m/s`);
+        return d.desk.off;
+      };
+      const gentle = await swipe(0.42, 0.52, 0.55, 12, 60);
+      t.metric('propsOffGentle', gentle);
+      let hard = gentle;
+      for (let i = 0; i < 5 && probe.desk?.().phase === 'sweep'; i += 1) {
+        hard = await swipe(i % 2 === 0 ? 0.2 : 0.8, i % 2 === 0 ? 0.8 : 0.2, 0.55, 10, 18);
+      }
+      t.metric('propsOffHard', hard);
+      const afterSweep = probe.desk!();
+      t.metric('sweepSounds', afterSweep.desk.sounds.length);
+      for (const id of new Set(afterSweep.desk.sounds)) t.event('sfx', `${id} x${afterSweep.desk.sounds.filter((s) => s === id).length}`);
+      if (hard <= gentle) t.problem('bug', `a harder drag sent no more props off (${gentle} then ${hard})`);
+      if (!afterSweep.desk.sounds.some((s) => s.startsWith('paper'))) t.problem('bug', 'no paper sound when the papers moved');
+      if (!afterSweep.desk.sounds.some((s) => s === 'terminal-crash' || s === 'desk-impact')) t.problem('bug', 'no impact sound when a heavy prop fell');
+      if (!afterSweep.desk.terminalOff) t.problem('bug', 'the terminal never left the desk under a hard drag');
+      const endAt = performance.now();
+      while (!/end level/i.test(probe.action() ?? '') && performance.now() - endAt < 40000) await tick();
+      t.event('check', `action after the sweep: ${probe.action()}`);
+      if (!/end level/i.test(probe.action() ?? '')) t.problem('bug', "End Level was not offered after \"I'm going home\"");
+      cw.stop();
+      const sum = cw.summary();
+      lastCam = sum;
+      t.metric('cameraFrames', sum.frames);
+      t.metric('cameraInside', sum.inside);
+      t.metric('cameraSnaps', sum.snaps);
+      t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })) }));
+      sum.worst.forEach((w, i) => { if (w.shot) t.event('camera-screenshot', JSON.stringify({ rank: i + 1, kind: w.kind, detail: w.detail, image: w.shot })); });
+      if (sum.inside > 0) t.problem('bug', `camera inside geometry on The Desk: ${sum.inside} frames`);
+      if (phone) probe.phoneFrame(false);
+      t.progress(1);
+      return 'done';
+    };
+
     // ---- b3-retry: Defeat -> Start five times, scene counts stay flat
     const b3RetryRun = async () => {
       levelsTotal = 1;
@@ -4552,6 +4721,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       for (const key of ['meshes', 'materials', 'textures', 'animationGroups'] as const) {
         if (again[key] > one[key] * 1.05 + 10) t.problem('bug', `${key} grew from ${one[key]} to ${again[key]} after level 1 -> 2 -> 1: the previous level was not freed`);
       }
+      return;
+    }
+
+    if (id === 'desk-beats') {
+      const outcome = await deskBeatsRun();
+      t.finish(outcome);
       return;
     }
 

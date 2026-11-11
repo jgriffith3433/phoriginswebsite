@@ -29,7 +29,23 @@ const NEAR_GLASS = 6;
 const shown = (mesh: BABYLON.AbstractMesh) =>
   !mesh.isDisposed() && mesh.isEnabled() && mesh.isVisible && mesh.getTotalVertices() > 0;
 
+/**
+ * A second body that takes Pierce's place in the glass (The Desk's reflection that lags and turns its head).
+ * It stands where he stands, so the mirror shows it where it showed him. Its meshes are on a layer the main
+ * camera does not draw, so it appears in the glass only (a mirror pass with an explicit render list ignores layers).
+ */
+export type MirrorDouble = {
+  root: BABYLON.TransformNode | null;
+  /** Called each frame before the pass so a body that is only in the mirror still skins. */
+  prepare: () => void;
+};
+
+/** Layer the double lives on: outside the main camera's default mask (0x0FFFFFFF). */
+export const DOUBLE_LAYER = 0x10000000;
+
 export type BathroomMirror = {
+  /** Show `double` in the glass instead of Pierce, or null to show Pierce again. */
+  setDouble: (double: MirrorDouble | null) => void;
   dispose: () => void;
 };
 
@@ -116,12 +132,20 @@ export const mountBathroomMirror = (scene: BABYLON.Scene, name: string): Bathroo
     }
   };
 
+  let double: MirrorDouble | null = null;
+
   const collect = () => {
     const next: BABYLON.AbstractMesh[] = [];
     for (const mesh of bathroom) {
       if (shown(mesh)) next.push(mesh);
     }
-    pushNode(next, scene.getTransformNodeByName('playerAvatarRoot'));
+    if (double?.root) {
+      const before = next.length;
+      pushNode(next, double.root);
+      for (let i = before; i < next.length; i += 1) next[i].layerMask = DOUBLE_LAYER;
+    } else {
+      pushNode(next, scene.getTransformNodeByName('playerAvatarRoot'));
+    }
     pushNode(next, scene.getTransformNodeByName('pistolRoot'));
     pushNode(next, scene.getTransformNodeByName('phoneRoot'));
     return next;
@@ -131,6 +155,7 @@ export const mountBathroomMirror = (scene: BABYLON.Scene, name: string): Bathroo
   tex.renderList = list;
 
   const sync = () => {
+    double?.prepare();
     const planes = scene.frustumPlanes;
     const seen = planes.length > 0 && cameraInRoom() && glass.isInFrustum(planes);
     if (seen) {
@@ -150,6 +175,11 @@ export const mountBathroomMirror = (scene: BABYLON.Scene, name: string): Bathroo
   const observer = scene.onBeforeRenderObservable.add(sync);
 
   return {
+    setDouble: (next) => {
+      double = next;
+      list = collect();
+      tex.renderList = list;
+    },
     dispose: () => {
       scene.onBeforeRenderObservable.remove(observer);
       tex.dispose();

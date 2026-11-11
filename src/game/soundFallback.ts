@@ -12,6 +12,11 @@ export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/apex/screen-tap.ogg': '/assets/audio/sfx/flashlight.ogg',
   '/assets/audio/sfx/apex/skyline.ogg': '/assets/audio/sfx/objective.ogg',
   '/assets/audio/sfx/apex/troffer-flicker.ogg': '/assets/audio/sfx/flashlight-off.ogg',
+  // The Desk (theDesk.ts): the sweep and the mirror. The breath has no stand-in and stays silent until made.
+  '/assets/audio/sfx/desk/paper-slide.ogg': '/assets/audio/sfx/apex/sofa-creak.ogg',
+  '/assets/audio/sfx/desk/paper-land.ogg': '/assets/audio/sfx/pistol-holster.ogg',
+  '/assets/audio/sfx/desk/desk-impact.ogg': '/assets/audio/sfx/glass-tick.ogg',
+  '/assets/audio/sfx/desk/terminal-crash.ogg': '/assets/audio/sfx/glass-tick.ogg',
   // Touchables (touchables.ts): until each take is made, a sound the game already has.
   '/assets/audio/sfx/touch/desk-phone.ogg': '/assets/audio/sfx/phone/connect.wav',
   '/assets/audio/sfx/touch/coffee-machine.ogg': '/assets/audio/sfx/home/tv-static.ogg',
