@@ -492,24 +492,26 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     scenarios: [
       {
         id: 'smoke',
-        title: 'Boot, title, start level 1, answer the call, walk to the board; hitchFailOver100; chapter-card black-frame check on levels 1-8 desktop and 844x390',
-        description: 'Starts level 1 with Start (chapter card + warm). Samples the world while the card is up and fails on a mostly-black lift or HUD over the card/black. Answers Voss, walks to the board cutscene. Publishes hitchFailOver100 (Babylon work time) and fails on any post-grace frame over 100 ms. Then samples chapter-card → world for levels 2-8 on desktop and levels 1-8 at 844x390 (same black-frame rules as transition). Metrics: hitchOver50/100, hitchFailOver100, transitionSamples. Problems: board scene missing, hitch over 100 ms, black frame under/after the card, HUD over the card or over black.',
-        seconds: 720,
-        tags: ['smoke', 'perf', 'ui'],
+        title: 'Boot, title, start level 1, answer the call, walk to the board; hitchFailOver100; chapter-card black-frame check on levels 1-8 desktop and 844x390; short L1 explore-cam (cameraInside/blocked/snaps + worst screenshots)',
+        description: 'Starts level 1 with Start (chapter card + warm). Samples the world while the card is up and fails on a mostly-black lift or HUD over the card/black. Answers Voss, walks to the board cutscene. Publishes hitchFailOver100 (Babylon work time) and fails on any post-grace frame over 100 ms. Then samples chapter-card → world for levels 2-8 on desktop and levels 1-8 at 844x390 (same black-frame rules as transition). Ends with a short Level 1 hall wall-hug under cameraWatch so a smoke-only beta run reports cameraInside/cameraBlocked/cameraSnaps and attaches worst-frame screenshots (docs/camera.md). Metrics: hitchOver50/100, hitchFailOver100, transitionSamples, cameraInside, cameraBlocked, cameraSnaps. Problems: board scene missing, hitch over 100 ms, black frame under/after the card, HUD over the card or over black, camera inside geometry.',
+        seconds: 840,
+        tags: ['smoke', 'perf', 'ui', 'camera'],
       },
       ...LEVELS.map((l) => ({ id: `level-${l.n}`, title: `${l.name} to its exit${l.n > 1 ? ` (starts at level ${l.n})` : ''}`, seconds: [330, 170, 200, 100, 200, 110][l.n - 1], tags: ['level'] })),
       ...LEVEL_NAMES.map((name, i) => ({
         id: `explore-cam-l${i + 1}`,
         title: `Explore camera, level ${i + 1} (${name}): wall-hugs hallways, turns in doorways, backs into corners on walkable routes; counts camera inside, blocked, near-wall, snaps and jitter vs docs/camera.md baseline (≤10%); worst frames with screenshots`,
         seconds: 300,
-        tags: ['camera', 'level'],
+        // smoke tag: listed on the front-page contract so beta can schedule them; daily beta still plays smoke,
+        // which carries a short L1 explore-cam leg for the same metrics.
+        tags: ['smoke', 'camera', 'level'],
       })),
       {
         id: 'interior-cam',
         title: 'Interior camera volumes: Level 1 halls (hallway profile, occlusion fade) and Level 8 apartment on desktop and 844x390',
         description: 'Starts Level 1, skips openings, walks Hall 1 and Hall 2 hugging the wall and through doorways; checks hallway/doorway profile, faded occluders, and camera-inside/blocked ≤10% of the L1 baseline. Then Level 8 apartment the same way. Repeats both at 844x390. Metrics: cameraInside, cameraBlocked, cameraFadedPeak, cameraHallwayFrames, cameraProfileHall, cameraProfileOpen.',
         seconds: 420,
-        tags: ['camera', 'level'],
+        tags: ['smoke', 'camera', 'level'],
       },
       ...LEVEL_NAMES.map((name, i) => ({
         id: `smoke-l${i + 1}`,
@@ -3902,9 +3904,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
 
     if (id === 'smoke') {
-      // Beta only runs smoke: cover hitch-board's L1 work-time hitch bar and transition's black-frame check here
-      // so a smoke-only beta run can judge those tasks (m_98ce28cc5577).
-      levelsTotal = 17; // L1 board + transition samples (L1 already counted, then L2-8 desktop + L1-8 phone = 15) ≈ progress steps
+      // Beta only runs smoke: cover hitch-board's L1 work-time hitch bar, transition's black-frame check,
+      // and a short L1 explore-cam so camera criteria are measurable without a separate scenario
+      // (m_98ce28cc5577, m_36b0146480a8). Full explore-cam-l1..l8 / interior-cam stay on the front-page contract.
+      levelsTotal = 18; // L1 board + transition samples + L1 explore-cam
       // Start L1: wait for the chapter card (Start path), sample black-frame, then walk.
       // Do not soft-skip if the card is late — that was the live path the level-start task needed.
       {
@@ -4000,17 +4003,118 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       const steps = 15;
       for (let n = 2; n <= 8; n++) {
         await sampleChapterTransition(n, false, true);
-        t.progress(0.2 + 0.4 * (step++ / steps));
+        t.progress(0.2 + 0.35 * (step++ / steps));
       }
       probe.phoneFrame(true, true, { w: 844, h: 390 });
       t.event('phoneFrame', '844x390');
       for (let n = 1; n <= 8; n++) {
         await sampleChapterTransition(n, true, true);
-        t.progress(0.2 + 0.4 * (step++ / steps));
+        t.progress(0.2 + 0.35 * (step++ / steps));
       }
       probe.phoneFrame(false);
+
+      // Short L1 explore-cam: wall-hug Hall 1 / Hall 2 so smoke reports cameraInside/blocked/snaps
+      // and attaches worst-frame screenshots (Camera at home indoors criteria on a smoke-only beta).
+      t.scene('explore-cam smoke L1');
+      t.event('explore-cam-smoke', 'L1 hall wall-hug');
+      let camOk = true;
+      {
+        const feel = probe.feel;
+        let fadedPeak = 0;
+        let hallwayFrames = 0;
+        const cw = installCameraWatch({
+          scene: () => probe.scene,
+          player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
+          isSolid: (m) => (feel ? feel.isSolid(m) : true),
+          active: () => {
+            if (!(probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted())) return false;
+            const cam = probe.camera?.();
+            if (cam) {
+              fadedPeak = Math.max(fadedPeak, cam.faded);
+              if (cam.profile === 'hallway' || cam.profile === 'doorway') hallwayFrames += 1;
+            }
+            return true;
+          },
+          label: () => 'smoke-L1',
+          emit: (type, detail) => t.event(type, detail),
+        });
+        try {
+          await enterLevel(1);
+          for (let i = 0; i < 400 && (probe.cutscene() || probe.scripted() || probe.menu().open); i += 1) {
+            const skip = probe.skipButton;
+            if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+            await tick();
+          }
+          await measureLook();
+          await sleep(600);
+          cw.start();
+          // Same hall waypoints as interior-cam's L1 pass (short: five stops, look drags, brief wall hug).
+          const goals: Point[] = [
+            { x: 0, z: 12 },
+            { x: 0, z: 28 },
+            { x: 8, z: 32 },
+            { x: 18, z: 32 },
+            { x: 30, z: 32 },
+          ];
+          let arrivedN = 0;
+          for (const g of goals) {
+            const t1 = performance.now();
+            let okGoal = false;
+            while (performance.now() - t1 < 16000 && !(okGoal = await walkTo(g, `smoke-cam-${arrivedN}`, 0.85))) {
+              if (probe.cutscene() || probe.scripted()) break;
+              await tick();
+            }
+            releaseAll();
+            if (okGoal) {
+              arrivedN += 1;
+              for (let i = 0; i < 6; i += 1) { dragLook(12); await tick(); }
+              for (let i = 0; i < 6; i += 1) { dragLook(-12); await tick(); }
+              setHeld('d');
+              const u = performance.now() + 700;
+              while (performance.now() < u) await tick();
+              releaseAll();
+            }
+          }
+          t.metric('cameraStops', arrivedN);
+          t.event('explore-plan', `${arrivedN} smoke-cam stops on L1`);
+        } catch (e) {
+          t.event('explore-error', `smoke L1: ${String(e)}`);
+          camOk = false;
+        }
+        releaseAll();
+        cw.stop();
+        const sum = cw.summary();
+        lastCam = sum;
+        t.metric('cameraFrames', sum.frames);
+        t.metric('cameraInside', sum.inside);
+        t.metric('cameraNear', sum.near);
+        t.metric('cameraBlocked', sum.blocked);
+        t.metric('cameraNearWall', sum.nearWall);
+        t.metric('cameraSnaps', sum.snaps);
+        t.metric('cameraJitter', sum.jitter);
+        t.metric('cameraMaxCoverage', Math.round(sum.maxCoverage * 100) / 100);
+        t.metric('cameraFadedPeak', fadedPeak);
+        t.metric('cameraHallwayFrames', hallwayFrames);
+        t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })), fadedPeak, hallwayFrames, source: 'smoke-L1' }));
+        sum.worst.forEach((w, i) => { if (w.shot) t.event('camera-screenshot', JSON.stringify({ rank: i + 1, kind: w.kind, detail: w.detail, image: w.shot })); });
+        if (sum.inside > 0) {
+          t.problem('bug', `camera inside geometry on smoke L1 explore: ${sum.inside} frames`);
+          camOk = false;
+        }
+        const base = CAM_BASELINE[0]!;
+        const insideCap = Math.max(1, Math.ceil(base.inside * 0.1));
+        const blockedCap = Math.max(1, Math.ceil(base.blocked * 0.1));
+        if (sum.inside > insideCap) {
+          t.problem('bug', `smoke cameraInside ${sum.inside} exceeds 10% of baseline ${base.inside} (cap ${insideCap})`);
+          camOk = false;
+        }
+        if (sum.blocked > blockedCap) {
+          t.problem('bug', `smoke cameraBlocked ${sum.blocked} exceeds 10% of baseline ${base.blocked} (cap ${blockedCap})`);
+          camOk = false;
+        }
+      }
       t.progress(1);
-      const ok = sceneSeen && hitchOk;
+      const ok = sceneSeen && hitchOk && camOk;
       t.finish(ok ? 'done' : sceneSeen ? 'lost' : 'stuck');
       return;
     }
