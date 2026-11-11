@@ -2188,6 +2188,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let startPos: { x: number; z: number } | null = null;
       let firstInput = -1;
       let firstThreat = -1;
+      let firstSuccess = false;
       let cutAt = -1;
       let titleAt = -1;
       let doorSamples = 0;
@@ -2215,6 +2216,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               activeSeen = true;
               startPos = { x: probe.player().x, z: probe.player().z };
               t.event('cold-open', `in control ${now.toFixed(1)} s after the tap; flashlight ${co.flashlight ? 'on' : 'OFF'}`);
+              t.event('milestone', 'gameplay');
               t.metric('flashlightAtFirstFrame', co.flashlight ? 1 : 0);
               if (!co.flashlight) t.problem('bug', 'the cold open starts with the flashlight off');
               if (probe.menu().open) t.problem('bug', 'a menu is open over the cold open');
@@ -2225,11 +2227,17 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               if (Math.hypot(p.x - startPos.x, p.z - startPos.z) > 0.2) {
                 firstInput = now;
                 t.event('first-input', `${touch ? 'left stick' : 'W'} moved Pierce after ${now.toFixed(1)} s`);
+                t.event('milestone', 'first-input-accepted');
               }
             }
             if (firstThreat < 0 && co.creatureOnScreen) {
               firstThreat = now;
               t.event('first-threat', `the creature is on screen ${now.toFixed(1)} s after the tap`);
+            }
+            // The first success: he walked into the dark hall and his own flashlight found what was in it.
+            if (!firstSuccess && firstInput >= 0 && co.creatureOnScreen && co.flashlight) {
+              firstSuccess = true;
+              t.event('milestone', 'first-success');
             }
             if (probe.objective().visible || probe.menu().open) objectiveShown = true;
             if (touch) {
