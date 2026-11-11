@@ -2,6 +2,7 @@ import * as BABYLON from '@babylonjs/core';
 
 import { PLACE_SFX } from './placeVoices';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
+import { voiceBusy } from '../game/sfxMix';
 import type { StoryCarry } from './act1';
 
 /**
@@ -546,7 +547,8 @@ export const createTheMorning = (host: MorningHost) => {
       lineUntil = 0;
       say(L_WITHOUT);
     }
-    if (time >= total + L_WITHOUT.hold + 0.4) endNews();
+    // endNews hands the room to Voss's ring: wait for the anchor and Pierce to finish first (bounded).
+    if (time >= total + L_WITHOUT.hold + 0.4 && (!voiceBusy() || time >= total + L_WITHOUT.hold + 8)) endNews();
   };
 
   const stepLeaving = () => {
@@ -709,7 +711,8 @@ export const createTheMorning = (host: MorningHost) => {
           }
         }
       }
-      if (lineUntil > 0 && time > lineUntil) {
+      // The caption stays up until the voice behind it is done (the voice channel queues, it never cuts a line).
+      if (lineUntil > 0 && time > lineUntil && (!voiceBusy() || time > lineUntil + 8)) {
         lineUntil = 0;
         host.showLine('', '');
       }

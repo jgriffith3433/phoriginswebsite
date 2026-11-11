@@ -181,6 +181,8 @@ export type PhProbe = {
     stepCount?: number;
     steps?: { surface: string; variant: number; rate: number; foot: string }[];
     /** Music director (docs/music.md): state, state log, duck depth, events. */
+    /** Every voice clip: start, end, whether a stop cut it short, whether another voice sounded under it. */
+    voice?: { url: string; start: number; end: number; waited: number; duration: number; state: string; cut: boolean; overlapped: boolean }[];
     music?: { chapter: number; state: string; stems: number; streaming: boolean; duckDb: number; duckDepthDb: number; voices: number; changes: number; stateLog: { t: number; state: string; reason: string }[]; events: { t: number; kind: string; detail: string }[]; silenceSeconds: number };
   };
   /**
@@ -4381,6 +4383,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       const full = sawCall && order.every((at, i) => at >= 0 && (i === 0 || at > order[i - 1]));
       t.event('check', `voss call: ${full ? 'all 7 lines, in order' : `INCOMPLETE (${order.join(', ')})`}, call done ${story()?.callDone}`);
       if (!full || story()?.callDone !== true) t.problem('bug', "Voss's call did not play in full");
+      // Voice: every clip played to its end, and no two sounded at once.
+      {
+        const clips = probe.sound().voice ?? [];
+        const played = clips.filter((c) => c.state !== 'failed');
+        const cut = played.filter((c) => c.cut);
+        let overlaps = 0;
+        const byStart = [...played].sort((a, b) => a.start - b.start);
+        byStart.forEach((c, i) => { if (i > 0 && c.start < byStart[i - 1].end - 0.05) overlaps += 1; });
+        t.metric('voiceClips', played.length);
+        t.metric('voiceCut', cut.length);
+        t.metric('voiceOverlaps', overlaps);
+        t.event('check', `voice clips: ${played.length}, ended ${played.filter((c) => c.state === 'ended').length}, cut ${cut.length}, overlaps ${overlaps}${cut.length ? ` (${cut.map((c) => c.url.split('/').pop()).join(', ')})` : ''}`);
+        if (cut.length) t.problem('bug', `voice clip cut short: ${cut.map((c) => c.url.split('/').pop()).join(', ')}`);
+        if (overlaps) t.problem('bug', `${overlaps} voice clip${overlaps === 1 ? '' : 's'} sounded over another`);
+      }
       // 4: ends at the door; the card offers Exit only.
       await sleep(700);
       const menu = probe.menu();
