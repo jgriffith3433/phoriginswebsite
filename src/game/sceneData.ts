@@ -790,6 +790,16 @@ export const createSceneAssetNode = (scene: BABYLON.Scene, asset: SceneAssetInst
     if (asset.color) {
       light.diffuse = new BABYLON.Color3(asset.color[0], asset.color[1], asset.color[2]);
       light.specular = light.diffuse.scale(themeName === 'B3 Basement' ? 0.08 : 0.35);
+    } else if (themeName === 'Apex Peak') {
+      const label = `${asset.name ?? ''} ${asset.id ?? ''}`;
+      // Cool the hall troffers toward title-card navy; leave office/board/bath practicals warmer so lamps still read warm against cold glass.
+      if (/Hall\s*[12]|light-h[12]|Elevator Cab|light-lift/i.test(label)) {
+        light.diffuse = new BABYLON.Color3(0.72, 0.82, 1.0);
+        light.specular = light.diffuse.scale(0.22);
+      } else {
+        light.diffuse = new BABYLON.Color3(1.0, 0.94, 0.82);
+        light.specular = light.diffuse.scale(0.28);
+      }
     }
     light.metadata = metadata;
     return light;

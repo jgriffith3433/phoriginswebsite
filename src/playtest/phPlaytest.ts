@@ -710,7 +710,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'living-places',
         title: 'The 58th floor, the station and the train lived in: board plot through the hall, footsteps, people on routines, touchables',
-        description: 'Enters level 1, the station (level 6) and the train (test shortcuts), skips scripted openings. On Apex Peak it does not need the Voss call: it walks past the desk person (board-desk), tries the locked IN SESSION door (board-door), and walks the hall until the Hale silhouette flinch fires (board-threat). Then in each place it walks to every touchable and presses Interact through real input, logging the motion and sound each answered with and whether the Interact button was shown. Logs the people on routines and who glanced at Pierce, counts footsteps (one per foot plant, 3+ variants, never the same twice in a row), and reports quality.maxQuietSeconds per place (≤ 10). options.phone: true lays the page out as a 390x844 touch phone and requires the Interact button at each touchable; heapMB is reported; no horizontal scroll and 44 px targets.',
+        description: 'Enters level 1, the station (level 6) and the train (test shortcuts), skips scripted openings. On Apex Peak it does not need the Voss call: it walks past the desk person (board-desk), tries the locked IN SESSION door (board-door), and walks the hall until the Hale silhouette flinch fires (board-threat). Then it checks art cohesion: HUD action buttons use the title-card gold/navy palette (no cyan or coral orange), and the hallway grade leans navy (cool hemi ground, fog and practicals). Then in each place it walks to every touchable and presses Interact through real input, logging the motion and sound each answered with and whether the Interact button was shown. Logs the people on routines and who glanced at Pierce, counts footsteps (one per foot plant, 3+ variants, never the same twice in a row), and reports quality.maxQuietSeconds per place (≤ 10). options.phone: true lays the page out as a 390x844 touch phone and requires the Interact button at each touchable; heapMB is reported; no horizontal scroll and 44 px targets.',
         seconds: 480,
         tags: ['level', 'quality', 'story', 'sound', 'phone'],
       },
@@ -1723,10 +1723,77 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             t.metric('boardHallThreat', probe.boardHall?.()?.threatSeen ? 1 : 0);
             t.progress(0.18);
           }
+          // Art cohesion (critic): HUD gold/navy, hallway grade toward the title card's dark blue.
+          {
+            const root = getComputedStyle(document.documentElement);
+            const accent = root.getPropertyValue('--accent').trim().toLowerCase();
+            const gold = root.getPropertyValue('--hb-gold').trim().toLowerCase() || '#c9a86a';
+            const navy = root.getPropertyValue('--hb-navy').trim().toLowerCase() || '#0a1522';
+            t.event('hud-palette', `accent ${accent || '(empty)'}, gold ${gold}, navy ${navy}`);
+            if (!accent || accent === '#67d2ff' || /67\s*,\s*210\s*,\s*255/.test(accent)) {
+              t.problem('bug', 'art cohesion: HUD --accent is still cyan (wants title-card gold)');
+            } else if (accent !== gold && accent !== '#c9a86a') {
+              t.problem('bug', `art cohesion: HUD --accent ${accent} is not the house gold`);
+            }
+            const clash = /(103\s*,\s*210\s*,\s*255|#67d2ff|255\s*,\s*122\s*,\s*89|#ff7a59|255\s*,\s*191\s*,\s*105|#ffbf69)/i;
+            const btnIds = ['fireBtn', 'jumpBtn', 'shadowBtn', 'interactBtn'];
+            let checked = 0;
+            for (const id of btnIds) {
+              const el = document.getElementById(id);
+              if (!el || el.hidden) continue;
+              const cs = getComputedStyle(el);
+              const bg = `${cs.backgroundImage} ${cs.backgroundColor}`.toLowerCase();
+              t.event('hud-btn', `${id}: ${bg.slice(0, 140)}`);
+              if (clash.test(bg)) t.problem('bug', `art cohesion: #${id} still uses cyan or coral orange`);
+              checked += 1;
+            }
+            t.metric('hudPaletteButtons', checked);
+            if (phone && checked < 2) t.problem('bug', `art cohesion: only ${checked} HUD buttons visible to sample on the phone layout`);
+            const hemi = probe.scene.getLightByName('hemi') as BABYLON.HemisphericLight | null;
+            const fog = probe.scene.fogColor;
+            if (hemi && hemi.groundColor) {
+              const g = hemi.groundColor;
+              t.event('hall-grade', `hemi ground ${g.r.toFixed(3)},${g.g.toFixed(3)},${g.b.toFixed(3)}; fog ${fog.r.toFixed(3)},${fog.g.toFixed(3)},${fog.b.toFixed(3)}`);
+              if (g.b <= g.r + 0.02) t.problem('bug', 'art cohesion: hallway hemi ground is not cooled toward navy');
+              t.metric('hallGradeBlue', Math.round((g.b - g.r) * 1000) / 1000);
+            } else {
+              t.problem('bug', 'art cohesion: hemi light missing for hallway grade check');
+            }
+            if (fog.b <= fog.r + 0.01) t.problem('bug', 'art cohesion: hallway fog is not cooled toward navy');
+            let coolPracticals = 0;
+            let practicals = 0;
+            for (const light of probe.scene.lights) {
+              // Duck-type PointLight (this file type-imports Babylon; no runtime instanceof).
+              if (light.getClassName?.() !== 'PointLight' || !light.isEnabled()) continue;
+              const point = light as BABYLON.PointLight;
+              // Skip the phone beam / tiny spots; hall troffers are the mid-range practicals.
+              if (point.range < 6 || point.intensity < 0.08) continue;
+              practicals += 1;
+              if (point.diffuse.b > point.diffuse.r + 0.04) coolPracticals += 1;
+            }
+            t.event('hall-practicals', `${coolPracticals}/${practicals} cool navy practicals`);
+            t.metric('hallCoolPracticals', coolPracticals);
+            if (practicals > 0 && coolPracticals < Math.ceil(practicals * 0.5)) {
+              t.problem('bug', `art cohesion: only ${coolPracticals}/${practicals} hall lights lean cool/navy`);
+            }
+          }
           if (phone) {
             const scroll = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
             if (scroll) t.problem('bug', 'living-places: horizontal scroll on 390x844 phone layout');
             t.event('phone-layout', scroll ? 'scroll' : 'no-horizontal-scroll');
+            const touchIds = ['moveStick', 'lookStick', 'jumpBtn', 'fireBtn', 'shadowBtn', 'interactBtn', 'pauseBtn'];
+            const small: string[] = [];
+            for (const id of touchIds) {
+              const el = document.getElementById(id);
+              if (!el || el.hidden) continue;
+              const st = getComputedStyle(el);
+              if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) < 0.05) continue;
+              const b = el.getBoundingClientRect();
+              if (b.width < 1 || b.height < 1) continue;
+              if (b.width < 44 || b.height < 44) small.push(`${id} ${Math.round(b.width)}x${Math.round(b.height)}`);
+            }
+            t.event('phone-targets', small.length ? `under 44 px: ${small.join(', ')}` : 'all visible touch controls ≥ 44 px');
+            if (small.length) t.problem('bug', `living-places: touch targets under 44 px on 390x844 (${small.join(', ')})`);
           }
         }
         const list = probe.life?.()?.touchables ?? [];
