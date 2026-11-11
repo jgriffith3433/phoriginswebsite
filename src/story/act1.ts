@@ -75,7 +75,7 @@ export type ActHost = {
   seatHead: () => void;
   leaveHead: () => void;
   beginCutscene: (id: string) => void;
-  playFile: (url: string, volume: number) => void;
+  playFile: (url: string, volume: number, at?: { x: number; y: number; z: number }) => void;
   audioOn: () => boolean;
   ensureAudio: () => void;
   win: () => void;
@@ -1127,7 +1127,7 @@ export const createAct1 = (host: ActHost) => {
     boardTalkIn = hall ? 6 + Math.random() * 2 : 11 + Math.random() * 7;
     if (!said) return;
     host.showLine(said.speaker, said.text);
-    host.playFile(said.url, hall ? Math.max(0.16, 0.5 - (away - 9) * 0.008) : 0.5);
+    host.playFile(said.url, 0.8, { x: BOARD_TABLE.x, y: 1.5, z: BOARD_TABLE.z });
     boardLineLeft = 3.6;
   };
 
@@ -1901,16 +1901,17 @@ export const createAct1 = (host: ActHost) => {
       host.camera.position.x += (Math.random() - 0.5) * amp;
       host.camera.position.y += (Math.random() - 0.5) * amp * 0.65;
     }
+    const cAt = { x: node.position.x, y: 0.5, z: node.position.z };
     const near = (span: number, floor = 0.05) => Math.max(floor, 1 - Math.min(dist, span) / span);
     breathIn -= delta;
     if (huntMood === 'lurk' && dist < 15 && breathIn <= 0) {
       breathIn = 2.8 + Math.random() * 2.6;
-      host.playFile(CREATURE_SFX.breath, 0.34 * near(15, 0.08));
+      host.playFile(CREATURE_SFX.breath, 0.34 * near(15, 0.08), cAt);
     }
     if (dist < 4.6) {
       if (!hissed) {
         hissed = true;
-        host.playFile(CREATURE_SFX.hiss, huntMood === 'strike' ? 0.58 : 0.36);
+        host.playFile(CREATURE_SFX.hiss, huntMood === 'strike' ? 0.58 : 0.36, cAt);
       }
     } else if (dist > 7.5) hissed = false;
     if (huntMood === 'lurk' && lurkIdle <= 0 && huntPath.length > 0 && dist < 22) {
@@ -1918,28 +1919,28 @@ export const createAct1 = (host: ActHost) => {
       if (scrapeIn <= 0) {
         scrapeIn = 0.75 + Math.random() * 1.05;
         const step = Math.random() < 0.28 ? CREATURE_SFX.skitter : CREATURE_SFX.scrape;
-        host.playFile(step, 0.3 * near(18, 0.06));
+        host.playFile(step, 0.3 * near(18, 0.06), cAt);
       }
     }
     skitterIn -= delta;
     if (huntMood === 'lurk' && dist > 8 && skitterIn <= 0) {
       skitterIn = 6 + Math.random() * 6;
-      host.playFile(CREATURE_SFX.skitter, dist > 16 ? 0.12 : 0.22);
+      host.playFile(CREATURE_SFX.skitter, dist > 16 ? 0.12 : 0.22, cAt);
     }
     chitterIn -= delta;
     if (huntMood === 'lurk' && lurkIdle > 0.4 && dist < 12 && chitterIn <= 0) {
       chitterIn = 3.4 + Math.random() * 2.8;
-      host.playFile(CREATURE_SFX.chitter, 0.26 * near(12, 0.08));
+      host.playFile(CREATURE_SFX.chitter, 0.26 * near(12, 0.08), cAt);
     }
     knockIn -= delta;
     if (knockIn <= 0) {
       knockIn = 9 + Math.random() * 8;
-      host.playFile(CREATURE_SFX.knock, 0.16);
+      host.playFile(CREATURE_SFX.knock, 0.16, cAt);
     }
     cryIn -= delta;
     if (huntMood === 'lurk' && dist > 14 && cryIn <= 0) {
       cryIn = 16 + Math.random() * 10;
-      host.playFile(CREATURE_SFX.cry, 0.2);
+      host.playFile(CREATURE_SFX.cry, 0.2, cAt);
     }
     heartIn -= delta;
     if (huntMood === 'strike' && dist < 10 && heartIn <= 0) {

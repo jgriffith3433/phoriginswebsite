@@ -23,7 +23,7 @@ export type MusicBand = 'far' | 'near' | 'close';
 export const MUSIC_BPM = 72;
 export const BEAT = 60 / MUSIC_BPM;
 export const BAR = BEAT * 4;
-export const DUCK_DB = -7;
+export const DUCK_DB = -8;
 export const DUCK_ATTACK = 0.15;
 export const DUCK_RELEASE = 0.6;
 /** Loop length in bars: 12 bars at 72 bpm is 40 s. */

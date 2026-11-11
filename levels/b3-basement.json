@@ -8241,5 +8241,10 @@
         "maxZ": 39.3,
         "priority": 3
       }
-    ]
+    ],
+  "acousticDefault": "tunnel",
+  "acousticZones": [
+    {"id": "b3-vat-chamber", "type": "vat", "minX": 0.0, "maxX": 16.4, "minZ": 30.9, "maxZ": 45.1, "priority": 2},
+    {"id": "b3-lift", "type": "elevator", "minX": 42.2, "maxX": 45.8, "minZ": 19.0, "maxZ": 24.0, "priority": 5}
+  ]
 }

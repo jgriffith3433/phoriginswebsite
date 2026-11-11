@@ -54,6 +54,7 @@ import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { music } from './game/musicDirector';
+import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcousticsStats, setAcousticsPaused, setListener, setOcclusionRay, setZones, startTestSource, testPing, updateAcoustics, type AcousticZone, type ReverbType, type WorldOptions } from './game/acoustics';
 import { clipLog, holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import { warmLevelFirstUse, stopLevelWarm } from './game/levelWarm';
 import { soundFallback } from './game/soundFallback';
@@ -395,12 +396,14 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
     grade.apply(loaded.data.theme || currentThemeName);
     followCamera.setVolumes(loaded.data.cameraVolumes ?? []);
+    applyAcousticZones(loaded.data);
     return;
   }
   missionScene = initialSceneData;
   disposeSceneNodes(sceneNodes);
   sceneNodes = loadSceneFromJson(scene, initialSceneData, sceneLoadOptions);
   followCamera.setVolumes(initialSceneData?.cameraVolumes ?? []);
+  applyAcousticZones(initialSceneData);
 };
 
 const npcs: Npc[] = [];
@@ -1010,6 +1013,83 @@ const beginNamedCutscene = (id: string) => {
 };
 
 const musicTriggerPlayer = createMusicTriggerPlayer();
+
+/** Reverb zones and the occlusion ray (acoustics.ts): the loaded scene says which rooms are where. */
+configureTier(lowPowerGraphics);
+const applyAcousticZones = (data: { acousticZones?: unknown; acousticDefault?: string } | null | undefined) => {
+  setZones((data?.acousticZones as AcousticZone[] | undefined), data?.acousticDefault as ReverbType | undefined);
+  const ctx = getSharedAudioContext();
+  if (ctx) ensureRig(ctx);
+};
+
+/** The boardroom's sound lock: closed (an invisible occluder in the doorway) until Pierce is at it, then open. */
+const BOARD_DOOR = { x: 35.5, z: 32.05, length: 4.9, centerX: 36, centerZ: 32 };
+let boardDoorMesh: BABYLON.Mesh | null = null;
+let boardDoorClosed = false;
+const syncBoardDoor = () => {
+  if (!isApexPeakLevel()) {
+    if (boardDoorMesh) { boardDoorMesh.dispose(); boardDoorMesh = null; boardDoorClosed = false; markOcclusionDirty(); }
+    return;
+  }
+  if (!boardDoorMesh || boardDoorMesh.isDisposed()) {
+    boardDoorMesh = BABYLON.MeshBuilder.CreateBox('acoustic-door-board', { width: 0.12, height: 2.4, depth: BOARD_DOOR.length }, scene);
+    boardDoorMesh.position.set(BOARD_DOOR.x, 1.2, BOARD_DOOR.z);
+    boardDoorMesh.isVisible = false;
+    boardDoorMesh.isPickable = false;
+    boardDoorMesh.checkCollisions = false;
+    boardDoorMesh.metadata = { acousticDoor: true };
+    boardDoorMesh.setEnabled(false);
+    boardDoorClosed = false;
+  }
+  const d = Math.hypot(state.player.x - BOARD_DOOR.centerX, state.player.z - BOARD_DOOR.centerZ);
+  const hallSide = state.player.x < 35.3;
+  let closed = boardDoorClosed;
+  if (!hallSide || d < 3.0) closed = false;
+  else if (d > 3.8) closed = true;
+  if (closed === boardDoorClosed && boardDoorMesh.isEnabled() === closed) return;
+  boardDoorClosed = closed;
+  boardDoorMesh.setEnabled(closed);
+  boardDoorMesh.computeWorldMatrix(true);
+  markOcclusionDirty();
+  try { (window as unknown as { __phEmit?: (t: string, d?: unknown) => void }).__phEmit?.('board-door', { closed }); } catch { /* playtest not installed */ }
+};
+
+/** Walls, closed doors and glass block sound; floors, props and people do not. */
+const occRay = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward(), 1);
+const occPredicate = (mesh: BABYLON.AbstractMesh) => {
+  if (!mesh.isEnabled()) return false;
+  const meta = mesh.metadata as { acousticDoor?: boolean; assetKind?: string; sceneAssetId?: string } | null;
+  if (meta?.acousticDoor) return true;
+  if (!mesh.checkCollisions || !meta) return false;
+  if (meta.assetKind === 'wall') return true;
+  return /(^|-)(wall|door|glass)/.test(meta.sceneAssetId ?? '') && !/stall|handle|jamb|casing/.test(meta.sceneAssetId ?? '');
+};
+setOcclusionRay((from, to) => {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dz = to.z - from.z;
+  const len = Math.hypot(dx, dy, dz);
+  if (len < 0.9) return false;
+  occRay.origin.set(from.x, from.y, from.z);
+  occRay.direction.set(dx / len, dy / len, dz / len);
+  occRay.length = len - 0.4;
+  return Boolean(scene.pickWithRay(occRay, occPredicate, true)?.hit);
+});
+
+let testSourceStop: (() => void) | null = null;
+const listenerForward = new BABYLON.Vector3();
+let rigEnsured = false;
+const updateWorldAudio = (delta: number) => {
+  const ctx = getSharedAudioContext();
+  if (!ctx) return;
+  if (!rigEnsured && ctx.state === 'running') { ensureRig(ctx); rigEnsured = true; }
+  syncBoardDoor();
+  camera.getDirectionToRef(BABYLON.Axis.Z, listenerForward);
+  setListener(ctx, camera.position, listenerForward, { x: state.player.x, z: state.player.z });
+  setAcousticsPaused(isPaused());
+};
+/** The audio side ticks on its own clock: a slow frame must not hold a door-open from clearing within 0.5 s. */
+setInterval(() => { if (!document.hidden) updateAcoustics(); }, 50);
 /** A story beat can drop the level's bed to silence (The Desk's mirror). 1 leaves it as the level plays it. */
 let bedDuck = 1;
 const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
@@ -1390,7 +1470,7 @@ const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 
 let walkWanted = false;
 const footsteps = createFootsteps((url, rate) => {
   const level = mixVolume(url, 0.34);
-  playClip(url, level, { rate });
+  playClip(url, level, { rate, world: { cls: 'step' } });
 });
 let endingSong: HTMLAudioElement | null = null;
 
@@ -1441,13 +1521,13 @@ const audio = {
     osc.stop(this.ctx.currentTime + duration);
   },
   /** One-shots play from a decoded buffer, so a phone hears them without a finger on the screen. */
-  play(url: string, volume: number, rate?: number) {
+  play(url: string, volume: number, rate?: number, world?: WorldOptions) {
     if (!this.enabled) return;
     this.ensure();
     const level = mixVolume(url, volume);
     const fallback = soundFallback(url);
-    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume), { rate }); } : undefined;
-    if (playClip(url, level, { onError, rate })) return;
+    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume), { rate, world }); } : undefined;
+    if (playClip(url, level, { onError, rate, world })) return;
     playElementOnce(fallback ?? url, level);
   },
   /** Footsteps are one-shots on each foot plant (footsteps.ts); this only says whether he is walking. */
@@ -2712,7 +2792,7 @@ act = createAct1({
     phone.silence();
     followCamera.setCallFrame(false);
   },
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
   audioOn: () => audio.enabled,
   ensureAudio: () => audio.ensure(),
   win: () => audio.win(),
@@ -2804,7 +2884,7 @@ const apexLife = createApexLife({
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   active: () => state.running && !state.inCutscene && !apex.playing(),
   lowPower: () => lowPowerGraphics,
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
   showLine: (title, text) => showCineHud(title, text),
 });
 
@@ -2815,7 +2895,7 @@ const boardHall = createApexBoardHall({
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   running: () => state.running,
   inCutscene: () => state.inCutscene && !apex.playing(),
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
   showLine: (title, text) => showCineHud(title, text),
   impair: (next) => setImpair(next),
 });
@@ -2824,7 +2904,7 @@ const boardHall = createApexBoardHall({
 const touch = createTouchables({
   scene,
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
 });
 
 const home: GoingHome = createGoingHome({
@@ -5171,6 +5251,7 @@ const renderLoop = () => {
     if (!menuCameraActive) updateCamera(delta);
   }
 
+  updateWorldAudio(delta);
   musicTriggerPlayer.update(
     camera.position,
     delta,
@@ -5394,6 +5475,7 @@ window.addEventListener('resize', () => {
 /** Playtest setup: lay the page out as a 390x844 phone, centred and scaled to fit a desktop viewport. */
 const setPhoneFrame = (on: boolean, landscape = false, size?: { w: number; h: number }) => {
   phoneFramed = on;
+  configureTier(on || lowPowerGraphics);
   if (on) {
     const w = size?.w ?? (landscape ? 844 : 390);
     const h = size?.h ?? (landscape ? 390 : 844);
@@ -5716,7 +5798,19 @@ installPhPlaytest({
     steps: footsteps.events(),
     music: music.probe(),
     voice: clipLog().filter((c) => c.voice),
+    acoustics: { ...acousticsProbe(getSharedAudioContext()), door: { closed: boardDoorClosed } },
   }),
+  acousticPing: (side: 'left' | 'right' | 'front') => {
+    const ctx = getSharedAudioContext();
+    return ctx ? testPing(ctx, side) : Promise.resolve({ left: 0, right: 0, side });
+  },
+  acousticReset: () => resetAcousticsStats(),
+  acousticTestSource: (x: number, y: number, z: number, seconds: number) => {
+    testSourceStop?.();
+    testSourceStop = null;
+    const ctx = getSharedAudioContext();
+    if (ctx && seconds > 0) testSourceStop = startTestSource(ctx, { x, y, z }, seconds, 'voice', 'test-board-voice', 0.4);
+  },
   playSettings: () => gameSettings(),
 });
 

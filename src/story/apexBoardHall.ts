@@ -20,7 +20,7 @@ export type ApexBoardHallHost = {
   playerXZ: () => { x: number; z: number };
   running: () => boolean;
   inCutscene: () => boolean;
-  playFile: (url: string, volume: number) => void;
+  playFile: (url: string, volume: number, at?: { x: number; y: number; z: number }) => void;
   showLine: (title: string, text: string) => void;
   impair: (next: ImpairState | null) => void;
 };
@@ -202,7 +202,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     return Math.hypot(here.x - x, here.z - z) <= r;
   };
 
-  const say = (id: string, volume: number, fallback?: string) => {
+  const say = (id: string, volume: number, fallback?: string, at?: { x: number; y: number; z: number }) => {
     const candidates = [id, fallback].filter((x): x is string => Boolean(x && voiced(x) && barkFresh(x)));
     const pick = candidates[0];
     if (!pick) return false;
@@ -210,7 +210,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     if (!said) return false;
     barkSpoken(pick);
     host.showLine(said.speaker, said.text);
-    host.playFile(said.url, volume);
+    host.playFile(said.url, volume, at);
     lineLeft = 3.4;
     lifeStats.bark('apex', pick, pick);
     return true;
@@ -221,8 +221,8 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     if (!near(DOOR.x - 0.8, DOOR.z, DOOR.r)) return false;
     doorTried = true;
     doorShake = 0.55;
-    host.playFile(SFX.rattle, 0.42);
-    host.playFile(SFX.locked, 0.55);
+    host.playFile(SFX.rattle, 0.42, { x: DOOR.x, y: 1.2, z: DOOR.z });
+    host.playFile(SFX.locked, 0.55, { x: DOOR.x, y: 1.2, z: DOOR.z });
     lifeStats.touch('apex', 'locked-door', 'door rattles, lock holds', SFX.locked);
     lifeStats.mark();
     emit('board-door', JSON.stringify({ locked: true, x: DOOR.x, z: DOOR.z }));
@@ -246,7 +246,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     });
     host.playFile(SFX.dip, 0.38);
     // Prefer Pierce's own line; until Gen lands it the flinch is still the beat (no text-only filler).
-    say(THREAT_LINE, 0.9);
+    say(THREAT_LINE, 0.9, undefined, { x: THREAT.x, y: 1.5, z: THREAT.z });
     lifeStats.mark();
     lifeStats.glance('apex', 'hale-standing');
     emit('board-threat', JSON.stringify({
@@ -357,7 +357,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
         const here = host.playerXZ();
         if (here.x >= THREAT.murmurX && Math.abs(here.z - THREAT.z) < 6) {
           murmurSaid = true;
-          if (say(BOARD_MURMUR, 0.38)) {
+          if (say(BOARD_MURMUR, 0.7, undefined, { x: THREAT.x, y: 1.5, z: THREAT.z })) {
             lifeStats.mark();
             emit('board-murmur', JSON.stringify({ line: BOARD_MURMUR }));
           }
@@ -376,7 +376,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
           host.playFile(SFX.paper, 0.28);
           lifeStats.glance('apex', 'desk');
           lifeStats.mark();
-          const said = say(DESK_LINE, 0.85, DESK_FALLBACK);
+          const said = say(DESK_LINE, 0.85, DESK_FALLBACK, { x: DESK.x, y: 1.5, z: DESK.z });
           emit('board-desk', JSON.stringify({ x: DESK.x, z: DESK.z, said, line: voiced(DESK_LINE) ? DESK_LINE : DESK_FALLBACK }));
         }
         if (deskGlance > 0) {

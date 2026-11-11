@@ -18,7 +18,7 @@ export type ApexLifeHost = {
   playerXZ: () => { x: number; z: number };
   active: () => boolean;
   lowPower: () => boolean;
-  playFile: (url: string, volume: number) => void;
+  playFile: (url: string, volume: number, at?: { x: number; y: number; z: number }) => void;
   showLine: (title: string, text: string) => void;
 };
 
@@ -196,7 +196,7 @@ export const createApexLife = (host: ApexLifeHost) => {
       barkIn = 12 + Math.random() * 8;
       if (line) {
         host.showLine(line.speaker, line.text);
-        host.playFile(line.url, 0.8);
+        host.playFile(line.url, 0.8, { x: closeOnes[0].mesh.position.x, y: 1.5, z: closeOnes[0].mesh.position.z });
         lineLeft = 3.2;
         lifeStats.bark('apex', closeOnes[0].id, line.id);
       }
