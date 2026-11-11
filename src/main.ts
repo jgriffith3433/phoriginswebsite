@@ -61,6 +61,7 @@ import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
 import { createObjectiveMarker } from './game/objectiveMarker';
 import { createObjectiveWaypoint } from './game/objectiveWaypoint';
+import { createPowerPrompt } from './game/powerPrompt';
 import { createMinimap } from './game/minimap';
 import { createScreenFade } from './game/fade';
 import { createLostWatcher, safeSpotNear } from './game/returnToObjective';
@@ -181,6 +182,20 @@ const actionPulse = (kind: 'strike' | 'shot' | 'power' | 'heal' | 'pickup') => {
   void hitFlash.offsetWidth;
   hitFlash.classList.add('pulse');
   (window as unknown as { __phPulses?: number }).__phPulses = ((window as unknown as { __phPulses?: number }).__phPulses ?? 0) + 1;
+};
+/** A power unlocked: its button pulses once (Shadow on its own button, the rest on Switch Ability and the fire button). */
+const pulseUnlock = (power: 'shadow' | 'shock' | 'possess' | 'consume' | 'melee') => {
+  const ids = power === 'shadow' ? ['shadowHint'] : power === 'consume' || power === 'melee' ? ['fireBtn', 'abilityHint'] : ['abilityHint', 'fireBtn'];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.classList.remove('unlock-pulse');
+    void el.offsetWidth;
+    el.classList.add('unlock-pulse');
+    el.addEventListener('animationend', () => el.classList.remove('unlock-pulse'), { once: true });
+  }
+  const w = window as unknown as { __phUnlocks?: { power: string; t: number }[] };
+  (w.__phUnlocks ??= []).push({ power, t: Math.round(performance.now()) });
 };
 const phonePanel = document.getElementById('phonePanel') as HTMLElement | null;
 const phoneStatus = document.getElementById('phoneStatus') as HTMLElement | null;
@@ -2813,6 +2828,13 @@ const home: GoingHome = createGoingHome({
     updateHud();
   },
   ability: () => shadowPick,
+  setAbility: (id) => { shadowPick = id; updateHud(); },
+  unlock: (power) => pulseUnlock(power),
+  stepLogged: (power, step, setup, seconds) => {
+    const log = ((window as unknown as { __phLesson?: unknown[] }).__phLesson ??= []);
+    log.push({ power, step, setup, t: seconds });
+    analytics?.feature('lesson', `${power}.${step}`);
+  },
 });
 
 const desk: TheDesk = createTheDesk({
@@ -4702,6 +4724,22 @@ const objectiveWaypoint = createObjectiveWaypoint(root, engine, scene, camera, (
 });
 scene.onAfterRenderObservable.add(objectiveWaypoint.update);
 
+// Context prompt (src/game/powerPrompt.ts): the power Going Home is teaching, on its target or touch button.
+const promptWorld = new BABYLON.Vector3();
+const powerPrompt = createPowerPrompt(root, engine, scene, (out) => {
+  const p = isHomeLevel() ? home.prompt() : null;
+  out.active = Boolean(p) && state.running && !paused && !state.inCutscene && messageBox.classList.contains('hidden')
+    && !settingsOpen() && !scriptedNow() && !panelsOpen();
+  if (!out.active || !p) return;
+  out.icon = p.icon;
+  const touch = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+  out.key = touch ? p.touchKey : p.key;
+  out.label = p.label;
+  out.button = p.button;
+  out.world = p.target ? promptWorld.set(p.target.x, p.target.y, p.target.z) : null;
+});
+scene.onAfterRenderObservable.add(powerPrompt.update);
+
 // "Lost? Return to objective" (src/game/returnToObjective.ts): after 60 s of real play with no progress a prompt
 // shows (R or a tap), and Pause always offers the same move. Pierce is placed on safe ground beside the live objective.
 const lostHint = document.getElementById('lostHint') as HTMLButtonElement | null;
@@ -5440,6 +5478,14 @@ installPhPlaytest({
     linked: shadowPlay().linked(),
     ability: shadowPlay().shadowMode() ? shadowPick : meleeAbility,
     lessonStarted: isHomeLevel() ? home.shoveShown() : true,
+  }),
+  lesson: () => ({
+    log: isHomeLevel() ? home.lessonLog() : [],
+    power: isHomeLevel() ? home.lessonPower() : '',
+    prompt: powerPrompt.view(),
+    unlocks: (window as unknown as { __phUnlocks?: { power: string; t: number }[] }).__phUnlocks ?? [],
+    gates: isHomeLevel() ? home.gateState() : [],
+    linked: isHomeLevel() && home.linked() ? home.linkFocus() : null,
   }),
   people: () => [
     ...(isHomeLevel() ? home.map()?.blips ?? [] : [])

@@ -1690,7 +1690,7 @@
       "id": "objective.home",
       "type": "objective",
       "speaker": "Get home",
-      "text": "East on the sidewalk. Do not go back inside.",
+      "text": "East on the sidewalk. Don't go back.",
       "audio": "",
       "note": "Objective home. speaker is the short title."
     },
@@ -2708,15 +2708,15 @@
       "id": "objective.home.station",
       "type": "objective",
       "speaker": "The station",
-      "text": "Stairs down, a few blocks east. Tab switches Punch and Kick. C is Shadow mode.",
+      "text": "Stairs down, a few blocks east.",
       "audio": "",
-      "note": "Going Home, after the tutorial"
+      "note": "Going Home, no power lesson on"
     },
     {
       "id": "objective.home.linked",
       "type": "objective",
       "speaker": "Shadow Link",
-      "text": "WASD walks them. Click kills. Tab switches the ability.",
+      "text": "Walk them. Click again to end.",
       "audio": "",
       "note": "Going Home, while linked"
     },
@@ -2724,33 +2724,89 @@
       "id": "objective.home.shadow",
       "type": "objective",
       "speaker": "Shadow mode",
-      "text": "Tab switches the ability. Q raises the hands.",
+      "text": "Go dark. Walk into the crowd.",
       "audio": "",
-      "note": "Going Home, Shadow mode on, hands down"
+      "note": "Going Home, power 1 (Shadow), before it is on"
     },
     {
-      "id": "objective.home.link",
-      "type": "objective",
-      "speaker": "Shadow Link",
-      "text": "Aim at them. Click uses Possess.",
-      "audio": "",
-      "note": "Going Home, hands raised"
-    },
-    {
-      "id": "objective.home.switch",
-      "type": "objective",
-      "speaker": "Switch",
-      "text": "Tab switches to {name}. Use it on a passerby in Shadow mode.",
-      "audio": "",
-      "note": "Going Home tutorial, second ability. {name} is the other ability."
-    },
-    {
-      "id": "objective.home.first",
+      "id": "objective.home.crowd",
       "type": "objective",
       "speaker": "Shadow mode",
-      "text": "Turn Shadow mode on with C or the Shadow button, then use {name} on a passerby.",
+      "text": "Walk through them. They lose you.",
       "audio": "",
-      "note": "Going Home tutorial, first step. {name} is the selected ability."
+      "note": "Going Home, Shadow on, crowd step"
+    },
+    {
+      "id": "objective.home.shock",
+      "type": "objective",
+      "speaker": "Shadow Shock",
+      "text": "Police ahead. Shock one.",
+      "audio": "",
+      "note": "Going Home, power 2 (Shock), police pair"
+    },
+    {
+      "id": "objective.home.shock2",
+      "type": "objective",
+      "speaker": "Shadow Shock",
+      "text": "The other one is coming.",
+      "audio": "",
+      "note": "Going Home, Shock twist, second officer charges"
+    },
+    {
+      "id": "objective.home.block",
+      "type": "objective",
+      "speaker": "Possess",
+      "text": "Tape across the sidewalk. Find the guard.",
+      "audio": "",
+      "note": "Going Home, power 3 (Possess), the blocked sidewalk"
+    },
+    {
+      "id": "objective.home.walk",
+      "type": "objective",
+      "speaker": "Possess",
+      "text": "Walk him to the tape.",
+      "audio": "",
+      "note": "Going Home, Possess harder step"
+    },
+    {
+      "id": "objective.home.through",
+      "type": "objective",
+      "speaker": "Possess",
+      "text": "The tape is down. Go through.",
+      "audio": "",
+      "note": "Going Home, a gate is open"
+    },
+    {
+      "id": "objective.home.guard",
+      "type": "objective",
+      "speaker": "Consume",
+      "text": "A guard holds the stairs.",
+      "audio": "",
+      "note": "Going Home, power 4 (Consume), station gate"
+    },
+    {
+      "id": "objective.home.consume",
+      "type": "objective",
+      "speaker": "Consume",
+      "text": "Click again to consume.",
+      "audio": "",
+      "note": "Going Home, Consume while linked to the station guard"
+    },
+    {
+      "id": "objective.home.melee",
+      "type": "objective",
+      "speaker": "Shadow off",
+      "text": "Drop Shadow. Let him come.",
+      "audio": "",
+      "note": "Going Home, power 5 (Punch/Kick), waiting for the shove"
+    },
+    {
+      "id": "objective.home.hit",
+      "type": "objective",
+      "speaker": "Punch",
+      "text": "Hit back.",
+      "audio": "",
+      "note": "Going Home, after the unshadowed shove"
     },
     {
       "id": "objective.station.link-walk",

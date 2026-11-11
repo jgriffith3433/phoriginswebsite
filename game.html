@@ -680,6 +680,27 @@
       }
 
 
+      /* Context prompt (src/game/powerPrompt.ts): icon + key + a word or two, on the target or the matching touch button. */
+      .power-prompt {
+        position: absolute; left: 0; top: 0; z-index: 40; pointer-events: none;
+        display: none; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
+        background: rgba(10, 20, 31, 0.86); border: 1px solid var(--hb-gold-hi, #d8b45a); color: #fff;
+        font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+        border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 0 14px rgba(216,180,90,0.25);
+      }
+      .power-prompt.on { display: flex; animation: ppBob 1.4s ease-in-out infinite; }
+      .power-prompt .pp-icon { color: var(--hb-gold-hi, #d8b45a); font-size: 16px; }
+      .power-prompt kbd { font-family: var(--hb-mono, monospace); font-size: 11px; padding: 1px 5px; border: 1px solid rgba(255,255,255,0.4); border-radius: 2px; }
+      @keyframes ppBob { 0%, 100% { margin-top: 0; } 50% { margin-top: -4px; } }
+      body.cinematic .power-prompt, body:has(.message:not(.hidden)) .power-prompt { display: none !important; }
+      /* A power unlocks: its button pulses once. */
+      .unlock-pulse { animation: unlockPulse 1.1s ease-out 1; }
+      @keyframes unlockPulse {
+        0% { box-shadow: 0 0 0 0 rgba(216,180,90,0.9); transform: scale(1); }
+        40% { box-shadow: 0 0 0 14px rgba(216,180,90,0); transform: scale(1.12); }
+        100% { box-shadow: 0 0 0 0 rgba(216,180,90,0); transform: scale(1); }
+      }
+
       /* Objective waypoint (src/game/objectiveWaypoint.ts): a diamond over the objective, clamped to the screen edge. */
       .objective-waypoint {
         position: absolute;
@@ -3506,6 +3527,7 @@
         <span class="waypoint-diamond"></span>
         <span class="waypoint-label"><span class="waypoint-name"></span><span class="waypoint-dist"></span></span>
       </div>
+      <div id="powerPrompt" class="power-prompt" aria-hidden="true"><span class="pp-icon"></span><kbd class="pp-key"></kbd><span class="pp-label"></span></div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <div id="hitFlash" class="hit-flash" aria-hidden="true"></div>
       <aside id="phonePanel" class="phone-panel" hidden>
