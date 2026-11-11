@@ -38,6 +38,7 @@ const TOUCH_SFX = {
   phoneDown: '/assets/audio/sfx/phone/hangup.wav',
   coffee: '/assets/audio/sfx/touch/coffee-machine.ogg',
   switch: '/assets/audio/sfx/touch/light-switch.ogg',
+  thermostat: '/assets/audio/sfx/apex/screen-tap.ogg',
   ticket: '/assets/audio/sfx/touch/ticket-machine.ogg',
   turnstile: '/assets/audio/sfx/touch/turnstile.ogg',
   bell: '/assets/audio/sfx/street/shop-bell.wav',
@@ -171,6 +172,26 @@ const lightSwitch: Touchable['build'] = (scene, own, state) => {
   };
 };
 
+const thermostat: Touchable['build'] = (scene, own) => {
+  const plate = mat(scene, 'touch-thermo-plate', [0.88, 0.87, 0.84]);
+  const dial = mat(scene, 'touch-thermo-dial', [0.2, 0.2, 0.22]);
+  const screen = mat(scene, 'touch-thermo-screen', [0.1, 0.5, 0.9], 0.8);
+  const root = new BABYLON.TransformNode('touch-thermostat', scene);
+  // On the east wall of hall 1, south of the light switch, facing -x.
+  root.position.set(2.1, 1.35, 13.2);
+  root.rotation.y = -Math.PI / 2;
+  own.push(root);
+  box(scene, own, 'touch-thermo-plate', [0.1, 0.1, 0.014], [0, 0, 0], plate, root);
+  const face = box(scene, own, 'touch-thermo-screen', [0.05, 0.03, 0.004], [0, 0.015, -0.009], screen, root);
+  const knob = box(scene, own, 'touch-thermo-knob', [0.03, 0.012, 0.012], [0, -0.025, -0.012], dial, root);
+  return (t) => {
+    // The setpoint ticks up twice: the knob turns, the display flashes.
+    knob.rotation.z = t <= 0 ? 0 : Math.min(1, t / 0.6) * 0.9;
+    const on = t > 0 && Math.floor(t * 6) % 2 === 0 && t < 1.6;
+    (face.material as BABYLON.StandardMaterial).emissiveColor = on ? new BABYLON.Color3(0.4, 1, 1) : new BABYLON.Color3(0.08, 0.4, 0.72);
+  };
+};
+
 const polegrip: Touchable['build'] = (scene, own) => {
   const brass = mat(scene, 'touch-pole-band', [0.75, 0.6, 0.25], 0.15);
   const band = BABYLON.MeshBuilder.CreateCylinder('touch-pole-band', { diameter: 0.07, height: 0.12, tessellation: 12 }, scene);
@@ -243,6 +264,7 @@ const PLACES: Record<string, Touchable[]> = {
     { id: 'desk-phone', label: 'Pick up the desk phone', x: 48.6, z: 41.5, r: 1.1, sound: TOUCH_SFX.phone, volume: 0.5, then: { sound: TOUCH_SFX.phoneDown, volume: 0.3, after: 2.1 }, duration: 2.4, motion: 'handset lifts, LED blinks', build: phone },
     { id: 'coffee-machine', label: 'Pour a coffee', x: 50.6, z: 25.4, r: 1.1, sound: TOUCH_SFX.coffee, volume: 0.45, duration: 5, motion: 'light turns amber then green, steam rises', build: coffee },
     { id: 'light-switch', label: 'Flip the light switch', x: 1.0, z: 10, r: 1.2, sound: TOUCH_SFX.switch, volume: 0.45, then: { sound: TOUCH_SFX.switch, volume: 0.45, after: 2.4 }, duration: 2.6, motion: 'lever flips, hall lights go dark, then back', build: lightSwitch },
+    { id: 'thermostat', label: 'Nudge the thermostat', x: 1.0, z: 13.2, r: 1.0, sound: TOUCH_SFX.thermostat, volume: 0.4, duration: 1.8, motion: 'knob turns, display flashes', build: thermostat },
   ],
   'the-station': [
     { id: 'ticket-machine', label: 'Use the ticket machine', x: 8.4, z: -5.5, r: 1.5, sound: TOUCH_SFX.ticket, volume: 0.45, duration: 1.4, motion: 'machine shudders as it prints', build: shake('station-kiosk', 0.015) },

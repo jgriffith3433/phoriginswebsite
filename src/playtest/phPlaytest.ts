@@ -1539,7 +1539,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
       t.metric('feel.coyoteMs', 120);
       const places: { name: string; place: string; enter: () => Promise<void>; minPeople: number; touchables: number }[] = [
-        { name: 'The Apex Peak', place: 'apex', minPeople: 4, touchables: 3, enter: async () => { await probe.setupLevel(1); } },
+        { name: 'The Apex Peak', place: 'apex', minPeople: 4, touchables: 4, enter: async () => { await probe.setupLevel(1); } },
         { name: 'The Station', place: 'station', minPeople: 0, touchables: 4, enter: async () => { await probe.setupLevel(6); } },
         { name: 'The Train', place: 'train', minPeople: 4, touchables: 4, enter: async () => { await probe.setupHidden('the-train'); } },
       ];
