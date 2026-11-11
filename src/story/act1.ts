@@ -26,7 +26,7 @@ export type StoryCarry = { id: string; name: string; note: string };
 
 export type SequencePhase =
   | 'seat' | 'idle' | 'late' | 'wait-board' | 'to-window' | 'window' | 'call' | 'alarm' | 'terminal' | 'elevator' | 'ride' | 'done'
-  | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform'
+  | 'arrive' | 'to-lab' | 'reveal' | 'hunt' | 'transform' | 'cold'
   | 'return-walk' | 'return-call' | 'return-up' | 'return-ride' | 'mirror' | 'mirror-look';
 
 type Objective = { title: string; text: string };
@@ -104,6 +104,8 @@ export type ActHost = {
   /** Has the player finished the vat beat before (a repeat player may skip the acid)? */
   vatSeen: () => boolean;
   rememberVat: () => void;
+  /** The first-visit cold open ended on the scream and a cut to black (main.ts shows the card and the title). */
+  coldOpenDone?: () => void;
 };
 
 /** How the acid bends the player's controls. main.ts applies it in the on-foot movement step. */
@@ -213,6 +215,19 @@ const HUNT_HIDE_SPOTS = [
   { x: 8, z: 49 },
   { x: 30, z: 60 },
 ];
+/** Cold open (first visit): Pierce at the east end of the long hall, the lab door open at the far end, lit green by the vat. */
+const COLD_START = { x: 42.6, z: 38, yaw: -Math.PI / 2 };
+/** The silhouette crosses the doorway at the end of the hall (inside the lab, backlit by the vat). */
+const COLD_PASS = { x: 12.6, fromZ: 41, toZ: 34.6, seconds: 2.8 };
+const COLD_PASS_AT = 14;
+const COLD_PASS_NEAR_X = 30;
+const COLD_RUSH_AFTER = 8;
+const COLD_RUSH_NEAR_X = 27;
+const COLD_RUSH_SPEED = 7.4;
+const COLD_CAUGHT = 1.5;
+const COLD_LIGHT_FAIL_AT = 7;
+const COLD_SKITTER_AT = 3;
+const COLD_SCREAM = '/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg';
 const CREATURE_SFX = {
   breath: '/assets/audio/cutscenes/b3-door-reveal/creature-breath.wav',
   run: '/assets/audio/cutscenes/b3-door-reveal/creature-run.wav',
@@ -255,7 +270,7 @@ const HUNT_DIRS: readonly (readonly [number, number, number])[] = [
 /** Shortest repath interval in a strike, even when the last search found nothing. */
 const HUNT_REPATH_MIN = 0.3;
 
-const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'wait-board', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look'];
+const HIDE_MARKER: SequencePhase[] = ['idle', 'done', 'wait-board', 'window', 'call', 'terminal', 'ride', 'reveal', 'transform', 'return-call', 'return-ride', 'mirror-look', 'cold'];
 const SHOW_HUD: SequencePhase[] = ['seat', 'wait-board', 'to-window', 'alarm', 'elevator', 'arrive', 'to-lab', 'hunt', 'return-walk', 'return-up', 'mirror'];
 
 type LightBaseline = { hemi: number; sun: number; points: Map<BABYLON.Light, number> };
@@ -1112,6 +1127,158 @@ export const createAct1 = (host: ActHost) => {
     host.setObjective(line.title, line.text, { x: B3_LAB_DOOR.x, y: 2.05, z: B3_LAB_DOOR.z });
     syncObjective();
   };
+
+  // ---- Cold open: a first visit starts here, in control, before any title (see AGENTS.md "Cold open") ------------
+  let coldArmed = false;
+  let coldT = 0;
+  let coldSkittered = false;
+  let coldLightOut = false;
+  let coldPassT = -1;
+  let coldPassDone = false;
+  let coldRushT = -1;
+  let coldCut = false;
+  let coldKnocked = false;
+  let coldFlicker = 0;
+
+  const hallLight = () => host.scene.lights.find((light) => light.name === 'Hall B Light B') as BABYLON.PointLight | undefined;
+
+  const beginColdOpen = () => {
+    phase = 'cold';
+    coldT = 0;
+    coldSkittered = false;
+    coldLightOut = false;
+    coldPassT = -1;
+    coldPassDone = false;
+    coldRushT = -1;
+    coldCut = false;
+    coldKnocked = false;
+    coldFlicker = 0;
+    host.showObjective(false);
+    host.hideMarker();
+    host.clearObjectiveCue();
+    labDoorOpen = 1;
+    applyLabDoors(1);
+    applyElevatorDoors(0);
+    setVatGlassBroken(false);
+    resetCreature();
+    setCreatureVisible(false);
+    host.placePierce(COLD_START.x, COLD_START.z, COLD_START.yaw);
+    host.resumeLocomotion();
+    host.flashlight(true);
+  };
+
+  const coldCreatureOnScreen = () => {
+    const node = creatureRoot();
+    if (!node || !node.isEnabled()) return false;
+    return coldInView(new BABYLON.Vector3(node.position.x, 1.2, node.position.z));
+  };
+  const coldInView = (at: BABYLON.Vector3) => {
+    const cam = host.camera as BABYLON.TargetCamera;
+    const frustum = BABYLON.Frustum.GetPlanes(cam.getTransformationMatrix());
+    for (const plane of frustum) {
+      if (BABYLON.Vector3.Dot(new BABYLON.Vector3(plane.normal.x, plane.normal.y, plane.normal.z), at) + plane.d < 0) return false;
+    }
+    return true;
+  };
+
+  const stepColdOpen = (delta: number) => {
+    if (coldCut) return;
+    coldT += delta;
+    const here = host.playerXZ();
+    // Creeping with a torch: slower than the story walk, and the nearer the doorway the heavier each step.
+    const near = Math.max(0, Math.min(1, (here.x - 26) / 6));
+    host.impair({ lag: 0, drift: 0, speed: 0.55 * (0.2 + 0.8 * near), locked: false, pull: { x: 0, z: 0 }, maxX: 99 });
+    if (!coldSkittered && coldT >= COLD_SKITTER_AT) {
+      coldSkittered = true;
+      host.playFile(CREATURE_SFX.skitter, 0.6);
+    }
+    if (!coldLightOut && coldT >= COLD_LIGHT_FAIL_AT) {
+      coldLightOut = true;
+      coldFlicker = 1.3;
+      host.playFile(CREATURE_SFX.tick, 0.5);
+    }
+    const light = hallLight();
+    if (light) {
+      if (coldFlicker > 0) {
+        coldFlicker -= delta;
+        const base = 0.31;
+        light.intensity = coldFlicker <= 0 ? 0 : base * (Math.sin(coldFlicker * 41) > 0.2 ? 0.9 : 0.05);
+      } else if (coldLightOut) light.intensity = 0;
+    }
+    // The silhouette crosses the lit doorway.
+    if (coldPassT < 0 && (coldT >= COLD_PASS_AT || (coldLightOut && here.x < COLD_PASS_NEAR_X))) {
+      coldPassT = 0;
+      const node = creatureRoot();
+      node?.setEnabled(true);
+      host.playFile(CREATURE_SFX.breath, 0.42);
+      playCreature('walk', 1.1);
+    }
+    if (coldPassT >= 0 && !coldPassDone) {
+      coldPassT += delta;
+      const u = Math.min(1, coldPassT / COLD_PASS.seconds);
+      const node = creatureRoot();
+      if (node) {
+        node.position.set(COLD_PASS.x, 0, COLD_PASS.fromZ + (COLD_PASS.toZ - COLD_PASS.fromZ) * u);
+        node.rotation.y = Math.atan2(0, COLD_PASS.toZ - COLD_PASS.fromZ);
+      }
+      if (u >= 1) {
+        coldPassDone = true;
+        setCreatureVisible(false);
+      }
+    }
+    if (coldPassDone && !coldKnocked && coldPassT >= COLD_PASS.seconds + 2.2) {
+      coldKnocked = true;
+      host.playFile(CREATURE_SFX.knock, 0.5);
+      host.playFile(CREATURE_SFX.cry, 0.4);
+    }
+    if (coldPassDone) coldPassT += delta;
+    if (coldPassDone && coldRushT < 0 && (coldPassT >= COLD_PASS.seconds + COLD_RUSH_AFTER || here.x < COLD_RUSH_NEAR_X)) {
+      coldRushT = 0;
+      const node = creatureRoot();
+      node?.setEnabled(true);
+      node?.position.set(15.6, 0, 38);
+      playCreature('walk', 2.4);
+      host.playFile(CREATURE_SFX.shriek, 0.8);
+      host.playFile(CREATURE_SFX.run, 0.55);
+      host.playFile(CREATURE_SFX.heartbeat, 0.5);
+    }
+    if (coldRushT >= 0) {
+      coldRushT += delta;
+      const node = creatureRoot();
+      if (node) {
+        const dx = here.x - node.position.x;
+        const dz = here.z - node.position.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist > 1e-3) {
+          const step = Math.min(dist, COLD_RUSH_SPEED * delta);
+          node.position.x += (dx / dist) * step;
+          node.position.z += (dz / dist) * step;
+          node.rotation.y = Math.atan2(dx, dz);
+        }
+        if (dist < COLD_CAUGHT || coldRushT > 7) {
+          coldCut = true;
+          host.impair(null);
+          host.clearInput();
+          host.fade(1, 0);
+          host.playFile(CREATURE_SFX.snarl, 0.8);
+          host.playFile(COLD_SCREAM, 1);
+          host.flashlight(false);
+          setCreatureVisible(false);
+          phase = 'idle';
+          host.coldOpenDone?.();
+        }
+      }
+    }
+  };
+
+  const coldOpenState = () => ({
+    active: phase === 'cold',
+    seconds: coldT,
+    creatureShown: Boolean(creatureRoot()?.isEnabled()),
+    creatureOnScreen: phase === 'cold' && coldCreatureOnScreen(),
+    rushing: coldRushT >= 0,
+    lightOut: coldLightOut,
+  });
 
   const beginArrival = () => {
     if (!host.isB3()) return;
@@ -3086,6 +3253,17 @@ export const createAct1 = (host: ActHost) => {
         beginReturnUp();
       }
     },
+    armColdOpen: () => {
+      coldArmed = true;
+    },
+    cancelColdOpen: () => {
+      coldArmed = false;
+      if (phase === 'cold') {
+        phase = 'idle';
+        host.impair(null);
+      }
+    },
+    coldOpenState,
     onStart: () => {
       if (!host.isApex() && !host.isB3() && !host.isReturn()) {
         phase = 'idle';
@@ -3101,7 +3279,10 @@ export const createAct1 = (host: ActHost) => {
         syncObjective();
         return;
       }
-      if (host.isB3()) beginArrival();
+      if (host.isB3() && coldArmed) {
+        coldArmed = false;
+        beginColdOpen();
+      } else if (host.isB3()) beginArrival();
       else if (host.isApex() && (phase === 'idle' || phase === 'done' || phase === 'seat')) {
         beginSeat();
         beginLateCall();
@@ -3336,6 +3517,10 @@ export const createAct1 = (host: ActHost) => {
     fearLevel: () => dread,
     stepWorld: (delta: number) => {
       if (!host.isApex() && !host.isB3() && !host.isReturn()) return;
+      if (phase === 'cold') {
+        stepColdOpen(delta);
+        return;
+      }
       if (host.isApex()) stepBoardTalk(delta);
       if (phase === 'return-walk' && host.running() && !host.inCutscene()) {
         stepAside(delta);

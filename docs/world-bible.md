@@ -288,6 +288,15 @@ last resort (one line at most). "Where/when" is the place and the trigger.
   and her cart pass; "Evening, Mr. Hawkes." Cart left in the hall after she exits. Voice/SFX catalog entries ship; Gen
   takes may still be placeholders until Hawkes Gen is reachable.
 
+- **0. The Cold Open.** *Exists* (`src/story/act1.ts` `beginColdOpen`, playtest `first-five`): a first visit only (no save).
+  Tap to play drops the player into the B3 long hall as the old Pierce (`asset-ch33-hero`), flashlight on, the lab door
+  open and lit green by the vat 26 m ahead. No text, no objective. A skitter crosses the wall, the hall light at x 26 fails,
+  the creature's silhouette crosses the lit doorway, then it rushes him; the scream and a cut to black. One line,
+  "Six hours earlier.", then the title terminal over the live 58th floor (quiet at first: wordmark and Start; the rest
+  of the letterhead comes up after 30 s). Canon: B3 is the end of the night, so the cold open is a flash-forward of the
+  hall he walks into in level 2; "six hours earlier" is the board night the title opens on. The creature's code is the
+  hunt's own (clips, sounds); the cold-open rush is scripted and always ends in the scream.
+
 ### New beats (proposals, each an event; J to approve before build)
 - **30. The Radio.** B3 pipe hall: a dead guard's radio crackles twice as Pierce passes; on the third pass in the Return
   it plays four seconds of the Hale/Voss call from level 1, then dies. *Pure sound, no text.*

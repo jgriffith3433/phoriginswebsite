@@ -973,6 +973,61 @@
         pointer-events: none;
         transition: opacity 0.35s ease, visibility 0.35s ease;
       }
+
+      /* Cold open (first visit): no HUD, no buttons, no text. Only the two sticks stay (touch), so nothing sits on the lit doorway. */
+      body.cold-open .hud,
+      body.cold-open .objective-hud,
+      body.cold-open .objective-waypoint,
+      body.cold-open .pause-btn,
+      body.cold-open .ability-readout,
+      body.cold-open .missions-hud,
+      body.cold-open .inventory-hud,
+      body.cold-open .action-hint,
+      body.cold-open .interact-hint,
+      body.cold-open .lost-hint,
+      body.cold-open .reload-hint,
+      body.cold-open .perf-monitor,
+      body.cold-open .right-action-zone,
+      body.cold-open #interactBtn,
+      body.cold-open #crosshair {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      /* "Six hours earlier." One line on black, then the terminal. */
+      .cold-card {
+        position: fixed;
+        inset: 0;
+        z-index: 95;
+        display: grid;
+        place-items: center;
+        background: #000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.9s ease;
+      }
+      .cold-card.on { opacity: 1; }
+      .cold-card p {
+        margin: 0;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: clamp(20px, 3.4vw, 34px);
+        letter-spacing: 0.08em;
+        color: #d9c58a;
+      }
+      /* The terminal after the cold open arrives quiet: wordmark and Start. The rest of the letterhead comes up later. */
+      .message.quiet .corp-meta,
+      .message.quiet .eyebrow,
+      .message.quiet .subtitle,
+      .message.quiet #resetBtn,
+      .message.quiet #loadModelBtn,
+      .message.quiet #settingsBtn,
+      .message.quiet .build-version,
+      .message.quiet .corp-foot {
+        visibility: hidden;
+        opacity: 0;
+        animation: quietReveal 1.2s ease 30s forwards;
+      }
+      @keyframes quietReveal { to { visibility: visible; opacity: 1; } }
       .hud, .controls, .objective-hud, .pause-btn, .ability-readout, .missions-hud, .inventory-hud {
         transition: opacity 0.35s ease, visibility 0.35s ease;
       }
@@ -3489,6 +3544,7 @@
       </div>
 
       <div id="screenFade" aria-hidden="true"></div>
+      <div class="cold-card" id="coldCard" aria-live="polite"><p>Six hours earlier.</p></div>
       <div class="chapter-card" id="chapterCard" hidden aria-live="polite">
         <div class="chapter-inner">
           <div class="chapter-kicker"></div>
