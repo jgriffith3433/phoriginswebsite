@@ -4,16 +4,24 @@
  * instantiate, and decoding the level's audio (level JSON, cutscenes, phone scripts).
  *
  * Work is chunked with requestIdleCallback (rAF fallback) — no setInterval polling.
+ * Named hitch causes are pushed via `__phFrameMark` so smoke / hitch-board can say why.
  */
 import type { AbstractMesh, ParticleSystem, Scene } from '@babylonjs/core';
 import phoneCopy from '../story/phone.json';
 import { lineAudio, storyLine } from './locale';
 import { warmPropSources } from './modelLoader';
-import { preloadClips } from './sfxMix';
+import { preloadClips, preloadClipsReady } from './sfxMix';
 
 const frameMark = (cause: string, detail?: string) => {
   try {
     (window as unknown as { __phFrameMark?: (c: string, d?: string) => void }).__phFrameMark?.(cause, detail);
+  } catch { /* playtest not installed */ }
+};
+
+const frameSetup = (on: boolean, detail?: string) => {
+  try {
+    (window as unknown as { __phFrameSetup?: (on: boolean, detail?: string) => void })
+      .__phFrameSetup?.(on, detail);
   } catch { /* playtest not installed */ }
 };
 
@@ -32,6 +40,25 @@ const PHONE_TONES = [
   '/assets/audio/sfx/phone-away.ogg',
   '/assets/audio/sfx/flashlight.ogg',
   '/assets/audio/sfx/flashlight-off.ogg',
+];
+
+/** First-play one-shots that live in story code, not level JSON (doors, apex slice, UI). */
+const COMMON_EXTRA = [
+  '/assets/audio/sfx/start.ogg',
+  '/assets/audio/sfx/objective.ogg',
+  '/assets/audio/sfx/walk.ogg',
+  '/assets/audio/sfx/jump.ogg',
+  '/assets/audio/cutscenes/elevator-b3/doors.wav',
+  '/assets/audio/cutscenes/elevator-b3/beep.wav',
+  '/assets/audio/cutscenes/elevator-b3/hum.wav',
+];
+
+const APEX_EXTRA = [
+  '/assets/audio/sfx/apex/sofa-creak.ogg',
+  '/assets/audio/sfx/apex/cart-wheels.ogg',
+  '/assets/audio/sfx/apex/screen-tap.ogg',
+  '/assets/audio/sfx/apex/skyline.ogg',
+  '/assets/audio/sfx/apex/troffer-flicker.ogg',
 ];
 
 /** Yield until the browser is idle (or the next frame). No polling. */
@@ -88,25 +115,69 @@ const collectPhoneAudio = (out: Set<string>) => {
   }
 };
 
-/** Fetch + decode the level's one-shots, cutscene VO, and phone scripts (best effort). */
-export const warmLevelAudio = async (path: string): Promise<number> => {
-  const urls = new Set<string>();
+const addCallLines = (callId: string, out: Set<string>) => {
+  const script = (phoneCopy as { calls?: Record<string, { lines?: { line?: string; audio?: string }[] }> }).calls?.[callId];
+  for (const entry of script?.lines ?? []) {
+    if (entry.audio) out.add(entry.audio);
+    if (entry.line) {
+      const audio = lineAudio(entry.line) || storyLine(entry.line)?.audio;
+      if (audio) out.add(audio);
+    }
+  }
+};
+
+const addExtras = (path: string, out: Set<string>) => {
+  for (const url of COMMON_EXTRA) out.add(url);
+  if (/apex-peak/i.test(path)) {
+    for (const url of APEX_EXTRA) out.add(url);
+    const cleaner = lineAudio('bark.apex.cleaner') || storyLine('bark.apex.cleaner')?.audio;
+    if (cleaner) out.add(cleaner);
+    const papers = lineAudio('bark.apex.papers') || storyLine('bark.apex.papers')?.audio;
+    if (papers) out.add(papers);
+    // Rings the moment Level 1 starts — must decode under the card, not on first ring.
+    addCallLines('voss-late', out);
+  } else if (/the-desk|the-return/i.test(path)) {
+    for (const url of APEX_EXTRA) out.add(url);
+  } else if (/the-morning/i.test(path)) {
+    addCallLines('voss-morning', out);
+  } else if (/the-train/i.test(path)) {
+    addCallLines('hale-train', out);
+  } else if (/the-station/i.test(path)) {
+    addCallLines('hale-board', out);
+  }
+};
+
+/** Fetch + decode the level's one-shots, cutscene VO, and phone scripts (awaits decode up to deadline). */
+export const warmLevelAudio = async (path: string, deadline = Infinity): Promise<number> => {
+  // Priority: level + cutscene VO first (spawn→board), then tones/extras, then every phone script.
+  const primary = new Set<string>();
+  const secondary = new Set<string>();
   const ids = new Set<string>();
   try {
-    collectAudio(await (await fetch(path)).json(), urls, ids);
+    collectAudio(await (await fetch(path)).json(), primary, ids);
     const docs = await Promise.all(
       [...ids].map((id) => fetch(`/cutscenes/${id}.json`).then((r) => r.json()).catch(() => null)),
     );
-    for (const doc of docs) collectAudio(doc, urls, ids);
+    for (const doc of docs) collectAudio(doc, primary, ids);
   } catch {
     /* warming is best effort */
   }
-  collectPhoneAudio(urls);
-  if (urls.size) {
-    frameMark('audio-decode', `warm ${urls.size}`);
-    preloadClips(urls);
-  }
-  return urls.size;
+  for (const tone of PHONE_TONES) secondary.add(tone);
+  addExtras(path, secondary);
+  const phoneAll = new Set<string>();
+  collectPhoneAudio(phoneAll);
+  // Tones already in secondary; drop them from the bulk phone set.
+  for (const tone of PHONE_TONES) phoneAll.delete(tone);
+
+  const total = primary.size + secondary.size + phoneAll.size;
+  if (!total) return 0;
+  frameMark('audio-decode', `warm ${total}`);
+  let done = await preloadClipsReady(primary, deadline);
+  done += await preloadClipsReady(secondary, deadline);
+  // Bulk phone scripts: await what fits, fire the rest so decode starts under the card.
+  if (performance.now() < deadline) done += await preloadClipsReady(phoneAll, deadline);
+  else preloadClips(phoneAll);
+  return done;
 };
 
 /**
@@ -163,20 +234,8 @@ export const warmProps = async (scene: Scene, deadline: number): Promise<number>
   return warmPropSources(scene, deadline);
 };
 
-/**
- * Full first-use warm while the chapter card is up. Caps at `deadline` so the card does not
- * hang more than about +1.5 s past its natural close.
- */
-export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadline: number) => {
-  const started = performance.now();
-  const audio = await warmLevelAudio(levelPath);
-  await idleChunk(8);
-  const textures = await warmTextures(scene, deadline);
-  await idleChunk(8);
-  const particles = await warmParticles(scene, deadline);
-  await idleChunk(8);
-  const props = await warmProps(scene, deadline);
-  // Any mesh still missing an effect (TV, cutscene-only, handset) — force compile in idle chunks.
+/** Force-compile every mesh with a material that is not ready yet (hidden ones included). */
+const warmShaders = async (scene: Scene, deadline: number): Promise<number> => {
   let shaders = 0;
   for (const mesh of scene.meshes) {
     if (performance.now() >= deadline) break;
@@ -187,12 +246,39 @@ export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadlin
     shaders += 1;
     await idleChunk(8);
   }
-  return {
-    ms: Math.round(performance.now() - started),
-    audio,
-    textures,
-    particles,
-    props,
-    shaders,
-  };
+  return shaders;
+};
+
+/**
+ * Full first-use warm while the chapter card is up. Caps at `deadline` so the card does not
+ * hang more than about +1.5 s past its natural close. Marked as level-setup so hitchFailOver100
+ * does not count warm frames as play hitches.
+ */
+export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadline: number) => {
+  const started = performance.now();
+  frameSetup(true, 'chapter-warm');
+  try {
+    const audio = await warmLevelAudio(levelPath, deadline);
+    await idleChunk(8);
+    const textures = await warmTextures(scene, deadline);
+    await idleChunk(8);
+    const particles = await warmParticles(scene, deadline);
+    await idleChunk(8);
+    const props = await warmProps(scene, deadline);
+    // First pass for meshes already in the scene (handset, TV, cutscene props).
+    let shaders = await warmShaders(scene, deadline);
+    // A late avatar (night cleaner) may finish its GLB after the first pass — give it one more.
+    await idleChunk(16);
+    shaders += await warmShaders(scene, deadline);
+    return {
+      ms: Math.round(performance.now() - started),
+      audio,
+      textures,
+      particles,
+      props,
+      shaders,
+    };
+  } finally {
+    frameSetup(false);
+  }
 };
