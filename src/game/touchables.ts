@@ -12,7 +12,7 @@ import { lifeStats } from './lifeStats';
 export type TouchHost = {
   scene: BABYLON.Scene;
   playerXZ: () => { x: number; z: number };
-  playFile: (url: string, volume: number) => void;
+  playFile: (url: string, volume: number, at?: { x: number; y: number; z: number }) => void;
 };
 
 type Motion = (t: number, state: Record<string, unknown>) => void;
@@ -335,7 +335,7 @@ export const createTouchables = (host: TouchHost) => {
       if (entry.t >= 0 && entry.t < entry.def.duration) return true;
       entry.t = 0;
       entry.thenAt = entry.def.then ? entry.def.then.after : -1;
-      host.playFile(entry.def.sound, entry.def.volume);
+      host.playFile(entry.def.sound, entry.def.volume, { x: entry.def.x, y: 1.2, z: entry.def.z });
       lifeStats.touch(place, entry.def.id, entry.def.motion, entry.def.sound);
       return true;
     },
@@ -344,7 +344,7 @@ export const createTouchables = (host: TouchHost) => {
         if (entry.t < 0) continue;
         entry.t += dt;
         if (entry.thenAt >= 0 && entry.t >= entry.thenAt && entry.def.then) {
-          host.playFile(entry.def.then.sound, entry.def.then.volume);
+          host.playFile(entry.def.then.sound, entry.def.then.volume, { x: entry.def.x, y: 1.2, z: entry.def.z });
           entry.thenAt = -1;
         }
         if (entry.t >= entry.def.duration) {

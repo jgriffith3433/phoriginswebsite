@@ -1,6 +1,7 @@
 import catalog from '../../locales/sfx.json';
 import { busInput, getSharedAudioContext } from './audioUnlock';
 import type { SoundBus } from './soundSettings';
+import { createSourceGraph, isPhoneUrl, setVoiceActive, type SourceHandle, type WorldOptions } from './acoustics';
 
 /**
  * `volume` on a sound effect is its full playback level. Preview plays that.
@@ -228,6 +229,7 @@ type LiveClip = {
   startedWall: number;
   /** Seconds of the file played when it was stopped, for the cut check. */
   cutAt: number;
+  graph: SourceHandle | null;
 };
 
 /** What the playtest's audio probe reads: every voice clip's start, end and whether a stop cut it short. */
@@ -318,6 +320,8 @@ const finish = (clip: LiveClip, ended: boolean) => {
   liveClips.delete(clip);
   disconnect(clip.source);
   disconnect(clip.gain);
+  clip.graph?.dispose();
+  clip.graph = null;
   clip.source = null;
   clip.buffer = null;
   if (clip.voice) {
@@ -334,9 +338,14 @@ function pumpVoice() {
   if (voiceActive && !voiceActive.finished) return;
   voiceActive = null;
   const next = voiceQueue[0];
-  if (!next || !next.buffer) return;
+  if (!next || !next.buffer) {
+    // Nobody is speaking or about to: effects and beds come back up.
+    if (!next) setVoiceActive(false);
+    return;
+  }
   voiceQueue.shift();
   voiceActive = next;
+  setVoiceActive(true);
   next.active = true;
   next.startedWall = performance.now() / 1000;
   next.voiceEnd = voiceHook?.(clean(next.url)) ?? undefined;
@@ -381,13 +390,23 @@ const pauseSource = (clip: LiveClip) => {
 export const playClip = (
   url: string,
   volume: number,
-  options: { loop?: boolean; bus?: SoundBus; destination?: AudioNode; rate?: number; onEnded?: () => void; onError?: () => void } = {},
+  options: { loop?: boolean; bus?: SoundBus; destination?: AudioNode; rate?: number; world?: WorldOptions; onEnded?: () => void; onError?: () => void } = {},
 ): ClipHandle | null => {
   const ctx = getSharedAudioContext();
   if (!ctx) return null;
   const gain = ctx.createGain();
   gain.gain.value = clamp(volume);
-  gain.connect(options.destination ?? busInput(ctx, options.bus ?? 'sfx'));
+  const isVoice = !options.loop && options.bus !== 'music' && !options.destination && isVoiceUrl(url);
+  let graph: SourceHandle | null = null;
+  if (options.destination) {
+    gain.connect(options.destination);
+  } else {
+    // Everything else goes through the acoustic graph: the room, the position, the phone band, the duck.
+    const bus = options.bus ?? 'sfx';
+    const kind = bus === 'music' ? 'bed' : isPhoneUrl(url) ? 'phone' : isVoice ? 'voice' : 'effect';
+    graph = createSourceGraph(ctx, clean(url), kind, options.world, busInput(ctx, bus));
+    gain.connect(graph.input);
+  }
   const clip: LiveClip = {
     ctx,
     buffer: null,
@@ -402,7 +421,8 @@ export const playClip = (
     onEnded: options.onEnded,
     rate: options.rate ?? 1,
     url: clean(url),
-    voice: !options.loop && options.bus !== 'music' && !options.destination && isVoiceUrl(url),
+    voice: isVoice,
+    graph,
     active: false,
     askedAt: performance.now() / 1000,
     startedWall: 0,

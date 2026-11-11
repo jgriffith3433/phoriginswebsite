@@ -97,6 +97,10 @@ export type SceneData = {
   triggers: SceneTrigger[];
   /** Interior camera volumes: blend open / hallway / doorway profiles. */
   cameraVolumes?: SceneCameraVolume[];
+  /** Reverb zones (acoustics.ts): rooms by type, higher priority wins. */
+  acousticZones?: { id: string; type: string; minX: number; maxX: number; minZ: number; maxZ: number; priority?: number }[];
+  /** Reverb type outside every zone (the street, the station, the train car, the flat). */
+  acousticDefault?: string;
 };
 
 export const SCENE_DATA_KEY = 'ph-origins-scene-editor';
@@ -131,6 +135,8 @@ const parseSceneData = (parsed: unknown): SceneData => {
     assets: Array.isArray(data.assets) ? data.assets : DEFAULT_SCENE_DATA.assets,
     triggers: Array.isArray(data.triggers) ? data.triggers : DEFAULT_SCENE_DATA.triggers,
     cameraVolumes,
+    acousticZones: Array.isArray(data.acousticZones) ? data.acousticZones : undefined,
+    acousticDefault: typeof data.acousticDefault === 'string' ? data.acousticDefault : undefined,
   };
 };
 

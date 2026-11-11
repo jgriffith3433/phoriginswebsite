@@ -1549,5 +1549,7 @@
         "maxZ": 1.2,
         "priority": 3
       }
-    ]
+    ],
+  "acousticDefault": "station",
+  "acousticZones": []
 }

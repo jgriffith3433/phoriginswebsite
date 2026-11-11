@@ -183,8 +183,16 @@ export type PhProbe = {
     /** Music director (docs/music.md): state, state log, duck depth, events. */
     /** Every voice clip: start, end, whether a stop cut it short, whether another voice sounded under it. */
     voice?: { url: string; start: number; end: number; waited: number; duration: number; state: string; cut: boolean; overlapped: boolean }[];
+    /** Spatial audio: reverb zone, occlusion, panning, loudness, dropouts (src/game/acoustics.ts). */
+    acoustics?: AcousticsProbe;
     music?: { chapter: number; state: string; stems: number; streaming: boolean; duckDb: number; duckDepthDb: number; voices: number; changes: number; stateLog: { t: number; state: string; reason: string }[]; events: { t: number; kind: string; detail: string }[]; silenceSeconds: number };
   };
+  /** A noise burst 3 m to the listener's side, read back from the master's left and right channels. */
+  acousticPing?: (side: 'left' | 'right' | 'front') => Promise<{ left: number; right: number; side: string }>;
+  /** Clears the visited reverb zones, the loudness history and the dropout count. */
+  acousticReset?: () => void;
+  /** Steady noise placed at a point (through the real world-sound graph) for `seconds`: label 'test-board-voice'. */
+  acousticTestSource?: (x: number, y: number, z: number, seconds: number) => void;
   /**
    * Frame-time trace: last frame ms, hitch counts over 50/100 ms, and the worst five with a
    * named cause (shader-compile, asset-load, gc, level-setup, audio-decode, unknown).
@@ -192,6 +200,8 @@ export type PhProbe = {
    */
   frames: () => FrameTraceSummary;
 };
+
+export type AcousticsProbe = ReturnType<typeof import('../game/acoustics').acousticsProbe> & { door: { closed: boolean } };
 
 export type GraphicsInfo = {
   memoryTier: 'low' | 'standard'; deviceMemory: number | null; textureCap: number | null;
@@ -496,7 +506,30 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
   const sendKey = (type: 'keydown' | 'keyup', key: string) => {
     document.body.dispatchEvent(new KeyboardEvent(type, { key, code: codeFor(key), bubbles: true, cancelable: true }));
   };
-  const setHeld = (keys: string) => {
+  /** Phone scenarios walk with the left stick (touch drags), not W A S D: setHeld turns movement keys into stick positions. */
+  let touchWalk = false;
+  let stickIsDown = false;
+  const stickTo = (ux: number, uy: number) => {
+    const zone = document.getElementById('leftStickZone');
+    if (!zone) return;
+    const zr = zone.getBoundingClientRect();
+    const type = stickIsDown ? 'pointermove' : 'pointerdown';
+    stickIsDown = true;
+    zone.dispatchEvent(new PointerEvent(type, { pointerId: 31, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38, clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38 }));
+  };
+  const stickLift = () => {
+    if (!stickIsDown) return;
+    stickIsDown = false;
+    document.getElementById('leftStickZone')?.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch', bubbles: true }));
+  };
+  const setHeld = (keysIn: string) => {
+    let keys = keysIn;
+    if (touchWalk) {
+      const x = (keys.includes('d') ? 1 : 0) - (keys.includes('a') ? 1 : 0);
+      const y = (keys.includes('s') ? 1 : 0) - (keys.includes('w') ? 1 : 0);
+      keys = keys.replace(/[wasd]/g, '');
+      if (x || y) { const m = Math.hypot(x, y); stickTo(x / m, y / m); } else stickLift();
+    }
     const want = new Set(keys.split(''));
     for (const k of [...held]) if (!want.has(k)) { held.delete(k); sendKey('keyup', k); }
     for (const k of want) if (!held.has(k)) { held.add(k); sendKey('keydown', k); }
@@ -603,6 +636,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Opens Settings from the title: checks Invert camera Y, mouse and touch sensitivity, Subtitles, subtitle size and box are present and fit at 390x844. Turns Invert on, mouse sens to 1.5×, subtitle size Large, reloads and checks they survive. Starts level 1, walks to the board Join meeting: during the cutscene health, Pause and the objective marker are hidden, letterbox is up, Skip sits bottom-right and overlaps nothing at 1280×720, 844×390 and 390×844 (touch sticks hidden). Skips, then opens level 7 and 8 openings and checks the same HUD fade. Captions stay one line.',
         seconds: 360,
         tags: ['menus', 'ui'],
+      },
+      {
+        id: 'spatial-audio',
+        title: 'Rooms sound like their size, walls muffle, sound is placed (390x844 touch with options.phone)',
+        description: 'Level 1: a sound is placed to the listener\'s left, right and front and the master\'s left/right channels are read back (left must be louder for left). A voice is then placed at the boardroom table and Pierce walks the hall: while the boardroom door is shut the source must report occluded with a low cutoff, and when he reaches the door it must open and the cutoff must clear above 10 kHz inside 0.5 s of audio time (acoustics.clears). Then levels 2 to 8 are entered and the reverb zone types seen are collected: at least 8 different (hall, boardroom, elevator, tunnel, vat, lobby, street, station, train, apartment). It reports the panning model (HRTF on desktop, equalpower with options.phone, which walks with the left stick), the master loudness (target -16 LUFS), limiter reduction and audio dropouts (must be 0). Metrics: acousticZones, acousticDoorClearMs, acousticLeftRight, acousticLufs, acousticDropouts.',
+        seconds: 600,
+        tags: ['sound'],
       },
       {
         id: 'feel-audio',
@@ -5303,6 +5343,107 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           } catch (e) { t.problem('bug', `Music slider check failed: ${e instanceof Error ? e.message : e}`); }
         }
       }
+      return;
+    }
+
+    if (id === 'spatial-audio') {
+      levelsTotal = 8;
+      const phone = Boolean(options.phone);
+      if (phone) { probe.phoneFrame(true); touchWalk = true; t.event('setup', 'phone layout 390x844 (touch); walking with the left stick'); await sleep(600); }
+      const ac = () => probe.sound().acoustics;
+      t.scene('Level 1: The Apex Peak');
+      await enterLevel(1);
+      await waitControl('control on level 1');
+      t.event('level-start', 'Level 1: The Apex Peak');
+      probe.acousticReset?.();
+      await sleep(800);
+      const first = ac();
+      if (!first) throw new Error('the sound probe has no acoustics block');
+      t.event('acoustics', `panning ${first.panning} on the ${first.tier} tier; zone ${first.zone} (${first.type}); ${first.convolvers} shared reverbs`);
+      if (phone && first.panning !== 'equalpower') t.problem('bug', `spatial-audio: the phone tier pans with ${first.panning}, not equal-power`);
+      if (!phone && first.panning !== 'HRTF') t.problem('bug', `spatial-audio: the desktop tier pans with ${first.panning}, not HRTF`);
+      if (first.type !== 'hall') t.problem('bug', `spatial-audio: level 1 starts in a ${first.type} room, not the office hall`);
+
+      // 3. A sound to Pierce's left is louder in the left channel.
+      if (probe.acousticPing) {
+        const left = await probe.acousticPing('left');
+        const right = await probe.acousticPing('right');
+        t.event('pan', `left source: L ${left.left.toFixed(4)} R ${left.right.toFixed(4)}; right source: L ${right.left.toFixed(4)} R ${right.right.toFixed(4)}`);
+        t.metric('acousticLeftRight', left.right > 0 ? Math.round((left.left / left.right) * 100) / 100 : 99);
+        if (!(left.left > left.right * 1.25)) t.problem('bug', `spatial-audio: a sound placed to the left is not louder in the left channel (L ${left.left.toFixed(4)}, R ${left.right.toFixed(4)})`);
+        if (!(right.right > right.left * 1.25)) t.problem('bug', `spatial-audio: a sound placed to the right is not louder in the right channel (L ${right.left.toFixed(4)}, R ${right.right.toFixed(4)})`);
+      }
+
+      // 2. A voice at the boardroom table, heard from the hall: muffled behind the shut door, clear once it opens.
+      probe.acousticTestSource?.(49.4, 1.5, 32, 90);
+      await sleep(400);
+      await walkTo({ x: 26, z: 32 }, 'hall-east', 1.2);
+      releaseAll();
+      await sleep(900);
+      const shut = ac()!;
+      const heard = shut.occlusion.find((o) => o.url === 'test-board-voice');
+      if (!heard) t.problem('bug', 'spatial-audio: the test voice at the boardroom table is not in the occlusion list');
+      else {
+        t.event('door-shut', `boardroom door ${shut.door.closed ? 'shut' : 'OPEN'}; voice occluded=${heard.occluded}, cutoff ${heard.cutoffHz} Hz, ${heard.dist} m`);
+        if (!shut.door.closed || !heard.occluded || heard.cutoffHz > 3000) t.problem('bug', `spatial-audio: voices behind the shut boardroom door are not muffled (door shut ${shut.door.closed}, occluded ${heard.occluded}, cutoff ${heard.cutoffHz} Hz)`);
+      }
+      await walkTo({ x: 38.6, z: 32 }, 'board-door-through', 1.0);
+      releaseAll();
+      try {
+        await t.until(() => !ac()!.door.closed, 12000, 'the boardroom door to open');
+        await t.until(() => (ac()!.occlusion.find((o) => o.url === 'test-board-voice')?.cutoffHz ?? 0) > 10000, 4000, 'the voice to clear');
+        const clears = ac()!.clears.filter((c) => c.url === 'test-board-voice');
+        const last = clears[clears.length - 1];
+        t.event('door-open', `voice clear ${last ? last.sinceMs : '?'} ms after the door opened (filter model ${ac()!.clearModelMs} ms)`);
+        t.metric('acousticDoorClearMs', last ? last.sinceMs : ac()!.clearModelMs);
+        if (last && last.sinceMs > 500) t.problem('bug', `spatial-audio: the voice took ${last.sinceMs} ms to clear after the boardroom door opened (limit 500)`);
+      } catch (e) {
+        t.problem('bug', `spatial-audio: ${e instanceof Error ? e.message : e}`);
+      }
+      probe.acousticTestSource?.(0, 0, 0, 0);
+      await sleep(900);
+      const inside = ac()!;
+      t.event('zone', `in the boardroom: zone ${inside.zone} (${inside.type})`);
+      if (inside.type !== 'boardroom') t.problem('bug', `spatial-audio: inside the boardroom the reverb is ${inside.type}`);
+
+      // 1. Every chapter: the room type under him, collected across the run.
+      const names = ['The Apex Peak', 'B3', 'The Return', 'The Desk', 'Going Home', 'The Station', 'The Train', 'The Morning'];
+      for (const n of [2, 3, 4, 5, 6, 7, 8]) {
+        const lname = `Level ${n}: ${names[n - 1]}`;
+        t.scene(lname);
+        await enterLevel(n);
+        t.event('level-start', lname);
+        const until = performance.now() + 100000;
+        const began = performance.now();
+        const skipAfter = n === 5 ? 70000 : 5000;
+        while (performance.now() < until && !(probe.running() && !probe.menu().open && !probe.scripted() && !probe.cutscene())) {
+          if (probe.skipButton && !probe.skipButton.hidden && performance.now() - began > skipAfter) press(probe.skipButton, 'Skip');
+          const ph = probe.phone();
+          if (ph.incoming) { releaseAll(); await once('f', 1500, 'answer call'); }
+          await tick();
+        }
+        await sleep(500);
+        // A few steps of walking so the footsteps take the room too.
+        setHeld('w');
+        await sleep(1500);
+        releaseAll();
+        const a = ac()!;
+        t.event('zone', `${lname}: ${a.zone} (${a.type}); seen so far ${a.visited.join(', ')}`);
+      }
+      const end = ac()!;
+      t.metric('acousticZones', end.visited.length);
+      t.event('acoustics', `reverb zones seen: ${end.visited.join(', ')}`);
+      if (end.visited.length < 8) t.problem('bug', `spatial-audio: only ${end.visited.length} reverb zones across the 8 chapters (${end.visited.join(', ')}), need 8`);
+      t.metric('acousticLufs', end.loudness.integrated);
+      t.event('loudness', `integrated ${end.loudness.integrated} LUFS (short-term ${end.loudness.shortTerm}, target ${end.loudness.target}, trim ${end.loudness.trimDb} dB, ${end.loudness.blocks} blocks); limiter ${end.limiterReductionDb} dB`);
+      t.metric('acousticDropouts', end.dropouts);
+      t.event('dropouts', `${end.dropouts} audio dropouts, clock lag ${end.lagMs} ms, underruns ${end.underruns ?? 'n/a'}`);
+      if (end.dropouts > 0) t.problem('bug', `spatial-audio: ${end.dropouts} audio dropouts in the run`);
+      if (end.loudness.blocks > 30 && (end.loudness.integrated > -10 || end.loudness.integrated < -23)) t.problem('bug', `spatial-audio: master loudness ${end.loudness.integrated} LUFS is far from -16`);
+      touchWalk = false;
+      stickLift();
+      t.progress(1);
+      t.finish('done');
       return;
     }
 

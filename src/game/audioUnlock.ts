@@ -1,6 +1,7 @@
 /** iOS/Safari block AudioContext and HTMLAudio.play() until a user gesture; unlock once so later cutscene clips can play. */
 
 import { busLevel, onSoundSettings, type SoundBus } from './soundSettings';
+import { busEntry, masterInput } from './acoustics';
 
 const SILENCE_WAV =
   'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
@@ -182,7 +183,7 @@ export const busInput = (audioContext: AudioContext, bus: SoundBus): AudioNode =
   if (!node) {
     node = audioContext.createGain();
     node.gain.value = busLevel(bus);
-    node.connect(audioContext.destination);
+    node.connect(busEntry(audioContext, bus));
     busNodes.set(bus, node);
   }
   return node;
@@ -223,7 +224,7 @@ const apply = (element: HTMLAudioElement) => {
       state.gain = ctx.createGain();
       routed += 1;
       source.connect(state.gain);
-      state.gain.connect(ctx.destination);
+      state.gain.connect(masterInput(ctx));
     } catch {
       state.gain = null;
     }
