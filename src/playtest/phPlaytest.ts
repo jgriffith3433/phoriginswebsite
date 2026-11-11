@@ -2318,6 +2318,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       if (titleDuringHall) t.problem('bug', 'the title card showed before the cold open');
       if (touch && activeSeen && doorSamples === 0) t.problem('bug', 'the lit doorway was never in view during the cold open');
       if (titleAt < 0) t.problem('bug', 'the title terminal did not follow the cold open within the minute');
+      else if (cutAt >= 0 && titleAt - cutAt > 6) t.problem('bug', `the title came ${(titleAt - cutAt).toFixed(1)} s after the cut ("Six hours earlier." should hold about 2 s)`);
       void lastWords;
       t.progress(1);
       t.finish('done');
