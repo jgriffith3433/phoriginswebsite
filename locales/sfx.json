@@ -894,6 +894,15 @@
       "note": "Apex Peak: hall 2 troffer flicker."
     },
     {
+      "id": "sfx.apex.door-locked",
+      "group": "apex",
+      "text": "One-shot locked office door handle rattle then a short metal latch click that refuses to open, close foley, dry, no voices, no music.",
+      "audio": "/assets/audio/sfx/apex/door-locked.ogg",
+      "influence": 0.7,
+      "volume": 0.55,
+      "note": "Apex Peak hall: Try the door on the IN SESSION side door."
+    },
+    {
       "id": "sfx.touch.desk-phone",
       "group": "touch",
       "text": "One-shot office desk phone: the handset lifted from its cradle with a plastic clunk, then a short soft ring chirp, close foley, no voices, no music.",

@@ -42,6 +42,7 @@ import { createAct1, type Act1, type ImpairState, type StoryCarry } from './stor
 import { createFootsteps, surfaceFor, stepUrls } from './game/footsteps';
 import { createApexSlice, type ApexSlice } from './story/apexSlice';
 import { createApexLife } from './story/apexLife';
+import { createApexBoardHall } from './story/apexBoardHall';
 import { createTouchables, TOUCH_SOUNDS } from './game/touchables';
 import { lifeStats } from './game/lifeStats';
 import { createGoingHome, type GoingHome } from './story/goingHome';
@@ -1024,6 +1025,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     train.dispose();
     morning.dispose();
     apex.dispose();
+    boardHall.dispose();
     apexLife.dispose();
     touch.dispose();
     if (mode === 'boot') act.reset();
@@ -1072,11 +1074,12 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       if (isApexPeakLevel()) {
         apex.mount();
         apexLife.mount();
+        boardHall.mount();
         // The cleaner, the guard, the reader, the cooler analyst and the caller are GLBs: wait for them here, or
         // they finish loading (parse, skin, first shader compile) while Pierce walks the hall.
         let cap = 0;
         await Promise.race([
-          Promise.all([apex.ready(), apexLife.ready()]),
+          Promise.all([apex.ready(), apexLife.ready(), boardHall.ready()]),
           new Promise<void>((resolve) => { cap = window.setTimeout(resolve, Math.max(0, deadline - performance.now())); }),
         ]);
         window.clearTimeout(cap);
@@ -2730,6 +2733,18 @@ const apexLife = createApexLife({
   showLine: (title, text) => showCineHud(title, text),
 });
 
+/** Board plot through the hall: desk person, locked door, Hale silhouette — no call required. */
+const boardHall = createApexBoardHall({
+  scene,
+  isApex: isApexPeakLevel,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  running: () => state.running,
+  inCutscene: () => state.inCutscene && !apex.playing(),
+  playFile: (url, volume) => audio.play(url, volume),
+  showLine: (title, text) => showCineHud(title, text),
+  impair: (next) => setImpair(next),
+});
+
 /** Things that answer Interact on the 58th floor, the station platform and the train (touchables.ts). */
 const touch = createTouchables({
   scene,
@@ -3861,7 +3876,7 @@ const storyAction = (): string | null => {
   if (isMorningLevel()) return morning.action();
   if (isStationLevel()) return touch.action();
   if (isHomeLevel()) return null;
-  return act.action() ?? (isApexPeakLevel() ? (apex.action() ?? touch.action()) : null);
+  return act.action() ?? (isApexPeakLevel() ? (boardHall.action() ?? apex.action() ?? touch.action()) : null);
 };
 
 const confirmStoryAction = () => {
@@ -3885,7 +3900,7 @@ const confirmStoryAction = () => {
   else if (isMorningLevel()) morning.confirm();
   else if (isStationLevel()) touch.confirm();
   else if (act.confirm()) { /* story walk-up */ }
-  else if (isApexPeakLevel()) { if (!apex.confirm()) touch.confirm(); }
+  else if (isApexPeakLevel()) { if (!boardHall.confirm() && !apex.confirm()) touch.confirm(); }
   syncActionHint();
   return true;
 };
@@ -4959,6 +4974,7 @@ const renderLoop = () => {
     triggerRunner.update(state.player);
     act.stepWorld(delta);
     apex.step(delta);
+    boardHall.step(delta);
     if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
     home.step(delta);
     station.step(delta);
@@ -5412,7 +5428,7 @@ installPhPlaytest({
     ...(isHomeLevel() ? home.map()?.blips ?? [] : [])
       .filter((blip) => blip.kind !== 'shop' && blip.kind !== 'linked')
       .map((blip) => ({ x: blip.x, z: blip.z, kind: blip.kind })),
-    ...(isApexPeakLevel() ? apex.blips() : []),
+    ...(isApexPeakLevel() ? [...apex.blips(), ...boardHall.blips()] : []),
   ],
   /** Apex Peak vertical-slice quality readings for the playtest. */
   desk: () => desk.stats(),
@@ -5420,6 +5436,8 @@ installPhPlaytest({
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
     : null),
+  /** Board plot through the Apex hall (desk, locked door, Hale threat) — no call required. */
+  boardHall: () => (isApexPeakLevel() ? boardHall.snapshot() : null),
   pickups: () => pickups
     .filter((pickup) => pickup.active && !pickup.mesh.isDisposed() && pickup.mesh.isEnabled())
     .map((pickup) => ({ x: pickup.mesh.position.x, z: pickup.mesh.position.z, item: pickup.item })),

@@ -79,6 +79,8 @@ export type PhProbe = {
   };
   life?: () => { people: { id: string; place: string; routine: string }[]; glanceCount: number; glances: { place: string; who: string }[]; touchCount: number; touchIds: string[]; touches: { place: string; id: string; motion: string; sound: string }[]; barks: { place: string; line: string }[]; maxQuietSeconds: number; touchables: { id: string; label: string; x: number; z: number; r: number }[]; interactShown: boolean; interactLabel: string };
   apexSlice?: () => { maxQuietSeconds: number; textOnlyBeats: number; events: number } | null;
+  /** Board plot through the Apex hall: desk person, locked door, visible threat (null off that level). */
+  boardHall?: () => { deskSeen: boolean; doorTried: boolean; threatSeen: boolean; deskAt: { x: number; z: number }; doorAt: { x: number; z: number; r: number }; threatAt: { x: number; z: number; r: number } } | null;
   pickups: () => { x: number; z: number; item: string }[];
   scene: BABYLON.Scene;
   canvas: HTMLCanvasElement;
@@ -664,10 +666,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       },
       {
         id: 'living-places',
-        title: 'The 58th floor, the station and the train lived in: a footstep per plant, people on routines who look at Pierce, touchables that answer Interact',
-        description: 'Enters level 1, the station (level 6) and the train (test shortcuts), skips scripted openings, and in each walks to every touchable (desk phone, coffee machine, light switch; ticket machine, turnstile, newsstand bell, bin; pole, strap, stop button, emergency handle) and presses Interact through real input, logging the motion and sound each answered with and whether the Interact button was shown. Logs the people on routines (guard, readers, cooler, platform walkers, riders) and who glanced at Pierce, counts footsteps (one per foot plant, 3+ variants, never the same twice in a row), and reports quality.maxQuietSeconds per place (≤ 10). options.phone: true lays the page out as a 390x844 touch phone and requires the Interact button at each touchable; heapMB is reported.',
-        seconds: 420,
-        tags: ['level', 'quality', 'story', 'sound'],
+        title: 'The 58th floor, the station and the train lived in: board plot through the hall, footsteps, people on routines, touchables',
+        description: 'Enters level 1, the station (level 6) and the train (test shortcuts), skips scripted openings. On Apex Peak it does not need the Voss call: it walks past the desk person (board-desk), tries the locked IN SESSION door (board-door), and walks the hall until the Hale silhouette flinch fires (board-threat). Then in each place it walks to every touchable and presses Interact through real input, logging the motion and sound each answered with and whether the Interact button was shown. Logs the people on routines and who glanced at Pierce, counts footsteps (one per foot plant, 3+ variants, never the same twice in a row), and reports quality.maxQuietSeconds per place (≤ 10). options.phone: true lays the page out as a 390x844 touch phone and requires the Interact button at each touchable; heapMB is reported; no horizontal scroll and 44 px targets.',
+        seconds: 480,
+        tags: ['level', 'quality', 'story', 'sound', 'phone'],
       },
       {
         id: 'apex-slice',
@@ -1625,6 +1627,65 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         }
         await waitControl(where.name);
         t.event('level-start', where.name);
+        // Apex Peak: show the board plot through the hallway without answering the call.
+        if (where.place === 'apex') {
+          const hall = probe.boardHall?.();
+          if (!hall) t.problem('bug', 'living-places: boardHall probe missing on Apex Peak');
+          else {
+            t.event('setup', 'board plot through the hall (no call required)');
+            // Walk past the desk person; they look up and speak once in range.
+            await walkTo(hall.deskAt, 'board-desk', 2.2);
+            const deskDeadline = performance.now() + 8000;
+            while (performance.now() < deskDeadline && !(probe.boardHall?.()?.deskSeen)) {
+              await tick();
+            }
+            if (!probe.boardHall?.()?.deskSeen) t.problem('bug', 'living-places: desk person never reacted (board-desk)');
+            else t.event('board-desk', 'person at desk seen');
+            t.progress(0.08);
+            // Try the locked IN SESSION door.
+            await walkTo({ x: hall.doorAt.x, z: hall.doorAt.z }, 'board-door', Math.max(0.55, hall.doorAt.r * 0.65));
+            const doorDeadline = performance.now() + 12000;
+            let doorOk = false;
+            while (performance.now() < doorDeadline && !doorOk) {
+              await tick();
+              const label = probe.action();
+              if (label && /door/i.test(label)) {
+                releaseAll();
+                if (phone) {
+                  const shown = probe.life?.()?.interactShown ?? false;
+                  if (!shown) t.problem('bug', 'living-places: Interact button hidden at locked door on the phone layout');
+                }
+                if (await once('e', 1500, label)) {
+                  await sleep(600);
+                  doorOk = Boolean(probe.boardHall?.()?.doorTried);
+                }
+              } else {
+                await walkTo({ x: hall.doorAt.x, z: hall.doorAt.z }, 'board-door', Math.max(0.55, hall.doorAt.r * 0.65));
+              }
+            }
+            if (!doorOk) t.problem('bug', 'living-places: locked door never tried (board-door)');
+            else t.event('board-door', 'locked door tried');
+            t.progress(0.12);
+            // Walk toward the boardroom until the Hale silhouette flinch fires.
+            await walkTo({ x: hall.threatAt.x + 2.5, z: hall.threatAt.z }, 'board-threat', 1.4);
+            const threatDeadline = performance.now() + 12000;
+            while (performance.now() < threatDeadline && !(probe.boardHall?.()?.threatSeen)) {
+              await tick();
+              await walkTo({ x: Math.min(36, (probe.player().x || 0) + 1.2), z: hall.threatAt.z }, 'board-threat-nudge', 1.2);
+            }
+            if (!probe.boardHall?.()?.threatSeen) t.problem('bug', 'living-places: board threat never fired (board-threat)');
+            else t.event('board-threat', 'visible threat flinch');
+            t.metric('boardHallDesk', probe.boardHall?.()?.deskSeen ? 1 : 0);
+            t.metric('boardHallDoor', probe.boardHall?.()?.doorTried ? 1 : 0);
+            t.metric('boardHallThreat', probe.boardHall?.()?.threatSeen ? 1 : 0);
+            t.progress(0.18);
+          }
+          if (phone) {
+            const scroll = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
+            if (scroll) t.problem('bug', 'living-places: horizontal scroll on 390x844 phone layout');
+            t.event('phone-layout', scroll ? 'scroll' : 'no-horizontal-scroll');
+          }
+        }
         const list = probe.life?.()?.touchables ?? [];
         t.event('check', `${where.name}: ${list.length} touchables mounted (${list.map((x) => x.id).join(', ')})`);
         if (list.length < where.touchables) t.problem('bug', `living-places: ${where.name} has ${list.length} touchables, wants ${where.touchables}+`);
