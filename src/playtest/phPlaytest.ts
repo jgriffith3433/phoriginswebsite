@@ -1238,6 +1238,16 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
       if (blankAfter >= 3) t.problem('bug', `${tag}: ${blankAfter}/8 frames after the card were mostly black`);
       await sleep(400);
+      // Levels 5-8 open with a scripted scene (lobby, station, train, morning); the HUD is hidden for it by design
+      // (body.cinematic). Play it out with Skip, then the HUD must be back once the player has control.
+      if (probe.scripted() || probe.cutscene()) {
+        const sceneUntil = performance.now() + 30000;
+        while (performance.now() < sceneUntil && (probe.scripted() || probe.cutscene())) {
+          if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+          await tick();
+        }
+        await sleep(400);
+      }
       if (!probe.hudShown()) t.problem('bug', `${tag}: HUD missing after the card faded`);
     };
 
