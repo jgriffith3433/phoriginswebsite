@@ -40,6 +40,17 @@ export type PhProbe = {
   cutscene: () => { id: string; time: number; duration: number } | null;
   scripted: () => string | null;
   phone: () => { incoming: boolean; busy: boolean; speaker: string; line: string };
+  /** Call replies: the open bubbles (with their boxes), the countdown, what was chosen, and the saved trust values. */
+  replies?: () => {
+    open: boolean;
+    options: { key: number; text: string; rect: { x: number; y: number; w: number; h: number } | null }[];
+    left: number; total: number;
+    log: { call: string; moment: string; choice: string; cutOff: boolean; delta: number; stat: string; value: number }[];
+    caption: { x: number; y: number; w: number; h: number } | null;
+    stats: { vossTrust: number; haleTemper: number; min: number; max: number };
+  };
+  /** Test shortcut: ring a scripted call and (optionally) seed the saved trust values. */
+  callTest?: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => void;
   /** The chapter title card that opens each level (kicker, name, story line). */
   hudShown: () => boolean;
   /** Share (0-1) of the rendered world canvas that is not black. */
@@ -561,6 +572,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 1 with Start, opens Pause at once and checks Return to objective is there. Then stands still: no key, no mouse. After 60 s of play with no progress the Lost? prompt must appear (logged with the seconds). Presses R (a tap on the prompt in the phone passes, hit-tested so a covered prompt fails), waits out the fade and checks Pierce is within 5 m of the objective marker, on walkable ground, and the prompt is gone. Pause > Return to objective is used once the same way. The prompt is checked on screen and clear of the touch buttons at 390x844 and again at 844x390.',
         seconds: 420,
         tags: ['menus', 'ui'],
+      },
+      {
+        id: 'call-replies',
+        title: 'Every Voss and Hale call offers replies (1/2/3, click or tap): choosing cuts the caller off, waiting plays silence, voss-morning branches on vossTrust',
+        description: 'Starts level 3 (test shortcut) and rings each scripted call with the probe\'s callTest shortcut (voss-late, voss-meeting, hale-walkout, hale-board, hale-train, voss-morning), answering through real input (F, or the Answer button on touch). Each call must open a reply moment with 2-3 bubbles plus a countdown, every bubble at least 44 px tall and clear of the touch controls and the call caption. The bot chooses by key 1 (desktop) or a tap on the bubble (options.phone: 390x844 touch) about 0.7 s in, while the caller is still talking: the answer log must say cutOff, and the Pierce line must show as a subtitle. On voss-late and hale-walkout it waits out the window instead: the log must say silence, not cut off. Then voss-morning is rung with vossTrust seeded to -2 and to +2: the first Voss line must differ. vossTrust and haleTemper must stay within -2..+2 on the ph-origins-save cookie, and the same after a page reload. Metrics: replyMoments, replyCutOffs, replySilences, replyBubbleMinHeight. Options: phone.',
+        seconds: 330,
+        tags: ['story', 'phone'],
       },
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
@@ -4456,6 +4474,148 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'stuck-recovery') {
       await stuckRecoveryRun();
+      return;
+    }
+    if (id === 'call-replies') {
+      levelsTotal = 1;
+      const RUN_KEY = 'hawkes.callRepliesRun';
+      const readStats = () => {
+        const raw = document.cookie.split('; ').find((c) => c.startsWith('ph-origins-save='))?.slice('ph-origins-save='.length);
+        try { const j = JSON.parse(decodeURIComponent(raw ?? '{}')); return { vossTrust: j.vossTrust as unknown, haleTemper: j.haleTemper as unknown }; } catch { return { vossTrust: undefined, haleTemper: undefined }; }
+      };
+      const okStat = (v: unknown) => typeof v === 'number' && Number.isInteger(v) && v >= -2 && v <= 2;
+      let carried: { vossTrust: number; haleTemper: number } | null = null;
+      try { carried = JSON.parse(sessionStorage.getItem(RUN_KEY) ?? 'null'); } catch { /* none */ }
+      if (carried) {
+        sessionStorage.removeItem(RUN_KEY);
+        const now = readStats();
+        t.event('stats-after-reload', JSON.stringify(now));
+        if (!okStat(now.vossTrust) || !okStat(now.haleTemper)) t.problem('bug', `after the reload vossTrust/haleTemper are not within -2..+2 on the save cookie: ${JSON.stringify(now)}`);
+        else if (now.vossTrust !== carried.vossTrust || now.haleTemper !== carried.haleTemper) t.problem('bug', `vossTrust/haleTemper changed over a reload: ${JSON.stringify(carried)} -> ${JSON.stringify(now)}`);
+        else t.event('stats-persist', `vossTrust ${String(now.vossTrust)}, haleTemper ${String(now.haleTemper)} kept over the reload`);
+        t.finish('done');
+        return;
+      }
+      const touch = () => document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+      if (options.phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(700); }
+      await enterLevel(3);
+      await sleep(1500);
+      if (typeof options.trust === 'number') probe.callTest?.('none', { vossTrust: options.trust });
+      const CONTROLS = ['interactBtn', 'fireBtn', 'jumpBtn', 'phoneBtn', 'leftStickZone', 'rightStickZone', 'pauseBtn', 'missionsHint', 'sidearmHint', 'abilityHint', 'shadowHint', 'lightHint', 'medkitHint', 'phoneHint', 'inventoryHint', 'reloadHint', 'lostHint'];
+      const hit = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) =>
+        a.x < b.x + b.w - 0.5 && b.x < a.x + a.w - 0.5 && a.y < b.y + b.h - 0.5 && b.y < a.y + a.h - 0.5;
+      let minHeight = 9999;
+      let moments = 0;
+      let cutOffs = 0;
+      let silences = 0;
+      const answer = async (callId: string, seed?: { vossTrust?: number; haleTemper?: number }) => {
+        probe.callTest?.(callId, seed);
+        await t.until(() => probe.phone().incoming, 6000, `${callId} to ring`);
+        if (touch()) await tapAt(document.getElementById('phoneAnswer'), `Answer ${callId}`);
+        else { releaseAll(); await once('f', 1500, 'answer call'); }
+        t.event('call', `${callId} answered`);
+      };
+      const hangUp = async () => {
+        if (probe.phone().busy) await tapAt(document.getElementById('phoneEnd'), 'End call');
+        await t.until(() => !probe.phone().busy, 12000, 'the call to finish');
+      };
+      /** Plays one call to its end, answering every reply moment the way `mode` says. */
+      const playCall = async (callId: string, mode: 'cut' | 'silence') => {
+        await answer(callId);
+        const lines: string[] = [];
+        const base = probe.replies?.().log.length ?? 0;
+        let handled = base;
+        let chosenText = '';
+        const until = performance.now() + 70000;
+        while (probe.phone().busy && performance.now() < until) {
+          const line = probe.phone().line;
+          if (line && lines[lines.length - 1] !== line) lines.push(line);
+          const r = probe.replies?.();
+          if (r?.open && r.log.length === handled) {
+            const caption = r.caption;
+            moments += 1;
+            if (r.options.length < 2 || r.options.length > 3) t.problem('bug', `${callId}: ${r.options.length} reply bubbles (want 2-3)`);
+            const controls = touch() ? CONTROLS.map((cid) => document.getElementById(cid)).filter((el): el is HTMLElement => !!el && !el.hidden && getComputedStyle(el).display !== 'none').map((el) => { const b = el.getBoundingClientRect(); return { id: el.id, x: b.left, y: b.top, w: b.width, h: b.height }; }).filter((b) => b.w > 0) : [];
+            for (const o of r.options) {
+              if (!o.rect) { t.problem('bug', `${callId}: bubble "${o.text}" has no box`); continue; }
+              minHeight = Math.min(minHeight, o.rect.h);
+              if (o.rect.h < 43.5) t.problem('bug', `${callId}: reply bubble "${o.text}" is ${Math.round(o.rect.h)} px tall, under 44`);
+              if (o.rect.x < 0 || o.rect.y < 0 || o.rect.x + o.rect.w > innerWidth || o.rect.y + o.rect.h > innerHeight) t.problem('bug', `${callId}: reply bubble "${o.text}" leaves the screen`);
+              if (caption && hit(o.rect, caption)) t.problem('bug', `${callId}: reply bubble "${o.text}" overlaps the call caption`);
+              for (const c of controls) if (hit(o.rect, c)) t.problem('bug', `${callId}: reply bubble "${o.text}" overlaps #${c.id}`);
+            }
+            t.event('replies-open', `${callId}: ${r.options.map((o) => `${o.key} ${o.text}`).join(' | ')} (${r.total}s)`);
+            if (mode === 'cut') {
+              await sleep(700);
+              const before = probe.replies?.();
+              if (!before?.open) { t.problem('bug', `${callId}: the reply window closed inside 0.7 s`); handled = (before?.log.length ?? handled) ; continue; }
+              chosenText = before.options[0].text;
+              if (touch()) await tapAt(document.querySelector<HTMLElement>('#callReplies [data-reply="0"]'), `reply 1 (${chosenText})`);
+              else await tap('1', `reply 1 (${chosenText})`);
+            } else {
+              await t.until(() => (probe.replies?.().log.length ?? 0) > handled, 12000, `${callId} silence answer`);
+            }
+            const log = probe.replies?.().log ?? [];
+            const last = log[log.length - 1];
+            if (!last || log.length <= handled) { t.problem('bug', `${callId}: nothing was logged for the reply moment`); handled = log.length; continue; }
+            handled = log.length;
+            t.event('reply', `${callId} ${last.moment}: ${last.choice}${last.cutOff ? ' (cut the caller off)' : ''}, ${last.stat} ${last.delta >= 0 ? '+' : ''}${last.delta} -> ${last.value}`);
+            if (mode === 'cut') {
+              cutOffs += last.cutOff ? 1 : 0;
+              if (!last.cutOff) t.problem('bug', `${callId}: choosing a reply 0.7 s in did not cut the caller off`);
+            } else {
+              silences += last.choice === 'silence' ? 1 : 0;
+              if (last.choice !== 'silence' || last.cutOff) t.problem('bug', `${callId}: waiting out the window did not play the silence answer (${last.choice}, cutOff ${String(last.cutOff)})`);
+            }
+          }
+          await sleep(100);
+        }
+        const done = probe.phone().busy;
+        if (done) t.problem('bug', `${callId} was still going after 70 s`);
+        if (handled <= base) t.problem('bug', `${callId} showed no reply moment`);
+        if (mode === 'cut' && chosenText && !lines.some((l) => l.includes(chosenText))) t.problem('bug', `${callId}: the chosen reply "${chosenText}" was never spoken (captions: ${lines.join(' / ')})`);
+        t.event('call-lines', `${callId} (${mode}): ${lines.join(' / ')}`);
+        await t.until(() => !probe.phone().busy, 15000, `${callId} to end`);
+        await sleep(400);
+      };
+      t.scene('Reply moments: choose to cut the caller off');
+      const CALLS = ['voss-late', 'voss-meeting', 'hale-walkout', 'hale-board', 'hale-train', 'voss-morning'];
+      for (const [i, callId] of CALLS.entries()) {
+        await playCall(callId, 'cut');
+        t.progress(0.05 + (i + 1) * 0.08);
+      }
+      t.scene('Reply moments: say nothing');
+      await playCall('voss-late', 'silence');
+      await playCall('hale-walkout', 'silence');
+      t.progress(0.7);
+      t.scene('voss-morning branches on vossTrust');
+      const firsts: string[] = [];
+      for (const trust of [-2, 2]) {
+        await answer('voss-morning', { vossTrust: trust });
+        await t.until(() => probe.phone().line.length > 0, 4000, 'the first Voss line');
+        const first = probe.phone().line;
+        firsts.push(first);
+        t.event('morning-first-line', `vossTrust ${trust}: ${first}`);
+        await hangUp();
+        await sleep(300);
+      }
+      if (firsts[0] === firsts[1]) t.problem('bug', `voss-morning opens with the same line at vossTrust -2 and +2: "${firsts[0]}"`);
+      t.metric('replyMoments', moments);
+      t.metric('replyCutOffs', cutOffs);
+      t.metric('replySilences', silences);
+      t.metric('replyBubbleMinHeight', Math.round(minHeight === 9999 ? 0 : minHeight));
+      const stats = readStats();
+      t.event('stats', JSON.stringify(stats));
+      if (!okStat(stats.vossTrust) || !okStat(stats.haleTemper)) t.problem('bug', `vossTrust/haleTemper are not within -2..+2 on the save cookie: ${JSON.stringify(stats)}`);
+      sessionStorage.setItem(RUN_KEY, JSON.stringify(stats));
+      t.event('reload', 'the page reloads; the run carries on after it');
+      const url = new URL(location.href);
+      url.searchParams.set('playtest', 'call-replies');
+      url.searchParams.set('seed', String(options.seed ?? 1));
+      url.searchParams.set('speed', String(options.speed ?? 1));
+      await sleep(300);
+      location.replace(url.toString());
+      await new Promise(() => {});
       return;
     }
     if (id === 'sound-settings') {

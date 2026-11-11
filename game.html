@@ -1093,6 +1093,70 @@
         font-size: 11px;
       }
 
+
+      /* Call replies: what Pierce can say while the caller is still talking (keys 1-3, or tap). */
+      .call-replies {
+        position: fixed;
+        left: 250px;
+        bottom: calc(var(--safe-bottom, 0px) + 18px);
+        width: min(360px, calc(100vw - 280px));
+        z-index: 12;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: auto;
+        color: #f2f2f7;
+      }
+      .call-replies[hidden] { display: none; }
+      .call-replies .cr-timer {
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(212, 180, 131, 0.9);
+        transform-origin: left center;
+      }
+      .call-replies .cr-option {
+        appearance: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 48px;
+        padding: 8px 14px;
+        border-radius: 24px;
+        border: 1px solid rgba(212, 180, 131, 0.55);
+        background: rgba(9, 12, 16, 0.92);
+        color: #f2f2f7;
+        font: inherit;
+        font-size: 15px;
+        line-height: 1.25;
+        text-align: left;
+        cursor: pointer;
+      }
+      .call-replies .cr-option:active,
+      .call-replies .cr-option.picked { background: #d4b483; color: #0b0b0d; }
+      .call-replies .cr-key {
+        flex: none;
+        min-width: 22px;
+        height: 22px;
+        border-radius: 11px;
+        background: rgba(212, 180, 131, 0.22);
+        text-align: center;
+        font-size: 12px;
+        line-height: 22px;
+      }
+      body[data-device='mobile'] .call-replies,
+      body[data-device='tablet'] .call-replies {
+        left: calc(env(safe-area-inset-left, 0px) + 16px);
+        right: calc(env(safe-area-inset-right, 0px) + 16px);
+        bottom: auto;
+        width: auto;
+        top: calc(var(--safe-top, 0px) + 56px + 214px);
+      }
+      body[data-device='mobile'][data-orientation='landscape'] .call-replies,
+      body[data-device='tablet'][data-orientation='landscape'] .call-replies {
+        left: calc(env(safe-area-inset-left, 0px) + 248px);
+        max-width: 360px;
+        top: calc(var(--safe-top, 0px) + 12px);
+      }
       .phone-panel {
         position: absolute;
         left: 28px;
@@ -3564,6 +3628,7 @@
           <div id="phoneMessages" class="phone-messages" hidden></div>
         </div>
       </aside>
+      <div id="callReplies" class="call-replies" role="group" aria-label="Reply" hidden></div>
       <div id="phoneToast" class="phone-toast" hidden></div>
 
       <div id="missionsHud" class="missions-hud" aria-live="polite">

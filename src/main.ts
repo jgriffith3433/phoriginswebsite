@@ -29,7 +29,7 @@ import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
 import { createShadowVeil } from './game/shadowVeil';
-import { createPhone } from './game/phone';
+import { createPhone, STAT_MAX, STAT_MIN } from './game/phone';
 import { mountPipeDrips } from './game/drips';
 import { createLevelDressing } from './game/levelDressing';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
@@ -204,6 +204,9 @@ const phoneDetail = document.getElementById('phoneDetail') as HTMLElement | null
 const phoneClock = document.getElementById('phoneClock') as HTMLElement | null;
 const phoneSpeaker = document.getElementById('phoneSpeaker') as HTMLElement | null;
 const phoneLine = document.getElementById('phoneLine') as HTMLElement | null;
+const callReplies = document.getElementById('callReplies') as HTMLElement | null;
+let callRepliesKey = '';
+let callRepliesBar: HTMLElement | null = null;
 const phoneAnswer = document.getElementById('phoneAnswer') as HTMLButtonElement | null;
 const phoneEnd = document.getElementById('phoneEnd') as HTMLButtonElement | null;
 const phoneFlash = document.getElementById('phoneFlash') as HTMLButtonElement | null;
@@ -429,6 +432,8 @@ const phone = createPhone(scene, {
     if (quest) markMission(quest);
   },
   onCallEnded: (callId, how, heard, of) => analytics?.dialogue('call', callId, how, heard, of),
+  getStat: (stat) => clampStat(save[stat]),
+  addStat: (stat, delta) => saveGame({ [stat]: clampStat((save[stat] ?? 0) + delta) })[stat] ?? 0,
   onHand: (raised) => {
     if (!raised || phone.locksBody()) {
       if (!state.player.weaponDrawn) {
@@ -1142,7 +1147,12 @@ type SaveData = {
   missions?: Record<string, string[]>;
   /** Lore entries unlocked by finishing a level (chapter numbers). */
   lore?: number[];
+  /** How far Voss trusts Pierce (-2..+2), moved by what he says on Voss's calls. */
+  vossTrust?: number;
+  /** How hot Hale runs against Pierce (-2..+2), moved by what he says on Hale's calls. */
+  haleTemper?: number;
 };
+const clampStat = (value: unknown) => Math.max(STAT_MIN, Math.min(STAT_MAX, Math.round(Number(value) || 0)));
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
 const MAX_HEALTH = 100;
 
@@ -1197,6 +1207,8 @@ const parseSave = (raw: string): SaveData => {
     medkits: Number.isFinite(medkits) ? Math.max(0, Math.min(3, medkits)) : undefined,
     missions,
     lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
+    vossTrust: clampStat(parsed.vossTrust),
+    haleTemper: clampStat(parsed.haleTemper),
   };
 };
 
@@ -1261,6 +1273,8 @@ const saveGame = (next: Partial<SaveData>) => {
     medkits: next.medkits ?? save.medkits,
     missions: next.missions ?? save.missions,
     lore: next.lore ?? save.lore,
+    vossTrust: clampStat(next.vossTrust ?? save.vossTrust),
+    haleTemper: clampStat(next.haleTemper ?? save.haleTemper),
   };
   writeSaveCookie(save);
   return save;
@@ -1564,6 +1578,34 @@ const syncPhoneHud = () => {
   }
   if (phoneSpeaker) phoneSpeaker.textContent = view.speaker && view.line ? view.speaker : '';
   if (phoneLine) phoneLine.textContent = view.line;
+  if (callReplies) {
+    const key = view.replies.map((r) => r.text).join('|');
+    if (key !== callRepliesKey) {
+      callRepliesKey = key;
+      callReplies.hidden = !key;
+      callRepliesBar = null;
+      callReplies.replaceChildren();
+      if (key) {
+        callRepliesBar = document.createElement('div');
+        callRepliesBar.className = 'cr-timer';
+        callReplies.appendChild(callRepliesBar);
+        for (const [i, reply] of view.replies.entries()) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cr-option';
+          btn.dataset.reply = String(i);
+          const cap = document.createElement('span');
+          cap.className = 'cr-key';
+          cap.textContent = String(reply.key);
+          const label = document.createElement('span');
+          label.textContent = reply.text;
+          btn.append(cap, label);
+          callReplies.appendChild(btn);
+        }
+      }
+    }
+    if (callRepliesBar && view.repliesTotal > 0) callRepliesBar.style.transform = `scaleX(${Math.max(0, view.repliesLeft / view.repliesTotal).toFixed(3)})`;
+  }
   phoneAnswer?.toggleAttribute('hidden', !view.showAnswer);
   phoneEnd?.toggleAttribute('hidden', !view.showEnd);
   phoneFlash?.toggleAttribute('hidden', !view.showFlash);
@@ -2270,6 +2312,13 @@ phoneBtn?.addEventListener('pointerdown', (event) => {
   event.preventDefault();
   onPhoneControl(event);
 });
+callReplies?.addEventListener('click', (event) => {
+  const btn = (event.target as HTMLElement).closest<HTMLElement>('[data-reply]');
+  if (!btn) return;
+  event.preventDefault();
+  btn.classList.add('picked');
+  phone.chooseReply(Number(btn.dataset.reply));
+});
 phoneAnswer?.addEventListener('click', (event) => {
   event.stopPropagation();
   phone.answer();
@@ -2537,7 +2586,7 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
   if (fresh) {
-    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {} });
+    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0 });
   } else if (typeof save.health === 'number') {
     state.health = save.health;
     state.inventory.items.ammo = save.ammo ?? 0;
@@ -4184,6 +4233,12 @@ window.addEventListener('keydown', (event) => {
     return;
   }
   const key = event.key.toLowerCase();
+  if ((key === '1' || key === '2' || key === '3') && phone.view().replies.length) {
+    event.preventDefault();
+    callReplies?.querySelector(`[data-reply="${Number(key) - 1}"]`)?.classList.add('picked');
+    phone.chooseReply(Number(key) - 1);
+    return;
+  }
   if (key === 'w' || key === 'arrowup') state.input.forward = true;
   if (key === 's' || key === 'arrowdown') state.input.backward = true;
   if (key === 'a' || key === 'arrowleft') state.input.left = true;
@@ -5425,6 +5480,24 @@ installPhPlaytest({
   phone: () => {
     const view = phone.view();
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
+  },
+  replies: () => {
+    const view = phone.view();
+    const box = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+    return {
+      open: view.replies.length > 0,
+      options: view.replies.map((r, i) => ({ key: r.key, text: r.text, rect: (() => { const el = callReplies?.querySelector(`[data-reply="${i}"]`); return el ? box(el) : null; })() })),
+      left: view.repliesLeft,
+      total: view.repliesTotal,
+      log: phone.replyLog(),
+      caption: phonePanel && !phonePanel.hidden ? box(phonePanel) : null,
+      stats: { vossTrust: clampStat(save.vossTrust), haleTemper: clampStat(save.haleTemper), min: STAT_MIN, max: STAT_MAX },
+    };
+  },
+  /** Test shortcut: ring a scripted call (as the story does) and set the saved trust values. */
+  callTest: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => {
+    if (seed) saveGame({ vossTrust: seed.vossTrust ?? save.vossTrust, haleTemper: seed.haleTemper ?? save.haleTemper });
+    phone.ring(id);
   },
   chapter: () => chapterCard.view(),
   hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
