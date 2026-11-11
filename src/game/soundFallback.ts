@@ -6,14 +6,23 @@
 export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/interact.ogg': '/assets/audio/sfx/flashlight.ogg',
   '/assets/audio/sfx/pickup.ogg': '/assets/audio/sfx/pistol-holster.ogg',
-  '/assets/audio/sfx/walk-concrete.ogg': '/assets/audio/sfx/walk.ogg',
-  '/assets/audio/sfx/walk-hard.ogg': '/assets/audio/sfx/walk.ogg',
   '/assets/audio/sfx/station/train-pass.ogg': '/assets/audio/train/rumble.ogg',
   '/assets/audio/sfx/apex/sofa-creak.ogg': '/assets/audio/sfx/home/bed-creak.ogg',
   '/assets/audio/sfx/apex/cart-wheels.ogg': '/assets/audio/sfx/flashlight.ogg',
   '/assets/audio/sfx/apex/screen-tap.ogg': '/assets/audio/sfx/flashlight.ogg',
   '/assets/audio/sfx/apex/skyline.ogg': '/assets/audio/sfx/objective.ogg',
   '/assets/audio/sfx/apex/troffer-flicker.ogg': '/assets/audio/sfx/flashlight-off.ogg',
+  // Touchables (touchables.ts): until each take is made, a sound the game already has.
+  '/assets/audio/sfx/touch/desk-phone.ogg': '/assets/audio/sfx/phone/connect.wav',
+  '/assets/audio/sfx/touch/coffee-machine.ogg': '/assets/audio/sfx/home/tv-static.ogg',
+  '/assets/audio/sfx/touch/light-switch.ogg': '/assets/audio/sfx/flashlight.ogg',
+  '/assets/audio/sfx/touch/ticket-machine.ogg': '/assets/audio/sfx/station/pa-chime.ogg',
+  '/assets/audio/sfx/touch/turnstile.ogg': '/assets/audio/sfx/home/door-open.ogg',
+  '/assets/audio/sfx/touch/bin-lid.ogg': '/assets/audio/sfx/glass-tick.ogg',
+  '/assets/audio/sfx/touch/pole-grip.ogg': '/assets/audio/sfx/apex/sofa-creak.ogg',
+  '/assets/audio/sfx/touch/strap-swing.ogg': '/assets/audio/sfx/apex/sofa-creak.ogg',
+  '/assets/audio/sfx/touch/stop-request.ogg': '/assets/audio/train/doors-close.ogg',
+  '/assets/audio/sfx/touch/emergency-handle.ogg': '/assets/audio/sfx/pistol-holster.ogg',
 };
 
 export const soundFallback = (url: string): string | null => {

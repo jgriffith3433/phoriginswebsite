@@ -4,6 +4,7 @@ import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { lineAudio, lineText, storyLine } from '../game/locale';
 import { placeLine } from './placeVoices';
+import { lifeStats } from '../game/lifeStats';
 
 /**
  * Apex Peak vertical slice: hall life, optional interactions, and the cleaner beat.
@@ -89,6 +90,7 @@ export const createApexSlice = (host: ApexSliceHost) => {
 
   const mark = (kind: QuietKind, id: string) => {
     events.push({ t: clock, kind, id });
+    lifeStats.mark();
     lastQuietMark = clock;
   };
 

@@ -38,7 +38,11 @@ import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadScen
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createAct1, type Act1, type StoryCarry } from './story/act1';
+import { createFootsteps, surfaceFor, stepUrls } from './game/footsteps';
 import { createApexSlice, type ApexSlice } from './story/apexSlice';
+import { createApexLife } from './story/apexLife';
+import { createTouchables, TOUCH_SOUNDS } from './game/touchables';
+import { lifeStats } from './game/lifeStats';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
@@ -920,6 +924,8 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     train.dispose();
     morning.dispose();
     apex.dispose();
+    apexLife.dispose();
+    touch.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive') state.inCutscene = true;
@@ -944,6 +950,8 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     if (isTrainLevel()) await train.mount();
     // Runtime dressing that is not in the level file (city under the office, basement air, station kit, the train car).
     dressing.mount({ levelId: loaded?.data.id ?? '', powers: isReturnLevel() });
+    touch.mount(getLevelDefinition(state.level).libraryId);
+    preloadClips(TOUCH_SOUNDS);
     await Promise.all([
       waitAvatarReady(playerAvatar),
       whenSkyboxReady(scene),
@@ -959,7 +967,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
       // Level ready first (it mounts the bathroom mirror, sets the opening objective), so the compile pass below
       // covers what Start would otherwise add on its first frames.
       act.onLevelReady();
-      if (isApexPeakLevel()) apex.mount();
+      if (isApexPeakLevel()) { apex.mount(); apexLife.mount(); }
       dressedLevelId = state.level;
       // One cap for both passes, so a slow GPU still waits at most SHADERS_READY_MAX_MS under the title card.
       const deadline = performance.now() + SHADERS_READY_MAX_MS;
@@ -1180,7 +1188,6 @@ const pickups: Array<{
 const SFX = {
   shot: '/assets/audio/sfx/pistol-shot.ogg',
   jump: '/assets/audio/sfx/jump.ogg',
-  walk: '/assets/audio/sfx/walk.ogg',
   hurt: '/assets/audio/sfx/hurt.ogg',
   reload: '/assets/audio/sfx/reload.ogg',
   draw: '/assets/audio/sfx/pistol-draw.ogg',
@@ -1192,19 +1199,13 @@ const SFX = {
   /** Pressing E on a story action; falls back to the flashlight click until the file is made (soundFallback.ts). */
   click: '/assets/audio/sfx/interact.ogg',
   pickup: '/assets/audio/sfx/pickup.ogg',
-  walkConcrete: '/assets/audio/sfx/walk-concrete.ogg',
-  walkHard: '/assets/audio/sfx/walk-hard.ogg',
 } as const;
-/** Footsteps by floor: concrete on the street, the platform and B3; a hard floor in the apartment and the train; office carpet elsewhere. */
-const walkSound = () => {
-  const id = getLevelDefinition(state.level).libraryId;
-  if (id === 'going-home' || id === 'the-station' || id === 'b3-basement') return SFX.walkConcrete;
-  if (id === 'the-morning' || id === 'the-train') return SFX.walkHard;
-  return SFX.walk;
-};
 const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 'the-morning' ? MORNING_ENDING_TRACK : getLevelDefinition(level).libraryId === 'the-train' ? TRAIN_ENDING_TRACK : `/assets/audio/ending-${Math.max(1, level)}.mp3`);
-let walkLoop: ClipHandle | null = null;
 let walkWanted = false;
+const footsteps = createFootsteps((url, rate) => {
+  const level = mixVolume(url, 0.34);
+  playClip(url, level, { rate });
+});
 let endingSong: HTMLAudioElement | null = null;
 
 const stopEndingSong = () => {
@@ -1263,25 +1264,16 @@ const audio = {
     if (playClip(url, level, { onError })) return;
     playElementOnce(fallback ?? url, level);
   },
+  /** Footsteps are one-shots on each foot plant (footsteps.ts); this only says whether he is walking. */
   setWalk(playing: boolean) {
     walkWanted = Boolean(playing && this.enabled);
-    if (!walkWanted) {
-      walkLoop?.stop(0.05);
-      walkLoop = null;
-      return;
-    }
-    if (walkLoop && !walkLoop.done()) return;
+    if (!walkWanted) footsteps.reset();
+  },
+  /** Metres walked this frame: a plant per STEP_LENGTH, on the surface under him. */
+  stepAdvance(metres: number) {
+    if (!walkWanted || !(metres > 0)) return;
     this.ensure();
-    const url = walkSound();
-    const fallback = soundFallback(url);
-    const loop: ClipHandle | null = playClip(url, mixVolume(url, 0.28), {
-      loop: true,
-      onError: fallback ? () => {
-        if (walkLoop !== loop || !walkWanted) return;
-        walkLoop = playClip(fallback, mixVolume(fallback, 0.28), { loop: true });
-      } : undefined,
-    });
-    walkLoop = loop;
+    footsteps.advance(metres, surfaceFor(getLevelDefinition(state.level).libraryId, state.player.x, state.player.z));
   },
   hit() { this.play(SFX.hurt, 0.45); },
   shoot() { this.play(SFX.shot, 0.78); },
@@ -2472,6 +2464,22 @@ const apex: ApexSlice = createApexSlice({
   },
 });
 
+const apexLife = createApexLife({
+  scene,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  active: () => state.running && !state.inCutscene && !apex.playing(),
+  lowPower: () => lowPowerGraphics,
+  playFile: (url, volume) => audio.play(url, volume),
+  showLine: (title, text) => showCineHud(title, text),
+});
+
+/** Things that answer Interact on the 58th floor, the station platform and the train (touchables.ts). */
+const touch = createTouchables({
+  scene,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  playFile: (url, volume) => audio.play(url, volume),
+});
+
 const home: GoingHome = createGoingHome({
   scene,
   camera,
@@ -3324,6 +3332,7 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     && !panelsOpen()
     && messageBox.classList.contains('hidden'),
   );
+  audio.stepAdvance(travelled > maxStep ? 0 : travelled);
   syncShadowBed(runningShadow, moving);
 
   const forwardDot = moveHeading === null ? 0 : Math.sin(yaw) * Math.sin(moveHeading) + Math.cos(yaw) * Math.cos(moveHeading);
@@ -3443,10 +3452,11 @@ const storyAction = (): string | null => {
   if (panelsOpen() || home.playing() || desk.playing() || station.playing() || train.playing() || morning.playing()) return null;
   if (phone.locksBody() || phone.isScreenOpen()) return null;
   if (isDeskLevel()) return desk.action();
-  if (isTrainLevel()) return train.action();
+  if (isTrainLevel()) return train.action() ?? touch.action();
   if (isMorningLevel()) return morning.action();
-  if (isHomeLevel() || isStationLevel()) return null;
-  return act.action() ?? (isApexPeakLevel() ? apex.action() : null);
+  if (isStationLevel()) return touch.action();
+  if (isHomeLevel()) return null;
+  return act.action() ?? (isApexPeakLevel() ? (apex.action() ?? touch.action()) : null);
 };
 
 const confirmStoryAction = () => {
@@ -3459,10 +3469,11 @@ const confirmStoryAction = () => {
     return true;
   }
   if (isDeskLevel()) desk.confirm();
-  else if (isTrainLevel()) train.confirm();
+  else if (isTrainLevel()) { if (train.action()) train.confirm(); else touch.confirm(); }
   else if (isMorningLevel()) morning.confirm();
+  else if (isStationLevel()) touch.confirm();
   else if (act.confirm()) { /* story walk-up */ }
-  else if (isApexPeakLevel()) apex.confirm();
+  else if (isApexPeakLevel()) { if (!apex.confirm()) touch.confirm(); }
   syncActionHint();
   return true;
 };
@@ -4080,7 +4091,7 @@ const tapState = (window as { __phTap?: { tapped: boolean; onTap: (() => void) |
 // The capture listeners above already unlocked sound during this tap; this tops the pool up once more.
 const warmSounds = () => {
   unlockAudio();
-  preloadClips([SFX.walk, SFX.jump, SFX.start, SFX.objective, SFX.levelComplete, SFX.draw, SFX.holster, SFX.hurt]);
+  preloadClips([...stepUrls('carpet'), SFX.jump, SFX.start, SFX.objective, SFX.levelComplete, SFX.draw, SFX.holster, SFX.hurt]);
 };
 if (tapState) tapState.onTap = warmSounds;
 if (tapState?.tapped) warmSounds();
@@ -4509,6 +4520,7 @@ const renderLoop = () => {
     triggerRunner.update(state.player);
     act.stepWorld(delta);
     apex.step(delta);
+    if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
     home.step(delta);
     station.step(delta);
     train.step(delta);
@@ -4946,8 +4958,9 @@ installPhPlaytest({
     ...(isApexPeakLevel() ? apex.blips() : []),
   ],
   /** Apex Peak vertical-slice quality readings for the playtest. */
+  life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
-    ? { maxQuietSeconds: apex.maxQuietSeconds(), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
+    ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
     : null),
   pickups: () => pickups
     .filter((pickup) => pickup.active && !pickup.mesh.isDisposed() && pickup.mesh.isEnabled())
@@ -5057,7 +5070,9 @@ installPhPlaytest({
     settings: soundSettings(),
     bed: musicTriggerPlayer.active(),
     bedPlaying: musicTriggerPlayer.playing(),
-    footsteps: Boolean(walkLoop && !walkLoop.done()),
+    footsteps: walkWanted,
+    stepCount: footsteps.count(),
+    steps: footsteps.events(),
   }),
   playSettings: () => gameSettings(),
 });

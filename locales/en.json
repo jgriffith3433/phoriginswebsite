@@ -6037,6 +6037,60 @@
       "text": "Read more",
       "audio": "",
       "note": "Level Complete card: link to the lore site page"
+    },
+    {
+      "id": "bark.apex.guard01",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Rounds, Mr. Hawkes. Floor's clear.",
+      "audio": "",
+      "performance": "default",
+      "note": "Apex Peak: the night guard on his rounds in hall 1"
+    },
+    {
+      "id": "bark.apex.guard02",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Doors are locked down here. Your light's still on, though.",
+      "audio": "",
+      "performance": "default",
+      "note": "Apex Peak: the night guard on his rounds in hall 1"
+    },
+    {
+      "id": "bark.apex.staff01",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Is the meeting still on? I was told to wait.",
+      "audio": "",
+      "performance": "default",
+      "note": "Apex Peak: a late associate waiting on the chairs in hall 2"
+    },
+    {
+      "id": "bark.apex.staff02",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Don't mind me. Just finishing the numbers.",
+      "audio": "",
+      "performance": "default",
+      "note": "Apex Peak: a late associate waiting on the chairs in hall 2"
+    },
+    {
+      "id": "bark.apex.staff03",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Coffee's gone cold. Everything is cold up here tonight.",
+      "audio": "",
+      "performance": "default",
+      "note": "Apex Peak: staff at the hall cooler"
+    },
+    {
+      "id": "bark.apex.staff04",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "They're all in the boardroom. Waiting on you.",
+      "audio": "",
+      "performance": "default",
+      "note": "Apex Peak: staff at the hall cooler"
     }
   ]
 }
