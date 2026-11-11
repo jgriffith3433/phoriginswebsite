@@ -18,6 +18,7 @@ import {
 import { paintLiftGlyph, type SceneData, type SceneTrigger } from '../game/sceneData';
 import { pointInsideTrigger } from '../game/triggers';
 import { carryItems, lineAudio, lineText, storyLine } from '../game/locale';
+import { music } from '../game/musicDirector';
 
 import actCopy from './act1.json';
 import { APEX_BOARD, createLinePool } from './placeVoices';
@@ -860,6 +861,7 @@ export const createAct1 = (host: ActHost) => {
     const already = phase === 'done';
     clearVatFx();
     phase = 'done';
+    music.creature(null);
     elevatorLocked = false;
     stopAlarm();
     restoreLights();
@@ -1889,6 +1891,7 @@ export const createAct1 = (host: ActHost) => {
   };
 
   const stepDread = (node: BABYLON.TransformNode, dist: number, delta: number) => {
+    music.creature(dist);
     stepPracticals(node.position);
     const reach = huntMood === 'strike' ? 8.5 : 5.2;
     const closeness = Math.max(0, 1 - dist / reach);
@@ -3537,6 +3540,7 @@ export const createAct1 = (host: ActHost) => {
       }
       if (id === 'b3-vat-break') {
         phase = 'transform';
+        music.creature(null);
         host.showObjective(false);
         host.hideMarker();
         dread = 0;

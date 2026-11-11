@@ -1,3 +1,4 @@
+import { music } from '../game/musicDirector';
 import * as BABYLON from '@babylonjs/core';
 
 import type { LevelCredits } from './credits';
@@ -1179,6 +1180,7 @@ export const createTheTrain = (host: TheTrainHost) => {
         // One car ahead, and through the end door before Pierce gets there.
         if (carTime > 0.8) cue(L_AHEAD, 0);
         const lead = double && !double.gone ? double.mesh.position.x - here.x : 99;
+        music.pursuit(lead < 99 ? lead : null);
         // Faster when he closes in; a short burst keeps shadow-run from tagging him.
         let speed = CAR2_WALK + Math.max(0, CAR2_LEAD - lead) * 1.15;
         if (lead < 3) speed = Math.max(speed, CAR2_BURST);

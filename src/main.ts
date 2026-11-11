@@ -53,6 +53,7 @@ import { createTheTrain, ENDING_TRACK as TRAIN_ENDING_TRACK, TRAIN_CREDITS, type
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
+import { music } from './game/musicDirector';
 import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import { warmLevelFirstUse, stopLevelWarm } from './game/levelWarm';
 import { soundFallback } from './game/soundFallback';
@@ -270,6 +271,7 @@ const endRecovery = () => {
   if (!paused) {
     releaseAllAudio();
     releaseClips();
+    music.hold(false);
   }
 };
 const restartAfterLoss = () => {
@@ -289,6 +291,7 @@ engine.onContextLostObservable.add(() => {
   audio.setWalk(false);
   holdAllAudio();
   holdClips();
+  music.hold(true);
   if (recoveringBox) recoveringBox.hidden = false;
   clearGiveUp();
   contextGiveUp = setTimeout(() => {
@@ -734,6 +737,9 @@ const setObjective = (title: string, text: string, target: { x: number; z: numbe
   if (missionsOpen) renderMissions();
   if (!text || cue === lastObjectiveCue || !state.running) return;
   lastObjectiveCue = cue;
+  music.objective(title);
+  // The Morning is near silence; the motif comes once, when he is let out the door.
+  if (isMorningLevel() && text === lineText('objective.morning.out')) music.objective('morning-motif', 'calm');
   audio.play(SFX.objective, 0.55);
 };
 
@@ -895,7 +901,7 @@ const runFinaleWorld = (target: string, to: number, seconds: number) => {
   };
   if (target === 'tower-cut') tween((v) => home.setTowerCut(v), 70, () => home.setTowerCut(999));
   else if (target === 'board-stop') { dressing.setBoardStop(to > 0); finaleWorldRestore.push(() => dressing.setBoardStop(false)); }
-  else if (target === 'tv-report') morning.tvReport(to > 0);
+  else if (target === 'tv-report') { morning.tvReport(to > 0); if (to > 0) music.stinger('tv-news'); }
 };
 
 const endCutscene = () => {
@@ -914,6 +920,7 @@ const endCutscene = () => {
   const gear = cutsceneGear;
   cutsceneGear = null;
   const reequip = finished ? finished.timeline.reequip !== false : true;
+  if (finished) music.cutsceneEnd(finished.id);
   act.releaseSeat();
   resetCutsceneState();
   phone.aimBeam(null);
@@ -941,6 +948,8 @@ const beginNamedCutscene = (id: string) => {
   act.prepareCutscene(id);
   unlockPointer();
   analytics?.cutscenePlay(id);
+  music.cutsceneStart(id, id === 'b3-vat-break' ? 'silence' : 'calm');
+  if (id === 'b3-vat-break') music.stinger('vat-break', 3.3);
   void startCutscene(id, {
     onCamera: (position, lookAt, rel) => {
       if (!rel) {
@@ -2217,6 +2226,7 @@ shadowHint?.addEventListener('click', (event) => {
       markMission('power-shadow');
       analytics?.used('shadow-mode');
     }
+    music.power(shadowPlay().shadowMode());
     if (!shadowPlay().shadowMode()) {
       playerAvatar.setArmed(false);
       syncEquippedCamera();
@@ -2383,6 +2393,7 @@ const showReward = (n: number) => {
 
 const showMessage = (title: string, text: string) => {
   messageBox.classList.remove('leaving');
+  music.stop();
   messageTitle.textContent = title;
   messageText.textContent = text;
   syncStartButtonLabel();
@@ -3020,6 +3031,7 @@ const beginGame = () => {
   syncStartButtonLabel();
   updateHud();
   hideMessage();
+  music.chapterStart(state.level, isMorningLevel() ? 'silence' : 'calm');
   act.onStart();
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
@@ -3352,6 +3364,7 @@ const updateQuestTracker = () => {
 
 const finishGame = (won = false) => {
   state.running = false;
+  music.stop();
   saveGame({ unlocked: Math.max(save.unlocked ?? 1, state.progression.highestUnlocked), sound: audio.enabled });
   updateHud();
 
@@ -3850,6 +3863,7 @@ const presentLevelEnd = () => {
     return;
   }
   const card = pendingEnd;
+  music.chapterEnd();
   pendingEnd = null;
   phone.silence();
   followCamera.setCallFrame(false);
@@ -4200,6 +4214,7 @@ window.addEventListener('keydown', (event) => {
         markMission('power-shadow');
         analytics?.used('shadow-mode');
       }
+      music.power(shadowPlay().shadowMode());
       if (!shadowPlay().shadowMode()) {
         playerAvatar.setArmed(false);
         syncEquippedCamera();
@@ -4661,6 +4676,7 @@ const setPaused = (on: boolean) => {
     unlockPointer();
     holdAllAudio();
     holdClips();
+    music.hold(true);
     scene.animationsEnabled = false;
     resumeBtn.focus({ preventScroll: true });
   } else {
@@ -4668,6 +4684,7 @@ const setPaused = (on: boolean) => {
     scene.animationsEnabled = true;
     releaseAllAudio();
     releaseClips();
+    music.hold(false);
     lockGameplayPointer();
   }
 };
@@ -5578,6 +5595,7 @@ installPhPlaytest({
     footsteps: walkWanted,
     stepCount: footsteps.count(),
     steps: footsteps.events(),
+    music: music.probe(),
   }),
   playSettings: () => gameSettings(),
 });
