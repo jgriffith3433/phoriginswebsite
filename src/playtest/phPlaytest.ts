@@ -1549,6 +1549,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let endPressed = false;
       let defeats = 0;
       let lastAction = '';
+      /** Optional touchables (switch, phone, pole...) already answered once: their prompt stays up while in reach, so walk on past it. */
+      const touchedLabels = new Set<string>();
       let perfChecked = false;
       let phoneCallChecked = false;
       let waitBoardChecked = false;
@@ -1601,11 +1603,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (phone.incoming) { releaseAll(); await once('f', 1500, 'answer call'); t.event('call', phone.speaker || 'incoming'); continue; }
         if (phone.busy) { releaseAll(); continue; }
         const label = probe.action();
-        if (label) {
+        const optional = Boolean(label) && (probe.life?.()?.touchables ?? []).some((x) => x.label === label);
+        if (label && !(optional && touchedLabels.has(label))) {
           releaseAll();
           if (await once('e', 1200, label)) {
             if (label !== lastAction) t.event('action', label);
             lastAction = label;
+            if (optional) touchedLabels.add(label);
             levelSteps += 1;
             mark();
             if (label === 'End Level') endPressed = true;
