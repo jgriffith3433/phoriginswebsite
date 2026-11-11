@@ -4009,8 +4009,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         await sampleChapterTransition(n, false, true);
         t.progress(0.2 + 0.35 * (step++ / steps));
       }
-      probe.phoneFrame(true, true, { w: 844, h: 390 });
-      t.event('phoneFrame', '844x390');
+      // Match the frame to the real viewport: a landscape 844x390 frame inside a portrait phone shrinks to a 0.46 scale box.
+      const portraitView = window.innerHeight > window.innerWidth;
+      probe.phoneFrame(true, !portraitView, portraitView ? { w: 390, h: 844 } : { w: 844, h: 390 });
+      t.event('phoneFrame', portraitView ? '390x844' : '844x390');
       for (let n = 1; n <= 8; n++) {
         await sampleChapterTransition(n, true, true);
         t.progress(0.2 + 0.35 * (step++ / steps));
@@ -4243,7 +4245,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     if (id === 'transition') {
       levelsTotal = 16;
       for (const phone of [false, true]) {
-        if (phone) probe.phoneFrame(true, true, { w: 844, h: 390 });
+        if (phone) {
+          const portraitView = window.innerHeight > window.innerWidth;
+          probe.phoneFrame(true, !portraitView, portraitView ? { w: 390, h: 844 } : { w: 844, h: 390 });
+        }
         for (let n = 1; n <= 8; n++) {
           levelIndex = n - 1 + (phone ? 8 : 0);
           await sampleChapterTransition(n, phone, true);
