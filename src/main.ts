@@ -52,7 +52,7 @@ import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
-import { warmLevelFirstUse } from './game/levelWarm';
+import { warmLevelFirstUse, stopLevelWarm } from './game/levelWarm';
 import { soundFallback } from './game/soundFallback';
 import { createMuzzleFlash } from './game/muzzleFlash';
 import { createPlayerPistol } from './game/pistol';
@@ -2858,6 +2858,8 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
     } else {
       void warm;
     }
+    // Whatever is left of the warm stops here: it must never compile or upload while the level renders.
+    stopLevelWarm();
     beginGame();
   } catch (error) {
     showLoadError('level', error);

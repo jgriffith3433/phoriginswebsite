@@ -75,6 +75,14 @@ const APEX_EXTRA = [
 /** Level 1's scenes (the board meeting, the window, the terminal, the ride down). */
 const APEX_CUTSCENES = ['room-for-grace', 'apex-window', 'apex-terminal', 'elevator-b3'];
 
+/**
+ * Set once the level is running: warming then would compile shaders / upload textures on the render thread
+ * mid-play (multi-second frames on slow GPUs). Every loop below stops at the next step.
+ */
+let stopped = false;
+export const stopLevelWarm = () => { stopped = true; };
+const over = (deadline: number) => stopped || performance.now() >= deadline;
+
 /** Yield until the browser is idle (or the next frame). No polling. */
 export const idleChunk = (budgetMs = 16): Promise<void> =>
   new Promise((resolve) => {
@@ -208,7 +216,7 @@ export const warmLevelAudio = async (path: string, deadline = Infinity): Promise
   let done = await preloadClipsReady(primary, deadline);
   done += await preloadClipsReady(secondary, deadline);
   // Bulk phone scripts: await what fits, fire the rest so decode starts under the card.
-  if (performance.now() < deadline) done += await preloadClipsReady(phoneAll, deadline);
+  if (!over(deadline)) done += await preloadClipsReady(phoneAll, deadline);
   else preloadClips(phoneAll);
   return done;
 };
@@ -221,7 +229,7 @@ export const warmTextures = async (scene: Scene, deadline: number): Promise<numb
   let done = 0;
   const textures = scene.textures.slice();
   for (let i = 0; i < textures.length; i += 1) {
-    if (performance.now() >= deadline) break;
+    if (over(deadline)) break;
     const texture = textures[i];
     if (!texture) continue;
     try {
@@ -243,7 +251,7 @@ export const warmParticles = async (scene: Scene, deadline: number): Promise<num
   const systems = (scene.particleSystems ?? []) as ParticleSystem[];
   let done = 0;
   for (const system of systems) {
-    if (performance.now() >= deadline) break;
+    if (over(deadline)) break;
     try {
       const wasStarted = system.isStarted?.() ?? false;
       if (!wasStarted) system.start();
@@ -264,14 +272,14 @@ export const warmParticles = async (scene: Scene, deadline: number): Promise<num
 /** Instantiate (then dispose) one copy of each cached static-prop GLB so the first mid-level spawn is cheap. */
 export const warmProps = async (scene: Scene, deadline: number): Promise<number> => {
   frameMark('asset-load', 'warm-props');
-  return warmPropSources(scene, deadline);
+  return warmPropSources(scene, deadline, () => stopped);
 };
 
 /** Force-compile every mesh with a material that is not ready yet (hidden ones included). */
 const warmShaders = async (scene: Scene, deadline: number): Promise<number> => {
   let shaders = 0;
   for (const mesh of scene.meshes) {
-    if (performance.now() >= deadline) break;
+    if (over(deadline)) break;
     if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
     if (mesh.isReady(true)) continue;
     frameMark('shader-compile', mesh.name);
@@ -293,7 +301,9 @@ const NO_IGNORE = new Set<AbstractMesh>();
 const warmFadeVariants = async (scene: Scene, deadline: number): Promise<number> => {
   const seen = new Set<Material>();
   const effects = new Set<Effect>();
+  let probed = 0;
   for (const mesh of scene.meshes) {
+    if (over(deadline)) break;
     if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
     // Hidden meshes can fade later too, so do not require `isEnabled()` for the material key; the candidate test does.
     if (!isFadeCandidate(mesh, NO_IGNORE)) continue;
@@ -304,6 +314,8 @@ const warmFadeVariants = async (scene: Scene, deadline: number): Promise<number>
         const material = sub.getMaterial();
         if (!material || seen.has(material)) continue;
         seen.add(material);
+        // Each probe can start a synchronous compile: spread them over frames, not one long task.
+        if (++probed % 4 === 0) await idleChunk(8);
         try {
           material.isReadyForSubMesh(mesh, sub, !!mesh.hasInstances);
         } catch { /* best effort */ }
@@ -331,6 +343,7 @@ const warmFadeVariants = async (scene: Scene, deadline: number): Promise<number>
  */
 export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadline: number) => {
   const started = performance.now();
+  stopped = false;
   frameSetup(true, 'chapter-warm');
   try {
     const audio = await warmLevelAudio(levelPath, deadline);
