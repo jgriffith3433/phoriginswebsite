@@ -6,13 +6,15 @@
  * Work is chunked with requestIdleCallback (rAF fallback) — no setInterval polling.
  * Named hitch causes are pushed via `__phFrameMark` so smoke / hitch-board can say why.
  */
-import type { AbstractMesh, ParticleSystem, Scene } from '@babylonjs/core';
+import type { AbstractMesh, Effect, Material, ParticleSystem, Scene } from '@babylonjs/core';
+import { isFadeCandidate } from './cameraVolumes';
 import phoneCopy from '../story/phone.json';
 import { lineAudio, storyLine, storyLines } from './locale';
 import { APEX_BOARD, APEX_STAFF, PLACE_SFX } from '../story/placeVoices';
 import { TOUCH_SOUNDS } from './touchables';
 import { warmPropSources } from './modelLoader';
 import { preloadClips, preloadClipsReady } from './sfxMix';
+import { loadCutsceneTimeline } from './cutscenes';
 
 const frameMark = (cause: string, detail?: string) => {
   try {
@@ -69,6 +71,9 @@ const APEX_EXTRA = [
   '/assets/audio/sfx/apex/skyline.ogg',
   '/assets/audio/sfx/apex/troffer-flicker.ogg',
 ];
+
+/** Level 1's scenes (the board meeting, the window, the terminal, the ride down). */
+const APEX_CUTSCENES = ['room-for-grace', 'apex-window', 'apex-terminal', 'elevator-b3'];
 
 /** Yield until the browser is idle (or the next frame). No polling. */
 export const idleChunk = (budgetMs = 16): Promise<void> =>
@@ -180,8 +185,11 @@ export const warmLevelAudio = async (path: string, deadline = Infinity): Promise
   const ids = new Set<string>();
   try {
     collectAudio(await (await fetch(path)).json(), primary, ids);
+    // Apex's story scenes start from walk-ups, not always from a trigger in the level file: name them too.
+    if (/apex-peak/i.test(path)) for (const id of APEX_CUTSCENES) ids.add(id);
+    // `loadCutsceneTimeline` caches the parsed timeline, so a scene starting mid-walk does no fetch or JSON parse.
     const docs = await Promise.all(
-      [...ids].map((id) => fetch(`/cutscenes/${id}.json`).then((r) => r.json()).catch(() => null)),
+      [...ids].map((id) => loadCutsceneTimeline(id).catch(() => null)),
     );
     for (const doc of docs) collectAudio(doc, primary, ids);
   } catch {
@@ -275,6 +283,48 @@ const warmShaders = async (scene: Scene, deadline: number): Promise<number> => {
 };
 
 /**
+ * The camera's occlusion fader dims a wall, door frame or prop by lowering `mesh.visibility`. Below 1 the mesh draws in
+ * the alpha-blend pass and its material compiles a second shader (`ALPHABLEND` is a define), so the first time a wall
+ * fades mid-walk the render thread compiled it: a 100+ ms frame. Compile that variant now: each candidate's material is
+ * asked for a ready effect with visibility briefly 0.99 (synchronously, then restored), and we wait for those effects.
+ */
+const FADE_PROBE_VISIBILITY = 0.99;
+const NO_IGNORE = new Set<AbstractMesh>();
+const warmFadeVariants = async (scene: Scene, deadline: number): Promise<number> => {
+  const seen = new Set<Material>();
+  const effects = new Set<Effect>();
+  for (const mesh of scene.meshes) {
+    if (mesh.getTotalVertices() === 0 || !mesh.material) continue;
+    // Hidden meshes can fade later too, so do not require `isEnabled()` for the material key; the candidate test does.
+    if (!isFadeCandidate(mesh, NO_IGNORE)) continue;
+    const before = mesh.visibility;
+    mesh.visibility = FADE_PROBE_VISIBILITY;
+    try {
+      for (const sub of mesh.subMeshes ?? []) {
+        const material = sub.getMaterial();
+        if (!material || seen.has(material)) continue;
+        seen.add(material);
+        try {
+          material.isReadyForSubMesh(mesh, sub, !!mesh.hasInstances);
+        } catch { /* best effort */ }
+        if (sub.effect) effects.add(sub.effect);
+      }
+    } finally {
+      mesh.visibility = before;
+    }
+  }
+  if (effects.size === 0) return 0;
+  frameMark('shader-compile', `fade variants ${effects.size}`);
+  let timer = 0;
+  await Promise.race([
+    Promise.all([...effects].map((effect) => new Promise<void>((resolve) => effect.executeWhenCompiled(() => resolve())))),
+    new Promise<void>((resolve) => { timer = window.setTimeout(resolve, Math.max(0, deadline - performance.now())); }),
+  ]);
+  window.clearTimeout(timer);
+  return effects.size;
+};
+
+/**
  * Full first-use warm while the chapter card is up. Caps at `deadline` so the card does not
  * hang more than about +1.5 s past its natural close. Marked as level-setup so hitchFailOver100
  * does not count warm frames as play hitches.
@@ -295,6 +345,8 @@ export const warmLevelFirstUse = async (scene: Scene, levelPath: string, deadlin
     // A late avatar (night cleaner) may finish its GLB after the first pass — give it one more.
     await idleChunk(16);
     shaders += await warmShaders(scene, deadline);
+    // The alpha-blend variant the occlusion fader switches to, so the first wall that fades does not compile.
+    shaders += await warmFadeVariants(scene, deadline);
     return {
       ms: Math.round(performance.now() - started),
       audio,
