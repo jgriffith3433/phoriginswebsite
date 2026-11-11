@@ -2864,6 +2864,47 @@
       .message .lore-link::after { content: ' \2197'; }
       .message .lore-link:hover, .message .lore-link:focus-visible { color: #fff; }
 
+      /* Level Complete: the run goal's payout (rank, unlocked tool) and the hook into the next level. */
+      .message .reward-entry {
+        margin: 10px 0 4px;
+        padding: 10px 16px;
+        border: 1px solid rgba(212, 180, 131, 0.38);
+        border-left-width: 3px;
+        background: rgba(5, 8, 12, 0.55);
+        text-align: left;
+      }
+      .message .reward-entry .reward-row {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        padding: 3px 0;
+      }
+      .message .reward-entry .reward-row span {
+        flex: 0 0 84px;
+        font-family: var(--hb-sans);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--hb-gold);
+      }
+      .message .reward-entry .reward-row strong { font-size: 16px; font-weight: 500; }
+      .message .reward-entry .reward-row.full strong { color: var(--hb-gold); }
+      .message .reward-entry .reward-hook {
+        margin: 6px 0 0;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #c9d1d8;
+      }
+      .message .reward-entry .reward-hook span {
+        font-family: var(--hb-sans);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--hb-gold);
+        margin-right: 8px;
+      }
+      .mission-row.reward-row strong { color: var(--hb-gold, #d4b483); }
+
       /* Actions are an agenda: numbered rows, the first one set in ivory. */
       .message .button-row {
         counter-reset: agenda;
@@ -3117,6 +3158,23 @@
       }
       .tap-note { font-size: 14px; letter-spacing: 0.08em; color: var(--hb-dim); }
 
+      /* The gate owns the screen: the title card (menu rows, loading line) stays hidden until Tap to play is dismissed. */
+      body:has(#tapToPlay:not([hidden])) .message .panel { visibility: hidden; }
+      .tap-to-play { background: #03060a; }
+      /* One progress line under the button while the level loads; gone once Start works. */
+      .message .load-line {
+        margin: 14px 0 0;
+        font-family: var(--hb-sans);
+        font-size: 14px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--hb-gold-hi, #e6cf9a);
+        text-align: center;
+      }
+      .message .load-line[hidden] { display: none; }
+      .message .subtitle:empty { display: none; }
+      .tap-note { color: #b9c2cb; font-size: 15px; }
+
       /* Turn your phone sideways: touch devices held in portrait (src/game/screenMode.ts). Over the tap prompt, below nothing. */
       .turn-phone {
         position: fixed;
@@ -3367,6 +3425,33 @@
       body.cinematic:is([data-device='mobile'], [data-device='tablet']) #cineHud { right: max(120px, env(safe-area-inset-right, 0px)); }
       body:not(.cinematic):is([data-device='mobile'], [data-device='tablet']) #cineHud { bottom: calc(var(--safe-bottom) + 236px); }
       body:not(.cinematic):is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] #cineHud { bottom: calc(var(--safe-bottom) + 148px); }
+
+      /* ---- Phone pass (critic: phone 4/10): bigger HUD text, a right-hand stack of two or three buttons
+         (Phone duplicates the ☎ action button, Medkit and Inventory live in the Missions / pause flow),
+         and no developer toggle on touch. ---- */
+      body:is([data-device='mobile'], [data-device='tablet']) #devToggle,
+      body:is([data-device='mobile'], [data-device='tablet']) #devPanel { display: none !important; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #phoneHint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #medkitHint,
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) #inventoryHint { display: none; }
+      /* On the street levels Shadow, Ability and Hands are the three; the flashlight is not needed there. */
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open):has(#shadowHint:not([hidden])) #lightHint { display: none; }
+      body:is([data-device='mobile'], [data-device='tablet']) .inventory-hud:not(.open) .phone-hint {
+        min-width: 112px; min-height: 48px; font-size: 14px; letter-spacing: 0.08em; padding: 10px 14px; justify-content: center;
+      }
+      body:is([data-device='mobile'], [data-device='tablet']) .brand { font-size: 12px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .label,
+      body:is([data-device='mobile'], [data-device='tablet']) .ability-kicker,
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-kicker { font-size: 13px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-text { font-size: 20px; line-height: 1.25; }
+      body:is([data-device='mobile'], [data-device='tablet']) .objective-dist { font-size: 15px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .ability-readout strong { font-size: 18px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .missions-hud .phone-hint { font-size: 14px; min-height: 48px; }
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-name,
+      body:is([data-device='mobile'], [data-device='tablet']) .waypoint-dist { font-size: 16px; }
+      /* Landscape grid keeps its three columns but gets room for the larger type. */
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) { grid-template-columns: repeat(3, 100px); }
+      body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) .phone-hint { min-width: 0; font-size: 13px; padding: 6px; }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
@@ -3562,7 +3647,7 @@
           </header>
           <div class="eyebrow" id="messageEyebrow"></div>
           <h1 id="messageTitle">PH Origins</h1>
-          <p class="subtitle" id="messageText">Loading</p>
+          <p class="subtitle" id="messageText"></p>
           <p class="mission-score" id="missionScore" hidden></p>
           <aside class="lore-entry" id="loreEntry" hidden aria-live="polite">
             <div class="lore-kicker" id="loreKicker"></div>
@@ -3570,6 +3655,8 @@
             <p class="lore-text" id="loreText"></p>
             <a class="lore-link" id="loreLink" href="#" target="_blank" rel="noopener"></a>
           </aside>
+
+          <aside class="reward-entry" id="rewardEntry" hidden aria-live="polite"></aside>
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">
@@ -3580,12 +3667,13 @@
           </div>
 
           <div class="button-row">
-            <button class="primary" id="startBtn" disabled aria-busy="true">Loading…</button>
+            <button class="primary" id="startBtn" disabled aria-busy="true">Start</button>
             <button class="secondary" id="newGameBtn" type="button" style="display:none">New Game</button>
             <button class="secondary" id="resetBtn">Reset</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
             <button class="secondary" id="settingsBtn" type="button">Settings</button>
           </div>
+          <p class="load-line" id="loadLine" role="status" aria-live="polite">Loading…</p>
           <a class="build-version" href="/whatsnew.html" target="_blank" rel="noopener" data-hawkes-version data-prefix="Version " hidden></a>
           <footer class="corp-foot" aria-hidden="true"><span>Confidential · Board use only</span><span>HB-58 / NIGHT</span></footer>
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />

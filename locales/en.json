@@ -3998,6 +3998,238 @@
       "text": "On A Television Saying His Name",
       "audio": "",
       "note": "Level 8 left column"
+    },
+    {
+      "id": "reward.1.rank",
+      "type": "ui",
+      "speaker": "Reward 1",
+      "text": "Rank: Director, Sector 4 cleared",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.1.tool",
+      "type": "ui",
+      "speaker": "Reward 1",
+      "text": "B3 clearance badge",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.1.hook",
+      "type": "ui",
+      "speaker": "Reward 1",
+      "text": "The badge still works one floor below the lobby. Further down than the board lists.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "reward.2.rank",
+      "type": "ui",
+      "speaker": "Reward 2",
+      "text": "Rank: Sector 4 survivor",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.2.tool",
+      "type": "ui",
+      "speaker": "Reward 2",
+      "text": "Elevator, B3 to 58",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.2.hook",
+      "type": "ui",
+      "speaker": "Reward 2",
+      "text": "The cab goes up. The office is still lit, and so is the mirror.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "reward.3.rank",
+      "type": "ui",
+      "speaker": "Reward 3",
+      "text": "Rank: Seen in the glass",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.3.tool",
+      "type": "ui",
+      "speaker": "Reward 3",
+      "text": "Bathroom mirror, floor 58",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.3.hook",
+      "type": "ui",
+      "speaker": "Reward 3",
+      "text": "The work is still on the desk. Nobody is going to accept this face.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "reward.4.rank",
+      "type": "ui",
+      "speaker": "Reward 4",
+      "text": "Rank: Walked out",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.4.tool",
+      "type": "ui",
+      "speaker": "Reward 4",
+      "text": "Lobby exit, street level",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.4.hook",
+      "type": "ui",
+      "speaker": "Reward 4",
+      "text": "The street is wide, and it is night. Somebody there will see him first.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "reward.5.rank",
+      "type": "ui",
+      "speaker": "Reward 5",
+      "text": "Rank: Unseen",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.5.tool",
+      "type": "ui",
+      "speaker": "Reward 5",
+      "text": "Shadow mode: Shock, Possess, Consume",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.5.hook",
+      "type": "ui",
+      "speaker": "Reward 5",
+      "text": "The stairs go down to Hawkes St. The open door is the way.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "reward.6.rank",
+      "type": "ui",
+      "speaker": "Reward 6",
+      "text": "Rank: Rider, uptown 6",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.6.tool",
+      "type": "ui",
+      "speaker": "Reward 6",
+      "text": "Fare for one: the 6 train",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.6.hook",
+      "type": "ui",
+      "speaker": "Reward 6",
+      "text": "He is on the train. So is the one that got on before him.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "reward.7.rank",
+      "type": "ui",
+      "speaker": "Reward 7",
+      "text": "Rank: Second to arrive",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.7.tool",
+      "type": "ui",
+      "speaker": "Reward 7",
+      "text": "The apartment key",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.7.hook",
+      "type": "ui",
+      "speaker": "Reward 7",
+      "text": "Three blocks. His hand still knows the lock.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "reward.8.rank",
+      "type": "ui",
+      "speaker": "Reward 8",
+      "text": "Rank: Chairman, one of two",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Rank."
+    },
+    {
+      "id": "reward.8.tool",
+      "type": "ui",
+      "speaker": "Reward 8",
+      "text": "The morning, held",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Unlocked tool."
+    },
+    {
+      "id": "reward.8.hook",
+      "type": "ui",
+      "speaker": "Reward 8",
+      "text": "Somebody has to tell them which one of us walks in.",
+      "audio": "",
+      "note": "Level Complete card: reward block (rank, unlocked tool, hook into the next level). Silent. Hook into the next level. No B3, vat or creature on public pages."
+    },
+    {
+      "id": "ui.reward.goal",
+      "type": "ui",
+      "speaker": "Run goal",
+      "text": "On finish",
+      "audio": "",
+      "note": "Missions panel: label for the reward the level pays out"
+    },
+    {
+      "id": "ui.reward.rank",
+      "type": "ui",
+      "speaker": "Rank",
+      "text": "Rank",
+      "audio": "",
+      "note": "Level Complete card: rank label"
+    },
+    {
+      "id": "ui.reward.unlocked",
+      "type": "ui",
+      "speaker": "Unlocked",
+      "text": "Unlocked",
+      "audio": "",
+      "note": "Level Complete card: unlocked tool label"
+    },
+    {
+      "id": "ui.reward.next",
+      "type": "ui",
+      "speaker": "Next",
+      "text": "Next",
+      "audio": "",
+      "note": "Level Complete card: hook label"
+    },
+    {
+      "id": "ui.reward.full",
+      "type": "ui",
+      "speaker": "Full marks",
+      "text": "Full marks: every side mission done",
+      "audio": "",
+      "note": "Level Complete card: all side missions done"
     }
   ]
 }

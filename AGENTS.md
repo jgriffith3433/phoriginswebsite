@@ -237,6 +237,10 @@ Touch (`body[data-device]` mobile/tablet) controls never overlap and are 44 px o
 
 `src/game/returnToObjective.ts` + `main.ts` (next to Pause). A 1 s timer (no per-frame work) counts real play with no progress: not paused, no card, scene, panel or Settings, tab visible. Progress is a new objective, or getting 1.5 m closer to the objective marker. At **60 s** (`LOST_SECONDS`) `#lostHint` ("Lost? Return to objective", `.action-hint` style, above the crosshair) shows; **R** or a tap returns (R is Reload otherwise). **Pause** has `#pauseReturnBtn` always. Returning fades to black (0.3 s), `safeSpotNear` picks a spot 1.4-4 m from the marker (inside a ground slab, clear of colliders; else the last marker position or the level's start), `placePierce` faces the objective, fade back (0.5 s). Analytics `recovered` (level, objective, positioned, x, z) and feature `lost-prompt`. Playtest `stuck-recovery` (probe `lost()`), at the real viewport, 390x844 and 844x390 (`phoneFrame(true, landscape)`).
 
+## Run goal and reward
+
+`src/game/rewards.ts` + `reward.N.*` lines in `locales/en.json`. The Missions panel's first row (`#missionGoal`, "On finish") names the level's rank and unlocked tool; the Level Complete card (`#rewardEntry`, `showReward` in `main.ts`) shows rank, unlocked tool, "Full marks" when every side mission is done, and a hook into the next level. Probe `showLevelComplete()` is a test shortcut; playtest `living-places` (`rewardGoalCheck`) checks the panel row, the card, no sideways scroll and 44 px card buttons.
+
 ## Lore entries
 
 Level Complete unlocks that chapter's lore entry (`src/game/lore.ts`, `lore: number[]` on `ph-origins-save`): the card shows it with a **Read more** link to `lore/<slug>.html`. Each lore page has **Play this level** (`play/game.html?level=N`; `main.ts` opens the title card on that level). Pages are built by `node tools/buildLore.mjs` from `site/lore.json` + `locales/en.json` (`lore.N.*`). See `docs/story/lore.md`. Playtest: `lore-link`.

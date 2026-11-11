@@ -1,6 +1,6 @@
 import type { PlayerState } from './types';
 import type { SceneTrigger } from './sceneData';
-import { createUnlockedAudio, releaseUnlockedAudio } from './audioUnlock';
+import { playClip, type ClipHandle } from './sfxMix';
 
 export type TriggerHandler = (trigger: SceneTrigger) => void;
 
@@ -89,13 +89,16 @@ export const createTriggerRunner = (onEnter: TriggerHandler) => {
 type MusicVoice = {
   triggerId: string;
   url: string;
-  element: HTMLAudioElement;
+  /** The bed, playing through Web Audio on the music bus (a phone needs no finger down, the probe sees it). */
+  clip: ClipHandle | null;
+  loop: boolean;
   gain: number;
   target: number;
   fade: number;
   peak: number;
-  /** Takes off the error listener that swaps in `data.fallback`. */
-  dropFallback?: () => void;
+  /** Last level sent to the clip, so the per-frame update only touches the graph when it changes. */
+  sent: number;
+  fellBack: boolean;
 };
 
 export const createMusicTriggerPlayer = () => {
@@ -106,10 +109,9 @@ export const createMusicTriggerPlayer = () => {
   let duckTarget = 1;
   const voices = new Map<string, MusicVoice>();
 
-  // Back to the pool: a reused gesture-primed element still starts on a phone with no finger down.
   const stopVoice = (voice: MusicVoice) => {
-    voice.dropFallback?.();
-    releaseUnlockedAudio(voice.element);
+    voice.clip?.stop(0.2);
+    voice.clip = null;
   };
 
   const stopAll = () => {
@@ -124,6 +126,21 @@ export const createMusicTriggerPlayer = () => {
     stopAll();
   };
 
+  const startClip = (voice: MusicVoice, trigger: SceneTrigger, url: string) => {
+    const fallback = musicTriggerFallback(trigger);
+    voice.sent = -1;
+    voice.clip = playClip(url, 0, {
+      loop: voice.loop,
+      bus: 'music',
+      // The bed's own file is missing or will not decode: loop the stand-in instead.
+      onError: () => {
+        if (voices.get(trigger.id) !== voice || voice.fellBack) return;
+        voice.fellBack = true;
+        if (fallback && fallback !== url) startClip(voice, trigger, fallback);
+      },
+    });
+  };
+
   const ensureVoice = (trigger: SceneTrigger): MusicVoice | null => {
     const url = musicTriggerAudio(trigger);
     if (!url) return null;
@@ -131,43 +148,26 @@ export const createMusicTriggerPlayer = () => {
     if (existing && existing.url === url) {
       existing.fade = triggerFadeSeconds(trigger);
       existing.peak = triggerPeakVolume(trigger);
-      existing.element.loop = trigger.data?.loop !== false;
+      existing.loop = trigger.data?.loop !== false;
       return existing;
     }
     if (existing) stopVoice(existing);
 
-    const element = createUnlockedAudio(url, 'music');
-    element.loop = trigger.data?.loop !== false;
-    element.volume = 0;
     const voice: MusicVoice = {
       triggerId: trigger.id,
       url,
-      element,
+      clip: null,
+      loop: trigger.data?.loop !== false,
       gain: 0,
       target: 0,
       fade: triggerFadeSeconds(trigger),
       peak: triggerPeakVolume(trigger),
+      sent: -1,
+      fellBack: false,
     };
-    const fallback = musicTriggerFallback(trigger);
-    if (fallback && fallback !== url) {
-      // The bed's own file is missing or broken: play the stand-in on the same primed element.
-      const swap = () => {
-        element.removeEventListener('error', swap);
-        if (voices.get(trigger.id) !== voice) return;
-        element.src = fallback;
-        if (voice.target > 0) void element.play().catch(() => {});
-      };
-      element.addEventListener('error', swap);
-      voice.dropFallback = () => element.removeEventListener('error', swap);
-    }
     voices.set(trigger.id, voice);
+    startClip(voice, trigger, url);
     return voice;
-  };
-
-  const startIfNeeded = (voice: MusicVoice) => {
-    if (!voice.element.paused) return;
-    voice.element.volume = 0;
-    void voice.element.play().catch(() => {});
   };
 
   const setActive = (nextId: string | null) => {
@@ -189,7 +189,6 @@ export const createMusicTriggerPlayer = () => {
       return;
     }
     voice.target = 1;
-    startIfNeeded(voice);
   };
 
   const update = (
@@ -228,9 +227,11 @@ export const createMusicTriggerPlayer = () => {
       if (Math.abs(voice.target - voice.gain) <= deltaGain) voice.gain = voice.target;
       else voice.gain += Math.sign(voice.target - voice.gain) * deltaGain;
 
-      voice.element.volume = Math.max(0, Math.min(1, voice.gain * voice.peak * duck));
-
-      if (voice.target > 0 && voice.gain > 0) startIfNeeded(voice);
+      const level = Math.max(0, Math.min(1, voice.gain * voice.peak * duck));
+      if (voice.clip && Math.abs(level - voice.sent) > 0.002) {
+        voice.clip.setVolume(level);
+        voice.sent = level;
+      }
 
       if (voice.target <= 0 && voice.gain <= 0 && id !== activeId) {
         stopVoice(voice);
@@ -239,5 +240,5 @@ export const createMusicTriggerPlayer = () => {
     });
   };
 
-  return { bind, update, stop: stopAll, active: () => activeId, playing: () => [...voices.values()].some((v) => !v.element.paused && v.gain > 0.001) };
+  return { bind, update, stop: stopAll, active: () => activeId, playing: () => [...voices.values()].some((v) => !!v.clip && !v.clip.done() && v.gain > 0.001) };
 };
