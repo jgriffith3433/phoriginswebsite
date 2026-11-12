@@ -2,8 +2,10 @@
  * On-screen speakers talk with a face: analyser-driven lip flap, blinks, head/eye
  * look-at, and upper-body dialogue gestures. Mixamo rigs rarely ship a Jaw bone or
  * mouth morphs, so the mouth is Head pitch (+ Jaw when present) driven from the
- * live voice meter in sfxMix. Gestures are procedural bone layers (Gen clips can
- * replace them later). Phone: lip-sync + gaze stay on; cost stays under ~2 ms.
+ * live voice meter in sfxMix. Gestures prefer Gen clips (GestureExplain / Lean /
+ * Cross / Nod / Shake / Point baked onto the seat GLB via tools/bakeLocoClips.mjs);
+ * when a clip is missing the same moves are procedural bone layers. Phone: lip-sync
+ * + gaze stay on; cost stays under ~2 ms.
  */
 import * as BABYLON from '@babylonjs/core';
 
@@ -71,9 +73,14 @@ type FaceRig = {
   gestureT: number;
   gestureAge: number;
   gesturesSeen: FaceGesture[];
+  /** True while a baked Gesture* AnimationGroup is driving the upper body. */
+  gestureClip: boolean;
   speaking: boolean;
   speakUrl: string;
 };
+
+const gestureClipKeyword = (g: FaceGesture): string =>
+  `gesture${g.charAt(0).toUpperCase()}${g.slice(1)}`;
 
 const HEAD_YAW_CAP = (60 * Math.PI) / 180;
 const HEAD_PITCH_CAP = (28 * Math.PI) / 180;
@@ -195,6 +202,7 @@ const ensure = (id: string, avatar: PlayerAvatar): FaceRig => {
     gestureT: 0,
     gestureAge: 0,
     gesturesSeen: [],
+    gestureClip: false,
     speaking: false,
     speakUrl: '',
   };
@@ -245,12 +253,23 @@ export const faceSpeak = (actorId: string, url = '', holdSeconds = 8) => {
   rig.speakUrl = url;
   // Kick a fresh gesture when a new line starts.
   if (!rig.gesture || rig.gestureAge > 0.4) {
-    const next = pickGesture(actorId);
-    rig.gesture = next;
-    rig.gestureT = 0;
-    rig.gestureAge = 0;
-    if (!rig.gesturesSeen.includes(next)) rig.gesturesSeen.push(next);
+    startGesture(rig, pickGesture(actorId));
   }
+};
+
+const startGesture = (rig: FaceRig, next: FaceGesture) => {
+  rig.gesture = next;
+  rig.gestureT = 0;
+  rig.gestureAge = 0;
+  if (!rig.gesturesSeen.includes(next)) rig.gesturesSeen.push(next);
+  // Prefer a baked upper-body clip when the seat GLB has it; else procedural.
+  // Always clear a prior overlay first so a partial bake cannot leave a stale clip under arms.
+  rig.avatar.stopFaceGesture?.();
+  const played = !!rig.avatar.playFaceGesture?.(gestureClipKeyword(next), () => {
+    // Clip finished before GESTURE_HOLD: drop the flag so procedural (or the next pick) can run.
+    if (rig.gesture === next) rig.gestureClip = false;
+  });
+  rig.gestureClip = played;
 };
 
 const pickGesture = (id: string): FaceGesture => {
@@ -386,11 +405,7 @@ export const updateFaces = (
       // Rotate gestures while a line is long enough.
       rig.gestureAge += dt;
       if (!rig.gesture || rig.gestureAge >= GESTURE_HOLD) {
-        const next = pickGesture(rig.id);
-        rig.gesture = next;
-        rig.gestureT = 0;
-        rig.gestureAge = 0;
-        if (!rig.gesturesSeen.includes(next)) rig.gesturesSeen.push(next);
+        startGesture(rig, pickGesture(rig.id));
       } else {
         rig.gestureT = Math.min(1, rig.gestureT + dt / GESTURE_BLEND);
       }
@@ -402,7 +417,11 @@ export const updateFaces = (
       }
       if (rig.gesture) {
         rig.gestureT = Math.max(0, rig.gestureT - dt / GESTURE_BLEND);
-        if (rig.gestureT <= 0) rig.gesture = null;
+        if (rig.gestureT <= 0) {
+          if (rig.gestureClip) rig.avatar.stopFaceGesture?.();
+          rig.gesture = null;
+          rig.gestureClip = false;
+        }
       }
     }
 
@@ -491,7 +510,8 @@ export const applyFaces = (): number => {
       if (rig.rightEye) rig.rightEye.node.scaling.y = 1;
     }
 
-    if (rig.gesture && rig.gestureT > 0) {
+    // Baked Gesture* clips already own the upper body; only layer procedural when missing.
+    if (rig.gesture && rig.gestureT > 0 && !rig.gestureClip) {
       const w = gestureWeights(rig.gesture, clamp(rig.gestureAge / GESTURE_HOLD, 0, 1));
       const t = rig.gestureT;
       applyLocal(rig.spine, 0, w.spine * t, 0);
