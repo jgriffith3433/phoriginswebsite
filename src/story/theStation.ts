@@ -119,6 +119,8 @@ const T_LEFT = 18.9;
 const T_STRIKE = T_LEFT + LINE_LEFT.hold + 0.4;
 const BOARD_SPEED = 2.7;
 const STRIKE_LIMIT = 8;
+/** The whole platform scene never runs past this, whatever a beat is waiting for. */
+const SCENE_HARD_CAP = 70;
 
 type Figure = {
   mesh: BABYLON.Mesh;
@@ -532,6 +534,12 @@ export const createTheStation = (host: TheStationHost) => {
       return;
     }
     sceneTime += dt;
+    // Per-beat fallbacks: a missing figure must not leave the scene waiting for a beat that cannot happen.
+    if (shadePhase !== 'gone' && sceneTime > T_STRIKE + STRIKE_LIMIT + 2) poofShade();
+    if (sceneTime > SCENE_HARD_CAP) {
+      handoff();
+      return;
+    }
     const man = figures.find((figure) => figure.role === 'man');
     const shade = figures.find((figure) => figure.role === 'shade');
     const twin = figures.find((figure) => figure.role === 'double');

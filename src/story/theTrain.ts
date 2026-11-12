@@ -827,6 +827,9 @@ export const createTheTrain = (host: TheTrainHost) => {
     host.refreshHud();
   };
 
+  /** The stop scene never runs longer than this, whatever beat it is waiting on. */
+  const STOP_HARD_CAP = 70;
+
   const stopShot = (dt = 0.016) => {
     if (host.stepCineScene) {
       const spk = said.has(L_BACK.id) || said.has(L_WAIT.id)
@@ -932,6 +935,12 @@ export const createTheTrain = (host: TheTrainHost) => {
       } else {
         putFigure(commuter, cx, cz, 0, true);
       }
+    }
+    // Per-beat fallbacks: a figure that never loaded, or a line that never ends, must not hold the stop forever.
+    if (walkOutAt >= 0 && goneAt < 0 && (!double || double.gone || sceneTime > walkOutAt + 8)) goneAt = sceneTime;
+    if (sceneTime > STOP_HARD_CAP) {
+      endStop();
+      return;
     }
     if (walkOutAt >= 0) cue(L_WAIT, walkOutAt + 0.5);
     if (goneAt >= 0) {
