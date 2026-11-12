@@ -213,6 +213,82 @@ const paintAtlas = (scene: BABYLON.Scene) => {
       ctx.strokeRect(x + 6, y + 6, w - 12, h - 12);
     });
   };
+  // Hawkes Biomedical product posters (public line only), award plaques and the memo board.
+  const posters: [string, string, string, string][] = [
+    ['CARDIVEX', 'Heart, steadied.', '#10233f', '#d9b25f'],
+    ['NEUROLITH', 'Clear thought. Every day.', '#14302f', '#bfe3d8'],
+    ['VIREON', 'Defence, rebuilt.', '#2a1a33', '#e8c7a0'],
+    ['AURELIA', 'Rest, restored.', '#1d2a44', '#f1e4c8'],
+  ];
+  posters.forEach(([name, tag, bg, fg], i) => {
+    cell(`poster-${i}`, 192, 256, (x, y) => {
+      ctx.fillStyle = bg;
+      ctx.fillRect(x, y, 192, 256);
+      const g = ctx.createRadialGradient(x + 96, y + 100, 6, x + 96, y + 100, 90);
+      g.addColorStop(0, fg);
+      g.addColorStop(1, bg);
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, 192, 200);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = fg;
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 6; k += 1) {
+        const a = (k / 6) * Math.PI * 2 + i;
+        ctx.beginPath();
+        ctx.arc(x + 96 + Math.cos(a) * 34, y + 100 + Math.sin(a) * 34, 10, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = fg;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 26px Georgia, serif';
+      ctx.fillText(name, x + 96, y + 196, 176);
+      ctx.font = 'italic 13px Georgia, serif';
+      ctx.fillText(tag, x + 96, y + 220, 176);
+      ctx.font = '9px Georgia, serif';
+      ctx.fillText('H A W K E S   B I O M E D I C A L', x + 96, y + 240, 176);
+    });
+  });
+  const award = (key: string, line1: string, line2: string) =>
+    cell(key, 320, 112, (x, y) => {
+      ctx.fillStyle = '#1a1612';
+      ctx.fillRect(x, y, 320, 112);
+      ctx.strokeStyle = '#c9a868';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 6, y + 6, 308, 100);
+      ctx.fillStyle = '#c9a868';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 22px Georgia, serif';
+      ctx.fillText(line1, x + 160, y + 40, 290);
+      ctx.font = '15px Georgia, serif';
+      ctx.fillText(line2, x + 160, y + 76, 290);
+    });
+  award('award-0', 'INNOVATION IN MEDICINE', 'Hawkes Biomedical, 2019');
+  award('award-1', 'BEST PLACE TO WORK', 'Pharma Leaders Forum, 2022');
+  cell('memo', 256, 192, (x, y) => {
+    ctx.fillStyle = '#7a5a3a';
+    ctx.fillRect(x, y, 256, 192);
+    ctx.fillStyle = '#a07a4e';
+    ctx.fillRect(x + 8, y + 8, 240, 176);
+    const notes: [number, number, number, number, string][] = [
+      [18, 20, 96, 70, '#f1ead2'],
+      [130, 16, 100, 56, '#e8d27a'],
+      [26, 100, 80, 70, '#dfe8ee'],
+      [120, 88, 112, 80, '#f1ead2'],
+    ];
+    notes.forEach(([nx, ny, nw, nh, c], k) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(x + nx, y + ny, nw, nh);
+      ctx.fillStyle = '#b02e2e';
+      ctx.beginPath();
+      ctx.arc(x + nx + nw / 2, y + ny + 6, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4a4a4a';
+      for (let l = 0; l < 4; l += 1) ctx.fillRect(x + nx + 8, y + ny + 18 + l * 10 + k, nw - 16 - ((l * 13 + k * 7) % 24), 2);
+    });
+  });
   sign('exit', 256, 96, '#0b5d2a', '#eaffef', 'EXIT');
   sign('biohazard', 320, 200, '#f2c300', '#111', '☣ BIOHAZARD', { sub: 'AUTHORIZED PERSONNEL ONLY' });
   sign('acid', 320, 200, '#f2c300', '#111', 'DANGER', { sub: 'CORROSIVE — FULL PPE', stripe: true });
