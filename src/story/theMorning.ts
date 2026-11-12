@@ -6,6 +6,7 @@ import { TRANSFORM_HERO_ASSET_ID } from '../game/modelLoader';
 import { DOUBLE_LAYER } from './bathroomMirror';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { voiceBusy } from '../game/sfxMix';
+import { deathsBucket, ledgerBand, type LedgerApi, type LedgerBand } from '../game/ledger';
 import type { StoryCarry } from './act1';
 
 /**
@@ -27,6 +28,8 @@ import type { StoryCarry } from './act1';
  */
 
 export type MorningHost = {
+  /** The street ledger on the save: picks the TV report, the newspaper headline and Voss's call. */
+  ledger: LedgerApi;
   scene: BABYLON.Scene;
   placePierce: (x: number, z: number, yaw: number) => void;
   /** Lie Pierce flat on his back at this spot (feet end at x, z), or stand him up again. */
@@ -75,6 +78,14 @@ export type MorningStory = {
   mirrorShadow: boolean;
   coatTaken: boolean;
   push: number;
+  /** The street ledger as this morning read it: band 0 no one hurt, 1 injuries, 2 deaths, and the kill count. */
+  band: number;
+  kills: number;
+  /** The id of the fourth TV report (the one the ledger changes) once it has played. */
+  report: string;
+  /** The newspaper on the table: its headline, and whether the player read it. */
+  paper: string;
+  paperRead: boolean;
 };
 
 export const ENDING_TRACK = '/assets/audio/ending-6.mp3';
@@ -87,6 +98,9 @@ const WATCH = { x: 3.2, z: -0.4 };
 const DOOR = { x: 1.2, z: 2.7 };
 const MIRROR = { x: 2.35, y: 1.3, z: 2.94 };
 const COAT = { x: 3.45, z: 2.45 };
+/** The newspaper on the coffee table (top at y 0.4) and where he stands to read it. */
+const PAPER = { x: 3.2, y: 0.408, z: -1.3 };
+const READ_AT = { x: 3.2, z: -0.4 };
 /** How far the front door opens on Leave, in radians. */
 const DOOR_SWING = 1.3;
 /** Where the bot and the marker stand to use the door. */
@@ -119,7 +133,46 @@ const FALLBACK_NEWS = [
   'Police were at Hawkes Tower overnight. No one was hurt.',
 ];
 
-const caption = (index: number) => lineText(NEWS_CAPTIONS[index], FALLBACK_NEWS[index]);
+/** The fourth report is the one the ledger changes: no one hurt, injuries, or deaths with a count (docs/story/ledger.md). */
+const REPORT_FALLBACK: Record<string, string> = {
+  'news.morning.04': FALLBACK_NEWS[3],
+  'news.morning.04.b1': 'Police were at Hawkes Tower overnight. One man was taken to hospital from the avenue.',
+  'news.morning.04.d2': 'Police were at Hawkes Tower overnight. Two people died on the avenue.',
+  'news.morning.04.d3': 'Police were at Hawkes Tower overnight. Three people died on the avenue.',
+  'news.morning.04.d4': 'Police were at Hawkes Tower overnight. Four people died on the avenue.',
+  'news.morning.04.d5': 'Police were at Hawkes Tower overnight. Five or more people died on the avenue. Police are asking who was there.',
+};
+const TICK_FALLBACK: Record<string, string> = {
+  'news.morning.tick.4': 'POLICE: NO ONE HURT AT HAWKES TOWER',
+  'news.morning.tick.4.b1': 'POLICE: ONE MAN TO HOSPITAL FROM TOWER AVENUE',
+  'news.morning.tick.4.d2': 'POLICE: TWO DEAD ON TOWER AVENUE',
+  'news.morning.tick.4.d3': 'POLICE: THREE DEAD ON TOWER AVENUE',
+  'news.morning.tick.4.d4': 'POLICE: FOUR DEAD ON TOWER AVENUE',
+  'news.morning.tick.4.d5': 'POLICE: FIVE OR MORE DEAD ON TOWER AVENUE',
+};
+const PAPER_FALLBACK: Record<string, string> = {
+  b0: 'A QUIET NIGHT\nON TOWER AVENUE\nHawkes chairman out. Police found no one hurt.',
+  b1: 'MAN TAKEN TO\nHOSPITAL ON AVENUE\nPolice ask who was on Tower Avenue last night.',
+  d2: 'TWO DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.',
+  d3: 'THREE DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.',
+  d4: 'FOUR DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.',
+  d5: 'FIVE OR MORE DEAD\nON TOWER AVENUE\nPolice: no weapon, no suspect.',
+};
+/** Which variant the ledger picks: b0, b1, or d2..d5 (deaths, with the count). */
+const variantOf = (band: LedgerBand, kills: number) => (band === 0 ? 'b0' : band === 1 ? 'b1' : `d${deathsBucket(kills)}`);
+const reportId = (variant: string) => (variant === 'b0' ? 'news.morning.04' : `news.morning.04.${variant}`);
+const tickId = (variant: string) => (variant === 'b0' ? 'news.morning.tick.4' : `news.morning.tick.4.${variant}`);
+const REACT_ID: Record<string, string> = { b0: 'dialogue.morning.paper.b0', b1: 'dialogue.morning.paper.b1', d: 'dialogue.morning.paper.b2' };
+const REACT_HOLD = 3.4;
+
+const caption = (index: number, variant = 'b0') => {
+  if (index === 3) {
+    const id = reportId(variant);
+    return lineText(id, REPORT_FALLBACK[id]);
+  }
+  return lineText(NEWS_CAPTIONS[index], FALLBACK_NEWS[index]);
+};
+const captionKey = (index: number, variant: string) => (index === 3 ? reportId(variant) : NEWS_CAPTIONS[index]);
 const holdFor = (text: string) => Math.max(3, text.length / 16 + 1.4);
 
 const mat = (scene: BABYLON.Scene, name: string, r: number, g: number, b: number, emissive = 0) => {
@@ -139,6 +192,18 @@ export const createTheMorning = (host: MorningHost) => {
   let flags = new Set<string>();
   let tvOn = false;
   let tvSeen: string[] = [];
+  let paperMesh: BABYLON.Mesh | null = null;
+  let paperText = '';
+  let paperRead = false;
+  let reading = 0;
+  let readLine = '';
+  let reportSeen = '';
+  let snap = { band: 0 as LedgerBand, kills: 0 };
+  const variant = () => variantOf(snap.band, snap.kills);
+  const readLedger = () => {
+    const now = host.ledger.get();
+    snap = { band: ledgerBand(now), kills: now.kills };
+  };
   let captionsShown = 0;
   let callDone = false;
   let rang = false;
@@ -271,7 +336,9 @@ export const createTheMorning = (host: MorningHost) => {
     ctx.fillRect(0, H - 52, W, 52);
     ctx.fillStyle = '#e9c46a';
     ctx.font = 'bold 20px Arial, sans-serif';
-    const t = lineText(TICKERS[Math.floor(newsT / 3) % TICKERS.length], 'HAWKES BIOMEDICAL REMOVES FOUNDER AS CHAIRMAN');
+    const tickIndex = Math.floor(newsT / 3) % TICKERS.length;
+    const tid = tickIndex === 3 ? tickId(variant()) : TICKERS[tickIndex];
+    const t = lineText(tid, TICK_FALLBACK[tid] ?? 'HAWKES BIOMEDICAL REMOVES FOUNDER AS CHAIRMAN');
     ctx.fillText(t, 12, H - 28);
     ctx.fillStyle = '#fff';
     ctx.font = '13px Arial, sans-serif';
@@ -279,6 +346,47 @@ export const createTheMorning = (host: MorningHost) => {
     if (!tvSeen.includes(head)) tvSeen.push(head);
     if (!tvSeen.includes(t)) tvSeen.push(t);
     tvTexture.update();
+  };
+
+  /** The newspaper on the coffee table. Headline by ledger band; big type so a phone reads it up close. */
+  let paperTex: BABYLON.DynamicTexture | null = null;
+  const drawPaper = () => {
+    if (!paperTex) return;
+    const v = variant();
+    const id = `news.morning.paper.${v}`;
+    paperText = lineText(id, PAPER_FALLBACK[v]);
+    const ctx = paperTex.getContext() as CanvasRenderingContext2D;
+    const W = 512;
+    const H = 384;
+    ctx.fillStyle = '#e6dfcd';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(14, 14, W - 28, 5);
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 30px Georgia, serif';
+    ctx.fillText('THE CITY LEDGER', W / 2, 52);
+    ctx.fillRect(14, 64, W - 28, 3);
+    const [head1, head2, sub] = paperText.split('\n');
+    ctx.font = 'bold 54px Georgia, serif';
+    ctx.fillText(head1 ?? '', W / 2, 140, W - 40);
+    ctx.fillText(head2 ?? '', W / 2, 202, W - 40);
+    ctx.font = '25px Georgia, serif';
+    ctx.fillStyle = '#2a2a2a';
+    const words = (sub ?? '').split(' ');
+    let row = '';
+    let y = 262;
+    for (const word of words) {
+      if ((row + word).length > 34) {
+        ctx.fillText(row.trim(), W / 2, y);
+        row = '';
+        y += 32;
+      }
+      row += `${word} `;
+    }
+    ctx.fillText(row.trim(), W / 2, y);
+    ctx.fillStyle = '#9a9484';
+    for (let i = 0; i < 3; i++) ctx.fillRect(40, 330 + i * 12, W - 80, 4);
+    paperTex.update();
   };
 
   const setTv = (on: boolean, next: typeof still) => {
@@ -417,6 +525,21 @@ export const createTheMorning = (host: MorningHost) => {
     screen.material = tvMaterial;
     screen.isPickable = false;
     owned.push(screen);
+    // The newspaper lies on the coffee table (table top y 0.4), headline up toward the sofa.
+    paperTex = new BABYLON.DynamicTexture('morning-paper', { width: 512, height: 384 }, s, true);
+    owned.push(paperTex);
+    const paperMat = new BABYLON.StandardMaterial('morning-paper-mat', s);
+    paperMat.diffuseTexture = paperTex;
+    paperMat.emissiveTexture = paperTex;
+    paperMat.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+    paperMat.specularColor = BABYLON.Color3.Black();
+    owned.push(paperMat);
+    paperMesh = BABYLON.MeshBuilder.CreatePlane('morning-paper', { width: 0.56, height: 0.42 }, s);
+    paperMesh.position.set(PAPER.x, PAPER.y, PAPER.z);
+    paperMesh.rotation.set(Math.PI / 2, Math.PI, 0);
+    paperMesh.material = paperMat;
+    paperMesh.isPickable = false;
+    owned.push(paperMesh);
     // Sofa and a coffee table in front of it; the chair by the window with a coat on it.
     box('morning-sofa', 3.2, 0.3, 0.6, 2.0, 0.6, 0.85, cloth, true);
     box('morning-sofa-back', 3.2, 0.7, 1.0, 2.0, 0.5, 0.2, cloth);
@@ -466,6 +589,8 @@ export const createTheMorning = (host: MorningHost) => {
     lamps.length = 0;
     tvTexture = null;
     tvMaterial = null;
+    paperTex = null;
+    paperMesh = null;
     windowMaterial = null;
     led = null;
   };
@@ -560,6 +685,26 @@ export const createTheMorning = (host: MorningHost) => {
     time = 0;
     lineUntil = 0;
     flags.add('hand-due');
+  };
+
+  /** Reading the paper: the camera comes down to the table, the headline is up, Pierce says what he makes of it. */
+  const beginRead = () => {
+    reading = REACT_HOLD + 1.4;
+    paperRead = true;
+    host.holdScene(true);
+    host.clearInput();
+    host.setWalk(false);
+    host.placePierce(READ_AT.x, READ_AT.z, Math.PI);
+    host.playClip('rebornidle', true);
+    host.playFile(PLACE_SFX.paper, 0.5);
+    const v = variant();
+    const id = v === 'b0' ? REACT_ID.b0 : v === 'b1' ? REACT_ID.b1 : REACT_ID.d;
+    const [head1, head2] = paperText.split('\n');
+    host.showLine(lineText('news.morning.paper.title', 'The City Ledger'), `${head1} ${head2 ?? ''}`.trim());
+    const url = lineAudio(id);
+    if (url) host.playFile(url, 0.9);
+    if (snap.band > 0) host.ledger.add('reported');
+    readLine = id;
   };
 
   const stepIntro = () => {
@@ -668,16 +813,21 @@ export const createTheMorning = (host: MorningHost) => {
     let shown = -1;
     for (let i = 0; i < NEWS_CAPTIONS.length; i++) {
       if (time >= at) shown = i;
-      at += holdFor(caption(i));
+      at += holdFor(caption(i, variant()));
     }
     const total = at;
     if (shown >= 0 && shown + 1 > captionsShown) {
       captionsShown = shown + 1;
       still = NEWS_STILLS[shown];
-      host.showLine(lineSpeaker(NEWS_CAPTIONS[shown], 'Morning News'), caption(shown));
+      const key = captionKey(shown, variant());
+      host.showLine(lineSpeaker(key, 'Morning News'), caption(shown, variant()));
       // Each lower third is read by the anchor once its take exists.
-      const read = lineAudio(NEWS_CAPTIONS[shown]);
+      const read = lineAudio(key);
       if (read) host.playFile(read, 0.85);
+      if (shown === 3) {
+        reportSeen = key;
+        if (snap.band > 0) host.ledger.add('reported');
+      }
     }
     if (time >= total && !flags.has('without')) {
       flags.add('without');
@@ -770,6 +920,7 @@ export const createTheMorning = (host: MorningHost) => {
       if (beat === 'news' && near({ x: TV.x, z: -1.2 }, 1.9)) return lineText('ui.action.morning.watch', 'Watch');
       if (beat === 'out' && near(COAT, 1.1)) return lineText('ui.action.morning.coat', 'Take coat');
       if (beat === 'door' && near(DOOR, 1.3)) return lineText('ui.action.morning.leave', 'Leave');
+      if ((beat === 'call' || beat === 'out') && !reading && !paperRead && near(READ_AT, 1.1)) return lineText('ui.action.morning.paper', 'Read the paper');
       return null;
     },
     confirm: () => {
@@ -789,6 +940,10 @@ export const createTheMorning = (host: MorningHost) => {
       }
       if (beat === 'door' && near(DOOR, 1.3)) {
         beginScene('leaving');
+        return true;
+      }
+      if ((beat === 'call' || beat === 'out') && !reading && !paperRead && near(READ_AT, 1.1)) {
+        beginRead();
         return true;
       }
       return false;
@@ -812,6 +967,11 @@ export const createTheMorning = (host: MorningHost) => {
       mirrorShadow,
       coatTaken,
       push,
+      band: snap.band,
+      kills: snap.kills,
+      report: reportSeen,
+      paper: paperText,
+      paperRead,
     }),
     dispose: () => {
       active = false;
@@ -826,7 +986,9 @@ export const createTheMorning = (host: MorningHost) => {
      */
     prepare: () => {
       clearRoom();
+      readLedger();
       build();
+      drawPaper();
       prepared = true;
     },
     onStart: () => {
@@ -852,8 +1014,13 @@ export const createTheMorning = (host: MorningHost) => {
       push = 0;
       host.setPush(0);
       if (hookCoat) hookCoat.setEnabled(true);
+      paperRead = false;
+      reading = 0;
+      reportSeen = '';
+      readLedger();
       host.setCarry(carryItems('morning', CARRY));
       if (!prepared) build();
+      drawPaper();
       prepared = false;
       host.lie(false, 0, 0, 0, 0);
       host.placePierce(START.x, START.z, START.yaw);
@@ -880,6 +1047,22 @@ export const createTheMorning = (host: MorningHost) => {
         if (beat === 'out' || beat === 'door') pushT = Math.min(18, pushT + dt);
         push = beat === 'out' || beat === 'door' ? pushT / 18 : 0;
         host.setPush(push);
+        if (reading > 0) {
+          reading -= dt;
+          // Close on the table: the paper (0.56 m) must fill a phone's narrow view, so the distance follows the aspect.
+          const cam = host.scene.activeCamera as BABYLON.FreeCamera | null;
+          const eng = host.scene.getEngine();
+          const aspect = Math.max(0.3, eng.getRenderWidth() / Math.max(1, eng.getRenderHeight()));
+          const fov = cam?.fov ?? 0.8;
+          const d = Math.max(1.0, Math.min(1.7, 0.78 / (2 * Math.tan(fov / 2) * aspect)));
+          host.frameCamera({ x: PAPER.x, y: PAPER.y + d * 0.84, z: PAPER.z + d * 0.54 }, { x: PAPER.x, y: PAPER.y, z: PAPER.z - 0.02 });
+          if (reading <= 0) {
+            reading = 0;
+            host.showLine('', '');
+            control();
+          }
+          return;
+        }
         // Free play. Static on the TV flickers; the first line comes once control is his.
         if (tvOn && still === 'static') {
           tvClock += dt;

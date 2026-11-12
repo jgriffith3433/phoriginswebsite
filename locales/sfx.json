@@ -1345,6 +1345,151 @@
       "influence": 0.5,
       "volume": 0.8,
       "note": "Stinger fired by the music director (tv-news). Not yet generated."
+    },
+    {
+      "id": "sfx.power.shock-1",
+      "group": "power",
+      "text": "Violent dark electric arc crackle with a low thump, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/power/shock-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature shock take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.shock-2",
+      "group": "power",
+      "text": "Violent dark electric arc crackle with a low thump, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/power/shock-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature shock take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.shock-3",
+      "group": "power",
+      "text": "Violent dark electric arc crackle with a low thump, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/power/shock-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature shock take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.possess-1",
+      "group": "power",
+      "text": "Dark smoke tendril slithering into a body, low sub drone, eerie, short, no words.",
+      "audio": "/assets/audio/sfx/power/possess-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature possess take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.possess-2",
+      "group": "power",
+      "text": "Dark smoke tendril slithering into a body, low sub drone, eerie, short, no words.",
+      "audio": "/assets/audio/sfx/power/possess-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature possess take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.possess-3",
+      "group": "power",
+      "text": "Dark smoke tendril slithering into a body, low sub drone, eerie, short, no words.",
+      "audio": "/assets/audio/sfx/power/possess-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature possess take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.consume-1",
+      "group": "power",
+      "text": "Monstrous draining suction, energy pulled into a chest, rising hum then a heavy thud, short.",
+      "audio": "/assets/audio/sfx/power/consume-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature consume take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.consume-2",
+      "group": "power",
+      "text": "Monstrous draining suction, energy pulled into a chest, rising hum then a heavy thud, short.",
+      "audio": "/assets/audio/sfx/power/consume-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature consume take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.consume-3",
+      "group": "power",
+      "text": "Monstrous draining suction, energy pulled into a chest, rising hum then a heavy thud, short.",
+      "audio": "/assets/audio/sfx/power/consume-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature consume take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.punch-1",
+      "group": "power",
+      "text": "Heavy fist punch hitting a body, meaty thud with a sharp slap, short, no voices.",
+      "audio": "/assets/audio/sfx/power/punch-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature punch take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.punch-2",
+      "group": "power",
+      "text": "Heavy fist punch hitting a body, meaty thud with a sharp slap, short, no voices.",
+      "audio": "/assets/audio/sfx/power/punch-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature punch take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.punch-3",
+      "group": "power",
+      "text": "Heavy fist punch hitting a body, meaty thud with a sharp slap, short, no voices.",
+      "audio": "/assets/audio/sfx/power/punch-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature punch take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.kick-1",
+      "group": "power",
+      "text": "Powerful kick landing on a body, deep thud with a whoosh before it, short, no voices.",
+      "audio": "/assets/audio/sfx/power/kick-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature kick take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.kick-2",
+      "group": "power",
+      "text": "Powerful kick landing on a body, deep thud with a whoosh before it, short, no voices.",
+      "audio": "/assets/audio/sfx/power/kick-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature kick take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.kick-3",
+      "group": "power",
+      "text": "Powerful kick landing on a body, deep thud with a whoosh before it, short, no voices.",
+      "audio": "/assets/audio/sfx/power/kick-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature kick take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.street.siren-police",
+      "group": "street",
+      "text": "A police car siren wailing on a city avenue at night, rising and falling, approaching from far away then passing close, no voices",
+      "audio": "/assets/audio/sfx/street/siren-police.mp3",
+      "duration": 8,
+      "influence": 0.7,
+      "volume": 0.55,
+      "note": "Ledger: sirens once 2 or more bystanders are dead (Going Home street, The Station gate)."
     }
   ]
 }

@@ -59,6 +59,8 @@ export type TheTrainHost = {
   hand: () => { x: number; y: number; z: number } | null;
   player: () => { x: number; z: number; yaw: number };
   shedShadow: (x: number, z: number) => void;
+  /** Signature effect hook (powerFx): a shock landed on, or a punch/kick swung at, a point. */
+  power?: (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
   showLine: (title: string, text: string) => void;
@@ -1041,7 +1043,7 @@ export const createTheTrain = (host: TheTrainHost) => {
       const atZ = best.mesh.position.z;
       releaseLink();
       watchDeath(atX, atZ);
-      host.playFile(STREET_SFX.consume, 0.46);
+      if (!host.power) host.playFile(STREET_SFX.consume, 0.46);
       host.playFile(STREET_SFX.death, 0.32);
       return true;
     },
@@ -1069,8 +1071,9 @@ export const createTheTrain = (host: TheTrainHost) => {
       for (const { rider } of hits) {
         layDown(rider, true);
         host.shedShadow(rider.mesh.position.x, rider.mesh.position.z);
+        host.power?.({ kind: 'shock', hit: true, x: rider.mesh.position.x, y: rider.mesh.position.y + 1.2, z: rider.mesh.position.z });
       }
-      host.playFile(STREET_SFX.shock, 0.5);
+      if (!host.power) host.playFile(STREET_SFX.shock, 0.5);
       host.playFile(STREET_SFX.death, 0.28);
       shockLeft = 1.35;
       host.playClip('shadowshock', false, 1, () => {
@@ -1082,8 +1085,9 @@ export const createTheTrain = (host: TheTrainHost) => {
       if (!controls() || shadowOn || meleeLeft > 0) return false;
       const best = inFront(kind === 'kick' ? 2.35 : 1.7, () => 0.35, false)[0];
       if (best) layDown(best.rider, false);
-      meleeLeft = 0.85;
-      host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
+      const at = host.player();
+      host.power?.({ kind, hit: !!best, x: best ? best.rider.mesh.position.x : at.x, y: (best ? best.rider.mesh.position.y : 0) + 1.2, z: best ? best.rider.mesh.position.z : at.z });
+      if (!host.power) host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
       host.playClip(kind, false, 1, () => {
         if (active && !finished) host.resumeLocomotion();
       });

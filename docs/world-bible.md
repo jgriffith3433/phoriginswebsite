@@ -396,3 +396,9 @@ Every scripted Voss and Hale call (`voss-late`, `voss-meeting`, `hale-walkout`, 
 - **Dawn:** the door opens onto white, then black, then the title PH ORIGINS and the end-suite cue.
 - **Credits:** names only, over eight empty places: the apartment, the boardroom, the office window, B3's long hall, the vat room, the lobby, the station platform, the train car.
 - **NEW CANON, the Act II call:** after the credits a phone buzzes. An unknown woman (voice: Alexandra) says: "Pierce. The one who got off the train is looking for you. Find me first." She knows about the other body; who she is is Act II's question.
+
+## The ledger (added with the street ledger task)
+
+- **Landmarks**: The City Ledger newspaper on Pierce's coffee table in The Morning; the police car on the Going Home avenue; three wanted posters and an officer at the Station gate (kills 2 or more).
+- **Who lives here**: the Morning News anchor (calm, practised, public-safe), the gate officer (Police voice, tired and careful).
+- **What happens**: two bystander deaths bring the siren and a car within 20 s; the morning after, the TV, the paper and Voss all say what the night cost. Bands and lines: `docs/story/ledger.md`.
