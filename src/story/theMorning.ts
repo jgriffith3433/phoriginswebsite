@@ -154,6 +154,19 @@ const COAT_SCENE_SECONDS = 8.2;
 const NEWS_CAPTIONS = [1, 2, 3, 4].map((n) => `news.morning.${String(n).padStart(2, '0')}`);
 /** Which still each lower third sits over. The ticker on the set carries the rest, so the scene stays short. */
 const NEWS_STILLS = ['tower', 'portrait', 'board', 'police'] as const;
+/** The broadcast package: Hawkes Gen clips (assets/video/news, 640x360, under 1 MB each, mp4 and webm). One per lower third;
+ *  the fourth (the ledger's report) is the CCTV frame, and from band 2 (the city answered: sirens, the station gate)
+ *  its second half cuts to the cordon at the station. The clip changes on the same tick as the anchor's caption and read. */
+const NEWS_CLIPS = ['gala', 'helicopter', 'lobby-tape', 'cctv'] as const;
+const CLIP_NAMES = [...NEWS_CLIPS, 'station-cordon'] as const;
+type ClipName = (typeof CLIP_NAMES)[number];
+const CLIP_HEAD: Record<ClipName, string> = {
+  gala: 'PIERCE HAWKES',
+  helicopter: 'HAWKES TOWER',
+  'lobby-tape': 'HAWKES TOWER LOBBY',
+  cctv: 'CCTV · HAWKES TOWER LOBBY',
+  'station-cordon': 'HAWKES ST STATION',
+};
 const TICKERS = [1, 2, 3, 4].map((n) => `news.morning.tick.${n}`);
 const FALLBACK_NEWS = [
   'Hawkes Biomedical has removed its founder as chairman.',
@@ -247,6 +260,9 @@ export const createTheMorning = (host: MorningHost) => {
   let blink = 0;
   let still: (typeof NEWS_STILLS)[number] | 'static' | 'off' = 'off';
   let tvClock = 0;
+  let clipEls: Partial<Record<ClipName, HTMLVideoElement>> = {};
+  let clipName: ClipName | null = null;
+  let drawCount = 0;
   let lastDt = 0.016;
   let newsT = 0;
   let scenes: number[] = [];
@@ -363,6 +379,23 @@ export const createTheMorning = (host: MorningHost) => {
       sampleTvBright(ctx, W, H);
       return;
     }
+    let head = 'HAWKES BIOMEDICAL';
+    const vid = clipName ? clipEls[clipName] : undefined;
+    if (clipName && vid && vid.readyState >= 2 && vid.videoWidth > 0) {
+      ctx.drawImage(vid, 0, 0, W, H);
+      head = CLIP_HEAD[clipName];
+      if (clipName === 'cctv') {
+        // The frame a camera would show: REC dot, clock, camera name.
+        ctx.fillStyle = Math.floor(newsT * 1.5) % 2 ? '#e33' : 'rgba(0,0,0,0)';
+        ctx.beginPath();
+        ctx.arc(W - 24, 44, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`CAM 02 LOBBY  03:${String(14 + Math.floor(newsT)).padStart(2, '0')}:07`, 10, 40);
+      }
+    } else {
     // A code-drawn news broadcast (also the fallback for any footage that fails to load): studio, anchor,
     // an inset picture for the story, the logo bug, a lower third, a scrolling ticker, a light roll and scanlines.
     const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -408,7 +441,6 @@ export const createTheMorning = (host: MorningHost) => {
     ig.addColorStop(1, '#2a3b5a');
     ctx.fillStyle = ig;
     ctx.fillRect(px, py, pw, ph);
-    let head = 'HAWKES BIOMEDICAL';
     if (still === 'tower' || still === 'police') {
       head = 'HAWKES TOWER';
       ctx.fillStyle = '#0a0f18';
@@ -438,6 +470,7 @@ export const createTheMorning = (host: MorningHost) => {
       ctx.fillStyle = '#9aa4b6';
       for (let i = 0; i < 6; i++) ctx.fillRect(px + 30 + i * 32, py + 44, 18, 22);
     }
+    }
     // Logo bug and the headline band.
     ctx.fillStyle = '#b01c2a';
     ctx.fillRect(0, 0, W, 26);
@@ -455,6 +488,13 @@ export const createTheMorning = (host: MorningHost) => {
     ctx.fillText(`MORNING NEWS · ${head}`, 36, 18);
     ctx.textAlign = 'right';
     ctx.fillText(`LIVE ${String(6 + Math.floor(newsT / 60)).padStart(2, '0')}:${String(Math.floor(newsT) % 60).padStart(2, '0')}`, W - 10, 18);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.fillRect(W - 66, 28, 56, 20);
+    ctx.fillStyle = '#b01c2a';
+    ctx.font = 'bold 13px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('HN 6', W - 38, 43);
     ctx.textAlign = 'left';
     // Lower third: the story, then the ticker that scrolls under it.
     const lowerIndex = Math.min(NEWS_CAPTIONS.length - 1, Math.max(0, captionsShown - 1));
@@ -490,6 +530,7 @@ export const createTheMorning = (host: MorningHost) => {
     for (let x = -off; x < W; x += rw) ctx.fillText(reel, x, H - 8);
     if (!tvSeen.includes(head)) tvSeen.push(head);
     if (!tvSeen.includes(t)) tvSeen.push(t);
+    if (vid && clipName && !tvSeen.includes(`clip:${clipName}`)) tvSeen.push(`clip:${clipName}`);
     if (!tvSeen.includes(lower)) tvSeen.push(lower);
     // Light roll and scanlines: the picture breathes the way a tube does.
     const roll = ((newsT * 40) % (H + 60)) - 30;
@@ -497,8 +538,51 @@ export const createTheMorning = (host: MorningHost) => {
     ctx.fillRect(0, roll, W, 30);
     ctx.fillStyle = 'rgba(0,0,0,0.10)';
     for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+    const glow = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.7);
+    glow.addColorStop(0, 'rgba(120,170,255,0.05)');
+    glow.addColorStop(1, 'rgba(0,0,0,0.38)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
     tvTexture.update();
-    sampleTvBright(ctx, W, H);
+    if (drawCount++ % 6 === 0) sampleTvBright(ctx, W, H);
+  };
+
+  /** Switch the clip on the TV: restart it and play (muted, looping; the anchor is the audio). */
+  const showClip = (name: ClipName | null) => {
+    if (name === clipName) return;
+    const prev = clipName ? clipEls[clipName] : undefined;
+    prev?.pause();
+    clipName = name;
+    const v = name ? clipEls[name] : undefined;
+    if (v) {
+      try { v.currentTime = 0; } catch { /* not seekable yet */ }
+      void v.play().catch(() => undefined);
+    }
+  };
+  const loadClips = () => {
+    if (typeof document === 'undefined' || Object.keys(clipEls).length) return;
+    for (const name of CLIP_NAMES) {
+      const v = document.createElement('video');
+      v.muted = true;
+      v.loop = true;
+      v.playsInline = true;
+      v.preload = 'auto';
+      v.crossOrigin = 'anonymous';
+      const ext = v.canPlayType('video/mp4; codecs="avc1.42E01E"') ? 'mp4' : 'webm';
+      v.src = `/assets/video/news/${name}.${ext}`;
+      v.load();
+      clipEls[name] = v;
+    }
+  };
+  const freeClips = () => {
+    for (const v of Object.values(clipEls)) {
+      if (!v) continue;
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+    }
+    clipEls = {};
+    clipName = null;
   };
 
   /** The newspaper on the coffee table. Headline by ledger band; big type so a phone reads it up close. */
@@ -545,6 +629,7 @@ export const createTheMorning = (host: MorningHost) => {
   const setTv = (on: boolean, next: typeof still) => {
     tvOn = on;
     still = on ? next : 'off';
+    if (!on) showClip(null);
     // StandardMaterial ADDS emissiveColor to the emissive texture (it does not multiply), so a white colour
     // saturated the whole screen to solid white. The canvas carries the picture; the colour stays black.
     if (tvMaterial) tvMaterial.emissiveColor = BABYLON.Color3.Black();
@@ -661,6 +746,7 @@ export const createTheMorning = (host: MorningHost) => {
     // Television on a low stand against the north wall.
     box('morning-tv-stand', TV.x, 0.3, TV.z + 0.1, 1.9, 0.6, 0.4, wood, true);
     box('morning-tv-frame', TV.x, 1.3, TV.z + 0.04, 1.72, 1.0, 0.06, dark);
+    loadClips();
     tvTexture = new BABYLON.DynamicTexture('morning-tv', { width: 512, height: 288 }, s, false);
     owned.push(tvTexture);
     tvMaterial = new BABYLON.StandardMaterial('morning-tv-mat', s);
@@ -745,6 +831,7 @@ export const createTheMorning = (host: MorningHost) => {
     hallMaterial = null;
     door = null;
     lamps.length = 0;
+    freeClips();
     tvTexture = null;
     tvMaterial = null;
     screenMesh = null;
@@ -809,6 +896,7 @@ export const createTheMorning = (host: MorningHost) => {
     stopBroadcast();
     host.fade(0, 0.2);
     host.placePierce(WATCH.x, WATCH.z, Math.PI);
+    showClip(null);
     setTv(true, 'portrait');
     host.endCineScene?.(false);
     control();
@@ -1164,7 +1252,7 @@ export const createTheMorning = (host: MorningHost) => {
   const stepNews = () => {
     newsT = time;
     tvClock += 0.016;
-    if (tvClock > 0.12 || (flags.has('drawn') === false && flags.has('start'))) {
+    if (tvClock > (clipName ? 0.04 : 0.12) || (flags.has('drawn') === false && flags.has('start'))) {
       tvClock = 0;
       flags.add('drawn');
       drawTv();
@@ -1179,9 +1267,20 @@ export const createTheMorning = (host: MorningHost) => {
     // Captions in order; the first one lands as the programme's opening sting ends.
     let at = 2.4;
     let shown = -1;
+    let shownAt = 0;
+    let shownHold = 1;
     for (let i = 0; i < NEWS_CAPTIONS.length; i++) {
-      if (time >= at) shown = i;
-      at += holdFor(caption(i, variant()));
+      const hold = holdFor(caption(i, variant()));
+      if (time >= at) {
+        shown = i;
+        shownAt = at;
+        shownHold = hold;
+      }
+      at += hold;
+    }
+    if (shown >= 0) {
+      const second = shown === 3 && snap.band >= 2 && time - shownAt > shownHold / 2;
+      showClip(second ? 'station-cordon' : NEWS_CLIPS[shown]);
     }
     const total = at;
     if (host.stepCineScene) {
