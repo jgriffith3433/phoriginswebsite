@@ -2414,6 +2414,61 @@
       "audioVoice": "XrExE9yKIg1WjnnlVkGX"
     },
     {
+      "id": "pa.station.04",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "This is Hawkes Street. Transfers to the six and the crosstown bus.",
+      "audio": "/assets/audio/vo/pa.station.04.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "This is Hawkes Street. Transfers to the six and the crosstown bus.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.05",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "The local to Liberty Square is approaching. Stand clear of the platform edge.",
+      "audio": "/assets/audio/vo/pa.station.05.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "The local to Liberty Square is approaching. Stand clear of the platform edge.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.06",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "Last stop for this train is Riverside. Please take your belongings.",
+      "audio": "/assets/audio/vo/pa.station.06.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "Last stop for this train is Riverside. Please take your belongings.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.07",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "Mind the gap between the train and the platform.",
+      "audio": "/assets/audio/vo/pa.station.07.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "Mind the gap between the train and the platform.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.08",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "Service advisory. Expect delays on the uptown six.",
+      "audio": "/assets/audio/vo/pa.station.08.ogg",
+      "note": "Station PA, after sfx.station.pa-chime",
+      "audioText": "Service advisory. Expect delays on the uptown six.",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
       "id": "bark.train.r01",
       "type": "bark",
       "speaker": "Rider",
@@ -2526,6 +2581,50 @@
       "note": "Train conductor over the car speakers",
       "audioText": "We are being held by the dispatcher. Thank you for your patience.",
       "audioPerformance": "tired",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.03",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "Next stop, Hawkes Street. This is a local.",
+      "audio": "/assets/audio/vo/pa.train.03.ogg",
+      "note": "Train conductor over the car speakers",
+      "audioText": "Next stop, Hawkes Street. This is a local.",
+      "audioPerformance": "default",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.04",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "Doors opening on the left.",
+      "audio": "/assets/audio/vo/pa.train.04.ogg",
+      "note": "Train conductor over the car speakers",
+      "audioText": "Doors opening on the left.",
+      "audioPerformance": "default",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.05",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "Approaching Liberty Square. Stand clear.",
+      "audio": "/assets/audio/vo/pa.train.05.ogg",
+      "note": "Train conductor over the car speakers",
+      "audioText": "Approaching Liberty Square. Stand clear.",
+      "audioPerformance": "default",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.06",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "This train skips Tower Street tonight. Next stop, Riverside.",
+      "audio": "/assets/audio/vo/pa.train.06.ogg",
+      "note": "Train conductor over the car speakers",
+      "audioText": "This train skips Tower Street tonight. Next stop, Riverside.",
+      "audioPerformance": "default",
       "audioVoice": "iP95p4xoKVk53GoZ742B"
     },
     {

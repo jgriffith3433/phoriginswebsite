@@ -1139,11 +1139,12 @@ export const createTheTrain = (host: TheTrainHost) => {
       }
       conductorIn -= stepDt;
       if (conductorIn <= 0) {
-        conductorIn = 55 + Math.random() * 30;
+        conductorIn = 18 + Math.random() * 12;
         const said = tether ? null : conductorLine();
         if (said) {
           host.showLine(said.speaker, said.text);
           host.playFile(said.url, 0.42);
+          lifeStats.bark('train', said.speaker, said.id);
           lineUntil = Math.max(lineUntil, sceneTime + 4.2);
         }
       }

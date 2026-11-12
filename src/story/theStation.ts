@@ -1010,7 +1010,7 @@ export const createTheStation = (host: TheStationHost) => {
       // The PA: a chime, then a voiced announcement (skipped until the lines have clips).
       paIn -= stepDt;
       if (paIn <= 0) {
-        paIn = 50 + Math.random() * 25;
+        paIn = 16 + Math.random() * 12;
         paNext = tether ? null : paLine();
         if (paNext) {
           host.playFile(PLACE_SFX.paChime, 0.45);
@@ -1026,6 +1026,7 @@ export const createTheStation = (host: TheStationHost) => {
         if (paLineIn < 0 && paNext) {
           host.showLine(paNext.speaker, paNext.text);
           host.playFile(paNext.url, 0.55);
+          lifeStats.bark('station', paNext.speaker, paNext.id);
           remarkLeft = 4.4;
           paNext = null;
         }

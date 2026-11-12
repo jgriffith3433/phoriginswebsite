@@ -38,6 +38,25 @@ export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/street/siren-police.mp3': '/assets/audio/sfx/street/car-pass.wav',
   // Going Home rain bed until Gen lands rain-hiss.ogg (rainNight.ts).
   '/assets/audio/sfx/street/rain-hiss.ogg': '/assets/audio/room-tone.mp3',
+  // Layered chapter ambience spots (chapterAmbience.ts) until Gen takes land.
+  '/assets/audio/sfx/ambience/apex-hvac.ogg': '/assets/audio/sfx/b3/fluorescent-buzz.ogg',
+  '/assets/audio/sfx/ambience/apex-phone.ogg': '/assets/audio/sfx/phone/ring.wav',
+  '/assets/audio/sfx/ambience/apex-printer.ogg': '/assets/audio/sfx/flashlight.ogg',
+  '/assets/audio/sfx/ambience/apex-walla.ogg': '/assets/audio/sfx/apex/skyline.ogg',
+  '/assets/audio/sfx/ambience/b3-drip.ogg': '/assets/audio/sfx/creature/knock.wav',
+  '/assets/audio/sfx/ambience/b3-pipe-groan.ogg': '/assets/audio/sfx/creature/scrape.wav',
+  '/assets/audio/sfx/ambience/b3-machinery.ogg': '/assets/audio/sfx/creature/tick.wav',
+  '/assets/audio/sfx/ambience/return-door.ogg': '/assets/audio/sfx/home/door-open.ogg',
+  '/assets/audio/sfx/ambience/desk-clock.ogg': '/assets/audio/sfx/glass-tick.ogg',
+  '/assets/audio/sfx/ambience/street-neon.ogg': '/assets/audio/sfx/b3/fluorescent-buzz.ogg',
+  '/assets/audio/sfx/ambience/street-walla.ogg': '/assets/audio/sfx/street/car-pass.wav',
+  '/assets/audio/sfx/ambience/street-awning.ogg': '/assets/audio/sfx/street/rain-hiss.ogg',
+  '/assets/audio/sfx/ambience/station-brakes.ogg': '/assets/audio/train/brakes.ogg',
+  '/assets/audio/sfx/ambience/station-walla.ogg': '/assets/audio/sfx/station/train-pass.ogg',
+  '/assets/audio/sfx/ambience/train-clatter.ogg': '/assets/audio/train/rumble.ogg',
+  '/assets/audio/sfx/ambience/morning-birds.ogg': '/assets/audio/sfx/apex/skyline.ogg',
+  '/assets/audio/sfx/ambience/morning-traffic.ogg': '/assets/audio/sfx/apex/skyline.ogg',
+  '/assets/audio/sfx/ambience/morning-fridge.ogg': '/assets/audio/sfx/b3/fluorescent-buzz.ogg',
 };
 
 export const soundFallback = (url: string): string | null => {
