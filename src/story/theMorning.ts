@@ -37,6 +37,18 @@ export type MorningHost = {
   playClip: (clip: string, loop: boolean, speed?: number) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'tv-news' | 'voss-morning-call',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   fade: (to: number, seconds?: number) => void;
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
@@ -668,6 +680,7 @@ export const createTheMorning = (host: MorningHost) => {
     host.fade(0, 0.2);
     host.placePierce(WATCH.x, WATCH.z, Math.PI);
     setTv(true, 'portrait');
+    host.endCineScene?.(false);
     control();
     beat = 'call';
     markScene();
@@ -822,11 +835,6 @@ export const createTheMorning = (host: MorningHost) => {
       setTv(true, 'static');
       host.playFile(PLACE_SFX.newsSting, 0.4);
     }
-    // A portrait phone sees a narrow slice: back the camera up (inside the south wall) until the whole set fits.
-    const eng = host.scene.getEngine();
-    const aspect = eng.getRenderWidth() / Math.max(1, eng.getRenderHeight());
-    const fit = Math.min(2.55, Math.max(1.2, 1.15 / (0.4228 * Math.max(0.3, aspect)) - 4.15 + 1.2));
-    host.frameCamera({ x: 4.1 + (fit - 1.2) * 0.1, y: 1.55, z: Math.min(fit, 2.55) }, { x: TV.x, y: 1.3, z: TV.z });
     // Captions in order; the first one lands as the programme's opening sting ends.
     let at = 2.4;
     let shown = -1;
@@ -835,6 +843,25 @@ export const createTheMorning = (host: MorningHost) => {
       at += holdFor(caption(i, variant()));
     }
     const total = at;
+    if (host.stepCineScene) {
+      const newsSpeaker = flags.has('without') ? 'Pierce' : 'Anchor';
+      const newsLineKey = flags.has('without')
+        ? L_WITHOUT.id
+        : shown >= 0
+          ? captionKey(shown, variant())
+          : 'news.morning.sting';
+      host.stepCineScene('tv-news', time, 0.016, {
+        applyCamera: true,
+        speaker: newsSpeaker,
+        lineKey: newsLineKey,
+      });
+    } else {
+      // A portrait phone sees a narrow slice: back the camera up (inside the south wall) until the whole set fits.
+      const eng = host.scene.getEngine();
+      const aspect = eng.getRenderWidth() / Math.max(1, eng.getRenderHeight());
+      const fit = Math.min(2.55, Math.max(1.2, 1.15 / (0.4228 * Math.max(0.3, aspect)) - 4.15 + 1.2));
+      host.frameCamera({ x: 4.1 + (fit - 1.2) * 0.1, y: 1.55, z: Math.min(fit, 2.55) }, { x: TV.x, y: 1.3, z: TV.z });
+    }
     if (shown >= 0 && shown + 1 > captionsShown) {
       captionsShown = shown + 1;
       still = NEWS_STILLS[shown];
@@ -1106,9 +1133,13 @@ export const createTheMorning = (host: MorningHost) => {
           } else if (rang) {
             ringSince += dt;
             const busy = host.callBusy();
-            if (busy) wasBusy = true;
+            if (busy) {
+              wasBusy = true;
+              host.stepCineScene?.('voss-morning-call', ringSince, dt, { applyCamera: true });
+            }
             if (wasBusy && !busy) {
               callDone = true;
+              host.endCineScene?.(true);
               beat = 'out';
               markScene();
               host.setObjective(lineSpeaker('objective.morning.coat', 'Out'), lineText('objective.morning.coat', 'The coat. Then the door.'), { x: COAT.x, y: 1.3, z: COAT.z });

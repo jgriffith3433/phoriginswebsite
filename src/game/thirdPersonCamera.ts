@@ -102,7 +102,9 @@ export const createThirdPersonCamera = (
   let pitch = 0.1;
   let cinematicPos: BABYLON.Vector3 | null = null;
   let cinematicFresh = false;
+  let cinematicSnap = false;
   let cinematicLook: BABYLON.Vector3 | null = null;
+  let cinematicFov: number | null = null;
   let desiredDistance = cfg.distance;
   let currentDistance = cfg.distance;
   let lookStickX = 0;
@@ -322,7 +324,12 @@ export const createThirdPersonCamera = (
   ) => {
     const clampedDt = Math.min(dt, 0.05);
     if (cinematicPos && cinematicLook) {
-      if (cinematicFresh) {
+      if (cinematicSnap) {
+        cinematicSnap = false;
+        cinematicFresh = false;
+        camera.position.copyFrom(cinematicPos);
+        lookAt.copyFrom(cinematicLook);
+      } else if (cinematicFresh) {
         cinematicFresh = false;
         const dist = BABYLON.Vector3.Distance(camera.position, cinematicPos);
         if (dist > 0.5 && collideDistance(camera.position, cinematicPos, new Set(ignoreMeshes)) < dist - 0.05) {
@@ -336,6 +343,9 @@ export const createThirdPersonCamera = (
       lookAt.x = expDamp(lookAt.x, cinematicLook.x, 5.5, clampedDt);
       lookAt.y = expDamp(lookAt.y, cinematicLook.y, 5.5, clampedDt);
       lookAt.z = expDamp(lookAt.z, cinematicLook.z, 5.5, clampedDt);
+      if (cinematicFov !== null) {
+        camera.fov = cinematicFov;
+      }
       camera.setTarget(lookAt);
       camera.upVector.set(0, 1, 0);
       return;
@@ -616,15 +626,36 @@ export const createThirdPersonCamera = (
   let push = 0;
   let pushTarget = 0;
 
-  const setCinematic = (position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }) => {
+  const setCinematic = (
+    position: { x: number; y: number; z: number },
+    target: { x: number; y: number; z: number },
+    snap?: boolean,
+    fov?: number,
+  ) => {
     if (!cinematicPos) cinematicFresh = true;
     cinematicPos = new BABYLON.Vector3(position.x, position.y, position.z);
     cinematicLook = new BABYLON.Vector3(target.x, target.y, target.z);
+    if (snap) {
+      cinematicSnap = true;
+      camera.position.set(position.x, position.y, position.z);
+      lookAt.set(target.x, target.y, target.z);
+      camera.setTarget(lookAt);
+      camera.upVector.set(0, 1, 0);
+    }
+    if (fov !== undefined) {
+      cinematicFov = fov;
+      camera.fov = fov;
+    }
   };
 
   const clearCinematic = () => {
     cinematicPos = null;
     cinematicLook = null;
+    cinematicSnap = false;
+    if (cinematicFov !== null) {
+      cinematicFov = null;
+      camera.fov = cfg.fov;
+    }
   };
 
   return {
