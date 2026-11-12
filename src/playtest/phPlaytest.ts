@@ -1030,14 +1030,14 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'terminal',
         title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the three-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
-        description: 'Loads index.html in an overlay (the page is the gateway terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the LOGIN GUIDE (/help prints Step N of 5 and the exact command): rev ~/.hat_backwards, nmap the named host, curl the backup, john with the staff wordlist, ssh as ops. The prompt must turn root@ph-origins:/# (red). /build (page loaded with ?songlen=8, an 8 s song) prints more than 300 log lines in its first 3 s (terminalFloodLines3s), then the song starts or the silent fallback line shows, the text flipbook updates at least 10 times in 2 s with both silhouettes non-empty every sample (terminalFlipFrames2s), Esc skips to BUILD SUCCESSFUL; a second /build left alone ends by itself with at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
+        description: 'Loads index.html in an overlay (the page is the gateway terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the LOGIN GUIDE (/help prints Step N of 5 and the exact command): rev ~/.hat_backwards, nmap the named host, curl the backup, john with the staff wordlist, ssh as ops. The prompt must turn root@ph-origins:/# (red). /build (page loaded with ?songlen=8, an 8 s song) prints more than 300 log lines in its first 3 s (terminalFloodLines3s), then the song starts or the silent fallback line shows, the dance (one canvas, a timeline of scenes) draws at least 10 frames in 2 s with both dancers on the stage every sample (terminalFlipFrames2s); then Esc, Enter, letters, Ctrl+C, clicks and soft-keyboard text are hammered at it and none may end it or reach the prompt (terminalShowInputs, terminalShowLeaked), it ends by itself on BUILD SUCCESSFUL; a second /build left alone ends by itself with at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
         seconds: 150,
         tags: ['site', 'first-minute', 'ui'],
       },
       {
         id: 'terminal-phone',
         title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot',
-        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, Then a second page (?demo=show&songlen=6, motion on) shows the /build text flipbook at 390x844: both silhouettes side by side and non-empty, flipbook text at least 10 px, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
+        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, Then a second page (?demo=show&songlen=6, motion on) shows the /build dance show at 390x844: the canvas inside the screen, at least 46 columns, text at least 9 px, both dancers drawn, a tap does not skip it, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
         seconds: 60,
         tags: ['site', 'phone', 'ui'],
       },
@@ -2620,7 +2620,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (input.value !== '' || !/\^C/.test(log())) t.problem('bug', 'terminal phone: the ^C button did not cancel the line');
           await tap('ls'); await t.until(idle, 5000, 'ls');
           expect(log(), /README\.txt/, 'the ls button did not list the home directory');
-          // ---- the flipbook at 390x844 (a second page with the show started at once; the phone page above is motion off)
+          // ---- the dance show at 390x844 (a second page with the show started at once; the phone page above is motion off)
           const f2 = document.createElement('iframe');
           f2.title = 'terminal show';
           f2.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html?demo=show&songlen=6', location.href).href;
@@ -2629,26 +2629,32 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           document.body.appendChild(f2);
           try {
             const d2 = () => f2.contentDocument as Document | null;
-            await t.until(() => d2()?.getElementById('termShow')?.dataset.act === 'flip', 20000, 'the phone flipbook to start');
-            await t.until(() => Number(d2()?.getElementById('termShow')?.dataset.frames ?? 0) >= 3, 5000, 'the phone flipbook to flip');
+            await t.until(() => d2()?.getElementById('termShow')?.dataset.act === 'flip', 20000, 'the phone show to start');
+            await t.until(() => Number(d2()?.getElementById('termShow')?.dataset.frames ?? 0) >= 6, 5000, 'the phone show to draw frames');
             const w2 = f2.contentWindow as any;
-            const L = d2()!.getElementById('flipL') as HTMLElement;
-            const R = d2()!.getElementById('flipR') as HTMLElement;
-            const fpx = parseFloat(w2.getComputedStyle(L).fontSize);
-            const lr = L.getBoundingClientRect();
-            const rr = R.getBoundingClientRect();
-            const nl = (L.textContent ?? '').replace(/\s/g, '').length;
-            const nr = (R.textContent ?? '').replace(/\s/g, '').length;
-            t.metric('terminalFlipFontPx', fpx);
-            t.metric('terminalFlipScrollWidth', d2()!.documentElement.scrollWidth);
-            if (fpx < 10) t.problem('bug', `terminal phone: flipbook text is ${fpx}px, under 10px`);
-            if (nl < 20 || nr < 20) t.problem('bug', `terminal phone: a silhouette is missing (left ${nl} chars, right ${nr})`);
-            if (!(lr.right <= rr.left + 1 && lr.left >= 0 && rr.right <= 391)) t.problem('bug', `terminal phone: the silhouettes are not side by side on screen (left ${Math.round(lr.left)}-${Math.round(lr.right)}, right ${Math.round(rr.left)}-${Math.round(rr.right)})`);
-            if (d2()!.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll in the flipbook (${d2()!.documentElement.scrollWidth}px)`);
+            const sh = d2()!.getElementById('termShow') as HTMLElement;
+            const cv = d2()!.getElementById('showCanvas') as HTMLCanvasElement;
+            const cr = cv.getBoundingClientRect();
+            const px = Number(sh.dataset.px);
+            const cols = Number(sh.dataset.cols);
+            t.metric('terminalShowFontPx', px);
+            t.metric('terminalShowCols', cols);
+            t.metric('terminalShowScrollWidth', d2()!.documentElement.scrollWidth);
+            if (px < 9) t.problem('bug', `terminal phone: the show's text is ${px}px, under 9px`);
+            if (cols < 46) t.problem('bug', `terminal phone: the show grid is ${cols} columns wide (want 46 or more)`);
+            if (!(cr.left >= 0 && cr.right <= 391 && cr.width > 300)) t.problem('bug', `terminal phone: the show canvas is not inside the screen (${Math.round(cr.left)}-${Math.round(cr.right)})`);
+            if (Number(sh.dataset.nl) < 40 || Number(sh.dataset.nr) < 40) t.problem('bug', `terminal phone: a dancer is missing from the stage (Jackson ${sh.dataset.nl} marks, Jordan ${sh.dataset.nr})`);
+            if (d2()!.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll in the show (${d2()!.documentElement.scrollWidth}px)`);
+            // a tap does not skip it
+            const frames0 = Number(sh.dataset.frames);
+            cv.dispatchEvent(new w2.PointerEvent('pointerdown', { bubbles: true }));
+            d2()!.getElementById('app')!.dispatchEvent(new w2.PointerEvent('pointerdown', { bubbles: true }));
+            await sleep(600);
+            if (sh.hidden || Number(sh.dataset.frames) <= frames0) t.problem('bug', 'terminal phone: a tap stopped the show');
             const mute = d2()!.getElementById('showMute')!.getBoundingClientRect();
             if (mute.width < 44 || mute.height < 44) t.problem('bug', `terminal phone: the mute button is ${Math.round(mute.width)}x${Math.round(mute.height)}, under 44 px`);
             const e2: string[] = w2.__termErrors ?? [];
-            if (e2.length) t.problem('bug', `terminal phone flipbook: ${e2.length} page error(s): ${e2.slice(0, 3).join(' | ')}`);
+            if (e2.length) t.problem('bug', `terminal phone show: ${e2.length} page error(s): ${e2.slice(0, 3).join(' | ')}`);
           } finally { f2.remove(); frame.style.display = ''; }
         } else {
           // ---- /help and the permission wall
@@ -2675,7 +2681,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (!appEl.classList.contains('is-root')) t.problem('bug', 'terminal: the prompt did not turn red after root');
           t.event('milestone', 'terminal root reached');
 
-          // ---- /build: three acts. Run 1 looks at the flood, the song and the flipbook, then skips with Esc.
+          // ---- /build: three acts. Run 1 looks at the flood, the song and the dance, then hammers every kind of input at it: none may end it.
           const showEl = () => doc.getElementById('termShow') as HTMLElement | null;
           const startBuild = async () => {
             await t.until(idle, 60000, 'the previous output to finish');
@@ -2701,19 +2707,35 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           let samples = 0;
           const fs0 = performance.now();
           while (performance.now() - fs0 < 2000) {
-            const l = (doc.getElementById('flipL')?.textContent ?? '').replace(/\s/g, '').length;
-            const r = (doc.getElementById('flipR')?.textContent ?? '').replace(/\s/g, '').length;
             samples += 1;
-            if (l > 0 && r > 0) bothFull += 1;
+            if (Number(showEl()?.dataset.nl) > 0 && Number(showEl()?.dataset.nr) > 0) bothFull += 1;
             await sleep(100);
           }
           const frames2s = Number(showEl()?.dataset.frames ?? 0) - f0;
           t.metric('terminalFlipFrames2s', frames2s);
           t.metric('terminalFlipBothHalves', Math.round((100 * bothFull) / Math.max(1, samples)));
-          if (frames2s < 10) t.problem('bug', `terminal: the flipbook updated ${frames2s} times in 2 s (want 10 or more)`);
-          if (bothFull < samples) t.problem('bug', `terminal: the flipbook had an empty half in ${samples - bothFull} of ${samples} samples`);
-          input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-          await t.until(() => idle() && /BUILD SUCCESSFUL/.test(log()), 5000, 'Esc to skip to BUILD SUCCESSFUL');
+          if (frames2s < 10) t.problem('bug', `terminal: the show drew ${frames2s} frames in 2 s (want 10 or more)`);
+          if (bothFull < samples) t.problem('bug', `terminal: a dancer was missing from the stage in ${samples - bothFull} of ${samples} samples`);
+          // No key, click or tap ends the show: hammer them until it ends by itself.
+          const songStart = performance.now();
+          let inputs = 0;
+          let leaked = 0;
+          const hammer = () => {
+            for (const key of ['Escape', 'Enter', ' ', 'a', 'Tab', 'ArrowUp', 'Backspace']) { input.dispatchEvent(new win.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); inputs += 1; }
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true })); inputs += 1;
+            input.value = 'zz';
+            input.dispatchEvent(new win.Event('input', { bubbles: true }));
+            for (const type of ['pointerdown', 'pointerup', 'click']) { doc.getElementById('app')!.dispatchEvent(new win.MouseEvent(type, { bubbles: true, cancelable: true })); inputs += 1; }
+            if (input.value !== '') leaked += 1;
+          };
+          while (showEl() && !showEl()!.hidden && performance.now() - songStart < 60000) { hammer(); await sleep(150); }
+          const songSeconds = (performance.now() - songStart) / 1000 + 2;
+          t.metric('terminalShowInputs', inputs);
+          t.metric('terminalShowLeaked', leaked);
+          if (songSeconds < 7.5) t.problem('bug', `terminal: an input ended the /build show after ${songSeconds.toFixed(1)} s of its 8 s song`);
+          if (leaked) t.problem('bug', `terminal: typed text reached the prompt ${leaked} time(s) while the show played`);
+          await t.until(() => idle() && /BUILD SUCCESSFUL/.test(log()), 8000, 'the show to end by itself on BUILD SUCCESSFUL');
+          if (input.value !== '') t.problem('bug', `terminal: the prompt was not clean when the show ended ("${input.value}")`);
           t.add('interactions');
           // Run 2: left alone, the show ends with the (short, 8 s) song and lands on the same summary.
           const b0 = performance.now();

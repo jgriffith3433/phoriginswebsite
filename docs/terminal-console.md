@@ -79,44 +79,78 @@ fictional: no PHI, no network, no real build. `/deploy` and `/rollback` ask `[y/
 A **full** `/build` is played by `show.js` (the shell marks the `seq` effect with `show`). Everything is client-side:
 `requestAnimationFrame` only while the show runs, no fetches, no polling timers.
 
-1. **Log flood.** `floodScript(events, seed)` (build.js) puts a burst of filler lines (`cc`, `LD`, `PASS`, `lint`,
+**The show cannot be skipped** (J, 2026-11-12). No key, click, tap, Escape or Ctrl+C ends it: there is no skip function in
+`show.js`, the only listener on the show is the 44 px `sound: on/off` button (M also mutes), and `ui.js` swallows every
+key while it plays, clears anything a soft keyboard or paste puts in the prompt (`input.readOnly` too), ignores taps and
+the quick-key buttons, and prints nothing under the show. The prompt comes back, clean, only when the show ends. It ends
+when `song.mp3` ends (the `ended` event), or on its own fixed timer when there is no song: `SILENT_SECONDS` (60 s) if the
+file fails, errors, never loads in 15 s or autoplay is blocked, and a wall-clock cap of the song's length plus 30 s if it
+stalls. `?songlen=N` (a test hook) shortens the song to N seconds.
+
+1. **Log flood** (unchanged). `floodScript(events, seed)` (build.js) puts a burst of filler lines (`cc`, `LD`, `PASS`, `lint`,
    `sign`, `stage ... %`, across all ten modules) in front of every real event, about 5,000 lines. They play at
    `FLOOD_RATE` 1,600 lines a second, batched per frame (capped at 2,500 a frame), so over 300 lines show in the first
-   3 s even on a slow frame rate. The DOM stays cheap: one `<pre>`, the visible rows only, one `textContent` write a
-   frame. The stages, progress bars, test counters and the two auto-fixed warnings are in the stream.
+   3 s even on a slow frame rate. One `<pre>`, the visible rows only, one `textContent` write a frame.
 2. **The song.** After the flood an `<audio>` plays `song.mp3` from the site root, resolved against `document.baseURI`
-   (works under GitHub Pages). If the file is missing, errors, or `play()` is rejected, the animation runs on its own
-   clock and the HUD prints `(song.mp3 not found, playing silent)` (also in the log afterwards), with no thrown error.
-   The code never assumes the length: it reads `audio.currentTime` and `audio.duration`, and ends on `ended`.
-   Silent runs stop after 30 s. **M** or the 44 px `sound: on/off` button mutes; **Esc**, **Ctrl+C**, any other key or a
-   tap anywhere else stops song and animation.
-3. **The text flipbook.** `flipbook.js` is data plus a rasteriser. Two articulated skeletons (torso, head, two arms,
-   two legs, tapered capsules, a tilted fedora on the dancer, a ball and jersey/shorts on the player) are posed from 8
-   key poses each (dancer: point up, hat tip, moonwalk, spin, toe stand, the lean, arms wide, hat brim crouch; player:
-   dribble crouch, drive, the Jumpman leap, dunk, fadeaway, landing, triple threat, pivot), eased between every 2 beats
-   at 112 BPM, with a small bounce on each beat, and rasterised to a character grid (cell aspect measured, each figure
-   fitted to its own half, so a 390x844 phone shows both side by side). The mask is filled with the scrolling build log
-   (a space inside a silhouette shows a dot, so the shape has no holes); the same text sits behind it, dim. A frame is
-   flipped at 16 fps; the beat comes from the audio clock when there is audio. Silhouettes only: poses, hat, jersey
-   outline, no faces. Left figure `#flipL` (bright), right figure `#flipR` (amber), overlay `#termShow`, which carries
-   `data-act` (flood, flip), `data-lines`, `data-frames`, `data-audio` (pending, playing, silent, ended), `data-nl` and
-   `data-nr` (cells in each half) for the playtest. Text is 10 px on a phone, up to 14 px on a wide screen.
+   (works under GitHub Pages). If the file is missing, errors, or `play()` is rejected, the show runs on its own clock for
+   `SILENT_SECONDS` and the HUD prints `(song.mp3 not found, playing silent)` (also in the log afterwards), with no thrown
+   error. The clock is the audio's `currentTime` (extrapolated between its updates). If the browser lets us (an audio
+   context that is really running) an `AnalyserNode` taps the element and the equalizer follows the real spectrum;
+   otherwise the beat clock drives it. It never wires the element into a suspended context, which would silence it.
+3. **The dance.** One `<canvas id="showCanvas">`, redrawn every frame (the DOM is a handful of nodes, so a phone holds
+   60 fps; if drawing takes over 12 ms the glow turns off and the canvas drops to 1x, over 24 ms it drops to 30 fps).
+   Four modules, all plain data and pure functions with tests:
+   - `dancers.js`: 17 hand-drawn ASCII frames for **Jackson** (stand, point, hat tip, four moonwalk frames, four spin
+     frames, toe stand, the 45 degree lean (two), sparkle glove (two), freeze, hip) and 14 for **Jordan** (ready, dribble,
+     crossover, drive, gather, jump shot, release, leap, dunk, hang time with the tongue out, land, shrug, Jumpman,
+     pivot), 16 rows tall, plus the hoop and backboard in three wobble frames. `flip()` mirrors a frame (the jersey number
+     keeps reading 23).
+   - `banner.js`: a 4x5 block-letter font (A-Z, x, !). A banner is laid out letter by letter, on double-width pixels when
+     the stage is wide enough (square pixels), single when not, wrapped to the stage width.
+   - `choreo.js`: the beat clock (`BPM` 118, `BEAT_OFFSET` 0.31 s, both measured from the song with onset
+     autocorrelation), `buildTimeline(duration)` and the scenes. The timeline stretches every scene in proportion to the
+     song (258 s is 127 bars; the solos run their sequence again from the other side) and squeezes by priority for a short
+     song (8 s keeps intro, Jackson, the outro...). Scene boundaries sit on bar lines.
+   - `stage.js`: one frame into a grid of cells (character, colour, glow flag); `show.js` paints it. Banner pixels and the
+     spotlight's shading are block characters that the painter draws as translucent or solid cell rectangles, the way a
+     terminal does; everything else is ASCII text.
 
-When the song ends, or on any skip, the show hides and the real log prints at once (stages, bars, counters, table,
-banner) ending in BUILD SUCCESSFUL, and `/opt/hawkes-biomedical` is there (the build is recorded when `/build` starts).
+   Scenes (nominal bars at 118 BPM, about 2 s a bar): `intro` SHOWTIME (2, countdown, both walk on), `king` THE KING OF
+   POP (4, Jackson solo under the banner), `jackson` (12: moonwalk glide, spin, toe stand, hat tip, 45 degree lean,
+   sparkle glove wave, freeze), `air` AIR JORDAN (4), `jordan` (12: dribble crossover, jump shot with a SWISH, slam dunk
+   with a leap across the screen to the backboard and hoop and a shaking rim, hang time with the tongue out, shrug),
+   `mirror` (8: eight mirrored pairs of poses), `callresponse` (8: OW! / SWISH!), `battle` (8: the floor changes hands every
+   two beats, a spotlight follows whoever has it, a score), `names` JACKSON x JORDAN (4), `finale` (6: a run to centre,
+   the last pose together held for the last bar and a half, confetti), `outro` (4: the credits scroll, BUILD SUCCESSFUL).
 
-**Reduced motion** (`prefers-reduced-motion` or `?motion=off`): no flood, no flipbook, no autoplay. The short normal log
-prints, then one still frame of both silhouettes (`staticFrame`) and `play song`. The `song` command (also `play song`,
-`song stop`) plays `song.mp3` alone.
+   Text effects, all in time with the beat: a per-letter colour that cycles round the rainbow, a ripple that bounces a few
+   letters on every beat and a white flash of the whole banner on the beat; a screen flash (a tint, at most 0.35 alpha, under
+   3 Hz) and a shake on the beat and harder on a hit (the dunk, the freeze, the finale pose); falling sparkles and confetti
+   characters; two sweeping spotlights; an equalizer row; two scrolling marquees; the stage floor, a row of tiles that
+   step with the beat, with the dancers' reflections shimmering under it; speech bubbles; a caption naming the move; a
+   credits-style outro.
 
-**Swapping in the real song.** Replace `song.mp3` at the repo root; nothing else changes (the length is read from the
-file). The one in the repo is a **placeholder**: 240 s, mono, 22.05 kHz, 64 kbps (about 1.9 MB), a synthesised 112 BPM
-A-minor groove from `tools/genPlaceholderSong.mjs` (then `ffmpeg -i song.wav -ac 1 -ar 22050 -b:a 64k song.mp3`). GitHub
-Pages publishes the repo root, so `/song.mp3` is served from the site root with the other root files; Vite builds only
-`game.html`. The flipbook beat is 112 BPM (`BPM` in flipbook.js); change it to the real song's tempo.
+   Layout: the text size is chosen so the stage is at least 46 columns by 34 rows (a 390 px phone gets 14 px text, 46
+   columns; a laptop gets 18 px, 118 columns), so the figures keep their size and the choreography spreads around them.
+   Left alone on a phone there is no horizontal scroll.
+
+   `#termShow` carries `data-act` (flood, flip), `data-lines`, `data-frames`, `data-audio` (pending, playing, silent,
+   ended), `data-scene`, `data-scenes` (distinct scenes drawn), `data-jframes` / `data-dframes` (distinct frames drawn per
+   dancer), `data-flashes`, `data-shakes`, `data-beats`, `data-nl` / `data-nr` (marks in each dancer's current frame),
+   `data-cols`, `data-rows`, `data-px` and `data-calm` for the playtest.
+
+When the song ends the show hides and the real log prints at once (stages, bars, counters, table, banner) ending in BUILD
+SUCCESSFUL, and `/opt/hawkes-biomedical` is there (the build is recorded when `/build` starts).
+
+**Reduced motion** (`prefers-reduced-motion` or `?motion=off`): the calm version, also unskippable. No flood, no sound (as
+before: `play song` plays it), a fixed `CALM_SECONDS` (48 s) timeline of the same scenes at 5 frames a second, no flash, no
+shake, no falling confetti, no ripple, static marquees. The short normal log prints after it.
+
+**Swapping in the real song.** Replace `song.mp3` at the repo root. The length is read from the file and the timeline
+fits it. The tempo is `BPM` in choreo.js (118 for the song in the repo; `BEAT_OFFSET` is where the first beat falls).
 
 **Test hooks.** `?songlen=8` ends the song after 8 s (the playtest does not wait four minutes). `?demo=show` starts the
-show once the boot ends (the phone playtest looks at the flipbook this way). Neither is linked from anywhere.
+show once the boot ends (the phone playtest looks at it this way). Neither is linked from anywhere.
 
 ## File tree (virtual)
 
@@ -143,11 +177,11 @@ Tab, up, down, ^C, each 44 px, 8 px gap), no horizontal scroll (ASCII art hidden
 ## Checks
 
 `npm run test:terminal` (parser, completion, filesystem permissions, puzzle order and hint monotonicity, no-root
-without earlier steps, the whole documented chain, throttle, root commands, build determinism and timing, the flood, the rasteriser (a left and a right blob in every pose on 40x20, 80x24, 40x60, left centre left of right centre, frames differ in small steps), eggs).
+without earlier steps, the whole documented chain, throttle, root commands, build determinism and timing, the flood, eggs) and `show.test.mjs` (the ASCII frames, the banner font, the timeline for songs from 3 s to 10 min, the choreography on phone and desktop grids, beat effects, the calm version, and a fake browser that proves no key, tap, soft-keyboard text or button ends the show).
 Playtest `terminal` and `terminal-phone` (see `src/playtest/phPlaytest.ts`); Studio runs them, nobody starts a browser
 by hand.
 
 ## Root-only login and the /build show (current)
 
 - `root` is the only account that can be logged into. `su`/`login`/`ssh` to any other user (guest, admin, kali...) fail in-world; root is reached only through the three GUIDE steps (hat, scan, root), or `hint`. Root commands (`/build /status /deploy /logs /services /rollback`) refuse in one line that names the guide's next step.
-- `/build`: log flood (1,600+ lines/s) -> `song.mp3` -> flipbook at 16 fps: Michael Jackson silhouette (fedora, glove, moonwalk/lean/spin) on the left, Michael Jordan (Jumpman leap, dunk at a hoop, crossover) on the right, dense glyph fill, tight crop on a portrait phone. Screenshots: `docs/terminal-shots/`.
+- `/build`: log flood (1,600+ lines/s) -> `song.mp3` -> a choreographed hand-drawn ASCII dance for Jackson and Jordan on one canvas, synced to the song; it cannot be skipped. Screenshots: `docs/terminal-shots/`.
