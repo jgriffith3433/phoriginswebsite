@@ -144,6 +144,10 @@ export type PhProbe = {
   failNextLoad: (kind: 'error' | 'hang') => void;
   /** The memory tier and texture cap (also in hawkesPlaytest.state().graphics). */
   graphics: () => GraphicsInfo;
+  /** The rendering pipeline (src/render/pipeline.ts): tier, chapter LUT, shadows, SSAO, post passes. */
+  render?: () => RenderInfo;
+  /** Mean colour of the next finished frame (after the grade), for the chapter contact sheet. */
+  frameColor?: () => Promise<{ r: number; g: number; b: number; luma: number } | null>;
   /** Test setup (`context-loss`): lose and restore the WebGL context with WEBGL_lose_context; what the recovery shows. */
   contextLoss: {
     lose: () => boolean;
@@ -213,6 +217,13 @@ export type AcousticsProbe = ReturnType<typeof import('../game/acoustics').acous
 export type GraphicsInfo = {
   memoryTier: 'low' | 'standard'; deviceMemory: number | null; textureCap: number | null;
   maxTextureSize: number; lowPower: boolean; reason: string;
+};
+
+export type RenderInfo = {
+  tier: 'low' | 'medium' | 'high'; chapter: string; lut: string | null; lutReady: boolean; toneMapping: string;
+  exposure: number; bloom: boolean; bloomThreshold: number; aberration: boolean; grain: boolean; vignette: boolean;
+  ssao: boolean; shadows: boolean; cascades: number; shadowMapSize: number; shadowCasters: number;
+  shadowStrength: number; hardwareScaling: number; msSinceTierChange: number | null;
 };
 
 export type SceneCounts = {
@@ -846,6 +857,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'For each of levels 1–8: starts the level directly (setup / setupHidden for The Train), waits out the first-second grace, plays a few seconds through real input, and logs hitchOver50 / hitchOver100 / the worst hitches with a named cause into the report. Then repeats at phone size (390x844 via phoneFrame). A frame over 100 ms after the first second (outside level setup) fails. Metrics: hitchOver50, hitchOver100, hitchWorstMs, and per-level hitchL{n}WorstMs / hitchL{n}Cause. report().frameTrace carries the summary.',
         seconds: 420,
         tags: ['smoke', 'perf'],
+      },
+      {
+        id: 'graphics',
+        title: 'Rendering pipeline: Graphics Low / Medium / High in Settings switch within 1 s; all 8 chapters show shadows, AO, bloom and their own grade; Level 1 fps',
+        description: 'Opens Settings from the title and checks the Graphics row (Low / Medium / High, each 44 px or more, the live tier checked). Starts level 1, walks a few steps, then opens Pause > Settings and picks Low, Medium and High in turn: each must reach the pipeline (tier, cascades, shadow map size, SSAO, render scale) within 1 s (metric graphicsSwitchMs). On High it samples the frame rate standing in the hall for 6 s (metric fpsL1High, 45 or more). Then each chapter 1-8 starts directly (test shortcut), its opening is skipped, Pierce walks a few steps and stands, and the frame is held for the footage (scene "Chapter n"): the pipeline must report ACES, bloom, the chapter\'s own LUT loaded, shadows on with casters in range, and SSAO on High. The mean colour of each finished frame is logged (grade-fingerprint) and the number of distinct grades is counted (metric distinctGrades, 5 or more). Option phone: lays the page out as a 390x844 touch phone, taps Low in Settings, walks level 1 with the left stick and checks the low tier keeps ACES, the LUT, bloom and one shadow cascade without SSAO at 30 fps or more (metric fpsL1Low).',
+        seconds: 600,
+        tags: ['render', 'perf', 'menus'],
       },
       {
         id: 'model-audit',
@@ -2661,6 +2679,192 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     };
 
     // ---- stuck-recovery: idle, the Lost? prompt, Return to objective (key, tap, Pause), at three viewports
+    // ---- graphics: the rendering pipeline (src/render/pipeline.ts). Settings tiers, every chapter's look, fps.
+    const graphicsRun = async (phone: boolean) => {
+      const el = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const info = () => probe.render?.() ?? null;
+      if (!probe.render) {
+        t.problem('bug', 'graphics: the probe has no render() readout');
+        t.finish('error');
+        return;
+      }
+      levelsTotal = phone ? 2 : 10;
+      levelIndex = 0;
+      if (phone) {
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+        touchWalk = true;
+        t.event('setup', 'phone layout 390x844 (touch); taps and the left stick only');
+        await sleep(600);
+      }
+      const tierButton = (tier: string) => document.querySelector<HTMLButtonElement>(`#graphicsTiers .graphics-tier[data-tier="${tier}"]`);
+      const checkRow = () => {
+        for (const tier of ['low', 'medium', 'high']) {
+          const b = tierButton(tier);
+          if (!b) { t.problem('bug', `Settings has no Graphics ${tier} button`); continue; }
+          const r = b.getBoundingClientRect();
+          if (r.width < 44 || r.height < 44) t.problem('bug', `Graphics ${tier} button is ${Math.round(r.width)}x${Math.round(r.height)} px (44 px minimum)`);
+          if (r.right > window.innerWidth + 1 || r.left < -1) t.problem('bug', `Graphics ${tier} button runs off the screen`);
+        }
+        const checked = document.querySelector<HTMLButtonElement>('#graphicsTiers .graphics-tier[aria-checked="true"]')?.dataset.tier;
+        t.event('graphics-row', `Settings: Graphics Low / Medium / High, ${checked ?? 'none'} checked (pipeline ${info()?.tier})`);
+        if (checked !== info()?.tier) t.problem('bug', `Settings shows ${checked ?? 'no'} tier checked but the pipeline runs ${info()?.tier}`);
+      };
+      /** Pick a tier with a real press and time how long until the pipeline runs it (shadows, SSAO, scale). */
+      const pickTier = async (tier: 'low' | 'medium' | 'high') => {
+        const before = info();
+        const started = performance.now();
+        await tapAt(tierButton(tier), `Graphics ${tier}`);
+        const want = { low: { cascades: 1, ssao: false }, medium: { cascades: 2, ssao: false }, high: { cascades: 3, ssao: true } }[tier];
+        let ms = -1;
+        while (performance.now() - started < 3000) {
+          const now = info();
+          if (now && now.tier === tier && (!now.shadows || now.cascades === want.cascades) && (now.ssao === want.ssao || !want.ssao)) { ms = performance.now() - started; break; }
+          await frame();
+        }
+        const after = info();
+        t.event('graphics-tier', `${before?.tier} -> ${tier}: ${ms >= 0 ? `${Math.round(ms)} ms` : 'not applied in 3 s'}; cascades ${after?.cascades}, map ${after?.shadowMapSize}, SSAO ${after?.ssao ? 'on' : 'off'}, aberration ${after?.aberration ? 'on' : 'off'}, grain ${after?.grain ? 'on' : 'off'}, scale ${after?.hardwareScaling.toFixed(2)}`);
+        if (ms < 0) t.problem('bug', `Graphics ${tier} did not reach the pipeline within 3 s`);
+        else if (ms > 1000) t.problem('bug', `Graphics ${tier} took ${Math.round(ms)} ms to change the picture (limit 1 s)`);
+        if (tierButton(tier)?.getAttribute('aria-checked') !== 'true') t.problem('bug', `Graphics ${tier} is not shown as checked after the press`);
+        return ms;
+      };
+      const skipScenes = async (ms = 20000) => {
+        const until = performance.now() + ms;
+        while (performance.now() < until && (probe.cutscene() || probe.scripted() || !probe.running() || probe.menu().open)) {
+          const skip = probe.skipButton;
+          if ((probe.cutscene() || probe.scripted()) && skip && !skip.hidden && !skip.disabled) press(skip, 'Skip');
+          await sleep(400);
+        }
+      };
+      const walkAndStand = async (ms: number) => {
+        await skipScenes();
+        const until = performance.now() + ms;
+        while (performance.now() < until) {
+          if (probe.running() && !probe.cutscene() && !probe.scripted() && !probe.menu().open) setHeld('w');
+          else releaseAll();
+          await tick();
+        }
+        releaseAll();
+        await sleep(1200);
+      };
+      const sampleFps = async (what: string, ms: number) => {
+        await sleep(1500);
+        const got: number[] = [];
+        const until = performance.now() + ms;
+        while (performance.now() < until) {
+          await sleep(500);
+          got.push(probe.counts().fps);
+        }
+        const avg = got.reduce((a, b) => a + b, 0) / Math.max(1, got.length);
+        t.event('fps', `${what}: ${avg.toFixed(1)} fps average, worst ${Math.min(...got).toFixed(1)} (${got.length} samples)`);
+        return avg;
+      };
+      const checkLook = (label: string, lib: string, tier: string) => {
+        const r = info();
+        if (!r) return;
+        t.event('render', `${label}: tier ${r.tier}, LUT ${r.lut}${r.lutReady ? '' : ' (loading)'}, ${r.toneMapping}, exposure ${r.exposure.toFixed(2)}, bloom ${r.bloom ? `on >${r.bloomThreshold.toFixed(2)}` : 'off'}, shadows ${r.shadows ? `${r.cascades} cascade(s) ${r.shadowMapSize}px, ${r.shadowCasters} casters, strength ${r.shadowStrength}` : 'off'}, SSAO ${r.ssao ? 'on' : 'off'}, aberration ${r.aberration ? 'on' : 'off'}, grain ${r.grain ? 'on' : 'off'}`);
+        if (r.toneMapping !== 'aces') t.problem('bug', `${label}: tonemapping is ${r.toneMapping}, not ACES`);
+        if (!r.bloom) t.problem('bug', `${label}: bloom is off`);
+        if (r.lut !== lib) t.problem('bug', `${label}: the grade is ${r.lut ?? 'none'}, not the chapter's own (${lib})`);
+        else if (!r.lutReady) t.problem('warning', `${label}: the chapter LUT (${lib}) has not loaded`);
+        if (!r.shadows) t.problem('bug', `${label}: no shadows`);
+        else if (r.shadowCasters < 1) t.problem('bug', `${label}: shadows are on but nothing in range casts (Pierce should)`);
+        if (tier === 'high' && !r.ssao) t.problem('bug', `${label}: SSAO is off on the high tier`);
+        if (tier === 'low' && r.ssao) t.problem('bug', `${label}: SSAO is on on the low tier`);
+        if (tier === 'low' && r.cascades !== 1) t.problem('bug', `${label}: the low tier draws ${r.cascades} cascades (1 expected)`);
+      };
+
+      // Settings from the title.
+      t.scene('Settings: Graphics');
+      await tapAt(el('settingsBtn'), 'Settings');
+      await sleep(300);
+      checkRow();
+      if (phone) await pickTier('low');
+      await tapAt(el('settingsDoneBtn'), 'Done');
+      mark();
+
+      if (phone) {
+        t.scene('Chapter 1 (phone, Low)');
+        await enterLevel(1);
+        await waitControl('control on level 1');
+        await walkAndStand(3500);
+        checkLook('Chapter 1 (phone)', 'apex-peak', 'low');
+        const fps = await sampleFps('Level 1, low tier, 390x844', 6000);
+        t.metric('fpsL1Low', Math.round(fps * 10) / 10);
+        if (fps < 30) t.problem('bug', `Level 1 on the low tier at 390x844 runs ${fps.toFixed(1)} fps (30 needed)`);
+        levelIndex = 1;
+        mark();
+        touchWalk = false;
+        releaseAll();
+        probe.phoneFrame(false);
+        t.progress(1);
+        t.finish('done');
+        return;
+      }
+
+      // Level 1: switch tiers from Pause > Settings, then the High tier frame rate.
+      t.scene('Chapter 1: tiers');
+      await enterLevel(1);
+      await waitControl('control on level 1');
+      await walkAndStand(2500);
+      await tapAt(el('pauseBtn'), 'Pause');
+      await sleep(300);
+      await tapAt(el('pauseSettingsBtn'), 'Settings (Pause)');
+      await sleep(300);
+      checkRow();
+      const switches: number[] = [];
+      for (const tier of ['low', 'medium', 'high'] as const) {
+        switches.push(await pickTier(tier));
+        await sleep(1500); // the footage shows each tier's picture
+      }
+      t.metric('graphicsSwitchMs', Math.round(Math.max(...switches)));
+      await tapAt(el('settingsDoneBtn'), 'Done');
+      await sleep(200);
+      if (!el('resumeBtn')?.closest('[hidden]')) await tapAt(el('resumeBtn'), 'Resume');
+      await waitControl('control after Pause');
+      const fpsHigh = await sampleFps('Level 1, high tier', 6000);
+      t.metric('fpsL1High', Math.round(fpsHigh * 10) / 10);
+      if (fpsHigh < 45) t.problem('bug', `Level 1 on the high tier runs ${fpsHigh.toFixed(1)} fps (45 needed)`);
+      levelIndex = 1;
+      mark();
+
+      // Every chapter's opening look.
+      const fingerprints: { n: number; c: { r: number; g: number; b: number; luma: number } }[] = [];
+      const LIBS = ['apex-peak', 'b3-basement', 'the-return', 'the-desk', 'going-home', 'the-station', 'the-train', 'the-morning'];
+      for (let n = 1; n <= 8; n += 1) {
+        levelIndex = 1 + n;
+        t.scene(`Chapter ${n}: ${LEVEL_NAMES[n - 1]}`);
+        if (n === 7) await probe.setupHidden('the-train');
+        else if (n > 1) await enterLevel(n);
+        await waitControl(`control on level ${n}`, 120000);
+        await walkAndStand(n === 1 ? 1500 : 2500);
+        checkLook(`Chapter ${n}`, LIBS[n - 1], 'high');
+        const c = await probe.frameColor?.();
+        if (c) {
+          fingerprints.push({ n, c });
+          t.event('grade-fingerprint', `Chapter ${n} ${LEVEL_NAMES[n - 1]}: mean rgb ${c.r.toFixed(3)} ${c.g.toFixed(3)} ${c.b.toFixed(3)}, luma ${c.luma.toFixed(3)}`);
+        }
+        await sleep(2500); // held for the contact sheet
+        mark();
+      }
+      // Distinct grades: the hue of each chapter's mean colour (chromaticity), greedily clustered.
+      const chroma = fingerprints.map(({ n, c }) => {
+        const sum = Math.max(1e-4, c.r + c.g + c.b);
+        return { n, x: c.r / sum, y: c.g / sum, l: c.luma };
+      });
+      const groups: (typeof chroma)[] = [];
+      for (const p of chroma) {
+        const home = groups.find((g) => Math.hypot(g[0].x - p.x, g[0].y - p.y) < 0.012 && Math.abs(g[0].l - p.l) < 0.06);
+        if (home) home.push(p);
+        else groups.push([p]);
+      }
+      t.metric('distinctGrades', groups.length);
+      t.event('contact-sheet', `${groups.length} distinct grades: ${groups.map((g) => g.map((p) => p.n).join('+')).join(' | ')}`);
+      if (fingerprints.length === 8 && groups.length < 5) t.problem('bug', `only ${groups.length} visibly distinct chapter grades (5 needed)`);
+      t.progress(1);
+      t.finish('done');
+    };
+
     const stuckRecoveryRun = async () => {
       levelsTotal = 1;
       const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
@@ -5180,6 +5384,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.metric('interiorPassesOk', passOk);
       t.progress(1);
       t.finish(passOk >= 3 ? 'done' : 'lost');
+      return;
+    }
+
+    if (id === 'graphics') {
+      // The tier picks are saved in hawkes.settings; put the bot profile's own choice back so later runs (and the
+      // phone runs, which rely on the device picking Low) are not left on what this run chose.
+      const saved = localStorage.getItem('hawkes.settings');
+      try {
+        await graphicsRun(Boolean(options.phone));
+      } finally {
+        try {
+          if (saved === null) localStorage.removeItem('hawkes.settings');
+          else localStorage.setItem('hawkes.settings', saved);
+        } catch { /* storage blocked */ }
+      }
       return;
     }
 

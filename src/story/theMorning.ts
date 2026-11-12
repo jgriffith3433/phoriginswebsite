@@ -228,6 +228,8 @@ export const createTheMorning = (host: MorningHost) => {
     mesh.material = material;
     mesh.isPickable = false;
     mesh.checkCollisions = solid;
+    // Furniture casts the key light's contact shadow (src/render/pipeline.ts); the window, door and LED do not.
+    mesh.metadata = { ...(mesh.metadata ?? {}), castShadow: !/window|door|led/.test(name) };
     owned.push(mesh);
     return mesh;
   };

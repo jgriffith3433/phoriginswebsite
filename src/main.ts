@@ -28,6 +28,7 @@ import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
+import { createRenderPipeline, GRAPHICS_TIERS, pickGraphicsTier, type GraphicsTier } from './render/pipeline';
 import { createShadowVeil } from './game/shadowVeil';
 import { createPhone, STAT_MAX, STAT_MIN } from './game/phone';
 import { clampLedger, emptyLedger, ledgerBand, type Ledger, type LedgerApi } from './game/ledger';
@@ -261,13 +262,8 @@ capTextureSize(engine, textureCap);
     };
   }
 }
-const LOW_POWER_PIXELS = 1_000_000;
-const applyRenderScale = () => {
-  if (!lowPowerGraphics) return;
-  const pixels = Math.max(1, canvas.clientWidth * canvas.clientHeight);
-  engine.setHardwareScalingLevel(Math.max(1, Math.sqrt(pixels / LOW_POWER_PIXELS)));
-};
-applyRenderScale();
+// The render size follows the graphics tier (src/render/pipeline.ts): Low caps it near a megapixel.
+const applyRenderScale = () => render.applyRenderScale();
 // A lost WebGL context (a phone reclaiming the GPU, a driver reset) freezes the canvas. Babylon already calls
 // preventDefault on the loss and rebuilds buffers, shaders and textures when the browser restores the context.
 // Here the game holds still behind a short "Recovering…" overlay, resumes the level on restore, and restarts the
@@ -353,7 +349,19 @@ hemi.intensity = 0.8;
 const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
 sun.position = new BABYLON.Vector3(12, 18, 6);
 sun.intensity = 0.9;
-const grade = createSceneGrade(scene, [followCamera.camera, menuCamera], { lowPower: lowPowerGraphics });
+/**
+ * One rendering pipeline for every chapter (src/render/pipeline.ts, docs/render.md): ACES, bloom, LUT, grain,
+ * aberration, SSAO on High, cascaded key-light shadows. The tier is `?quality=`, then Settings, then the device.
+ */
+const graphicsPick = pickGraphicsTier(qualityParam, gameSettings().graphics, lowPowerGraphics);
+document.body.dataset.graphics = graphicsPick.tier;
+const render = createRenderPipeline(scene, [followCamera.camera, menuCamera], { tier: graphicsPick.tier, canvas });
+render.setChapter('apex-peak');
+const grade = createSceneGrade(scene, render);
+render.onTier((tier) => {
+  document.body.dataset.graphics = tier;
+  grade.reapply();
+});
 
 const readDevLevelConfig = () => {
   try {
@@ -394,6 +402,7 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     missionScene = loaded.data;
     applyTheme(scene, loaded.data.theme || currentThemeName);
     applySceneLighting(scene, loaded.data);
+    render.setChapter(getLevelDefinition(state.level).libraryId);
     grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
     grade.apply(loaded.data.theme || currentThemeName);
     followCamera.setVolumes(loaded.data.cameraVolumes ?? []);
@@ -2631,6 +2640,7 @@ const applyLevelConfig = (config: LevelDefinition) => {
   applyLevelCombat(config);
   applyTheme(scene, config.theme);
   if (missionScene) applySceneLighting(scene, missionScene);
+  render.setChapter(config.libraryId);
   grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
   grade.apply(config.theme);
 };
@@ -4738,6 +4748,7 @@ const subsSwitch = document.getElementById('subsSwitch') as HTMLButtonElement;
 const subsSize = document.getElementById('subsSize') as HTMLInputElement;
 const subsSizeOut = document.getElementById('subsSizeOut') as HTMLOutputElement;
 const subsBoxSwitch = document.getElementById('subsBoxSwitch') as HTMLButtonElement;
+const graphicsTierButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#graphicsTiers .graphics-tier'));
 
 const SUB_SIZE_LABELS: SubtitleSize[] = ['sm', 'md', 'lg'];
 const SUB_SIZE_WORDS = ['Small', 'Medium', 'Large'];
@@ -4775,6 +4786,8 @@ const renderGameSettings = () => {
   subsSizeOut.textContent = SUB_SIZE_WORDS[sizeIdx];
   subsBoxSwitch.setAttribute('aria-checked', String(s.subtitleBox));
   subsBoxSwitch.textContent = s.subtitleBox ? 'On' : 'Off';
+  const tier = render.tier();
+  for (const button of graphicsTierButtons) button.setAttribute('aria-checked', String(button.dataset.tier === tier));
 };
 
 const renderSettings = () => {
@@ -4823,6 +4836,18 @@ subsBoxSwitch.addEventListener('click', () => {
   setGameSettings({ subtitleBox: !gameSettings().subtitleBox });
   analytics?.setting('subtitleBox', gameSettings().subtitleBox ? 'on' : 'off');
 });
+// Graphics Low / Medium / High: the pipeline switches at once (shadows, SSAO, post passes, render size) and the
+// choice is saved; it wins over the device's pick on the next visit.
+for (const button of graphicsTierButtons) {
+  button.addEventListener('click', () => {
+    const tier = button.dataset.tier as GraphicsTier;
+    if (!GRAPHICS_TIERS.includes(tier)) return;
+    render.setTier(tier);
+    setGameSettings({ graphics: tier });
+    analytics?.setting('graphics', tier);
+    analytics?.context({ graphics: tier });
+  });
+}
 
 const settingsOpen = () => !settingsMenu.hidden;
 const openSettings = () => {
@@ -5101,6 +5126,7 @@ const renderLoop = () => {
     return;
   }
   const delta = engine.getDeltaTime() / 1000;
+  render.update(delta);
   screenFade.update(delta);
   syncActionHint();
   stepHuntRetry(delta);
@@ -5532,7 +5558,7 @@ analytics = createGameAnalytics({
   }),
   player: () => ({ x: state.player.x, z: state.player.z }),
 });
-analytics.context({ graphics: lowPowerGraphics ? 'low' : 'high' });
+analytics.context({ graphics: render.tier() });
 
 // Hawkes playtest contract (src/playtest/phPlaytest.ts). Read-only probe; the bot plays through real input.
 installPhPlaytest({
@@ -5751,6 +5777,33 @@ installPhPlaytest({
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   waypoint: () => objectiveWaypoint.view(),
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
+  render: () => render.stats(),
+  // Mean colour of the next finished frame (after the grade): read in the same frame, so it works without a
+  // preserved drawing buffer. A coarse 32x18 grid is plenty for a chapter's colour fingerprint.
+  frameColor: () => new Promise((resolve) => {
+    scene.onAfterRenderObservable.addOnce(() => {
+      try {
+        const gl = (engine as unknown as { _gl?: WebGL2RenderingContext })._gl;
+        if (!gl) { resolve(null); return; }
+        const w = gl.drawingBufferWidth;
+        const h = gl.drawingBufferHeight;
+        // One read (one GPU sync), then a 32x18 grid out of it.
+        const px = new Uint8Array(w * h * 4);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let iy = 0; iy < 18; iy += 1) {
+          for (let ix = 0; ix < 32; ix += 1) {
+            const i = (Math.floor(((iy + 0.5) / 18) * h) * w + Math.floor(((ix + 0.5) / 32) * w)) * 4;
+            r += px[i]; g += px[i + 1]; b += px[i + 2]; n += 1;
+          }
+        }
+        r /= n * 255; g /= n * 255; b /= n * 255;
+        resolve({ r, g, b, luma: 0.2126 * r + 0.7152 * g + 0.0722 * b });
+      } catch {
+        resolve(null);
+      }
+    });
+  }),
   graphics: () => ({
     memoryTier: memoryTier.tier,
     deviceMemory: memoryTier.deviceMemory,

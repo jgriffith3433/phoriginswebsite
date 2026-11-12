@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { attachKeyShadow, KEY_SHADOW_GLSL, keyShadowShaderOptions } from '../render/keyShadow';
 import { Geo } from './city/geo';
 
 /**
@@ -60,6 +61,7 @@ uniform vec4 lights[${MAX_LIGHTS}];
 uniform vec3 lightColor;
 uniform float time;
 uniform sampler2D atlas;
+${KEY_SHADOW_GLSL}
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -199,7 +201,8 @@ void main(void) {
     emis = albedo * vColor.a;
   }
 
-  vec3 lit = albedo * lighting(n) + emis;
+  // Key-light contact shadow (src/render/keyShadow.ts) under Pierce, commuters and the benches.
+  vec3 lit = albedo * lighting(n) * keyShadow(vWorld + n * 0.02) + emis;
   if (gloss > 0.0) {
     vec3 R = reflect(-V, n);
     float spec = 0.0;
@@ -344,11 +347,14 @@ export const createStationDress = (scene: BABYLON.Scene) => {
   drawBoard(0);
   atlas.update(true);
 
+  const keyShadow = keyShadowShaderOptions(scene);
   const material = new BABYLON.ShaderMaterial('station-dress', scene, { vertexSource: VERT, fragmentSource: FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
-    uniforms: ['worldViewProjection', 'cameraPos', 'fogColor', 'fogRange', 'ambient', 'lights', 'lightColor', 'time'],
-    samplers: ['atlas'],
+    uniforms: ['worldViewProjection', 'cameraPos', 'fogColor', 'fogRange', 'ambient', 'lights', 'lightColor', 'time', ...keyShadow.uniforms],
+    samplers: ['atlas', ...keyShadow.samplers],
+    defines: keyShadow.defines,
   });
+  attachKeyShadow(scene, material);
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas);
