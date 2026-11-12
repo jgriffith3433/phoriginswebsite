@@ -11,6 +11,13 @@ import { createWantedPosters } from './wantedPosters';
 import { SIREN_KILLS, SIREN_SFX, type LedgerApi } from '../game/ledger';
 import { lifeStats } from '../game/lifeStats';
 import { createLinePool, PLACE_SFX, STATION_BARKS, STATION_PA, type PlaceLine } from './placeVoices';
+import {
+  createCrowdReact,
+  NOTICE_HOLD,
+  NOTICE_RANGE,
+  rollAfterNotice,
+  type CrowdStage,
+} from './crowdReact';
 
 export type TheStationHost = {
   /** The street ledger on the save. Kills here count too; at SIREN_KILLS the gate gets an officer and wanted posters. */
@@ -161,6 +168,11 @@ type Person = {
   /** Seconds left looking at Pierce, and the wait before the next look. */
   notice: number;
   cool: number;
+  /** Staged reaction to Shadow Pierce. */
+  react: CrowdStage | null;
+  reactLeft: number;
+  coverX: number;
+  coverZ: number;
 };
 
 export type TheStation = ReturnType<typeof createTheStation>;
@@ -205,6 +217,14 @@ export const createTheStation = (host: TheStationHost) => {
   let callIn = -1;
   let haleRang = false;
   let crowd = false;
+  const shadowCrowd = createCrowdReact({
+    scene: host.scene,
+    playFile: host.playFile,
+    showLine: (title, text) => {
+      host.showLine(title, text);
+      remarkLeft = Math.max(remarkLeft, 1.8);
+    },
+  });
   let copFigure: Figure | null = null;
   let copBark = -1;
   let posters: ReturnType<typeof createWantedPosters> | null = null;
@@ -565,6 +585,10 @@ export const createTheStation = (host: TheStationHost) => {
       resting: false,
       poseHold: 0,
       floorY: 0,
+      react: null,
+      reactLeft: 0,
+      coverX: 0,
+      coverZ: 0,
       notice: 0,
       cool: 3 + Math.random() * 3,
     };
@@ -712,6 +736,114 @@ export const createTheStation = (host: TheStationHost) => {
     host.offerEnd(lineSpeaker('ui.complete.station', 'Level Complete'), lineText('ui.complete.station'));
   };
 
+  const beginStationReact = (person: Person, stage: CrowdStage, t: number) => {
+    if (person.down || person === tether) return;
+    if (!shadowCrowd.canAnimate() && !person.react) return;
+    const id = person.mesh.name;
+    const fresh = shadowCrowd.noteWitness(id, t);
+    person.react = stage;
+    if (stage === 'notice') {
+      person.reactLeft = NOTICE_HOLD + Math.random() * 0.35;
+      person.fleeing = false;
+      person.moving = false;
+      face(person, Math.atan2(host.player().x - person.mesh.position.x, host.player().z - person.mesh.position.z));
+      const dx = person.mesh.position.x - host.player().x;
+      const len = Math.abs(dx) || 1;
+      person.mesh.position.x += (dx / len) * 0.45;
+      if (fresh && shadowCrowd.say('notice', 0.7)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(person.avatar, 'notice', false);
+    } else if (stage === 'panic') {
+      person.reactLeft = 3 + Math.random();
+      person.fleeing = true;
+      person.screamed = true;
+      person.dir = person.mesh.position.x >= host.player().x ? 1 : -1;
+      shadowCrowd.markPanic();
+      if (shadowCrowd.say('panic', 0.78)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.dropCarry(id, person.mesh.position.x, 0, person.mesh.position.z);
+      shadowCrowd.playStageClip(person.avatar, 'panic', true);
+    } else if (stage === 'film') {
+      person.reactLeft = 4 + Math.random() * 2;
+      person.fleeing = false;
+      person.moving = false;
+      shadowCrowd.raisePhone(id, person.avatar);
+      if (shadowCrowd.say('film', 0.68)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(person.avatar, 'film', false);
+      face(person, Math.atan2(host.player().x - person.mesh.position.x, host.player().z - person.mesh.position.z));
+    } else if (stage === 'cower') {
+      person.reactLeft = 5;
+      person.fleeing = false;
+      person.coverX = clamp(person.mesh.position.x + (Math.random() < 0.5 ? -2.4 : 2.4), 2, 78);
+      person.coverZ = person.z > 0 ? -0.4 : -2.2;
+      shadowCrowd.markCower();
+      if (shadowCrowd.say('cower', 0.62)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(person.avatar, 'cower', false);
+    }
+  };
+
+  const stirStation = (here: { x: number; z: number }, t: number, dt: number) => {
+    if (!shadowOn || playing || finished) {
+      shadowCrowd.countReacting(0);
+      return;
+    }
+    shadowCrowd.markShadow(true, t);
+    shadowCrowd.countReacting(people.filter((p) => p.react).length);
+    const near = people
+      .filter((p) => !p.down && p !== tether && !p.react
+        && Math.hypot(p.mesh.position.x - here.x, p.mesh.position.z - here.z) < NOTICE_RANGE)
+      .sort((a, b) => Math.hypot(a.mesh.position.x - here.x, a.mesh.position.z - here.z)
+        - Math.hypot(b.mesh.position.x - here.x, b.mesh.position.z - here.z));
+    for (const person of near) {
+      if (!shadowCrowd.canAnimate()) break;
+      beginStationReact(person, 'notice', t);
+      shadowCrowd.countReacting(people.filter((p) => p.react).length);
+    }
+    for (const person of people) {
+      if (!person.react) continue;
+      person.reactLeft -= dt;
+      if (person.react === 'notice' && person.reactLeft <= 0) {
+        shadowCrowd.dropPhone(person.mesh.name);
+        beginStationReact(person, rollAfterNotice(), t);
+        continue;
+      }
+      if (person.react === 'film') {
+        face(person, Math.atan2(here.x - person.mesh.position.x, here.z - person.mesh.position.z));
+      }
+      if (person.react === 'cower') {
+        const dx = person.coverX - person.mesh.position.x;
+        const dz = person.coverZ - person.mesh.position.z;
+        const d = Math.hypot(dx, dz);
+        if (d > 0.3) {
+          person.mesh.position.x += (dx / d) * Math.min(d, 2.1 * dt);
+          person.mesh.position.z += (dz / d) * Math.min(d, 2.1 * dt);
+          face(person, Math.atan2(dx, dz));
+        } else {
+          shadowCrowd.playStageClip(person.avatar, 'cower', false);
+        }
+      }
+      if (person.reactLeft <= 0 && person.react !== 'notice') {
+        const wasPanic = person.react === 'panic';
+        shadowCrowd.dropPhone(person.mesh.name);
+        person.react = null;
+        person.fleeing = wasPanic;
+        person.avatar.resumeLocomotion();
+      }
+    }
+  };
+
+  const callStationCompanion = (victim: Person) => {
+    let best: Person | null = null;
+    let bestD = 6.5;
+    for (const other of people) {
+      if (other === victim || other.down || other === tether) continue;
+      const d = Math.hypot(other.mesh.position.x - victim.mesh.position.x, other.mesh.position.z - victim.mesh.position.z);
+      if (d < bestD) { bestD = d; best = other; }
+    }
+    if (!best) return;
+    shadowCrowd.markCompanion();
+    shadowCrowd.say('companion', 0.8);
+    face(best, Math.atan2(victim.mesh.position.x - best.mesh.position.x, victim.mesh.position.z - best.mesh.position.z));
+  };
+
   return {
     objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'station'),
     dispose: () => {
@@ -732,6 +864,7 @@ export const createTheStation = (host: TheStationHost) => {
     },
     mount: async () => {
       active = true;
+      shadowCrowd.reset();
       finished = false;
       shadowOn = false;
       handsOut = false;
@@ -798,8 +931,11 @@ export const createTheStation = (host: TheStationHost) => {
       host.ledger.add('possessions');
       linkLeft = POSSESS_SECONDS;
       best.fleeing = false;
+      best.react = null;
+      shadowCrowd.dropPhone(best.mesh.name);
       best.avatar.resumeLocomotion();
       host.playFile('/assets/audio/sfx/street/possess.wav', 0.4);
+      callStationCompanion(best);
       showGoal();
       return true;
     },
@@ -828,8 +964,11 @@ export const createTheStation = (host: TheStationHost) => {
       host.ledger.add('possessions');
       linkLeft = POSSESS_SECONDS;
       best.fleeing = false;
+      best.react = null;
+      shadowCrowd.dropPhone(best.mesh.name);
       best.avatar.resumeLocomotion();
       host.playFile('/assets/audio/sfx/street/possess.wav', 0.4);
+      callStationCompanion(best);
       showGoal();
       return true;
     },
@@ -855,6 +994,7 @@ export const createTheStation = (host: TheStationHost) => {
       releaseLink();
       return true;
     },
+    crowd: () => shadowCrowd.stats(),
     toggleShadow: () => {
       if (!active || finished) return shadowOn;
       if (tether) releaseLink();
@@ -863,7 +1003,19 @@ export const createTheStation = (host: TheStationHost) => {
       trailLeft = 0;
       hideBeads();
       host.playFile(shadowOn ? '/assets/audio/sfx/street/shadow-on.wav' : '/assets/audio/sfx/street/shadow-off.wav', 0.4);
-      if (shadowOn) host.holster();
+      if (shadowOn) {
+        host.holster();
+        shadowCrowd.markShadow(true, sceneTime);
+        stirStation(host.player(), sceneTime, 0.05);
+      } else {
+        shadowCrowd.markShadow(false, sceneTime);
+        for (const person of people) {
+          if (!person.react) continue;
+          shadowCrowd.dropPhone(person.mesh.name);
+          person.react = null;
+          person.avatar.resumeLocomotion();
+        }
+      }
       showGoal();
       return shadowOn;
     },
@@ -1037,6 +1189,7 @@ export const createTheStation = (host: TheStationHost) => {
       linkTime += stepDt;
       trailLeft = Math.max(0, trailLeft - stepDt);
       const here = host.player();
+      if (shadowOn && !playing) stirStation(here, sceneTime, stepDt);
       updateRibbon();
       if (tether) {
         linkLeft -= stepDt;
@@ -1078,7 +1231,8 @@ export const createTheStation = (host: TheStationHost) => {
         const dx = person.mesh.position.x - here.x;
         const dz = person.mesh.position.z - here.z;
         const dist = Math.hypot(dx, dz);
-        if (shadowOn && person.fleeing) person.fleeing = false;
+        // Shadow reactions own fleeing; do not clear panic mid-stage.
+        if (shadowOn && person.fleeing && !person.react) person.fleeing = false;
         if (!shadowOn && !person.fleeing && person.skittish && dist < 2.3) {
           person.fleeing = true;
           person.dir = dx >= 0 ? 1 : -1;

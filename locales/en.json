@@ -2289,6 +2289,366 @@
       "note": "Two people talking"
     },
     {
+      "id": "bark.crowd.notice.01",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "What is that?",
+      "audio": "/assets/audio/vo/bark.crowd.notice.01.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.02",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Did you see him?",
+      "audio": "/assets/audio/vo/bark.crowd.notice.02.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.03",
+      "type": "bark",
+      "speaker": "Rider",
+      "text": "Back up. Back up.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.03.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.04",
+      "type": "bark",
+      "speaker": "Receptionist",
+      "text": "That isn't right.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.04.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.05",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Oh no. No.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.05.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.06",
+      "type": "bark",
+      "speaker": "Street woman",
+      "text": "Keep your distance.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.06.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.07",
+      "type": "bark",
+      "speaker": "Street elder",
+      "text": "Eyes on him.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.07.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.08",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Something's wrong.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.08.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.09",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "Don't get closer.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.09.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.10",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Is he even human?",
+      "audio": "/assets/audio/vo/bark.crowd.notice.10.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.panic.01",
+      "type": "shout",
+      "speaker": "Passerby",
+      "text": "Get away from me!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.01.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.02",
+      "type": "shout",
+      "speaker": "Commuter",
+      "text": "Run! Just run!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.02.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.03",
+      "type": "shout",
+      "speaker": "Traveler",
+      "text": "Somebody help!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.03.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.04",
+      "type": "shout",
+      "speaker": "Rider",
+      "text": "It's coming this way!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.04.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.05",
+      "type": "shout",
+      "speaker": "Receptionist",
+      "text": "Don't touch me!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.05.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.06",
+      "type": "shout",
+      "speaker": "Night shift",
+      "text": "Out of the way!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.06.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.07",
+      "type": "shout",
+      "speaker": "Street woman",
+      "text": "Leave me alone!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.07.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.08",
+      "type": "shout",
+      "speaker": "Street elder",
+      "text": "He's not a man!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.08.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.09",
+      "type": "shout",
+      "speaker": "Passerby",
+      "text": "Call the police!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.09.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.10",
+      "type": "shout",
+      "speaker": "Commuter",
+      "text": "Go go go!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.10.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.film.01",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "I'm getting this.",
+      "audio": "/assets/audio/vo/bark.crowd.film.01.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.02",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Phone's up. Stay back.",
+      "audio": "/assets/audio/vo/bark.crowd.film.02.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.03",
+      "type": "bark",
+      "speaker": "Rider",
+      "text": "Everyone needs to see this.",
+      "audio": "/assets/audio/vo/bark.crowd.film.03.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.04",
+      "type": "bark",
+      "speaker": "Receptionist",
+      "text": "Recording. Don't move.",
+      "audio": "/assets/audio/vo/bark.crowd.film.04.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.05",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Got him on camera.",
+      "audio": "/assets/audio/vo/bark.crowd.film.05.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.06",
+      "type": "bark",
+      "speaker": "Street woman",
+      "text": "Live. Right now.",
+      "audio": "/assets/audio/vo/bark.crowd.film.06.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.07",
+      "type": "bark",
+      "speaker": "Street elder",
+      "text": "Don't look away.",
+      "audio": "/assets/audio/vo/bark.crowd.film.07.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.08",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "This is going up.",
+      "audio": "/assets/audio/vo/bark.crowd.film.08.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.cower.01",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Please don't.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.01.ogg",
+      "performance": "whispers",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.02",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "I won't look.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.02.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.03",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Stay down. Stay quiet.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.03.ogg",
+      "performance": "whispers",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.04",
+      "type": "bark",
+      "speaker": "Rider",
+      "text": "Make it go past.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.04.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.05",
+      "type": "bark",
+      "speaker": "Receptionist",
+      "text": "Not me. Not tonight.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.05.ogg",
+      "performance": "whispers",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.06",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Just let it pass.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.06.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.companion.01",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Hey! Look at me!",
+      "audio": "/assets/audio/vo/bark.crowd.companion.01.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: companion"
+    },
+    {
+      "id": "bark.crowd.companion.02",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "Come back! That's not you!",
+      "audio": "/assets/audio/vo/bark.crowd.companion.02.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: companion"
+    },
+    {
+      "id": "bark.crowd.companion.03",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Wake up! Fight it!",
+      "audio": "/assets/audio/vo/bark.crowd.companion.03.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: companion"
+    },
+    {
+      "id": "bark.crowd.train.01",
+      "type": "shout",
+      "speaker": "Traveler",
+      "text": "Pull the handle!",
+      "audio": "/assets/audio/vo/bark.crowd.train.01.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: train"
+    },
+    {
+      "id": "bark.crowd.train.02",
+      "type": "shout",
+      "speaker": "Rider",
+      "text": "Between the cars! Move!",
+      "audio": "/assets/audio/vo/bark.crowd.train.02.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: train"
+    },
+    {
+      "id": "bark.crowd.train.03",
+      "type": "shout",
+      "speaker": "Receptionist",
+      "text": "Emergency! Now!",
+      "audio": "/assets/audio/vo/bark.crowd.train.03.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: train"
+    },
+    {
       "id": "bark.station.01",
       "type": "bark",
       "speaker": "Commuter",

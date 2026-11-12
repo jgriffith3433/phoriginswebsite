@@ -69,6 +69,13 @@ export type PhProbe = {
   grantShock?: () => void;
   /** Going Home: siren time, police car spawn/arrival (street seconds), witnesses. */
   heat?: () => { kills: number; sirenAt: number; carSpawnedAt: number; carArrivedAt: number; sirenToCarSeconds: number; carActive: boolean; witnesses: number; withinSeconds: number };
+  /** Staged Shadow crowd reactions (Going Home / Station / Train). */
+  crowd?: () => {
+    witnesses: number; voiced: number; voices: string[]; voiceCount: number;
+    filmers: number; panickers: number; cowers: number; companions: number;
+    handles: number; hides: number; reacting: number; lastLine: string; lastLines: string[];
+    repeatsBackToBack: number; within2s: number;
+  } | null;
   /** Test shortcut: ring a scripted call and (optionally) seed the saved trust values. */
   callTest?: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => void;
   /** The chapter title card that opens each level (kicker, name, story line). */
@@ -856,6 +863,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts Going Home (test shortcut), skips the lobby and plays the street by real input: the bot reads no objective text, it follows the context prompt. Shadow on its own button, walks through the crowd until people lose him; the police pair (Shock, one tap on the fire button); the taped sidewalk (Possess the guard, walk him to the tape); the station guard (Possess, then a second tap to Consume); and Punch/Kick only after he drops Shadow and is shoved. Logs each introduction step with its street setup and time (power-step events). Checks: introductions in order Shadow, Shock, Possess, Consume, Punch/Kick; at least 30 s between new controls; each power first used at a street setup; Punch/Kick only after an unshadowed shove; every objective.home.* line is 8 words or fewer; every context prompt is 4 words or fewer, on screen and clear of other controls, and each power\'s first use lands on one tap. Phone: taps and stick drags only.',
         seconds: 480,
         tags: ['level', 'phone', 'story'],
+      },
+      {
+        id: 'crowd-shadow',
+        title: 'Shadow in a crowd: pedestrians notice, scream, film and cower in many voices (Going Home; phone 390x844 ≥30 fps)',
+        description: 'Starts Going Home (test shortcut), skips the lobby, walks into the sidewalk crowd and turns Shadow on through the Shadow button (phone: taps and stick drags only). Within 2 s at least 3 pedestrians must react with a voiced line and a visible animation; the run must hear 6+ different voices among street reactions; no reaction line repeats back-to-back across 10 reactions; at least one pedestrian raises a lit phone to film Pierce. Metrics: crowdWithin2s, crowdVoices, crowdFilmers, crowdWitnesses, crowdRepeats, phone.fpsP5. Probe: crowd().',
+        seconds: 240,
+        tags: ['level', 'phone', 'story', 'quality'],
       },
       {
         id: 'desk-beats',
@@ -4191,7 +4205,171 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return 'done';
     };
 
-    // ---- desk-beats: the mirror walked up to, the desk cleared by a held drag
+    // ---- crowd-shadow: Shadow in a sidewalk crowd — notice, panic, film, many voices
+    const crowdShadowRun = async (): Promise<Outcome> => {
+      const phone = Boolean(options.phone);
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
+      t.metric('feel.coyoteMs', 120);
+      t.scene('Going Home: crowd reactions');
+      await enterLevel(5);
+      await waitControl('Going Home');
+      for (let i = 0; i < 120 && probe.scripted(); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(400);
+      }
+      await t.until(() => probe.running() && !probe.scripted(), 30000, 'control on the street');
+      await sleep(500);
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const zone = document.getElementById('leftStickZone') as HTMLElement | null;
+      let down = false;
+      const stick = (ux: number, uy: number) => {
+        if (!zone) return;
+        const zr = zone.getBoundingClientRect();
+        const type = down ? 'pointermove' : 'pointerdown';
+        down = true;
+        zone.dispatchEvent(new PointerEvent(type, {
+          pointerId: 31, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true,
+          clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38,
+          clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38,
+        }));
+      };
+      const lift = () => {
+        if (down && zone) zone.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch', bubbles: true }));
+        down = false;
+      };
+      // Walk east into the densest sidewalk crowd near the tower.
+      const untilCrowd = performance.now() + 25000;
+      while (performance.now() < untilCrowd) {
+        const p = probe.player();
+        const crowd = probe.people().filter((x) => x.kind === 'person' || x.kind === 'hostile');
+        if (crowd.length >= 3) {
+          const near = crowd.sort((a, b) => dist(p, a) - dist(p, b))[0];
+          if (near && dist(p, near) < 8) break;
+        }
+        if (phone) stick(0.85, 0);
+        else steer({ x: p.x + 8, z: 22.6 }, true);
+        await tick();
+      }
+      lift();
+      releaseAll();
+      await sleep(300);
+      if (!probe.shadow().on) {
+        if (phone) await tapAt(byId('shadowHint'), 'Shadow');
+        else {
+          window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', code: 'KeyC', bubbles: true }));
+          await sleep(80);
+          window.dispatchEvent(new KeyboardEvent('keyup', { key: 'c', code: 'KeyC', bubbles: true }));
+        }
+      }
+      t.event('shadow-on', `t=${((performance.now()) / 1000).toFixed(1)}s`);
+      const shadowAt = performance.now();
+      const fpsSamples: number[] = [];
+      // Hold Shadow near the crowd for several seconds so reactions stage and voices accumulate.
+      const holdUntil = performance.now() + 14000;
+      let peakVoices = 0;
+      let peakWithin = 0;
+      let peakFilm = 0;
+      let peakWitness = 0;
+      let peakRepeats = 0;
+      let lastLines: string[] = [];
+      while (performance.now() < holdUntil) {
+        const p = probe.player();
+        const near = probe.people().filter((x) => (x.kind === 'person' || x.kind === 'hostile') && dist(p, x) < 14);
+        if (near.length) {
+          const target = near.sort((a, b) => dist(p, a) - dist(p, b))[0];
+          if (phone) {
+            const heading = Math.atan2(target.x - p.x, target.z - p.z);
+            const rel = wrap(heading - probe.cameraYaw());
+            stick(Math.sin(rel) * 0.35, -Math.cos(rel) * 0.35);
+          } else steer(target, true);
+        }
+        await tick();
+        const eng = probe.scene?.getEngine?.();
+        if (eng) {
+          const f = eng.getFps?.();
+          if (typeof f === 'number' && f > 0) fpsSamples.push(f);
+        }
+        const c = probe.crowd?.();
+        if (c) {
+          peakVoices = Math.max(peakVoices, c.voiceCount);
+          peakWithin = Math.max(peakWithin, c.within2s);
+          peakFilm = Math.max(peakFilm, c.filmers);
+          peakWitness = Math.max(peakWitness, c.witnesses);
+          peakRepeats = Math.max(peakRepeats, c.repeatsBackToBack);
+          lastLines = c.lastLines;
+          if (c.voiced > 0 && performance.now() - shadowAt < 2500) {
+            t.event('crowd-voice', `${c.voiced} voiced, ${c.voiceCount} voices, within2s=${c.within2s}, filmers=${c.filmers}`);
+          }
+        }
+      }
+      lift();
+      releaseAll();
+      // Keep walking to accumulate 10 reactions / 6 voices.
+      const moreUntil = performance.now() + 20000;
+      while (performance.now() < moreUntil && (peakVoices < 6 || lastLines.length < 10 || peakFilm < 1)) {
+        if (phone) stick(0.7, 0);
+        else {
+          const p = probe.player();
+          steer({ x: p.x + 6, z: 22.6 }, true);
+        }
+        await tick();
+        const eng = probe.scene?.getEngine?.();
+        if (eng) {
+          const f = eng.getFps?.();
+          if (typeof f === 'number' && f > 0) fpsSamples.push(f);
+        }
+        const c = probe.crowd?.();
+        if (c) {
+          peakVoices = Math.max(peakVoices, c.voiceCount);
+          peakWithin = Math.max(peakWithin, c.within2s);
+          peakFilm = Math.max(peakFilm, c.filmers);
+          peakWitness = Math.max(peakWitness, c.witnesses);
+          peakRepeats = Math.max(peakRepeats, c.repeatsBackToBack);
+          lastLines = c.lastLines;
+        }
+      }
+      lift();
+      releaseAll();
+      const final = probe.crowd?.();
+      const linesHeard = final?.lastLines?.length ?? lastLines.length;
+      t.metric('crowdWithin2s', final?.within2s ?? peakWithin);
+      t.metric('crowdVoices', final?.voiceCount ?? peakVoices);
+      t.metric('crowdFilmers', final?.filmers ?? peakFilm);
+      t.metric('crowdWitnesses', final?.witnesses ?? peakWitness);
+      t.metric('crowdRepeats', final?.repeatsBackToBack ?? peakRepeats);
+      t.metric('crowdVoiced', final?.voiced ?? 0);
+      t.metric('crowdLines', linesHeard);
+      t.event('crowd', JSON.stringify(final ?? { voices: peakVoices, within2s: peakWithin, filmers: peakFilm, lines: linesHeard }));
+      if ((final?.within2s ?? peakWithin) < 3) {
+        t.problem('bug', `only ${final?.within2s ?? peakWithin} voiced reactions within 2 s of Shadow (want 3+)`);
+      }
+      if ((final?.voiceCount ?? peakVoices) < 6) {
+        t.problem('bug', `only ${final?.voiceCount ?? peakVoices} different voices in reactions (want 6+)`);
+      }
+      if (linesHeard < 10) {
+        t.problem('bug', `only ${linesHeard} reaction lines heard (want 10+ to prove no back-to-back repeats)`);
+      } else if ((final?.repeatsBackToBack ?? peakRepeats) > 0) {
+        t.problem('bug', `a reaction line repeated back-to-back (${final?.repeatsBackToBack ?? peakRepeats} times)`);
+      }
+      if ((final?.filmers ?? peakFilm) < 1) {
+        t.problem('bug', 'no pedestrian raised a lit phone to film Pierce');
+      }
+      if (phone) {
+        const fpsSorted = [...fpsSamples].sort((a, b) => a - b);
+        const fpsP5 = fpsSorted.length ? fpsSorted[Math.max(0, Math.floor(fpsSorted.length * 0.05))] : 0;
+        t.metric('phone.fpsP5', fpsP5);
+        if (fpsSamples.length === 0 || fpsP5 <= 0) {
+          t.problem('bug', 'phone fps p5 was not measured during crowd reactions');
+        } else if (fpsP5 < 30) {
+          t.problem('bug', `phone fps p5 ${fpsP5.toFixed(1)} under 30 during crowd reactions`);
+        }
+        probe.phoneFrame(false);
+      }
+      t.progress(1);
+      return 'done';
+    };
+
     /** Going Home's power lessons, played from the context prompts with taps (phone) or clicks. */
     const streetPowersRun = async (): Promise<Outcome> => {
       const phone = Boolean(options.phone);
@@ -7641,6 +7819,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
 
     if (id === 'street-powers') {
       const outcome = await streetPowersRun();
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'crowd-shadow') {
+      const outcome = await crowdShadowRun();
       t.finish(outcome);
       return;
     }

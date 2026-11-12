@@ -189,13 +189,20 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
   named character).
 
 ### How they react to the player
-- **Pierce is the threat.** In Shadow mode he walks through people, who lose him and wander off; unshadowed he is stared
-  at, shrunk from, screamed at.
+- **Pierce is the threat.** When he goes **Shadow** in a crowd, civilians stage a GTA-style reaction (`src/story/crowdReact.ts`):
+  **notice** (stare, step back, a voiced bark), then **panic** (scream, flee, drop what they carry), **film** (raise a lit
+  phone), or **cower** (tuck into a doorway/corner). At most 6 reactors animate at once on phone. Hostiles and police still
+  **lose him** in Shadow and wander off; he still walks through people. Unshadowed he is stared at, shrunk from, screamed at.
 - **Hostile/police:** punch on contact, run at Pierce, blocked by cars, lose him in Shadow mode.
-- **Pedestrians:** turn when he bumps them, one in five screams or runs if he is right on them.
-- **Riders:** keep their eyes off him; a possessed rider walks inside the car only.
+- **Pedestrians:** turn when he bumps them; one in five screams or runs if he is right on them while unshadowed; in Shadow
+  they join the staged notice/panic/film/cower pool (many voices, no back-to-back line repeats).
+- **Riders:** on The Train, Shadow reactions include pulling the emergency handle or hiding toward the end-door gap between
+  cars; a possessed rider's nearby companion calls out. Otherwise they keep their eyes off him; a possessed rider walks
+  inside the car only.
 - **The old body and the commuter are never targets and never turn around.**
 - **Voss** is the only person who sounds as if he suspects: "You don't sound like yourself." "Whose voice is that?"
+- **Crowd voice archetypes** (not named cast): Passerby, Commuter, Traveler, Rider, Receptionist, Night shift, Street woman,
+  Street elder — eight Gen voices across the forty `bark.crowd.*` lines.
 
 ---
 
@@ -263,7 +270,8 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 - **Interactions:** C Shadow mode, Tab switch, click Shock/Possess (a second click kills), Consume, Shift run/fly,
   punch/kick when unshadowed, E at stores (**new**: buy nothing, but the shopkeeper's bell and a line), pick up the
   medkit/ammo box, phone, flashlight, minimap.
-- **Own events:** signals cycle 30 s; traffic and police; peds scream; lights bloom; a car hits and knocks back;
+- **Own events:** signals cycle 30 s; traffic and police; peds stage Shadow reactions (notice / panic / film / cower,
+  many voices); lights bloom; a car hits and knocks back;
   shopkeepers call; sirens (**new**, a siren Doppler every ~45 s); the diner cook shouts (**new**).
 - **Sound:** bed `street-night.ogg`; layered spots: rain on cars/awnings, distant sirens, traffic hiss, neon buzz,
   passers-by walla, shop bell (`chapterAmbience` ch5). Footsteps, Shadow Shock, scream.

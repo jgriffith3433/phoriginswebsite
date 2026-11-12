@@ -6045,6 +6045,13 @@ installPhPlaytest({
   desk: () => desk.stats(),
   /** What the city did about the street ledger (Going Home's siren and car, the Station gate's officer). */
   heat: () => home.heat(),
+  /** Staged Shadow crowd reactions (Going Home / Station / Train): witnesses, voices, filmers. */
+  crowd: () => {
+    if (isHomeLevel()) return home.crowd();
+    if (getLevelDefinition(state.level).libraryId === 'the-station') return station.crowd?.() ?? null;
+    if (getLevelDefinition(state.level).libraryId === 'the-train') return train.crowd?.() ?? null;
+    return null;
+  },
   rainNight: () => (isHomeLevel() ? home.rainNight() : dressing.station()),
   stationRain: () => dressing.station(),
   /** Playtest setup shortcut (named): Going Home hands over Shock without its lesson. */
