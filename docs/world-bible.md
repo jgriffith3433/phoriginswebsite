@@ -565,3 +565,11 @@ Every scripted Voss and Hale call (`voss-late`, `voss-meeting`, `hale-walkout`, 
 - **Landmarks**: The City Ledger newspaper on Pierce's coffee table in The Morning; the police car on the Going Home avenue; three wanted posters and an officer at the Station gate (kills 2 or more).
 - **Who lives here**: the Morning News anchor (calm, practised, public-safe), the gate officer (Police voice, tired and careful).
 - **What happens**: two bystander deaths bring the siren and a car within 20 s; the morning after, the TV, the paper and Voss all say what the night cost. Bands and lines: `docs/story/ledger.md`.
+
+## The front page console (new, site only)
+
+`index.html` is a fake terminal ("gateway console", a simulated Hawkes Biomedical box), not a game area. It adds no
+canon beyond public facts (the board, the 58th floor, Hawkes Biomedical, chapter titles) and never names B3, the vat or
+the creature. The in-fiction wink: the old pen-test crew wore their hats backwards; the staging gateway's password is
+a staff-list phrase (`roomforgrace58`). `/build` assembles a fictional medical backend (ten modules). Spec:
+`docs/terminal-console.md`.

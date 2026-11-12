@@ -152,6 +152,10 @@ assets/asset-library.json   IDs the editor and loader use
 tools/                      Blender convert, bake anims, texture pipeline
 ```
 
+### Front page is a terminal (`index.html`)
+
+`index.html` is a full-screen fake terminal, not the old landing page (spec `docs/terminal-console.md`). Its code is plain ES modules in `site/terminal/` (no build: Pages serves the repo root as is; Vite only builds `game.html`), tests `npm run test:terminal`, playtests `terminal` and `terminal-phone` (page in an overlay, real key and tap events). Keep on it: the Hawkes Analytics tags, the `p.hawkes-credit` / `p.site-privacy` footer, the front-page playtest hand-off script (add new scenario ids to its list), no network, no `eval`, no polling, no root cheat. Other pages still link `./index.html` as Home.
+
 ### Marketing site
 
 Home, About, and Characters share `site/marketing.css` and `site/marketing.js`. Play links point at `/play/game.html` (the build; correct with no JS). `marketing.js` swaps them to `/game.html` on a local dev host (any port except the preview server on 4173). GitHub Pages publishes the repo root, so the live `/game.html` is the unbuilt source page (Pages serves `src/main.ts` as `video/mp2t`). An inline script at the top of `game.html` redirects to `./play/game.html` when Vite has not substituted `%MODE%`; keep it. The same script shows "Could not load the game" with a Reload button if the entry module fails to load or throws before `main.ts` calls `window.__phBoot.ok()`. Landing music key stays `ph-origins-landing-music`, volume **0.42**.

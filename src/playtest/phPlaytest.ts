@@ -1028,6 +1028,20 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['menus', 'site'],
       },
       {
+        id: 'terminal',
+        title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the five-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
+        description: 'Loads index.html in an overlay (the page is now a fake terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the clues: rev ~/.hat_backwards, nmap the named host, curl the robots-listed backup, strings it, john with the wordlist the config names, ssh as ops, sudo less and !sh. The prompt must turn root@ph-origins:/# (red). /build runs at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
+        seconds: 150,
+        tags: ['site', 'first-minute', 'ui'],
+      },
+      {
+        id: 'terminal-phone',
+        title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot',
+        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, footer links 44 px. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
+        seconds: 60,
+        tags: ['site', 'phone', 'ui'],
+      },
+      {
         id: 'frame-trace',
         title: 'Frame-time trace on all eight levels (desktop and phone): hitch counts, worst causes, no post-grace frame over 100 ms',
         description: 'For each of levels 1–8: starts the level directly (setup / setupHidden for The Train), waits out the first-second grace, plays a few seconds through real input, and logs hitchOver50 / hitchOver100 / the worst hitches with a named cause into the report. Then repeats at phone size (390x844 via phoneFrame). A frame over 100 ms after the first second (outside level setup) fails. Metrics: hitchOver50, hitchOver100, hitchWorstMs, and per-level hitchL{n}WorstMs / hitchL{n}Cause. report().frameTrace carries the summary.',
@@ -2487,6 +2501,192 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.event('about-stale', stale ? 'the "still being built out" line is still on the page' : 'no "still being built out" line');
       if (stale) t.problem('bug', 'About page still says the rooms are "still being built out"');
       await sleep(3000); // hold the cards for the footage
+    };
+
+
+    /** The landing page is a terminal (index.html). Shown in an overlay and driven with real key and tap events. */
+    const terminalRun = async (phone: boolean) => {
+      levelsTotal = 1;
+      const KEY = 'hawkes-terminal-test-restore';
+      const STORE = 'ph-origins-terminal';
+      const saved = localStorage.getItem(STORE);
+      localStorage.removeItem(STORE); // a clean guest; the visitor's own save comes back at the end
+      t.scene(phone ? 'Terminal on a phone' : 'Terminal');
+      const frame = document.createElement('iframe');
+      frame.title = 'terminal';
+      frame.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html' + (phone ? '?motion=off' : ''), location.href).href;
+      Object.assign(frame.style, phone
+        ? { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '9999', border: '0', background: '#000' }
+        : { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '9999', border: '0', background: '#000' });
+      const t0 = performance.now();
+      document.body.appendChild(frame);
+      void KEY;
+      try {
+        const until = performance.now() + 20000;
+        while (!frame.contentDocument?.getElementById('termInput') && performance.now() < until) await sleep(100);
+        const win = frame.contentWindow as any;
+        const doc = frame.contentDocument as Document;
+        const input = doc.getElementById('termInput') as HTMLInputElement | null;
+        if (!input || !win) { t.problem('bug', 'terminal: index.html did not show a #termInput'); return; }
+        const log = () => (doc.getElementById('termLog') as HTMLElement).innerText;
+        const prompt = () => (doc.getElementById('termPrompt') as HTMLElement).textContent ?? '';
+        const idle = () => !input.hasAttribute('aria-busy');
+        const setValue = (v: string) => {
+          Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!.call(input, v);
+          input.dispatchEvent(new win.Event('input', { bubbles: true }));
+        };
+        const type = async (line: string) => {
+          input.focus();
+          for (const ch of line) { // real key events, one character at a time (the page keeps the value itself)
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: ch, bubbles: true, cancelable: true }));
+            setValue(input.value + ch);
+          }
+        };
+        const enter = async (line: string, wait = 20000) => {
+          await t.until(idle, 60000, 'the previous output to finish');
+          await type(line);
+          input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+          (doc.getElementById('termForm') as HTMLFormElement).requestSubmit();
+          await sleep(40);
+          await t.until(idle, wait, `"${line}" to finish printing`);
+          t.add('interactions');
+        };
+        const runLine = async (line: string) => { const before = log().length; await enter(line); return log().slice(before); };
+        const expect = (out: string, re: RegExp, what: string) => { if (!re.test(out)) t.problem('bug', `terminal: ${what} (wanted ${re}, got "${out.slice(0, 160).replace(/\n/g, ' | ')}")`); };
+
+        // 1. boot, then the guest prompt
+        await t.until(() => /^guest@ph-origins:~\$$/.test(prompt()) && idle() && /Type\s+help/.test(log()), 8000, 'the boot to end on the guest prompt');
+        const bootSeconds = (performance.now() - t0) / 1000;
+        t.metric('terminalBootSeconds', Math.round(bootSeconds * 10) / 10);
+        t.event('terminal-boot', `${bootSeconds.toFixed(1)} s to the prompt`);
+        if (phone) {
+          if (bootSeconds > 1.5) t.problem('bug', `terminal (reduced motion): the boot took ${bootSeconds.toFixed(1)} s, it should print at once`);
+        } else if (bootSeconds > 3.5) t.problem('bug', `terminal: boot to prompt took ${bootSeconds.toFixed(1)} s (limit 3)`);
+        t.event('terminal-first', `prompt ${prompt()}`);
+
+        if (phone) {
+          // ---- layout at 390x844, then 480 tall for a keyboard
+          const de = doc.documentElement;
+          t.metric('terminalScrollWidth', de.scrollWidth);
+          if (de.scrollWidth > 391 || doc.body.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll (${de.scrollWidth}px in a 390px frame)`);
+          const screenEl = doc.getElementById('screen') as HTMLElement;
+          const fs = parseFloat(win.getComputedStyle(screenEl).fontSize);
+          t.metric('terminalFontPx', fs);
+          if (fs < 14) t.problem('bug', `terminal phone: text is ${fs}px, under 14px`);
+          const bar = doc.querySelector('.tapbar') as HTMLElement;
+          const buttons = [...bar.querySelectorAll('button')] as HTMLElement[];
+          if (win.getComputedStyle(bar).display === 'none' || buttons.length < 7) t.problem('bug', `terminal phone: the quick-key row is missing (${buttons.length} buttons)`);
+          let prev: DOMRect | null = null;
+          for (const b of buttons) {
+            const r = b.getBoundingClientRect();
+            if (r.width < 44 || r.height < 44) t.problem('bug', `terminal phone: "${b.textContent}" is ${Math.round(r.width)}x${Math.round(r.height)}, under 44 px`);
+            if (prev && r.left - prev.right < 8 - 0.5) t.problem('bug', `terminal phone: "${b.textContent}" sits ${Math.round(r.left - prev.right)} px from its neighbour (need 8)`);
+            if (r.right > 391) t.problem('bug', `terminal phone: "${b.textContent}" runs off the right edge (${Math.round(r.right)})`);
+            prev = r;
+          }
+          for (const a of [...doc.querySelectorAll('.foot a')] as HTMLElement[]) {
+            const r = a.getBoundingClientRect();
+            if (r.width > 0 && r.height < 44) t.problem('bug', `terminal phone: footer link "${a.textContent?.trim()}" is ${Math.round(r.height)} px tall, under 44`);
+          }
+          frame.style.height = '480px'; // the soft keyboard takes the lower half
+          await sleep(500);
+          const form = (doc.getElementById('termForm') as HTMLElement).getBoundingClientRect();
+          const barRect = bar.getBoundingClientRect();
+          t.event('terminal-keyboard', `prompt bottom ${Math.round(form.bottom)}, button row bottom ${Math.round(barRect.bottom)}, frame 480`);
+          if (form.bottom > 481 || form.top < 0) t.problem('bug', `terminal phone: the prompt is off screen with the keyboard up (top ${Math.round(form.top)}, bottom ${Math.round(form.bottom)} of 480)`);
+          if (barRect.bottom > 481) t.problem('bug', `terminal phone: the quick-key row is under the keyboard (bottom ${Math.round(barRect.bottom)} of 480)`);
+          const tap = async (act: string) => {
+            const b = bar.querySelector(`[data-act="${act}"]`) as HTMLElement;
+            b.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+            b.click();
+            await sleep(80);
+          };
+          await tap('help');
+          await t.until(idle, 5000, 'help to print');
+          expect(log(), /Look around/, 'the help button did not print the command list');
+          setValue('hel');
+          await tap('tab');
+          if (input.value !== 'help ') t.problem('bug', `terminal phone: the Tab button did not complete "hel" (value "${input.value}")`);
+          setValue('');
+          await tap('up');
+          if (input.value !== 'help') t.problem('bug', `terminal phone: the up arrow did not recall the last command (value "${input.value}")`);
+          setValue('abc');
+          await tap('ctrlc');
+          if (input.value !== '' || !/\^C/.test(log())) t.problem('bug', 'terminal phone: the ^C button did not cancel the line');
+          await tap('ls'); await t.until(idle, 5000, 'ls');
+          expect(log(), /README\.txt/, 'the ls button did not list the home directory');
+        } else {
+          // ---- /help and the permission wall
+          const help = await runLine('/help');
+          const names = help.split('\n').filter((l) => /^\s{2}\/?[a-z]+\s{2,}\S/.test(l)).length;
+          t.metric('terminalHelpCommands', names);
+          if (names < 15) t.problem('bug', `terminal: /help lists ${names} commands, under 15`);
+          expect(await runLine('/build'), /permission denied/i, '/build as guest should be refused');
+          expect(await runLine('sudo ls'), /sudoers/, 'sudo as guest should be refused');
+          await runLine('su root'); expect(prompt(), /Password/, 'su root should ask for a password');
+          expect(await runLine('hunter2'), /Authentication failure/, 'a wrong root password should fail');
+          expect(prompt(), /^guest@/, 'a failed su should leave the guest prompt');
+          expect(await runLine('hint'), /hint \(1\/5, level 1\/3\)/, 'hint should give a level 1 nudge for step 1');
+          expect(await runLine('ls -a'), /\.hat_backwards/, 'ls -a should show the hat');
+
+          // ---- the documented chain, from the clues only
+          expect(await runLine('rev ~/.hat_backwards'), /gw\.hawkes\.lan/, 'the reversed hat should name the host');
+          expect(await runLine('nmap gw.hawkes.lan'), /8080\/tcp\s+open[\s\S]*gw\.cfg\.bak/, 'nmap should list 8080 and the backup');
+          expect(await runLine('curl gw.hawkes.lan:8080/backup/gw.cfg.bak'), /saved to ~\/loot/, 'curl should save the backup');
+          expect(await runLine('strings ~/loot/gw.cfg.bak'), /ops_hash=[\s\S]*hawkes-staff/, 'strings should show the hash and the wordlist');
+          expect(await runLine('john ~/loot/gw.cfg.bak'), /no password found/, 'the default wordlist should not crack it');
+          expect(await runLine('john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/gw.cfg.bak'), /\(ops\)/, 'the staff wordlist should crack ops');
+          await runLine('ssh ops@gw.hawkes.lan');
+          expect(prompt(), /password/i, 'ssh should ask for a password');
+          expect(await runLine('roomforgrace58'), /Welcome to ph-origins/, 'the cracked password should log in');
+          expect(prompt(), /^ops@/, 'the prompt should be ops after ssh');
+          expect(await runLine('sudo -l'), /NOPASSWD: \/usr\/bin\/less/, 'sudo -l should show the pager');
+          await runLine('sudo less /var/log/syslog');
+          expect(prompt(), /^:/, 'the pager should show a : prompt');
+          expect(await runLine('!sh'), /ACCESS GRANTED/, '!sh in the pager should grant root');
+          await sleep(300);
+          expect(prompt(), /^root@ph-origins:\/#$/, 'the prompt should be root@ph-origins:/#');
+          const appEl = doc.getElementById('app') as HTMLElement;
+          const col = win.getComputedStyle(doc.getElementById('termPrompt')!).color;
+          t.event('terminal-root', `prompt colour ${col}, is-root ${appEl.classList.contains('is-root')}`);
+          if (!appEl.classList.contains('is-root')) t.problem('bug', 'terminal: the prompt did not turn red after root');
+          t.event('milestone', 'terminal root reached');
+
+          // ---- /build
+          const b0 = performance.now();
+          await enter('/build', 90000);
+          const seconds = (performance.now() - b0) / 1000;
+          t.metric('terminalBuildSeconds', Math.round(seconds * 10) / 10);
+          const text = log();
+          const stages = doc.querySelectorAll('#termLog .line.head').length;
+          t.metric('terminalBuildStages', stages);
+          if (stages < 8) t.problem('bug', `terminal: /build showed ${stages} stages, under 8`);
+          if (seconds < 15 || seconds > 45) t.problem('bug', `terminal: /build ran ${seconds.toFixed(1)} s (want about 20-40)`);
+          expect(text, /BUILD SUCCESSFUL/, '/build should end in BUILD SUCCESSFUL');
+          expect(text, /TOTAL\s+\d+\s+\d+/, '/build should end with a summary table');
+          expect(text, /\[#+-*\]\s+\d+%/, '/build should draw progress bars');
+          expect(text, /\d+\/\d+ passed/, '/build should count tests');
+          const ls = await runLine('ls /opt/hawkes-biomedical');
+          expect(ls, /modules/, 'ls /opt/hawkes-biomedical should list modules');
+          expect(await runLine('ls /opt/hawkes-biomedical/modules'), /patient-intake[\s\S]*billing/, 'the built modules should be listed');
+          expect(await runLine('cat /opt/hawkes-biomedical/README.md'), /medical backend framework/, 'the built README should read');
+          expect(await runLine('/build status'), /COMPLETE/, '/build status should say COMPLETE');
+
+          // ---- the game
+          expect(await runLine('hint'), /root|build/i, 'hint as root should point at /build');
+          await runLine('game');
+          await t.until(() => /game\.html/.test(String(win.location?.pathname ?? '')) || /game\.html/.test(frame.contentWindow?.location.href ?? ''), 6000, 'game to open the game page').catch(() => {});
+          const where = frame.contentWindow?.location.href ?? '';
+          t.event('terminal-game', where);
+          if (!/game\.html/.test(where)) t.problem('bug', `terminal: "game" did not open the game (page is ${where})`);
+        }
+        const errs: string[] = win.__termErrors ?? [];
+        if (errs.length) t.problem('bug', `terminal: ${errs.length} page error(s): ${errs.slice(0, 3).join(' | ')}`);
+        await sleep(1500);
+      } finally {
+        frame.remove();
+        if (saved == null) localStorage.removeItem(STORE); else localStorage.setItem(STORE, saved);
+      }
     };
 
     /** Each site page in an overlay: the footer's Powered by HAWKES GEN link, and Hawkes Biomedical on Home. */
@@ -8011,6 +8211,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.event('card-after', card1?.text ?? 'none');
       if (!new RegExp(`Lore\\s+${found}\\s+of\\s+${total}`).test(card1?.text ?? '')) t.problem('bug', `card 1 does not show Lore ${found} of ${total} after finding them: ${card1?.text}`);
       void rows;
+      t.finish('done');
+      return;
+    }
+
+    if (id === 'terminal' || id === 'terminal-phone') {
+      await terminalRun(id === 'terminal-phone');
+      t.progress(1);
       t.finish('done');
       return;
     }
