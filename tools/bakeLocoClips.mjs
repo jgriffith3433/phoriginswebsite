@@ -40,6 +40,12 @@ const takes = (flag) => {
   return out;
 };
 
+const boneKey = (name) =>
+  String(name || '')
+    .toLowerCase()
+    .replace(/^mixamorig\d*:/, '')
+    .replace(/[^a-z0-9]+/g, '');
+
 const targetPath = take('--target');
 const clipSpecs = takes('--clip');
 if (!targetPath || clipSpecs.length === 0) {
@@ -54,16 +60,25 @@ const io = new NodeIO()
   .registerExtensions(ALL_EXTENSIONS)
   .registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
 
-const target = await io.read(path.resolve(targetPath));
-const root = target.getRoot();
+const doc = await io.read(path.resolve(targetPath));
+const root = doc.getRoot();
+const buffer = root.listBuffers()[0] ?? doc.createBuffer();
 
 const jointIndex = new Map();
 for (const node of root.listNodes()) {
-  if (node.getName()) jointIndex.set(node.getName().replace(/^mixamorig\d*:/, 'mixamorig:'), node);
-  // Also index bare Mixamo suffixes so SOMA→Mixamo retargets still line up.
-  const bare = (node.getName() || '').replace(/^mixamorig\d*:/, '');
-  if (bare) jointIndex.set(bare, node);
+  const key = boneKey(node.getName());
+  if (key) jointIndex.set(key, node);
 }
+
+const copyAccessor = (src) => {
+  const arr = src.getArray();
+  if (!arr) return null;
+  return doc
+    .createAccessor()
+    .setType(src.getType())
+    .setArray(arr.slice ? arr.slice() : new arr.constructor(arr))
+    .setBuffer(buffer);
+};
 
 for (const spec of clipSpecs) {
   const eq = spec.indexOf('=');
@@ -74,42 +89,41 @@ for (const spec of clipSpecs) {
   const name = spec.slice(0, eq);
   const clipPath = path.resolve(spec.slice(eq + 1));
   const clipDoc = await io.read(clipPath);
-  const clipRoot = clipDoc.getRoot();
-  const srcAnim = clipRoot.listAnimations()[0];
+  const srcAnim = clipDoc.getRoot().listAnimations()[0];
   if (!srcAnim) {
     console.error(`${clipPath}: no animations`);
     process.exit(1);
   }
 
-  // Drop any existing animation with this name.
   for (const anim of root.listAnimations()) {
     if (anim.getName() === name) anim.dispose();
   }
 
-  const dstAnim = root.createAnimation(name);
+  const dstAnim = doc.createAnimation(name);
   let channels = 0;
   for (const ch of srcAnim.listChannels()) {
-    const targetNode = ch.getTargetNode();
-    const raw = targetNode?.getName() || '';
-    const keyed =
-      jointIndex.get(raw) ||
-      jointIndex.get(raw.replace(/^mixamorig\d*:/, 'mixamorig:')) ||
-      jointIndex.get(raw.replace(/^mixamorig\d*:/, ''));
+    const srcNode = ch.getTargetNode();
+    const keyed = jointIndex.get(boneKey(srcNode?.getName()));
     if (!keyed) continue;
     const sampler = ch.getSampler();
     if (!sampler) continue;
-    const input = sampler.getInput();
-    const output = sampler.getOutput();
+    const input = copyAccessor(sampler.getInput());
+    const output = copyAccessor(sampler.getOutput());
     if (!input || !output) continue;
-    const dstSampler = root.createAnimationSampler();
-    dstSampler.setInput(input.clone());
-    dstSampler.setOutput(output.clone());
-    dstSampler.setInterpolation(sampler.getInterpolation());
-    const dstCh = root.createAnimationChannel();
-    dstCh.setTargetNode(keyed);
-    dstCh.setTargetPath(ch.getTargetPath());
-    dstCh.setSampler(dstSampler);
-    dstAnim.addChannel(dstCh);
+    const dstSampler = doc
+      .createAnimationSampler()
+      .setInput(input)
+      .setOutput(output)
+      .setInterpolation(sampler.getInterpolation() || 'LINEAR');
+    dstAnim
+      .addSampler(dstSampler)
+      .addChannel(
+        doc
+          .createAnimationChannel()
+          .setTargetNode(keyed)
+          .setTargetPath(ch.getTargetPath())
+          .setSampler(dstSampler),
+      );
     channels += 1;
   }
   console.log(`${name}: ${channels} channels from ${path.basename(clipPath)}`);
@@ -120,7 +134,7 @@ for (const spec of clipSpecs) {
 }
 
 const outPath = take('--out') || targetPath;
-await io.write(outPath, target);
+await io.write(outPath, doc);
 // Keep JSON chunk space-padded (strict parsers reject NUL padding).
 const buf = readFileSync(outPath);
 const jsonLen = buf.readUInt32LE(12);
