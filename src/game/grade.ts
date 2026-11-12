@@ -1,60 +1,25 @@
 import * as BABYLON from '@babylonjs/core';
 
+import type { RenderPipeline } from '../render/pipeline';
+
 export type SceneGrade = {
   apply: (themeName: string) => void;
   /** Heightened contrast and saturation while Pierce is the changed body. */
   setPowers: (on: boolean) => void;
   /** 0–1. Basement only: tighter red vignette and a darker exposure while the creature is close. */
   setFear: (amount: number) => void;
+  /** Apply the current theme again (after a graphics tier change resets the bloom caps). */
+  reapply: () => void;
   dispose: () => void;
 };
 
-const aces = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-
 /**
- * Per-level color grade. SSAO is optional: some WebGL setups fail the depth prepass
- * and the scene should still render without it.
+ * Per-theme exposure, bloom, vignette and curves, applied to the one rendering pipeline (src/render/pipeline.ts),
+ * which owns the post stack, the chapter LUT, SSAO, shadows and the graphics tier.
  */
-export const createSceneGrade = (
-  scene: BABYLON.Scene,
-  cameras: BABYLON.Camera[],
-  options: { lowPower?: boolean } = {},
-): SceneGrade => {
-  // Phones and tablets: no SSAO and a smaller, narrower bloom. The grade and the vignette stay the same.
-  const lowPower = options.lowPower === true;
-  const pipeline = new BABYLON.DefaultRenderingPipeline('ph-grade', true, scene, cameras);
-  pipeline.fxaaEnabled = true;
-  pipeline.samples = 1;
-  pipeline.bloomEnabled = true;
-  pipeline.bloomThreshold = 0.72;
-  pipeline.bloomKernel = 42;
-  pipeline.bloomScale = 0.45;
-  pipeline.imageProcessingEnabled = true;
-  const image = pipeline.imageProcessing;
-  image.toneMappingEnabled = true;
-  image.toneMappingType = aces;
-  image.vignetteEnabled = true;
-  image.vignetteColor = new BABYLON.Color4(0, 0, 0, 0);
-  image.vignetteWeight = 2.4;
-  image.vignetteStretch = 0.4;
-  image.vignetteCameraFov = 0.7;
-
-  let ssao: BABYLON.SSAO2RenderingPipeline | null = null;
-  let ssaoAttached = false;
-  if (!lowPower) {
-    try {
-      ssao = new BABYLON.SSAO2RenderingPipeline('ph-ssao', scene, { ssaoRatio: 0.5, blurRatio: 0.5 }, cameras);
-      ssaoAttached = true;
-      ssao.radius = 1.35;
-      ssao.totalStrength = 0.72;
-      ssao.base = 0.18;
-      ssao.expensiveBlur = false;
-      ssao.samples = 8;
-    } catch (error) {
-      console.warn('SSAO unavailable', error);
-      ssao = null;
-    }
-  }
+export const createSceneGrade = (scene: BABYLON.Scene, render: RenderPipeline): SceneGrade => {
+  const pipeline = render.pipeline;
+  const image = render.image;
 
   let theme = '';
   let powers = false;
@@ -168,29 +133,13 @@ export const createSceneGrade = (
       image.colorCurvesEnabled = true;
       if (apex) liftFill(1.9, 0.55);
     }
-    if (lowPower) {
-      pipeline.bloomKernel = Math.min(pipeline.bloomKernel, 24);
-      pipeline.bloomScale = Math.min(pipeline.bloomScale, 0.3);
-    }
+    render.capBloom();
     baseExposure = image.exposure;
     baseVignette = image.vignetteWeight;
-    if (ssao) {
-      const manager = scene.postProcessRenderPipelineManager;
-      if (apex && ssaoAttached) {
-        manager.detachCamerasFromRenderPipeline(ssao.name, cameras);
-        ssaoAttached = false;
-      } else if (!apex && !ssaoAttached) {
-        manager.attachCamerasToRenderPipeline(ssao.name, cameras);
-        ssaoAttached = true;
-      }
-      if (powers) {
-        ssao.totalStrength = basement ? 0.16 : 0.38;
-        ssao.radius = 1.05;
-      } else {
-        ssao.totalStrength = basement ? 0.95 : 0.7;
-        ssao.radius = basement ? 1.6 : 1.25;
-      }
-    }
+    // Contact AO everywhere on the high tier; the office keeps it gentle (bright, wide rooms), the basement deep.
+    if (powers) render.setSsao({ wanted: true, strength: basement ? 0.16 : 0.38, radius: 1.05 });
+    else if (apex) render.setSsao({ wanted: true, strength: 0.5, radius: 0.9 });
+    else render.setSsao({ wanted: true, strength: basement ? 0.95 : 0.7, radius: basement ? 1.6 : 1.25 });
   };
 
   const liftFill = (hemiIntensity: number, sunIntensity: number) => {
@@ -223,9 +172,9 @@ export const createSceneGrade = (
     apply,
     setPowers,
     setFear,
-    dispose: () => {
-      pipeline.dispose();
-      ssao?.dispose();
+    reapply: () => {
+      if (theme) apply(theme);
     },
+    dispose: () => render.dispose(),
   };
 };
