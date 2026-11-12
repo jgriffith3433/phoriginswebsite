@@ -3646,6 +3646,24 @@
       #powerFx .pfx-veins-flare { animation: pfxVeins 0.9s ease-out; }
       @keyframes pfxVeins { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
       @media (prefers-reduced-motion: reduce) { #powerFx .pfx-ripple-go, #powerFx .pfx-grey-on, #powerFx .pfx-grey-off { animation-duration: 0.01s; } }
+      /* Low-tier depth-of-field vignette blur (cinecam.ts): soft radial lens falloff around the focused speaker, no backdrop-filter. */
+      #cineVignetteBlur {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 4;
+        opacity: 0;
+        transition: opacity 0.25s ease-out;
+        --focus-x: 50%;
+        --focus-y: 45%;
+        background:
+          radial-gradient(ellipse 46% 42% at var(--focus-x) var(--focus-y),
+            rgba(6, 9, 14, 0) 0%,
+            rgba(6, 9, 14, 0.06) 52%,
+            rgba(6, 9, 14, 0.34) 78%,
+            rgba(4, 6, 10, 0.62) 100%);
+      }
+      #cineVignetteBlur.active { opacity: 1; }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
@@ -3681,6 +3699,7 @@
       <button type="button" id="actionHint" class="action-hint" hidden>Join meeting<kbd> — E</kbd></button>
       <button type="button" id="lostHint" class="action-hint lost-hint" hidden>Lost? Return to objective<kbd> — R</kbd></button>
       <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
+      <div id="cineVignetteBlur" aria-hidden="true"></div>
       <div class="letterbox top" id="letterboxTop" aria-hidden="true"></div>
       <div class="letterbox bottom" id="letterboxBottom" aria-hidden="true"></div>
       <div id="endSuite" aria-live="polite">
