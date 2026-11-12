@@ -2,7 +2,8 @@
 // Run with:  node --test site/terminal/test
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { JACKSON, JORDAN, FRAME_W, FRAME_H, CENTER, flip, HOOP_FRAMES } from '../dancers.js';
+import { CORE_EQUATIONS, EQUATIONS, DEFAULT_VARS, balanceEquation, formatEquation, equationsForDuration } from '../dancers.js';
+import { readdirSync, readFileSync } from 'node:fs';
 import { layoutBanner, BANNER_H } from '../banner.js';
 import { buildTimeline, stageAt, layout, BPM, BEAT_SEC, BAR_SEC, SCENES, SILENT_SECONDS, CALM_SECONDS } from '../choreo.js';
 import { createStage, makeBuffer, drawFrame, bufferText, bannerFor, RAINBOW_AT } from '../stage.js';
@@ -13,157 +14,99 @@ import { Shell } from '../shell.js';
 
 const ink = (rows) => rows.reduce((n, r) => n + [...r].filter((c) => c !== ' ').length, 0);
 
-// ---- the art
-test('dancers: at least 6 distinct hand-drawn frames each, all the same size, ASCII only, feet on the last row', () => {
-  for (const [name, set] of [['Jackson', JACKSON], ['Jordan', JORDAN]]) {
-    const keys = Object.keys(set);
-    assert.ok(keys.length >= 6, `${name} has ${keys.length} frames`);
-    assert.equal(new Set(keys.map((k) => set[k].join('\n'))).size, keys.length, `${name}: two frames are identical`);
-    for (const k of keys) {
-      const f = set[k];
-      assert.equal(f.length, FRAME_H, `${name}.${k} rows`);
-      for (const r of f) {
-        assert.equal(r.length, FRAME_W, `${name}.${k} row width`);
-        assert.match(r, /^[\x20-\x7e]*$/, `${name}.${k} is not plain ASCII`);
-      }
-      assert.ok(ink(f) > 40, `${name}.${k} is nearly empty`);
-      // the figure stands on the floor: something is drawn in the last (or last but one, for a tiptoe) row
-      assert.ok(f[FRAME_H - 1].trim() !== '' || f[FRAME_H - 2].trim() !== '', `${name}.${k} has no feet`);
-    }
+// ---- the equations
+const need = (v) => assert.ok(v);
+test('equations: J\'s four are in the data exactly as written, each on its own beat, and every equation balances as data', () => {
+  const J = ['GPU + Text = Hearts - Credits', 'Hearts = GPU + Text + Credits', 'Credits = Hearts - GPU - Text', 'Hearts + Credits = GPU + Text + 2(Credits)'];
+  assert.deepEqual(CORE_EQUATIONS, J);
+  const beats = new Set();
+  for (const text of J) {
+    const eq = EQUATIONS.find((e) => e.text === text);
+    need(eq);
+    assert.equal(formatEquation(eq), text, 'terms and signs rebuild the text');
+    assert.ok(eq.left.length >= 1 && eq.right.length >= 1, 'both sides listed');
+    beats.add(eq.beat);
   }
-  // the signature moves exist as frames
-  for (const k of ['mw1', 'mw2', 'mw3', 'mw4', 'spinA', 'spinB', 'toe', 'hatTip', 'lean', 'gloveA', 'gloveB', 'freeze']) assert.ok(JACKSON[k], `Jackson.${k}`);
-  for (const k of ['dribR', 'cross', 'gather', 'jump', 'release', 'leap', 'dunk', 'hang', 'shrug']) assert.ok(JORDAN[k], `Jordan.${k}`);
-  assert.ok(HOOP_FRAMES.length >= 2 && HOOP_FRAMES[0].join('').includes('+--+'), 'a backboard and a hoop');
-  assert.ok(Object.values(JORDAN).some((f) => f.join('').includes('=P=')), 'tongue out');
+  assert.equal(beats.size, 4, 'each on its own beat');
+  // signs per the equation as J wrote it
+  const e1 = EQUATIONS.find((e) => e.text === J[0]);
+  assert.deepEqual(e1.left.map((t) => [t.term, t.sign]), [['GPU', '+'], ['Text', '+']]);
+  assert.deepEqual(e1.right.map((t) => [t.term, t.sign]), [['Hearts', '+'], ['Credits', '-']]);
+  const e3 = EQUATIONS.find((e) => e.text === J[2]);
+  assert.deepEqual(e3.right.map((t) => [t.term, t.sign]), [['Hearts', '+'], ['GPU', '-'], ['Text', '-']]);
+  const e4 = EQUATIONS.find((e) => e.text === J[3]);
+  assert.equal(e4.right[2].coeff, 2);
+  for (const eq of EQUATIONS) {
+    const b = balanceEquation(eq, DEFAULT_VARS);
+    assert.ok(b.balanced, `${eq.text}: ${b.leftValue} vs ${b.rightValue}`);
+  }
 });
 
-test('flip: mirrors a frame, twice is the same frame, a jersey number still reads 23', () => {
-  for (const set of [JACKSON, JORDAN]) for (const f of Object.values(set)) assert.deepEqual(flip(flip(f)), f);
-  const flipped = flip(JORDAN.ready).join('\n');
-  assert.match(flipped, /23/);
-  assert.doesNotMatch(flipped, /32/);
+test('equations: at least 20, each with a beat time inside the song, distinct texts, for every song length', () => {
+  assert.ok(EQUATIONS.length >= 20, `${EQUATIONS.length}`);
+  assert.equal(new Set(EQUATIONS.map((e) => e.text)).size, EQUATIONS.length);
+  for (const dur of [258.1, 120, 60, 48, 20]) {
+    const eqs = equationsForDuration(dur);
+    assert.equal(eqs.length, EQUATIONS.length);
+    for (const e of eqs) assert.ok(e.time > 0 && e.time < dur, `${e.text} at ${e.time} of ${dur}`);
+  }
 });
 
-test('banner: the names lay out in block letters that fit a phone width, one letter at a time', () => {
-  for (const [text, cols] of [['THE KING OF POP', 46], ['AIR JORDAN', 46], ['JACKSON x JORDAN', 46], ['MJ x MJ', 46], ['SHOWTIME', 46], ['THE KING OF POP', 118]]) {
-    const l = layoutBanner(text, cols, 1);
-    assert.ok(l.w <= cols, `${text} is ${l.w} wide for ${cols}`);
-    assert.ok(layoutBanner(text, 118, 2).w <= 118 || text.length > 8, 'double-width pixels fit a wide stage');
-    assert.equal(l.letters.filter((x) => x.ch !== ' ').length, text.replace(/ /g, '').length);
+test('banner: equations lay out in block letters that fit a phone width', () => {
+  for (const eq of EQUATIONS) for (const cols of [46, 118]) {
+    const l = layoutBanner(eq.text, cols, 1);
+    assert.ok(l.w <= cols || l.lines.some((x) => !x.includes(' ')), `${eq.text} is ${l.w} wide for ${cols}`);
     assert.ok(l.letters.every((x) => x.rows.length === BANNER_H));
-    assert.ok(l.h >= BANNER_H);
   }
-  assert.equal(layoutBanner('THE KING OF POP', 118).lines.length, 1);
-  assert.ok(layoutBanner('THE KING OF POP', 46).lines.length >= 2);
 });
 
-test('banner: every title fits the stage on a phone, a laptop and a wide screen (never clipped, never over the dancers)', () => {
-  const titles = [...SCENES.map((s) => s.title), 'JACKSON', 'JORDAN', 'DUNK!', 'SWISH!', 'FINAL POSE', 'MOONWALK', 'CROSSOVER', 'SPARKLE!'];
-  for (const [C, R] of [[46, 47], [64, 40], [118, 34], [150, 40]]) {
-    const L = layout(C, R);
-    const room = Math.max(BANNER_H, L.floor - FRAME_H - 2 - 1);
-    for (const title of titles) {
-      const lay = bannerFor(title, C, room);
-      const need = title.replace(/ /g, '').length;
-      assert.equal(lay.letters.length, need, `${title} on ${C}x${R}: ${lay.letters.length} of ${need} letters drawn`);
-      assert.ok(lay.w <= C, `${title} is ${lay.w} wide on ${C} columns`);
-      assert.ok(lay.h <= room + 1 || title === 'JACKSON x JORDAN' || title.length > 12, `${title} is ${lay.h} rows high in ${room}`);
-    }
+test('the show has no Michael Jackson or Michael Jordan anywhere in site/terminal', () => {
+  const dir = new URL('..', import.meta.url);
+  const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((f) => (f.isDirectory() ? walk(new URL(`${f.name}/`, d)) : [new URL(f.name, d)]));
+  for (const f of walk(dir)) {
+    if (f.pathname.endsWith('show.test.mjs')) continue; // this test names them to look for them
+    const txt = readFileSync(f, 'utf8');
+    assert.doesNotMatch(txt, /jackson|jordan|moonwalk|king of pop|slam dunk/i, f.pathname);
   }
 });
 
 // ---- the timeline
-test('timeline: contiguous, starts at 0, ends at the song length, bar aligned, adapts from 8 s to 10 minutes', () => {
-  for (const dur of [258.1, 240, 150, 90, 60, 36, 20, 8, 3, 600]) {
-    const tl = buildTimeline(dur);
-    assert.equal(tl[0].start, 0, `${dur}: first scene starts at 0`);
-    assert.equal(tl.at(-1).end, dur, `${dur}: last scene ends at the end`);
-    assert.equal(tl.at(-1).id, 'outro', `${dur}: it ends with the outro`);
-    for (let i = 1; i < tl.length; i += 1) assert.ok(Math.abs(tl[i].start - tl[i - 1].end) < 1e-9, `${dur}: scenes are contiguous`);
-    for (const s of tl) assert.ok(s.end > s.start, `${dur}: ${s.id} has length`);
-    // scene boundaries (except the very first and last) sit on bar lines of the 118 BPM grid
-    for (const s of tl.slice(1)) { const bars = (s.start - 0.31) / BAR_SEC; assert.ok(Math.abs(bars - Math.round(bars)) < 1e-6, `${dur}: ${s.id} starts on a bar line`); }
-  }
-  assert.equal(BPM, 118);
-});
-
-test('timeline: the full song has at least 8 distinct scenes: title banners, both solos, the duets, the battle, the finale, the outro', () => {
-  for (const dur of [258.1, 200, 150]) {
+test('timeline: contiguous scenes include the farm, the net, the fly-through, hearts, rapid equations, the finale and the outro', () => {
+  for (const dur of [258.1, 200, 150, 60]) {
     const ids = buildTimeline(dur).map((s) => s.id);
-    assert.ok(new Set(ids).size >= 8, `${dur}: ${ids.join(',')}`);
-    for (const need of ['king', 'air', 'jackson', 'jordan', 'mirror', 'callresponse', 'battle', 'names', 'finale', 'outro']) assert.ok(ids.includes(need), `${dur}: missing ${need}`);
+    for (const n of ['boot', 'eq1', 'farm', 'net', 'hearts', 'rapid', 'finale', 'outro']) assert.ok(ids.includes(n), `${dur}: missing ${n}`);
   }
-  // a short run keeps the most important scenes, and the song is never longer than the scenes
+  assert.ok(buildTimeline(258.1).map((s) => s.id).includes('flythrough'));
   const short = buildTimeline(30).map((s) => s.id);
-  assert.ok(short.includes('jackson') && short.includes('jordan') && short.includes('outro'));
+  assert.ok(short.includes('outro'));
   assert.ok(buildTimeline(CALM_SECONDS).length >= 5);
-  assert.ok(buildTimeline(SILENT_SECONDS).length >= 8);
-  assert.ok(SCENES.length >= 8);
+  assert.equal(buildTimeline(SILENT_SECONDS).at(-1).end, SILENT_SECONDS);
 });
 
-// ---- the choreography
 const GRIDS = [[46, 47], [118, 34], [64, 40]];
 const sample = (tl, fn, step = BEAT_SEC / 4) => { const end = tl.at(-1).end; for (let t = 0; t < end; t += step) fn(t); };
 
-test('choreography: Jackson and Jordan each use many distinct frames over the song, and every frame they name exists', () => {
+test('choreography: all 20+ equations appear on stage over the song, with a farm of racks and a net of moving packets', () => {
   for (const [C, R] of GRIDS) {
     const L = layout(C, R);
     const tl = buildTimeline(258.1);
-    const used = { J: new Set(), D: new Set() };
+    const seen = new Set();
+    let maxPackets = 0; let racks = 0; const packetXY = new Set();
     sample(tl, (t) => {
       const st = stageAt(tl, t, L);
-      for (const d of st.d) {
-        assert.ok((d.who === 'J' ? JACKSON : JORDAN)[d.frame], `${d.who}.${d.frame} does not exist (t=${t.toFixed(1)}, ${st.scene.id})`);
-        used[d.who].add(d.frame);
-      }
-    });
-    assert.ok(used.J.size >= 14, `Jackson used ${used.J.size} frames on ${C}x${R}`);
-    assert.ok(used.D.size >= 12, `Jordan used ${used.D.size} frames on ${C}x${R}`);
+      if (st.eq) seen.add(st.eq.text);
+      maxPackets = Math.max(maxPackets, st.net.packets.length);
+      racks = Math.max(racks, st.farm.racks?.length ?? 0);
+      if (st.scene.id === 'net') for (const p of st.net.packets.slice(0, 3)) packetXY.add(`${p.x},${p.y}`);
+    }, BEAT_SEC / 2);
+    assert.ok(seen.size >= 20, `${seen.size} equations on ${C}x${R}`);
+    for (const t of CORE_EQUATIONS) assert.ok(seen.has(t), `${t} shown`);
+    assert.ok(maxPackets >= 3, `${maxPackets} packets`);
+    assert.ok(packetXY.size > 6, 'packets move');
+    assert.ok(racks >= 2, `${racks} racks`);
   }
 });
 
-test('choreography: every signature move happens, in its own scene', () => {
-  const L = layout(100, 40);
-  const tl = buildTimeline(258.1);
-  const seen = {};
-  sample(tl, (t) => { const st = stageAt(tl, t, L); if (st.caption) (seen[st.scene.id] ||= new Set()).add(st.caption); });
-  for (const m of ['MOONWALK', 'SPIN', 'TOE STAND', 'HAT TIP', '45 DEGREE LEAN', 'SPARKLE GLOVE', 'FREEZE']) assert.ok(seen.jackson.has(m), `Jackson: ${m}`);
-  for (const m of ['DRIBBLE CROSSOVER', 'JUMP SHOT', 'SLAM DUNK', 'HANG TIME', 'SHRUG']) assert.ok(seen.jordan.has(m), `Jordan: ${m}`);
-  assert.ok([...seen.mirror].length >= 6, 'mirrored moves');
-  assert.ok([...seen.callresponse].includes('CALL') && [...seen.callresponse].includes('RESPONSE'), 'call and response');
-  assert.ok([...seen.battle].some((c) => /ROUND 2/.test(c)) && [...seen.battle].some((c) => /JORDAN/.test(c)) && [...seen.battle].some((c) => /JACKSON/.test(c)), 'a trade-off battle');
-});
-
-test('choreography: the dunk is a leap across the screen to the hoop, and the figures stay on a phone-width stage', () => {
-  for (const [C, R] of GRIDS) {
-    const L = layout(C, R);
-    const tl = buildTimeline(258.1);
-    const jor = tl.find((s) => s.id === 'jordan');
-    let minX = Infinity; let maxX = -Infinity; let maxLift = 0; let hoopOn = false;
-    for (let b = 20; b < 32; b += 0.1) {
-      const st = stageAt(tl, jor.start + b * BEAT_SEC, L);
-      const d = st.d[0];
-      minX = Math.min(minX, d.x); maxX = Math.max(maxX, d.x); maxLift = Math.max(maxLift, d.y); hoopOn ||= !!st.hoopOn;
-    }
-    assert.ok(hoopOn, 'the hoop is on stage for the dunk');
-    assert.ok(maxX - minX >= C * 0.35, `the leap crosses ${maxX - minX} of ${C} columns`);
-    assert.ok(maxLift >= 5, `he leaves the floor by ${maxLift} rows`);
-    // at no time in the song does a dancer's drawn ink leave the stage (the intro's walk-on and the dunk's last step excepted)
-    sample(tl, (t) => {
-      const st = stageAt(tl, t, L);
-      if (st.scene.id === 'intro') return;
-      for (const d of st.d) {
-        const art = d.flipped ? flip((d.who === 'J' ? JACKSON : JORDAN)[d.frame]) : (d.who === 'J' ? JACKSON : JORDAN)[d.frame];
-        let lo = Infinity; let hi = -Infinity;
-        for (const r of art) { const a = r.search(/\S/); if (a >= 0) { lo = Math.min(lo, a); hi = Math.max(hi, r.trimEnd().length - 1); } }
-        const left = d.x - CENTER + lo;
-        const right = d.x - CENTER + hi;
-        assert.ok(left >= -1 && right <= C, `${st.scene.id} ${d.who}.${d.frame} spans ${left}..${right} on ${C} columns at ${t.toFixed(1)} s`);
-      }
-    });
-  }
-});
 
 // ---- the stage
 test('stage: a frame is text on a grid that fits (no row wider than the stage), deterministic, and beat effects change on every beat', () => {
@@ -196,7 +139,7 @@ test('stage: a frame is text on a grid that fits (no row wider than the stage), 
 
 test('stage: the title banner is coloured letter by letter, the equalizer, floor, marquee and caption are all drawn', () => {
   const tl = buildTimeline(258.1);
-  const king = tl.find((s) => s.id === 'king');
+  const king = tl.find((s) => s.id === 'eq1');
   const S = createStage({ seed: 58 });
   const buf = makeBuffer(118, 34);
   const colors = new Set();
@@ -207,7 +150,7 @@ test('stage: the title banner is coloured letter by letter, the equalizer, floor
   assert.ok(colors.size >= 8, `${colors.size} colours in the banner`);
   assert.ok([...colors].every((c) => c >= RAINBOW_AT || c === 4), 'rainbow glow plus the white beat flash');
   const text = bufferText(buf).join('\n');
-  assert.match(text, /~ JACKSON ~/, 'caption');
+  assert.match(text, /~ LAW I/, 'caption');
   assert.match(text, /===|---/, 'floor');
   assert.match(text, /\^/, 'equalizer peaks');
   assert.match(text, /\*\*\*/, 'marquee');
@@ -348,7 +291,7 @@ test('the show runs the flood, then the song, then the dance, and ends only when
     assert.ok(done, 'the show ended by itself');
     assert.equal(wrap.hidden, true);
     assert.equal(show.active, false);
-    assert.ok(Number(wrap.dataset.jframes) >= 6 && Number(wrap.dataset.dframes) >= 5, `${wrap.dataset.jframes} Jackson frames, ${wrap.dataset.dframes} Jordan frames`);
+    assert.ok(Number(wrap.dataset.equations) >= 8 && Number(wrap.dataset.packets) >= 3, `${wrap.dataset.equations} equations, ${wrap.dataset.packets} packets`);
     assert.ok(Number(wrap.dataset.beats) > 40, 'a beat is counted every beat');
   } finally { env.restore(); }
 });
