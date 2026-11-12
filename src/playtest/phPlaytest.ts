@@ -170,6 +170,8 @@ export type PhProbe = {
   setupHidden: (libraryId: string) => Promise<void>;
   /** The rows Load Level shows, as rendered into its list (titles only). */
   levelRows: () => string[];
+  chapterSelect: () => { cards: { n: number; unlocked: boolean; text: string; box: { x: number; y: number; w: number; h: number } }[]; cue: { plays: number; last: number }; list: { x: number; y: number; w: number; h: number; scrollTop: number; scrollHeight: number; clientHeight: number }; save: { found: Record<string, string[]>; best: Record<string, number> } };
+  loreSpots: () => { remaining: { id: string; x: number; z: number }[]; chapter: number; all: { id: string; x: number; z: number }[] };
   /** The train car kit while level 7 is dressed, else null. */
   train: () => {
     seats: number; poles: number; ads: number; windows: number; lampsPassed: number; speed: number; roll: number;
@@ -231,6 +233,12 @@ export type PhProbe = {
   } | null;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
+  /** Test shortcut (`world-hud`): hurts Pierce by `amount` but never below 25 health. */
+  hurt?: (amount: number) => boolean;
+  /** Pain state: vignette level 0..1, heartbeats played, whether the health bar is displayed. */
+  pain?: () => { level: number; heartbeats: number; lastBeatAgoMs: number; healthBarShown: boolean; vignette: number };
+  /** The use prompt hung on the thing in reach: text, on-target or on-button, box. */
+  usePrompt?: () => { shown: boolean; text: string; on: string; words: number; rect: { x: number; y: number; w: number; h: number } | null };
   /** Test shortcut (`living-places`): show the running level's Level Complete card now. */
   showLevelComplete: () => boolean;
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
@@ -709,6 +717,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         seconds: 330,
         tags: ['story', 'phone'],
       },
+      {
+        id: 'world-hud',
+        title: 'The HUD lives in the world: caller portrait on the phone, pain on the screen edges with a heartbeat, no health bar outside combat, use prompts over the object with a touch glyph, no control hints in objective text',
+        description: 'Starts level 1. Checks the health bar is not displayed (not a combat level) and the objective text carries no control hint. Voss rings: answers (Answer button tap on phone, F on desktop) and checks the phone shows the caller portrait (#phonePortrait, loaded, 40 px or more) and name, and that every reply bubble is 44 px or more (tapped on phone). Hurts Pierce with the hurt shortcut: the pain vignette must rise above 0.3 and a heartbeat must play inside 4 s, and the health bar stays hidden. Then walks to the coffee machine: the use prompt must show within 0.3 s of the action turning live, name the object, show E (desktop) or the touch glyph (phone) and sit on screen. Metrics: portraitPx, replyBubbleMinHeight, painVignette, heartbeats, usePromptMs. Options: phone (390x844 touch).',
+        seconds: 240,
+        tags: ['ui', 'phone'],
+      },
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
         id: 'first-five',
@@ -968,6 +983,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, walks into the front end door (no prompt; the car changes with the fade), sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. End Level must be on the finished beat. The press plays ending-6, rolls the level 7 credits, and the card offers Continue (level 8) and Exit. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
         seconds: 240,
         tags: ['level'],
+      },
+      {
+        id: 'chapter-select',
+        title: 'Chapter Select on the title menu: 8 painted cards, locked ones dimmed, best time and lore n of m, a card starts its chapter within 10 s, hidden lore pages raise n of m (options.phone: 390x844 touch)',
+        description: 'Opens on the title (after Tap to play), taps Chapter Select and checks eight cards: art slot, title, and on each unlocked card its best time and "Lore n of m"; locked cards are dimmed and disabled. Every card must be at least 44 px tall and inside the viewport; the list must scroll by swipe (overflow auto, touch-action pan-y, more content than fits at 390x844). Hovering or focusing an unlocked card plays a short cue from its chapter\'s music. A tap on card 1 must start chapter 1 within 10 s. In the chapter the bot walks to each hidden lore page with real input; each one found shows its toast and raises the count on the save, and the card then reads the new n of m. Metrics: chapterCards, chapterStartSeconds, lorePagesFound, chapterCardMinPx. Options: phone.',
+        seconds: 240,
+        tags: ['menus', 'ui', 'level'],
       },
       {
         id: 'lore-link',
@@ -5798,6 +5820,87 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       await stuckRecoveryRun();
       return;
     }
+    if (id === 'world-hud') {
+      levelsTotal = 1;
+      const touchy = () => document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+      if (options.phone) { probe.phoneFrame(true); touchWalk = true; t.event('setup', 'phone layout 390x844 (touch)'); await sleep(700); }
+      await enterLevel(1);
+      await waitControl('control on level 1');
+      if (probe.pain?.().healthBarShown) t.problem('bug', 'the health bar is displayed outside combat');
+      else t.event('no-health-bar', 'health bar hidden on a story level');
+      const hint = /\b(press|tap|click|hold)\b|\b(WASD|Tab|Shift)\b|\s[A-Z]\.|\([A-Z]\)/;
+      const objText = probe.objective().text;
+      if (hint.test(objText)) t.problem('bug', `objective text carries a control hint: "${objText}"`);
+      else t.event('objective-clean', objText);
+      // 1. A call: portrait, name, replies
+      await t.until(() => probe.phone().incoming, 25000, 'Voss to ring');
+      if (touchy()) await tapAt(document.getElementById('phoneAnswer'), 'Answer');
+      else { releaseAll(); await once('f', 1500, 'answer call'); }
+      await sleep(600);
+      const img = document.getElementById('phonePortrait') as HTMLImageElement | null;
+      const box = img?.getBoundingClientRect();
+      const portraitOk = Boolean(img && !img.hidden && img.complete && img.naturalWidth > 0 && box && box.width >= 40);
+      t.metric('portraitPx', Math.round(box?.width ?? 0));
+      const nameText = document.getElementById('phoneContact')?.textContent ?? '';
+      if (!portraitOk) t.problem('bug', 'the call shows no caller portrait');
+      else t.event('portrait', `${nameText} portrait ${Math.round(box!.width)} px (${img!.getAttribute('src')})`);
+      if (!nameText) t.problem('bug', 'the call shows no caller name');
+      let minH = 9999;
+      const untilReply = performance.now() + 40000;
+      while (performance.now() < untilReply && !probe.replies?.().open) await sleep(150);
+      const r = probe.replies?.();
+      if (r?.open) {
+        for (const o of r.options) { minH = Math.min(minH, o.rect?.h ?? 0); if ((o.rect?.h ?? 0) < 43.5) t.problem('bug', `reply "${o.text}" is ${Math.round(o.rect?.h ?? 0)} px tall`); }
+        t.metric('replyBubbleMinHeight', Math.round(minH));
+        t.event('replies', r.options.map((o) => o.text).join(' | '));
+        if (touchy()) await tapAt(document.querySelector<HTMLElement>('#callReplies [data-reply="0"]'), 'reply 1');
+        else await tap('1', 'reply 1');
+      } else t.problem('bug', 'the call offered no reply choices');
+      // 2. Pain
+      probe.hurt?.(60);
+      const painUntil = performance.now() + 4000;
+      while (performance.now() < painUntil && !((probe.pain?.().vignette ?? 0) > 0.3 && (probe.pain?.().heartbeats ?? 0) > 0)) await sleep(100);
+      const pain = probe.pain?.();
+      t.metric('painVignette', Number((pain?.vignette ?? 0).toFixed(2)));
+      t.metric('heartbeats', pain?.heartbeats ?? 0);
+      if (!pain || pain.vignette <= 0.3) t.problem('bug', `the screen edges did not darken when hurt (vignette ${pain?.vignette ?? 0})`);
+      if (!pain || pain.heartbeats < 1) t.problem('bug', 'no heartbeat played when hurt');
+      if (pain?.healthBarShown) t.problem('bug', 'the health bar shows outside combat while hurt');
+      if (pain && pain.vignette > 0.3 && pain.heartbeats > 0) t.event('pain', `vignette ${pain.vignette.toFixed(2)}, ${pain.heartbeats} heartbeats, no health bar`);
+      if (probe.phone().busy) {
+        if (touchy()) await tapAt(document.getElementById('phoneEnd'), 'End call');
+        await t.until(() => !probe.phone().busy, 90000, 'the call to finish');
+      }
+      // 3. Use prompt over the coffee machine
+      const coffee = { x: 50.6, z: 25.4 };
+      let liveAt = 0;
+      let shownAt = 0;
+      const promptUntil = performance.now() + 100000;
+      while (performance.now() < promptUntil) {
+        await tick();
+        if (!probe.running() || probe.menu().open || probe.cutscene()) continue;
+        await walkTo(coffee, 'coffee', 1.0);
+        const live = Boolean(probe.action());
+        if (live && !liveAt) liveAt = performance.now();
+        const up = probe.usePrompt?.();
+        if (live && up?.shown && !shownAt) { shownAt = performance.now(); break; }
+        if (!live) liveAt = 0;
+      }
+      releaseAll();
+      const up = probe.usePrompt?.();
+      if (!shownAt || !up) { t.problem('bug', 'no use prompt appeared over the object in reach'); }
+      else {
+        t.metric('usePromptMs', Math.round(shownAt - liveAt));
+        t.event('use-prompt', `${up.text} (${up.on}) ${up.rect ? `${Math.round(up.rect.w)}x${Math.round(up.rect.h)}` : ''}`);
+        const want = touchy() ? '☝' : 'E';
+        if (!up.text.startsWith(want)) t.problem('bug', `use prompt shows "${up.text}", want the ${touchy() ? 'touch glyph' : 'E key'} first`);
+        if (up.rect && (up.rect.h < 43.5 && touchy())) t.problem('bug', `use prompt is ${Math.round(up.rect.h)} px tall on touch`);
+        if (up.rect && (up.rect.x < 0 || up.rect.y < 0 || up.rect.x + up.rect.w > innerWidth || up.rect.y + up.rect.h > innerHeight)) t.problem('bug', 'use prompt leaves the screen');
+        if (shownAt - liveAt > 300) t.problem('bug', `use prompt took ${Math.round(shownAt - liveAt)} ms to show`);
+      }
+      t.finish('done');
+      return;
+    }
     if (id === 'call-replies') {
       levelsTotal = 1;
       const RUN_KEY = 'hawkes.callRepliesRun';
@@ -7646,6 +7749,107 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.event('lore-index', `${listed} entries listed`);
       if (listed < 8) t.problem('bug', `lore.html lists ${listed} entries, not 8`);
       t.progress(1);
+      t.finish('done');
+      return;
+    }
+
+    if (id === 'chapter-select') {
+      levelsTotal = 1;
+      const phone = Boolean(options.phone);
+      if (phone) {
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+        t.event('setup', 'phone layout 390x844 (touch)');
+        await sleep(500);
+      }
+      t.scene('Chapter Select');
+      const opener = document.getElementById('loadModelBtn') as HTMLButtonElement | null;
+      if (!opener || !shown(opener)) { t.problem('bug', 'the title menu has no Chapter Select button'); t.finish('done'); return; }
+      if (!/chapter select/i.test(opener.textContent ?? '')) t.problem('bug', `the button reads "${opener.textContent}", not Chapter Select`);
+      await tapAt(opener, 'Chapter Select');
+      await t.until(() => probe.chapterSelect().cards.length >= 8, 8000, 'eight chapter cards');
+      await sleep(600);
+      const view = probe.chapterSelect();
+      t.metric('chapterCards', view.cards.length);
+      t.event('chapter-cards', view.cards.map((c) => `${c.n}${c.unlocked ? '' : ' (locked)'}: ${c.text}`).join(' | '));
+      if (view.cards.length !== 8) t.problem('bug', `Chapter Select shows ${view.cards.length} cards, not 8`);
+      const locked = view.cards.filter((c) => !c.unlocked).length;
+      if (!locked && view.cards.length === 8) t.event('note', 'every chapter is unlocked on this save, none dimmed');
+      let minPx = 9999;
+      for (const c of view.cards) {
+        minPx = Math.min(minPx, c.box.h);
+        if (c.unlocked && !(/Best\s+\S+/i.test(c.text) && /Lore\s+\d+\s+of\s+\d+/i.test(c.text))) t.problem('bug', `unlocked card ${c.n} shows no best time or "Lore n of m": ${c.text}`);
+        if (RAW_KEY.test(c.text)) t.problem('bug', `card ${c.n} shows a raw locale id: ${c.text}`);
+      }
+      t.metric('chapterCardMinPx', Math.round(minPx));
+      if (minPx < 44) t.problem('bug', `a chapter card is ${Math.round(minPx)} px tall, under 44`);
+      const list = document.getElementById('levelList') as HTMLElement;
+      const cs = getComputedStyle(list);
+      const scrolls = /auto|scroll/.test(cs.overflowY) && /pan-y/.test(cs.touchAction);
+      t.event('swipe-list', `overflowY ${cs.overflowY}, touch-action ${cs.touchAction}, ${view.list.scrollHeight} px of content in ${view.list.clientHeight} px`);
+      if (!scrolls) t.problem('bug', 'the chapter list is not swipe-scrollable (needs overflow-y auto and touch-action pan-y)');
+      if (phone && view.list.scrollHeight <= view.list.clientHeight + 4) t.problem('warning', 'at 390x844 all eight cards fit without scrolling');
+      // A swipe on the list (touch drag), then the cards must still be reachable.
+      const lr = list.getBoundingClientRect();
+      const pid = 81;
+      const ev = (type: string, y: number, buttons: number) => list.dispatchEvent(new PointerEvent(type, { pointerType: phone ? 'touch' : 'mouse', pointerId: pid, isPrimary: true, bubbles: true, cancelable: true, clientX: lr.left + lr.width / 2, clientY: y, buttons }));
+      ev('pointerdown', lr.top + lr.height * 0.8, 1);
+      for (let i = 1; i <= 8; i += 1) { await sleep(30); ev('pointermove', lr.top + lr.height * (0.8 - i * 0.07), 1); }
+      ev('pointerup', lr.top + lr.height * 0.2, 0);
+      list.scrollTop = list.scrollHeight;
+      await sleep(300);
+      t.event('swiped', `scrollTop ${Math.round(list.scrollTop)} of ${list.scrollHeight - list.clientHeight}`);
+      list.scrollTop = 0;
+      // The cue: focus the first unlocked card.
+      const cards = [...list.querySelectorAll<HTMLButtonElement>('.chapter-card')];
+      const first = cards.find((c) => !c.disabled);
+      const before = probe.chapterSelect().cue.plays;
+      first?.focus();
+      await sleep(500);
+      const cue = probe.chapterSelect().cue;
+      t.event('cue', `chapter music cue plays ${before} -> ${cue.plays} (chapter ${cue.last})`);
+      if (cue.plays <= before) t.problem('bug', 'focusing a chapter card plays no music cue');
+      // Start chapter 1 by tap.
+      t.scene('Start chapter 1');
+      const t0 = performance.now();
+      if (first) {
+        first.scrollIntoView({ block: 'center' });
+        await tapAt(first, 'chapter 1 card');
+        await sleep(400);
+        if (!probe.running()) first.click();
+      }
+      const until = performance.now() + 30000;
+      while (!(probe.running() && probe.level().id === 1 && !probe.menu().open) && performance.now() < until) await sleep(100);
+      const took = (performance.now() - t0) / 1000;
+      t.metric('chapterStartSeconds', Math.round(took * 10) / 10);
+      t.event('chapter-start', `chapter 1 running ${took.toFixed(1)} s after the tap`);
+      if (took > 10) t.problem('bug', `chapter 1 took ${took.toFixed(1)} s to start from its card (limit 10)`);
+      if (!probe.running()) { t.finish('done'); return; }
+      // Hidden lore pages: walk onto each with real input.
+      t.scene('Hidden lore pages');
+      await waitControl('control in chapter 1');
+      const total = probe.loreSpots().all.length;
+      if (total < 2) t.problem('bug', `chapter 1 hides ${total} lore pages, under 2`);
+      let found = 0;
+      for (const spot of probe.loreSpots().all) {
+        const stillThere = () => probe.loreSpots().remaining.some((r) => r.id === spot.id);
+        const limit = performance.now() + 40000;
+        while (stillThere() && performance.now() < limit) {
+          await walkTo({ x: spot.x, z: spot.z }, `lore page ${spot.id}`, 0.9);
+          await tick();
+        }
+        releaseAll();
+        if (!stillThere()) { found += 1; t.event('lore-page', `found ${spot.id} (${found}/${total}); toast: ${document.getElementById('loreToast')?.textContent ?? ''}`); }
+        else t.problem('warning', `could not reach lore page ${spot.id} at (${spot.x}, ${spot.z})`);
+        await sleep(300);
+      }
+      t.metric('lorePagesFound', found);
+      const saved = probe.chapterSelect().save.found['1'] ?? [];
+      if (saved.length !== found) t.problem('bug', `found ${found} pages but the save holds ${saved.length}`);
+      const rows = probe.levelRows();
+      const card1 = probe.chapterSelect().cards.find((c) => c.n === 1);
+      t.event('card-after', card1?.text ?? 'none');
+      if (!new RegExp(`Lore\\s+${found}\\s+of\\s+${total}`).test(card1?.text ?? '')) t.problem('bug', `card 1 does not show Lore ${found} of ${total} after finding them: ${card1?.text}`);
+      void rows;
       t.finish('done');
       return;
     }
