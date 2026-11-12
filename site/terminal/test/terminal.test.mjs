@@ -78,10 +78,10 @@ test('puzzle: strictly ordered, hints monotonic', () => {
   const levels = [];
   let used = 0;
   for (let i = 0; i < 6; i += 1) { const h = q.hint(); levels.push(h.level); assert.ok(q.hintsUsed >= used); used = q.hintsUsed; }
-  assert.deepEqual(levels, [1, 2, 3, 3, 3, 3]);
+  assert.deepEqual(levels, [1, 1, 1, 1, 1, 1]);
   q.complete('hat');
-  assert.equal(q.hint().level, 1); // next step starts gentle again
-  assert.equal(q.hintsUsed, 4);
+  assert.equal(q.hint().level, 1);
+  assert.equal(q.hintsUsed, 2);
 });
 
 test('cannot reach root without the earlier steps', () => {
@@ -107,18 +107,51 @@ function solve(sh) {
   assert.match(run(sh, 'rev ~/.hat_backwards'), /target: gw\.hawkes\.lan/);
   assert.match(run(sh, 'nmap gw.hawkes.lan'), /8080\/tcp\s+open/);
   assert.match(run(sh, 'curl gw.hawkes.lan:8080/backup/gw.cfg.bak'), /saved to ~\/loot/);
-  assert.match(run(sh, 'strings ~/loot/gw.cfg.bak'), /ops_hash=/);
   assert.match(run(sh, 'john ~/loot/gw.cfg.bak'), /no password found/); // generic list fails
   assert.match(run(sh, 'john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/gw.cfg.bak'), /roomforgrace58/);
   run(sh, 'ssh ops@gw.hawkes.lan');
   assert.equal(sh.prompt(), "ops@gw.hawkes.lan's password:");
-  assert.match(run(sh, OPS_PASSWORD), /Welcome to ph-origins/);
-  assert.equal(sh.user, 'ops');
-  assert.match(run(sh, 'sudo -l'), /NOPASSWD: \/usr\/bin\/less/);
-  run(sh, 'sudo less /var/log/syslog');
-  assert.equal(sh.prompt(), ':');
-  assert.match(run(sh, '!sh'), /ACCESS GRANTED/);
+  assert.match(run(sh, OPS_PASSWORD), /ACCESS GRANTED/);
 }
+
+/** The first "Type:  <command>" line of the LOGIN GUIDE in /help. */
+const guideCmd = (sh) => { const m = run(sh, '/help').match(/^ {2}Type: {2}(.+)$/m); assert.ok(m, 'no Type: line in the guide'); return m[1]; };
+
+test('the LOGIN GUIDE walks a stranger to root by typing only what it prints', () => {
+  const sh = mk();
+  for (let n = 1; n <= 5; n += 1) {
+    const help = run(sh, '/help');
+    assert.match(help.split('\n').slice(0, 3).join('\n'), /LOGIN GUIDE/);
+    assert.match(help, new RegExp(`Step ${n} of 5`));
+    const cmd = guideCmd(sh);
+    assert.equal(run(sh, 'help'), help);
+    assert.match(run(sh, 'hint'), new RegExp(`Next: ${cmd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    assert.equal(complete(sh, '').line, cmd);
+    const o = run(sh, cmd);
+    if (n === 5) { assert.equal(sh.prompt(), "ops@gw.hawkes.lan's password:"); run(sh, OPS_PASSWORD); } else assert.match(o, /Next: \S/, `step ${n} output ends with a Next: pointer`);
+    assert.equal(sh.puzzle.stepsDone, n);
+  }
+  assert.equal(sh.user, 'root');
+  assert.match(run(sh, '/help'), /All 5 steps done/);
+});
+
+test('the guide never says simulation, fake or the old winks', () => {
+  const sh = mk();
+  const seen = [sh.boot().map((e) => e.text).join('\n'), ...['/help', 'hint', 'about', 'credits', 'man nmap', 'ping tower.hawkes.lan', 'nmap localhost', 'ps', 'top', 'cat notes/rules.txt', 'progress'].map((c) => run(sh, c))];
+  solve(sh); seen.push(run(sh, '/build'), run(sh, 'cat /opt/hawkes-biomedical/README.md'), run(sh, 'deploy'), run(sh, 'y'));
+  const all = seen.join('\n');
+  for (const bad of [/simulat/i, /no real system/i, /BACKWARDS \(as expected\)/, /ground truth/i, /\bfake\b/i, /fictional/i, /nothing leaves/i, /no real data/i]) assert.doesNotMatch(all, bad);
+});
+
+test('old saved progress still loads (same step ids)', () => {
+  const sh = mk();
+  const old = { puzzle: { done: ['hat', 'scan', 'loot', 'crack'], hints: { hat: 3 }, hintsUsed: 3, extra: [] }, root: false };
+  const again = new Shell({ load: () => old, save: () => {} });
+  assert.equal(again.puzzle.stepsDone, 4);
+  assert.match(run(again, '/help'), /Step 5 of 5/);
+  const gap = new Shell({ load: () => ({ puzzle: { done: ['hat', 'loot'] } }), save: () => {} });
+  assert.equal(gap.puzzle.stepsDone, 1);
+});
 
 test('the documented chain reaches root in five steps, and root persists', () => {
   const sh = mk();
@@ -197,7 +230,7 @@ test('easter eggs and misc', () => {
   assert.match(run(sh, 'konami'), /up up/);
   assert.match(sh.konami().map((e) => e.text).join(''), /30 LIVES/);
   assert.equal(sh.user, 'guest'); // a cheat code never grants root
-  assert.match(run(sh, 'ping tower.hawkes.lan'), /simulated/);
+  assert.match(run(sh, 'ping tower.hawkes.lan'), /PING tower/);
   assert.match(run(sh, 'echo $USER'), /guest/);
   assert.match(run(sh, 'open about'), /opening about\.html/);
   assert.equal(sh.run('game').some((e) => e.k === 'go' && e.url === './play/game.html'), true);

@@ -33,7 +33,7 @@ export function buildTree() {
         '.achievements': f('', { dynamic: 'achievements', owner: 'guest' }),
         notes: d({
           'todo.txt': f('- ask Lang about Zurich (not my job)\n- staging gateway: unsure it is hardened. check before the board looks.\n- the old team signed everything backwards. the hat is in ~/.hat_backwards\n- remember: scan first, touch second\n', { owner: 'guest' }),
-          'rules.txt': f('1. Nothing on this box is real. No patient data, no network, no kidding.\n2. Everything here is read-only for guests. Reading is allowed. Reading is encouraged.\n3. The easy way in is never the way in.\n', { owner: 'guest' }),
+          'rules.txt': f('1. Patient data stays off this box. Always. No kidding.\n2. Everything here is read-only for guests. Reading is allowed. Reading is encouraged.\n3. The easy way in is never the way in.\n', { owner: 'guest' }),
         }, { owner: 'guest' }),
         loot: d({}, { owner: 'guest', loot: true }),
         site: d({
@@ -149,10 +149,10 @@ export class VFS {
     return d({
       'README.md': f(
         `# Hawkes Biomedical: medical backend framework\n\nbuild ${b.hash}  (${b.modules.length} modules, version ${b.version})\n\n`
-        + 'This is a fictional framework in a fictional console. It holds no patient data, talks to no network,\nand was assembled by a progress bar. It is very proud of itself.\n\n'
+        + 'It holds no patient data and was assembled by a progress bar. It is very proud of itself.\n\n'
         + `## Modules\n${b.modules.map((m) => `- ${m.id}: ${m.title} (:${m.port})`).join('\n')}\n\n## Try\n- /status\n- /services\n- /logs\n- /deploy  (it will ask first)\n`,
       ),
-      'BUILD.txt': f(`build: ${b.hash}\nmodules: ${b.modules.length}\ntests passed: ${b.tests}\nseed: ${b.seed}\nelapsed (simulated): ${b.seconds}s\n`),
+      'BUILD.txt': f(`build: ${b.hash}\nmodules: ${b.modules.length}\ntests passed: ${b.tests}\nseed: ${b.seed}\nelapsed: ${b.seconds}s\n`),
       'manifest.json': f(JSON.stringify({ hash: b.hash, version: b.version, modules: b.modules.map((m) => m.id) }, null, 2) + '\n'),
       bin: d({ 'hawkes-gw': f('#!/bin/sh\n# the gateway entrypoint. it does nothing, beautifully.\n', { mode: '-rwxr-xr-x' }) }),
       modules: d(mods),

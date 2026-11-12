@@ -2,6 +2,7 @@
 
 import { COMMANDS, THEMES } from './shell.js';
 import { MODULES } from './build.js';
+import { GUIDE } from './content.js';
 
 const PATH_CMDS = new Set(['ls', 'cd', 'cat', 'less', 'more', 'tree', 'grep', 'head', 'tail', 'wc', 'sort', 'strings', 'rev', 'john', 'open']);
 
@@ -29,6 +30,13 @@ function completePath(sh, word, dirsOnly) {
 
 export function complete(sh, line) {
   if (sh.mode) return { line, options: [] };
+  // The guide's next command is always one Tab away: an empty line, or any start of it, completes to the whole thing.
+  const cur = sh.puzzle.current;
+  if (cur && !sh.isRoot) {
+    const next = GUIDE[cur].cmd;
+    const t = line.trimStart();
+    if (t === '' || (t.length >= 2 && next.startsWith(t) && t !== next)) return { line: next, options: [] };
+  }
   const m = line.match(/^(\s*)(\S*)$/);
   if (m) {
     // first word: command names (keeping a leading slash)

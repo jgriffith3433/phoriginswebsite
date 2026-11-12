@@ -5,7 +5,7 @@ import { parseLine, suggest } from './parser.js';
 import { VFS, USERS, modeOf } from './fs.js';
 import { Puzzle } from './puzzle.js';
 import { runBuild, mergeBuilt, isComplete, MODULES, VERSION } from './build.js';
-import { STEPS, MOTD, MOTD_ART, MOTD_TEXT, FORTUNES, TARGET_HOST, OPS_PASSWORD, GW_STRINGS, GW_BACKUP_NAME } from './content.js';
+import { STEPS, GUIDE, MOTD, MOTD_ART, MOTD_TEXT, FORTUNES, TARGET_HOST, OPS_PASSWORD, GW_STRINGS, GW_BACKUP_NAME } from './content.js';
 import { rng, pad, lpad, bar, reverse, hex } from './util.js';
 
 const P = (text, cls) => ({ k: 'print', text, cls });
@@ -87,7 +87,7 @@ export class Shell {
       P(MOTD_ART, 'art motd'),
       P(MOTD_TEXT, 'motd'),
       P(`Last login: ${now.toUTCString().slice(0, 16)} from 10.58.0.99   [guest]`, 'dim'),
-      P(this.isRoot ? 'Welcome back, root. The backend is waiting.' : 'Type  help  to begin. Tab completes. The hat is not decoration.', 'dim'),
+      P(this.isRoot ? 'Welcome back, root. The backend is waiting.' : 'Type  /help  to begin: the LOGIN GUIDE tells you the next command.', 'dim'),
     ];
   }
 
@@ -128,7 +128,7 @@ export class Shell {
       return [P(`${c.cmd}: command not found${tip}`, 'err')];
     }
     if (def.root && !this.isRoot) {
-      return [P(`${c.cmd}: permission denied (${this.user}). The backend only answers to root.`, 'err'), P('hint: type  hint  - there is a way in, and it is not guessing.', 'dim')];
+      return [P(`${c.cmd}: permission denied (${this.user}). The backend only answers to root.`, 'err'), P('hint: type  /help  - the LOGIN GUIDE gives the exact next command.', 'dim')];
     }
     const res = def.run(this, c.args, stdin);
     return typeof res === 'string' ? [P(res)] : (res || []);
@@ -147,7 +147,7 @@ export class Shell {
     const msg = FAILS[(this.fails - 1) % FAILS.length];
     const lines = [P(msg, 'err')];
     if (this.fails >= 3) lines.push(P(`(${what}: the gateway makes you wait ${this.throttle()}s. brute force is slow here, by design.)`, 'dim'));
-    if (this.fails >= 4) lines.push(P('hint: guessing will not do it. read the files, run the tools. type  hint.', 'dim'));
+    if (this.fails >= 4) lines.push(P('hint: no guessing needed. type  /help  for the exact next command.', 'dim'));
     return lines;
   }
 
@@ -339,8 +339,19 @@ const FAKE_TOP = [
   '  301 root      20   0    9404   2120   0.0   0.0 cron',
   '    1 root      20   0    4380   1180   0.0   0.0 init',
   '',
-  '(a snapshot. this box does not really run. press q: there is nothing to press q on.)',
+  '(a snapshot. press q: there is nothing to press q on.)',
 ];
+
+/** The LOGIN GUIDE block: which step, the exact next command, what it does. */
+export function guideLines(sh) {
+  const cur = sh.puzzle.current;
+  if (!cur) return ['LOGIN GUIDE', '  All 5 steps done. You are root.', '  Next: /build', ''];
+  const n = STEPS.findIndex((s) => s.id === cur) + 1;
+  const g = GUIDE[cur];
+  return ['LOGIN GUIDE', `  Step ${n} of ${STEPS.length}: ${STEPS[n - 1].title}`, `  Type:  ${g.cmd}`, `  It ${g.what}`, '  (copy it, or press Tab on an empty line. Stuck? type  hint)', ''];
+}
+/** The one-line pointer that ends every step's output. */
+export const nextPointer = (sh) => (sh.puzzle.current ? P(`Next: ${GUIDE[sh.puzzle.current].cmd}`, 'hint') : P('Next: /build', 'hint'));
 
 const resolveHost = (h) => {
   const host = h.replace(/^[a-z]+:\/\//, '').split(/[/:]/)[0].toLowerCase();
@@ -354,17 +365,18 @@ const COMMANDS = {
       if (args[0]) return COMMANDS.man.run(sh, args);
       const group = (title, names) => [`${title}`, ...names.filter((n) => COMMANDS[n]).map((n) => `  ${pad(n, 11)}${COMMANDS[n].desc}`), ''];
       const lines = [
+        ...guideLines(sh),
         'PH Origins gateway console. Commands work with or without a leading slash (/help = help).',
         '',
         ...group('Look around', ['ls', 'cd', 'pwd', 'cat', 'less', 'tree', 'grep', 'head', 'tail', 'wc', 'sort', 'echo']),
         ...group('System', ['whoami', 'id', 'uname', 'hostname', 'date', 'ps', 'top', 'history', 'clear', 'exit']),
-        ...group('Network toys (simulated)', ['ping', 'nmap', 'curl', 'ssh', 'strings', 'rev', 'john']),
+        ...group('Network tools', ['ping', 'nmap', 'curl', 'ssh', 'strings', 'rev', 'john']),
         ...group('Console', ['hint', 'progress', 'man', 'theme', 'sound', 'song', 'about', 'credits', 'reset']),
         ...group('Site', ['game', 'open']),
         `Root only ${sh.isRoot ? '(unlocked)' : '(locked: earn root)'}`,
         ...['build', 'status', 'services', 'logs', 'deploy', 'rollback'].map((n) => `  /${pad(n, 10)}${COMMANDS[n].desc}`),
         '',
-        'Tips: Tab completes, up/down is history, Ctrl+L clears, Ctrl+C cancels. Stuck? type  hint.',
+        'Tips: Tab completes, up/down is history, Ctrl+L clears, Ctrl+C cancels. Stuck? type  hint  (it prints the next login command).',
         'Also: sl cowsay fortune matrix ... and a few phrases that are worth trying.',
       ];
       return [P(lines.join('\n'))];
@@ -488,7 +500,7 @@ const COMMANDS = {
     desc: 'who am I (--root: the root note)', usage: 'whoami [--root]',
     run(sh, args) {
       if (args.includes('--root')) {
-        return sh.isRoot ? [P('root. earned, not given. no hints were harmed (hints used: ' + sh.puzzle.hintsUsed + ').', 'ok')] : [P('whoami --root: permission denied (' + sh.user + '). The backend only answers to root.', 'err'), P('hint: type  hint', 'dim')];
+        return sh.isRoot ? [P('root. earned, not given. (hints used: ' + sh.puzzle.hintsUsed + ').', 'ok')] : [P('whoami --root: permission denied (' + sh.user + '). The backend only answers to root.', 'err'), P('hint: type  hint', 'dim')];
       }
       return sh.user;
     },
@@ -504,7 +516,7 @@ const COMMANDS = {
     desc: 'command history', usage: 'history',
     run: (sh) => sh.history.map((h, i) => `${lpad(i + 1, 4)}  ${h}`).join('\n') || '(nothing yet)',
   },
-  ps: { desc: 'processes (a fake list)', usage: 'ps', run: () => FAKE_PS.join('\n') },
+  ps: { desc: 'processes', usage: 'ps', run: () => FAKE_PS.join('\n') },
   top: { desc: 'a static-looking process monitor', usage: 'top', run: () => FAKE_TOP.join('\n') },
   clear: { desc: 'clear the screen (Ctrl+L)', usage: 'clear', run: () => [{ k: 'clear' }] },
   exit: {
@@ -535,11 +547,11 @@ const COMMANDS = {
   },
   about: {
     desc: 'what is this place', usage: 'about',
-    run: () => [P('PH Origins: a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark.\n\nThis console is a toy: a simulated gateway box with a puzzle and a backend that builds itself. Everything here is fictional.\nThe game is one command away:  game', '')],
+    run: () => [P('PH Origins: a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark.\n\nThis console is the Hawkes gateway: a way in, and a backend that builds itself.\nThe game is one command away:  game', '')],
   },
   credits: {
     desc: 'who made this', usage: 'credits',
-    run: () => [P('PH Origins\n  a Hawkes Biomedical company\n  Powered by HAWKES GEN\n  Console: a fake Linux box, built for fun. Thanks for hacking the planet.')],
+    run: () => [P('PH Origins\n  a Hawkes Biomedical company\n  Powered by HAWKES GEN\n  Console: the 58th floor gateway. Thanks for hacking the planet.')],
   },
   hint: {
     desc: 'a nudge for the current step (free)', usage: 'hint',
@@ -547,7 +559,7 @@ const COMMANDS = {
       const h = sh.puzzle.hint();
       sh.save();
       if (!h.step) return [P(h.text, 'ok')];
-      return [P(`hint (${STEPS.findIndex((s) => s.id === h.step) + 1}/${STEPS.length}, level ${h.level}/3): ${h.text}`, 'hint')];
+      return [P(`hint (step ${STEPS.findIndex((s) => s.id === h.step) + 1} of ${STEPS.length}): ${h.text}`, 'hint')];
     },
   },
   progress: {
@@ -593,7 +605,7 @@ const COMMANDS = {
     },
   },
   ping: {
-    desc: 'ping a host (simulated, no packets leave this page)', usage: 'ping <host>',
+    desc: 'ping a host', usage: 'ping <host>',
     run(sh, args) {
       const host = resolveHost(args[0] || '');
       if (!host) return [P('ping: usage: ping <host>', 'err')];
@@ -601,21 +613,21 @@ const COMMANDS = {
       const ip = known[host] ?? (host === TARGET_HOST && sh.puzzle.has('hat') ? '10.58.0.12' : null);
       if (!ip) return [P(`ping: ${host}: Name or service not known`, 'err')];
       const r = rng(hex(host, 6).length + host.length * 7 + sh.history.length);
-      const steps = [{ at: 0, text: `PING ${host} (${ip}) 56(84) bytes of data. [simulated]`, cls: 'dim' }];
+      const steps = [{ at: 0, text: `PING ${host} (${ip}) 56(84) bytes of data. `, cls: 'dim' }];
       const times = [];
       for (let i = 0; i < 4; i += 1) { const ms = (r.int(8, 190) / 10 + (host === 'localhost' ? 0 : 6)).toFixed(1); times.push(+ms); steps.push({ at: 350 + i * 450, text: `64 bytes from ${ip}: icmp_seq=${i + 1} ttl=${r.int(52, 64)} time=${ms} ms` }); }
-      steps.push({ at: 350 + 4 * 450, text: `--- ${host} ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss  (nothing actually left this page)` });
+      steps.push({ at: 350 + 4 * 450, text: `--- ${host} ping statistics ---\n4 packets transmitted, 4 received, 0% packet loss` });
       return [SEQ(steps)];
     },
   },
   nmap: {
-    desc: 'scan a host for open ports (simulated)', usage: 'nmap [-sV] <host>',
-    man: 'Scans simulated hosts only. Try the host the hat names.',
+    desc: 'scan a host for open ports', usage: 'nmap [-sV] <host>',
+    man: 'Lists the open ports on a host. Try the host the hat names.',
     run(sh, args) {
       const { rest } = flagsOf(args);
       const host = resolveHost(rest[0] || '');
       if (!host) return [P('nmap: usage: nmap <host>', 'err')];
-      const steps = [{ at: 0, text: `Starting Nmap 7.94 ( https://nmap.org ) [simulated]`, cls: 'dim' }];
+      const steps = [{ at: 0, text: `Starting Nmap 7.94 ( https://nmap.org )`, cls: 'dim' }];
       let at = 500;
       const add = (t, cls) => { steps.push({ at, text: t, cls }); at += 140; };
       if (host === TARGET_HOST) {
@@ -632,6 +644,7 @@ const COMMANDS = {
         add('|_/backup/gw.cfg.bak', 'ok');
         add('Nmap done: 1 IP address (1 host up) scanned in 2.4 seconds');
         if (first) sh.save();
+        steps.push({ at, text: nextPointer(sh).text, cls: 'hint' });
       } else if (host === 'localhost' || host === '127.0.0.1') {
         add('Nmap scan report for localhost (127.0.0.1)');
         add('All 1000 scanned ports on localhost are closed (the shell is not a port).');
@@ -640,7 +653,7 @@ const COMMANDS = {
         add('All 1000 scanned ports are filtered. Someone on the 58th floor made sure.');
       } else if (['hawkesbiomedical.com', 'phorigins.com'].includes(host)) {
         add(`Nmap scan report for ${host}`);
-        add('443/tcp open https  (and that is a public website: scan nothing real. this one is simulated.)');
+        add('443/tcp open https  (a public website. the front door, not the way in.)');
       } else {
         add(`Failed to resolve "${rest[0]}".`, 'err');
         add('WARNING: No targets were specified, so 0 hosts scanned.');
@@ -649,7 +662,7 @@ const COMMANDS = {
     },
   },
   curl: {
-    desc: 'fetch a URL (simulated; also: wget)', usage: 'curl [-O] <host[:port]/path>',
+    desc: 'fetch a URL (also: wget)', usage: 'curl [-O] <host[:port]/path>',
     run(sh, args) {
       const { rest } = flagsOf(args);
       if (!rest[0]) return [P('curl: usage: curl <url>', 'err')];
@@ -671,7 +684,7 @@ const COMMANDS = {
           { at: 0, text: '  % Total    % Received  Time   Current Speed' },
           { at: 250, text: `100   412  100   412   0:00:00  saved` },
           { at: 500, text: `saved to ~/loot/${GW_BACKUP_NAME} (412 bytes, binary)`, cls: 'ok' },
-          ...(first ? [{ at: 650, text: 'a binary blob is not readable with cat. some tool prints its readable strings.', cls: 'dim' }] : []),
+          { at: 650, text: nextPointer(sh).text, cls: 'hint' },
         ])];
       }
       return [P('<html><body><h1>404</h1><p>not here. look at robots.txt.</p></body></html>', 'err')];
@@ -698,12 +711,14 @@ const COMMANDS = {
         if (r.err) return [P(r.err.replace(/^[^:]+:/, 'rev:'), 'err')];
         src = r.content;
         if (abs === '/home/guest/.hat_backwards' && sh.puzzle.complete('hat')) sh.save();
+        const out = [P(src.replace(/\n$/, '').split('\n').map(reverse).join('\n'))];
+        return abs === '/home/guest/.hat_backwards' && sh.puzzle.has('hat') ? [...out, nextPointer(sh)] : out;
       }
       return [P(src.replace(/\n$/, '').split('\n').map(reverse).join('\n'))];
     },
   },
   john: {
-    desc: 'crack password hashes with a wordlist (simulated; also: crack)', usage: 'john [--wordlist=<file>] <hashfile>',
+    desc: 'crack password hashes with a wordlist (also: crack)', usage: 'john [--wordlist=<file>] <hashfile>',
     run(sh, args) {
       const { rest } = flagsOf(args.filter((a) => !a.startsWith('--wordlist')));
       let wl = null;
@@ -732,15 +747,17 @@ const COMMANDS = {
         steps.push({ at: end + 150, text: '1g 0:00:00:03 DONE  (password recovered)', cls: 'ok' });
         steps.push({ at: end + 300, text: first ? 'ssh is open on this host. a username and a password: there is a door.' : 'already cracked. the door is where you left it.', cls: 'dim' });
         sh.save();
+        steps.push({ at: end + 450, text: nextPointer(sh).text, cls: 'hint' });
       } else {
         steps.push({ at: end, text: '0g 0:00:00:03 DONE  (wordlist exhausted: no password found)', cls: 'err' });
-        steps.push({ at: end + 150, text: 'a generic list will not know who wrote this. whose wordlist did the config mention?', cls: 'dim' });
+        steps.push({ at: end + 150, text: 'a generic list will not know who wrote this. use the staff wordlist.', cls: 'dim' });
+        steps.push({ at: end + 300, text: nextPointer(sh).text, cls: 'hint' });
       }
       return [SEQ(steps)];
     },
   },
   ssh: {
-    desc: 'log in to a host (simulated)', usage: 'ssh <user>@<host>',
+    desc: 'log in to a host', usage: 'ssh <user>@<host>',
     run(sh, args) {
       let user = null;
       let host = null;
@@ -753,7 +770,7 @@ const COMMANDS = {
       host = resolveHost(host || '');
       if (!host) return [P('ssh: usage: ssh <user>@<host>', 'err')];
       if (host !== TARGET_HOST) return [P(`ssh: Could not resolve hostname ${host}: Name or service not known`, 'err')];
-      if (!sh.puzzle.has('scan')) return [P(`ssh: connect to host ${host} port 22: Connection refused`, 'err'), P('(you have not knocked yet. scan first.)', 'dim')];
+      if (!sh.puzzle.has('scan')) return [P(`ssh: connect to host ${host} port 22: Connection refused`, 'err'), P('(you have not knocked yet. scan first.)', 'dim'), nextPointer(sh)];
       if (sh.user === 'ops') return [P('already logged in as ops. (inception is not supported.)', 'dim')];
       const wait = sh.throttle();
       if (wait > 0) return [P(`ssh: too many attempts. the gateway rolls its eyes. try again in ${wait}s.`, 'err')];
@@ -762,10 +779,7 @@ const COMMANDS = {
         if (left > 0) return [P(`ssh: too many attempts. try again in ${left}s.`, 'err')];
         if (user === 'ops' && pw === OPS_PASSWORD && s.puzzle.has('crack')) {
           s.fails = 0;
-          s.user = 'ops';
-          s.cwd = USERS.ops.home;
-          s.save();
-          return [P(`Welcome to ph-origins (${TARGET_HOST})\nstaging gateway. be nice.\nLast login: Nov 12 02:58:09 from 10.58.0.99\nTry:  sudo -l`, 'ok')];
+          return s.grantRoot(`Welcome to ph-origins (${TARGET_HOST})  -- staging gateway. be nice. ops is a staging admin: root shell.`);
         }
         return s.failAuth('ssh');
       }, { mask: true });
@@ -816,7 +830,7 @@ const COMMANDS = {
   // ---- root only
   build: {
     root: true, desc: 'build the medical backend framework (--verbose, <module>, status)', usage: 'build [--verbose] [<module>|status]',
-    man: 'Assembles the fictional backend. A full build is a show: the log floods past, song.mp3 plays and the log text forms two silhouettes (M mutes, Esc, Ctrl+C or any tap skips to BUILD SUCCESSFUL; the build still finishes). /build <module> is the quiet version.',
+    man: 'Assembles the medical backend. A full build is a show: the log floods past, song.mp3 plays and the log text forms two silhouettes (M mutes, Esc, Ctrl+C or any tap skips to BUILD SUCCESSFUL; the build still finishes). /build <module> is the quiet version.',
     run(sh, args) {
       const { flags, rest } = flagsOf(args);
       const b = sh.vfs.built;
@@ -861,15 +875,15 @@ const COMMANDS = {
     run(sh) { return [P(buildLog(sh).join('\n'))]; },
   },
   deploy: {
-    root: true, desc: 'deploy the build (fake, safe, asks first)', usage: 'deploy',
+    root: true, desc: 'deploy the build (asks first)', usage: 'deploy',
     run(sh) {
       const b = sh.vfs.built;
       if (!b) return [P('deploy: nothing to deploy. run  /build  first.', 'warn')];
-      sh.ask(`deploy build ${b.hash} to simulated-staging? nothing real will happen. [y/N]`, (ans, s) => {
+      sh.ask(`deploy build ${b.hash} to staging? [y/N]`, (ans, s) => {
         if (!/^y(es)?$/i.test(ans)) return [P('deploy: aborted.', 'dim')];
         s.deployed = b.hash;
         s.save();
-        const steps = ['uploading artifacts to a bucket that does not exist ... ok', 'draining the nothing ... ok', 'rolling 10 services (each is a progress bar) ... ok', `deployed ${b.hash} to simulated-staging. no real servers were harmed.`]
+        const steps = ['uploading artifacts to a bucket that does not exist ... ok', 'draining the nothing ... ok', 'rolling 10 services (each is a progress bar) ... ok', `deployed ${b.hash} to staging.`]
           .map((t, i) => ({ at: i * 520, text: t, cls: i === 3 ? 'ok' : '' }));
         return [SEQ(steps)];
       });
@@ -877,7 +891,7 @@ const COMMANDS = {
     },
   },
   rollback: {
-    root: true, desc: 'roll back the last deploy (fake, asks first)', usage: 'rollback',
+    root: true, desc: 'roll back the last deploy (asks first)', usage: 'rollback',
     run(sh) {
       if (!sh.deployed) return [P('rollback: nothing is deployed. you cannot roll back a feeling.', 'warn')];
       sh.ask(`roll back ${sh.deployed}? [y/N]`, (ans, s) => {

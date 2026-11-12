@@ -51,36 +51,16 @@ export const STEPS = [
   { id: 'root', title: 'Pager to root', done: 'You escaped the pager and became root.' },
 ];
 
-/** Three nudges per step, gentle to explicit. */
-export const HINTS = {
-  hat: [
-    'Look at what is in your home directory. All of it. Dotfiles count.',
-    'The file ~/.hat_backwards is written backwards. A three-letter tool turns text round.',
-    'Run:  rev ~/.hat_backwards   - it names a host. Then scan that host.',
-  ],
-  scan: [
-    'You have a host name. Hosts have doors; a scanner lists them.',
-    'The classic scanner is nmap. Give it the host from the hat.',
-    `Run:  nmap ${TARGET_HOST}   - note every open port and what it says.`,
-  ],
-  loot: [
-    'The scan found a web service on a high port, and a robots.txt that disallows something.',
-    'Ask the web service (curl) for the file the robots line points at.',
-    `Run:  curl ${TARGET_HOST}:8080/backup/${GW_BACKUP_NAME}   - it saves into ~/loot.`,
-  ],
-  crack: [
-    'The backup is binary: cat will not help. A tool prints its readable strings.',
-    `Run  strings ~/loot/${GW_BACKUP_NAME}  - there is a hash, and a lazy comment about a wordlist. Then john.`,
-    `Run:  john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/${GW_BACKUP_NAME}`,
-  ],
-  root: [
-    'You have a name (ops) and a password. A staging gateway has an ssh door on port 22.',
-    'Log in as ops. Once inside, ask sudo what ops may run (sudo -l). A pager can run commands if you ask it.',
-    'ssh ops@gw.hawkes.lan, then  sudo less /var/log/syslog  and at the : prompt type  !sh',
-  ],
+/** The login guide: one exact, copy-paste command per step. Help, hint, Tab and the "Next:" pointers all read this. */
+export const GUIDE = {
+  hat: { cmd: 'rev ~/.hat_backwards', what: 'turns the backwards hat round. It names the gateway you are after.' },
+  scan: { cmd: `nmap ${TARGET_HOST}`, what: 'knocks on the gateway and lists its open doors, and the backup it leaves lying around.' },
+  loot: { cmd: `curl ${TARGET_HOST}:8080/backup/${GW_BACKUP_NAME}`, what: 'downloads that staging backup into ~/loot.' },
+  crack: { cmd: `john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/${GW_BACKUP_NAME}`, what: 'cracks the ops password in the backup with the staff wordlist.' },
+  root: { cmd: `ssh ops@${TARGET_HOST}`, what: `logs in as ops (type the password ${OPS_PASSWORD} when asked). The gateway gives its staging admin root.` },
 };
 
-export const SOLVED_HINT = 'You are root. Type /build. (Go on.)';
+export const SOLVED_HINT = 'You are root. Next: /build';
 
 export const MOTD_ART = [
   '  ____  _   _    ___       _       _',
@@ -93,12 +73,11 @@ export const MOTD_ART = [
 
 export const MOTD_TEXT = [
   '',
-  ' Hawkes Biomedical gateway console -- 58th floor, ground truth.',
-  ' This is a simulation. No real system, no real data, no network.',
+  ' Hawkes Biomedical gateway -- 58th floor.',
   '',
   ' guest is read-only and locked down. The way in is rumoured to be',
   ' on a hat. (the old pen-test crew wore theirs backwards)',
-  ' Type  help  to begin.',
+  ' New here? Type  /help  and follow the LOGIN GUIDE.',
   '',
 ].join('\n');
 

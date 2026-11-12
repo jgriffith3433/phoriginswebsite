@@ -1,7 +1,7 @@
 # Terminal console (index.html)
 
-`index.html` is no longer the lore landing page: it is a full-screen, in-browser fake terminal, a simulated Hawkes
-Biomedical gateway box. Everything is client-side, event-driven JS: **no network, no `eval`, no polling.** Timers only
+`index.html` is no longer the lore landing page: it is a full-screen, in-browser terminal: the Hawkes
+Biomedical gateway box, played straight and in-world (no disclaimers, no winks that it is not real). Everything is client-side, event-driven JS: **no network, no `eval`, no polling.** Timers only
 chain the lines of one command's output, and any key flushes them. The game (`play/game.html`, Vite build), the other
 site pages (`about`, `characters`, `lore`, `whatsnew`, `lore/*`), `site/marketing.*` and every game playtest are
 unchanged.
@@ -46,6 +46,17 @@ if the saved chain is complete; `reset` (asks `yes`) wipes it.
 
 Hints (`hint`, free, counted in `hintsUsed`): level 1 vague, 2 points at the tool, 3 gives the command. `progress` and
 `~/.achievements` show the five steps, the egg achievements and hints used.
+
+## Login guide (the path is signposted)
+
+`/help` and `help` open with a **LOGIN GUIDE** block (`guideLines` in `shell.js`): `Step N of 5`, `Type:  <command>`
+(copy-paste ready, from `GUIDE` in `content.js`) and what it does; at root it says `Next: /build`. `hint` prints the
+same `Next: <command>`. Every step's output ends with a `Next: <command>` line (`nextPointer`), the boot banner and
+first prompt say to type `/help`, and Tab on an empty line (or after 2+ characters of it) completes the next command
+(`complete.js`). Step 5 is `ssh ops@gw.hawkes.lan` with the password `john` printed: the gateway gives its staging admin
+root at once (the old `strings` / `sudo -l` / pager `!sh` detour is gone; `strings`, `sudo` and the pager still exist as
+flavour). Step ids are unchanged, so old saves load as they were. Banned in output: "simulation", "no real system",
+"BACKWARDS (as expected)", "ground truth" (unit test).
 
 ## Commands
 
