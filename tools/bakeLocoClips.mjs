@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Append named locomotion transition clips onto pierce.glb / ch44-hero.glb.
+ * Append named clips onto a Mixamo character GLB (loco transitions or board gestures).
  *
  * After Gen motion.from-text (+ motion.check inPlace) and studio_gen_import of each
  * clip GLB, run:
@@ -13,8 +13,21 @@
  *     --clip Turn180=assets/animations/loco/Turn180.glb \
  *     --clip StairsUp=assets/animations/loco/StairsUp.glb
  *
- * Then the same for ch44-hero.glb. Turn90Left is optional (mirror of Turn90); the
- * runtime falls back to Turn90 for both sides until a left take lands.
+ * Board dialogue gestures (upper-body overlays for faceTalk / playFaceGesture), same
+ * six names on every board seat mesh (pierce + ch08/23/28/31/37-npc):
+ *
+ *   node tools/bakeLocoClips.mjs \
+ *     --target assets/models/pierce.glb \
+ *     --clip GestureExplain=assets/animations/gestures/GestureExplain.glb \
+ *     --clip GestureLean=assets/animations/gestures/GestureLean.glb \
+ *     --clip GestureCross=assets/animations/gestures/GestureCross.glb \
+ *     --clip GestureNod=assets/animations/gestures/GestureNod.glb \
+ *     --clip GestureShake=assets/animations/gestures/GestureShake.glb \
+ *     --clip GesturePoint=assets/animations/gestures/GesturePoint.glb
+ *
+ * Then the same for ch44-hero.glb (loco) / each board NPC GLB (gestures). Turn90Left is
+ * optional (mirror of Turn90); the runtime falls back to Turn90 for both sides until a
+ * left take lands.
  *
  * Clip GLBs should be Mixamo-named, in-place, one Animation per file (or the first
  * animation is used). Replaces an existing animation of the same name.

@@ -451,7 +451,9 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 - **37. Faces that talk.** *Exists* (`src/game/faceTalk.ts`, playtest `board-faces`): every on-screen speaker (Pierce,
   the board seats, the night cleaner, the desk associate, Apex life barks) drives a mouth from the live voice
   AnalyserNode, blinks every 2–6 s, looks at the current speaker or Pierce (head yaw capped 60°), and plays upper-body
-  dialogue gestures (explain, lean, cross, nod, shake, point). The Level 1 board meeting is the showcase.
+  dialogue gestures (explain, lean, cross, nod, shake, point). Prefers baked `Gesture*` clips on the seat GLB
+  (`playFaceGesture`); procedural bone layers stand in until Gen `motion.from-text` takes land. The Level 1 board
+  meeting is the showcase.
 - **36. The street teaches one power at a time.** *Exists* (`src/story/streetTutorial.ts`, `goingHome.ts`, playtest
   `street-powers`): Going Home, level 5 — each power in four steps (safe use, harder use, a twist, a payoff), never two
   at once and never closer than 30 s. Shadow in the crowd (people lose him; one startled walker runs and loses him);
