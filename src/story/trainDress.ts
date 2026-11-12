@@ -1,6 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
 import { detectDevice } from '../game/mobile';
+import { attachKeyShadow, KEY_SHADOW_GLSL, keyShadowShaderOptions } from '../render/keyShadow';
 import { Geo } from './city/geo';
 import { AD_COPY, paintAd } from './stationDress';
 
@@ -114,6 +115,7 @@ uniform float splatReady;
 uniform float glassPass;
 uniform vec3 doorOpen;
 uniform sampler2D atlas;
+${KEY_SHADOW_GLSL}
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -308,7 +310,8 @@ void main(void) {
     emis = albedo * vColor.a;
   }
 
-  vec3 lit = albedo * lighting(n) + emis;
+  // Key-light contact shadow (src/render/keyShadow.ts) under Pierce and the riders.
+  vec3 lit = albedo * lighting(n) * keyShadow(vWorld + n * 0.02) + emis;
   if (gloss > 0.0) {
     vec3 R = reflect(-V, n);
     lit += vec3(0.9, 0.95, 0.92) * pow(max(R.y, 0.0), 14.0) * gloss * 0.35;
@@ -403,11 +406,14 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
   }
   atlas.update(true);
 
+  const keyShadow = keyShadowShaderOptions(scene);
   const material = new BABYLON.ShaderMaterial('train-dress', scene, { vertexSource: VERT, fragmentSource: FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
-    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'splatReady', 'glassPass', 'doorOpen'],
-    samplers: ['atlas'],
+    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'splatReady', 'glassPass', 'doorOpen', ...keyShadow.uniforms],
+    samplers: ['atlas', ...keyShadow.samplers],
+    defines: keyShadow.defines,
   });
+  attachKeyShadow(scene, material);
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas);

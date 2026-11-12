@@ -8,6 +8,8 @@
  * uv2 = (style, variant), color = prop albedo (rgb) and emissive (a).
  */
 
+import { KEY_SHADOW_GLSL } from '../../render/keyShadow';
+
 export const MAX_INTERIOR_LIGHTS = 12;
 
 /** Styles. Keep in sync with the branches below. */
@@ -93,6 +95,7 @@ uniform float time;
 uniform float lightGain;
 uniform sampler2D atlas;
 uniform float toGamma;
+${KEY_SHADOW_GLSL}
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -456,7 +459,9 @@ void main(void) {
   // Albedos are authored in display space; light in linear like the PBR level materials.
   albedo = pow(max(albedo, vec3(0.0)), vec3(2.2));
   emis = pow(max(emis, vec3(0.0)), vec3(2.2));
-  vec3 color = albedo * diffuse * lightGain + spec * gloss * 0.5 * lightGain + emis;
+  // Contact shadow from the key light (src/render/keyShadow.ts): furniture and Pierce shade the floor under them.
+  float ks = keyShadow(vWorld + n * 0.02);
+  vec3 color = (albedo * diffuse * lightGain + spec * gloss * 0.5 * lightGain) * ks + emis;
   float fogF = clamp((length(vWorld - cameraPos) - fogInfo.x) / max(fogInfo.y - fogInfo.x, 0.01), 0.0, 1.0) * fogInfo.z;
   color = mix(color, pow(fogColor, vec3(2.2)), fogF);
   // No post pipeline (Dev Tools): go to display space here.

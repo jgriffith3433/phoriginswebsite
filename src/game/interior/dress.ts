@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { attachKeyShadow, keyShadowShaderOptions } from '../../render/keyShadow';
 import { Geo } from '../../story/city/geo';
 import { INTERIOR_FRAG, INTERIOR_VERT, IS, MAX_INTERIOR_LIGHTS } from './shader';
 
@@ -334,14 +335,17 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
   const atlas = paintAtlas(scene);
   owned.push(atlas.tex);
 
+  const keyShadow = keyShadowShaderOptions(scene);
   const material = new BABYLON.ShaderMaterial('interior-dress', scene, { vertexSource: INTERIOR_VERT, fragmentSource: INTERIOR_FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
     uniforms: [
       'worldViewProjection', 'cameraPos', 'lPos', 'lCol', 'spotPos', 'spotDir', 'spotInfo', 'hemiSky', 'hemiGround',
-      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma',
+      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma', ...keyShadow.uniforms,
     ],
-    samplers: ['atlas'],
+    samplers: ['atlas', ...keyShadow.samplers],
+    defines: keyShadow.defines,
   });
+  attachKeyShadow(scene, material);
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas.tex);
