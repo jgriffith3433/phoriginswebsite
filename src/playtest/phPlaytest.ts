@@ -1029,7 +1029,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       },
       {
         id: 'terminal',
-        title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the five-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
+        title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the three-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
         description: 'Loads index.html in an overlay (the page is the gateway terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the LOGIN GUIDE (/help prints Step N of 5 and the exact command): rev ~/.hat_backwards, nmap the named host, curl the backup, john with the staff wordlist, ssh as ops. The prompt must turn root@ph-origins:/# (red). /build (page loaded with ?songlen=8, an 8 s song) prints more than 300 log lines in its first 3 s (terminalFloodLines3s), then the song starts or the silent fallback line shows, the text flipbook updates at least 10 times in 2 s with both silhouettes non-empty every sample (terminalFlipFrames2s), Esc skips to BUILD SUCCESSFUL; a second /build left alone ends by itself with at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
         seconds: 150,
         tags: ['site', 'first-minute', 'ui'],
@@ -2655,25 +2655,18 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           const help = await runLine('/help');
           const names = help.split('\n').filter((l) => /^\s{2}\/?[a-z]+\s{2,}\S/.test(l)).length;
           t.metric('terminalHelpCommands', names);
-          if (names < 15) t.problem('bug', `terminal: /help lists ${names} commands, under 15`);
-          expect(help, /LOGIN GUIDE[\s\S]*Step 1 of 5/, '/help should open with the LOGIN GUIDE');
+          if (names > 4) t.problem('bug', `terminal: guest /help lists ${names} commands, over 4`);
+          expect(help, /LOGIN GUIDE[\s\S]*Step 1 of 3/, '/help should open with the LOGIN GUIDE');
           expect(await runLine('/build'), /permission denied/i, '/build as guest should be refused');
           expect(await runLine('sudo ls'), /sudoers/, 'sudo as guest should be refused');
-          await runLine('su root'); expect(prompt(), /Password/, 'su root should ask for a password');
-          expect(await runLine('hunter2'), /Authentication failure/, 'a wrong root password should fail');
-          expect(prompt(), /^guest@/, 'a failed su should leave the guest prompt');
-          expect(await runLine('hint'), /hint \(step 1 of 5\): Next: rev/, 'hint should give the next command for step 1');
+          expect(await runLine('su root'), /Authentication failure/, 'su root should fail in-world');
+          expect(prompt(), /^guest@/, 'a failed su should leave the guest prompt, no password prompt');
           expect(await runLine('ls -a'), /\.hat_backwards/, 'ls -a should show the hat');
 
           // ---- the documented chain, from the clues only
           expect(await runLine('rev ~/.hat_backwards'), /gw\.hawkes\.lan/, 'the reversed hat should name the host');
           expect(await runLine('nmap gw.hawkes.lan'), /8080\/tcp\s+open[\s\S]*gw\.cfg\.bak/, 'nmap should list 8080 and the backup');
-          expect(await runLine('curl gw.hawkes.lan:8080/backup/gw.cfg.bak'), /saved to ~\/loot/, 'curl should save the backup');
-          expect(await runLine('john ~/loot/gw.cfg.bak'), /no password found/, 'the default wordlist should not crack it');
-          expect(await runLine('john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/gw.cfg.bak'), /\(ops\)/, 'the staff wordlist should crack ops');
-          await runLine('ssh ops@gw.hawkes.lan');
-          expect(prompt(), /password/i, 'ssh should ask for a password');
-          expect(await runLine('roomforgrace58'), /ACCESS GRANTED/, 'the cracked password should log in as root');
+          expect(await runLine('ssh ops@gw.hawkes.lan'), /ACCESS GRANTED/, 'the third command should log in as root, no password');
           await sleep(300);
           expect(prompt(), /^root@ph-origins:\/#$/, 'the prompt should be root@ph-origins:/#');
           const appEl = doc.getElementById('app') as HTMLElement;

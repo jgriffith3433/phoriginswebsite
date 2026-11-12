@@ -4,7 +4,7 @@ const f = (content, o = {}) => ({ type: 'file', content, mode: o.mode ?? '-rw-r-
 const d = (children, o = {}) => ({ type: 'dir', children, mode: o.mode ?? 'drwxr-xr-x', owner: o.owner ?? 'root', ...o });
 const page = (url, blurb) => f(`[web page] ${blurb}\nopen it with:  open ${url.replace(/^\.\//, '')}\n`, { page: url });
 
-import { HAT_REVERSED, GW_STRINGS, WORDLIST_STAFF, WORDLIST_LITE } from './content.js';
+import { HAT_REVERSED, GW_STRINGS } from './content.js';
 
 export function buildTree() {
   return d({
@@ -29,7 +29,7 @@ export function buildTree() {
         ),
         '.hat_backwards': f(HAT_REVERSED, { owner: 'guest' }),
         '.plan': f('Plan: get root.\nPlan B: ask nicely.\nPlan C: see Plan A.\n', { owner: 'guest' }),
-        '.bash_history': f('ls -la\ncat README.txt\nrev .hat_backwards\nnmap <the host from the hat>\n# the rest was lost when the intern "cleaned up"\n', { owner: 'guest' }),
+        '.bash_history': f('ls -la\ncat README.txt\nrev .hat_backwards\nnmap <the host from the hat>\nssh ops@<the same host>\n# the rest was lost when the intern "cleaned up"\n', { owner: 'guest' }),
         '.achievements': f('', { dynamic: 'achievements', owner: 'guest' }),
         notes: d({
           'todo.txt': f('- ask Lang about Zurich (not my job)\n- staging gateway: unsure it is hardened. check before the board looks.\n- the old team signed everything backwards. the hat is in ~/.hat_backwards\n- remember: scan first, touch second\n', { owner: 'guest' }),
@@ -75,10 +75,6 @@ export function buildTree() {
     tmp: d({}, { mode: 'drwxrwxrwt' }),
     usr: d({
       share: d({
-        wordlists: d({
-          'rockyou-lite.txt': f(WORDLIST_LITE),
-          'hawkes-staff.txt': f(WORDLIST_STAFF),
-        }),
         doc: d({ 'intern-wiki.txt': f('Q: how do I make the build faster?\nA: you do not. it is a performance.\nQ: where are the backups?\nA: ask the gateway. be polite.\n') }),
       }),
     }),
