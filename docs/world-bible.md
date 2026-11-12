@@ -387,3 +387,12 @@ Every scripted Voss and Hale call (`voss-late`, `voss-meeting`, `hale-walkout`, 
 - **The Morning**: Voss's last call is two-way. Its first and last line have three variants on vossTrust (<= -1 cold, 0 neutral, >= 1 warm), and two moments (the vote; the tape) let Pierce answer.
 - Voice stays terse. Replies never name B3 in public, and nobody explains the two Pierces: Pierce asks "Who else knows about last night?", never "why are there two of me".
 - Voices are the existing cast (Voss Adam-line voice, Pierce Jackson, Hale Annie), `assets/audio/phone/*-r1a|b|c(-ans|s-ans).mp3`, ids `phone.<call>.r1a`, `.r1a.ans`, `.r1s.ans`.
+
+
+## Level 8 ending and the Act II hook (new canon, 2026-11)
+
+- **The mirror by the door:** the hall mirror shows Pierce as the Shadow form. Nobody comments on it.
+- **The coat** hangs by the door; he takes it and says the closing line: "Somebody is going to have to tell them which one of us walks in." (from the level 8 beat sheet).
+- **Dawn:** the door opens onto white, then black, then the title PH ORIGINS and the end-suite cue.
+- **Credits:** names only, over eight empty places: the apartment, the boardroom, the office window, B3's long hall, the vat room, the lobby, the station platform, the train car.
+- **NEW CANON, the Act II call:** after the credits a phone buzzes. An unknown woman (voice: Alexandra) says: "Pierce. The one who got off the train is looking for you. Find me first." She knows about the other body; who she is is Act II's question.

@@ -3547,6 +3547,30 @@
       /* Landscape grid keeps its three columns but gets room for the larger type. */
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) { grid-template-columns: repeat(3, 100px); }
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) .phone-hint { min-width: 0; font-size: 13px; padding: 6px; }
+
+      /* The Morning's ending: white dawn, the title drop, names over empty places, the call, the Act II card. */
+      #endSuite { position: absolute; inset: 0; z-index: 90; pointer-events: none; display: none; font-family: Georgia, 'Times New Roman', serif; color: #f2ede2; }
+      #endSuite.on { display: block; }
+      #endSuite .end-white { position: absolute; inset: 0; background: #fff; opacity: 0; }
+      #endSuite .end-black { position: absolute; inset: 0; background: #000; opacity: 0; }
+      #endSuite .end-title { position: absolute; left: 0; right: 0; top: 42%; text-align: center; font-size: clamp(34px, 11vw, 96px); letter-spacing: 0.28em; text-indent: 0.28em; font-weight: 400; opacity: 0; transform: translateY(-60px) scale(1.12); }
+      #endSuite .end-title.drop { opacity: 1; transform: none; transition: opacity 0.35s ease-out, transform 0.9s cubic-bezier(0.2, 0.9, 0.2, 1); }
+      #endSuite .end-names { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-bottom, 0px) + 14%); text-align: center; padding: 0 20px; opacity: 0; transition: opacity 1s ease; }
+      #endSuite .end-names.on { opacity: 1; }
+      #endSuite .end-role { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: #e9c46a; }
+      #endSuite .end-name { margin: 0; font-size: clamp(22px, 6vw, 40px); letter-spacing: 0.08em; text-shadow: 0 2px 12px #000; }
+      #endSuite .end-call { position: absolute; left: 50%; top: 38%; transform: translateX(-50%); width: min(86vw, 360px); padding: 22px 18px; background: #0b0d12; border: 1px solid #e9c46a; border-radius: 18px; text-align: center; opacity: 0; transition: opacity 0.4s; }
+      #endSuite .end-call.on { opacity: 1; animation: endBuzz 0.18s 6 alternate; }
+      #endSuite .end-call .who { margin: 0 0 6px; font-size: 22px; }
+      #endSuite .end-call .sub { margin: 0; font-size: 13px; letter-spacing: 0.2em; color: #aab; }
+      @keyframes endBuzz { from { transform: translateX(-50%) rotate(-1.5deg); } to { transform: translateX(-50%) rotate(1.5deg); } }
+      #endSuite .end-card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; background: #000; opacity: 0; transition: opacity 1.2s; }
+      #endSuite .end-card.on { opacity: 1; pointer-events: auto; }
+      #endSuite .end-card h2 { margin: 0; font-weight: 400; font-size: clamp(28px, 8vw, 56px); letter-spacing: 0.18em; }
+      #endSuite .end-card a, #endSuite .end-card button { min-height: 48px; min-width: 200px; display: inline-flex; align-items: center; justify-content: center; padding: 0 22px; border: 1px solid #e9c46a; border-radius: 6px; background: transparent; color: #f2ede2; font: inherit; font-size: 17px; letter-spacing: 0.12em; text-decoration: none; cursor: pointer; }
+      #endSuite .end-card a:active, #endSuite .end-card button:active { background: rgba(233, 196, 106, 0.25); }
+      #endSuite .end-skip { position: absolute; right: calc(var(--safe-right, 0px) + 14px); bottom: calc(var(--safe-bottom, 0px) + 14px); min-width: 88px; min-height: 48px; padding: 0 16px; border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 6px; background: rgba(0, 0, 0, 0.55); color: #fff; font: 15px Arial, sans-serif; pointer-events: auto; cursor: pointer; display: none; }
+      #endSuite .end-skip.on { display: block; }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
@@ -3584,6 +3608,19 @@
       <button type="button" id="interactHint" class="interact-hint" hidden>Ammo box<kbd> — E</kbd></button>
       <div class="letterbox top" id="letterboxTop" aria-hidden="true"></div>
       <div class="letterbox bottom" id="letterboxBottom" aria-hidden="true"></div>
+      <div id="endSuite" aria-live="polite">
+        <div class="end-white" id="endWhite"></div>
+        <div class="end-black" id="endBlack"></div>
+        <h1 class="end-title" id="endTitle">PH ORIGINS</h1>
+        <div class="end-names" id="endNames"><p class="end-role" id="endRole"></p><p class="end-name" id="endName"></p></div>
+        <div class="end-call" id="endCall"><p class="who" id="endCallWho"></p><p class="sub" id="endCallSub"></p></div>
+        <div class="end-card" id="endCard">
+          <h2 id="endCardTitle">Act II is coming</h2>
+          <a id="endCardLink" href="https://phorigins.com" target="_blank" rel="noopener">phorigins.com</a>
+          <button type="button" id="endCardExit">Exit</button>
+        </div>
+        <button type="button" class="end-skip" id="endSkip">Skip</button>
+      </div>
       <div id="cineHud" data-size="md" data-box="true" aria-live="polite">
         <p class="cine-line"><span class="cine-speaker" id="cineSpeaker"></span><span id="cineText"></span></p>
       </div>
