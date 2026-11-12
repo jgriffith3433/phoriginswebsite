@@ -11,7 +11,7 @@ import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.j
 await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
 const check = process.argv.includes('--check');
-const PLAYER = 'assets/models/ch33-hero.glb';
+const PLAYER = 'assets/models/pierce.glb';
 
 const sample = (sampler, t, size) => {
   const inp = sampler.getInput().getArray();

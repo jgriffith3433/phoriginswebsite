@@ -20,11 +20,15 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { MeshoptDecoder } from 'meshoptimizer';
 
 const args = process.argv.slice(2);
-const [rigPath, refPath, outPath] = args.filter((a) => !a.startsWith('--'));
+const [rigPath, refPath, outPath] = args.filter((a, i) => !a.startsWith('--') && !['--height', '--arm-spread', '--name'].includes(args[i - 1]));
 if (!rigPath || !refPath || !outPath) {
   console.error('usage: node tools/retargetPierce.mjs <rigged.glb> <reference.glb> <out.glb> [--height m]');
   process.exit(1);
 }
+// --arm-spread <degrees>: swings each whole arm out from the body (about the chest's forward axis) in every clip, for
+// a character wider through the chest and the jacket than the reference, whose hands would otherwise sink into it.
+const spreadArg = args.indexOf('--arm-spread');
+const armSpread = spreadArg >= 0 ? (Number(args[spreadArg + 1]) * Math.PI) / 180 : 0;
 const heightArg = args.indexOf('--height');
 const wantHeight = heightArg >= 0 ? Number(args[heightArg + 1]) : 0;
 
@@ -301,6 +305,21 @@ for (const ra of ref.getRoot().listAnimations()) {
     for (const j of order) {
       const rj = refByKey.get(boneKey(j.getName()));
       W.set(j, rj ? worldOf(rj, g, memo).q : null);
+    }
+    if (armSpread) {
+      // The chest's forward axis now, from the reference's Spine2 (its rest frame carries +Z forward).
+      const sp = refByKey.get('spine2');
+      const fwd = sp ? qrot(qmul(worldOf(sp, g, memo).q, qinv(refRest(sp).q)), [0, 0, 1]) : [0, 0, 1];
+      for (const j of order) {
+        const k = boneKey(j.getName());
+        const side = k.startsWith('leftarm') || k.startsWith('leftforearm') || k.startsWith('lefthand') ? 1
+          : k.startsWith('rightarm') || k.startsWith('rightforearm') || k.startsWith('righthand') ? -1 : 0;
+        if (!side || !W.get(j)) continue;
+        // Left arm (+X) swings out with a rotation of +angle about forward; right with -angle.
+        const h = (side * armSpread) / 2;
+        const sw = [fwd[0] * Math.sin(h), fwd[1] * Math.sin(h), fwd[2] * Math.sin(h), Math.cos(h)];
+        W.set(j, qnorm(qmul(sw, W.get(j))));
+      }
     }
     for (const j of order) {
       const par = j.getParentNode();

@@ -74,8 +74,10 @@ const sample = (sampler, t) => {
   return size === 4 ? slerp(a, b, f) : a.map((x, i) => x + (b[i] - x) * f);
 };
 
-const W = 260;
-const H = 300;
+// SKIN_PREVIEW_SCALE=3 renders bigger panels (for close checks of elbows and shoulders).
+const SCALE = Number(process.env.SKIN_PREVIEW_SCALE ?? 1) || 1;
+const W = Math.round(260 * SCALE);
+const H = Math.round(300 * SCALE);
 const panels = [];
 for (const [clip, t] of poses) {
   const anim = clip ? root.listAnimations().find((a) => a.getName() === clip) : null;
