@@ -3755,6 +3755,22 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         t.metric('longestHomeObjectiveWords', Math.max(...longest.map((l) => l.words)));
         for (const l of longest) if (l.words > 8) t.problem('bug', `${l.id} is ${l.words} words (max 8)`);
       } catch { t.problem('warning', 'could not read locales/en.json to count objective words'); }
+      {
+        // Signature effects (powerFx.ts): every power must have played its own effect and sound; hit-stop 50-100 ms.
+        const fx = (window as unknown as { __phPowerFx?: { stats: () => { counts: Record<string, number>; lastStopMs: number; half: number; gpu: boolean; log: { kind: string; take?: number }[] } } }).__phPowerFx?.stats();
+        if (!fx) t.problem('bug', 'power effects module is not installed');
+        else {
+          for (const k of ['shock', 'possess', 'consume']) if (!fx.counts[k]) t.problem('bug', `${k} never showed its signature effect`);
+          if (fx.counts.punch || fx.counts.kick) {
+            t.metric('feel.hitStopMs', fx.lastStopMs);
+            if (fx.lastStopMs < 50 || fx.lastStopMs > 100) t.problem('bug', `hit-stop ${fx.lastStopMs} ms is outside 50-100`);
+          }
+          const takes = new Set(fx.log.filter((l) => l.take !== undefined).map((l) => `${l.kind}${l.take}`));
+          t.metric('powerSoundTakes', takes.size);
+          t.metric('powerFxGpu', fx.gpu ? 1 : 0);
+          t.event('power-fx', JSON.stringify(fx.counts));
+        }
+      }
       if (phone) probe.phoneFrame(false);
       return 'done';
     };
