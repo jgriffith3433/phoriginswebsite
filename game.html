@@ -694,6 +694,9 @@
       .power-prompt.on { display: flex; animation: ppBob 1.4s ease-in-out infinite; }
       .power-prompt .pp-icon { color: var(--hb-gold-hi, #d8b45a); font-size: 16px; }
       .power-prompt kbd { font-family: var(--hb-mono, monospace); font-size: 11px; padding: 1px 5px; border: 1px solid rgba(255,255,255,0.4); border-radius: 2px; }
+      .power-prompt .pp-icon.pp-img { width: 24px; height: 24px; background-size: contain; background-repeat: no-repeat; background-position: center; }
+      .power-prompt.use-prompt { height: 44px; min-width: 44px; }
+      .power-prompt.use-prompt .pp-key { min-width: 22px; text-align: center; font-size: 13px; }
       @keyframes ppBob { 0%, 100% { margin-top: 0; } 50% { margin-top: -4px; } }
       body.cinematic .power-prompt, body:has(.message:not(.hidden)) .power-prompt { display: none !important; }
       /* A power unlocks: its button pulses once. */
@@ -1245,13 +1248,51 @@
         padding: 8px 16px 0;
       }
 
+      .phone-portrait {
+        display: block;
+        width: 64px;
+        height: 64px;
+        margin: 4px auto 0;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #d4b483;
+        box-shadow: 0 0 18px rgba(212, 180, 131, 0.35);
+      }
+      .phone-portrait[hidden] { display: none; }
+      body[data-device='mobile'] .call-replies,
+      body[data-device='tablet'] .call-replies { top: calc(var(--safe-top, 0px) + 56px + 290px) !important; }
+      body[data-device='mobile'][data-orientation='landscape'] .call-replies,
+      body[data-device='tablet'][data-orientation='landscape'] .call-replies { top: calc(var(--safe-top, 0px) + 12px) !important; }
+
+      /* Pain on the screen edges: dark, desaturated, tighter as health drops (--pain 0..1 set from main.ts). */
+      .pain-vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 6;
+        opacity: calc(var(--pain, 0) * 1);
+        background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) calc(70% - var(--pain, 0) * 35%), rgba(4, 4, 8, 0.92) 100%);
+        backdrop-filter: none;
+        transition: opacity 0.25s ease;
+      }
+      .pain-desat {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 6;
+        opacity: calc(var(--pain, 0) * 0.55);
+        background: radial-gradient(ellipse at center, rgba(90, 90, 96, 0) 45%, rgba(110, 110, 116, 0.55) 100%);
+        mix-blend-mode: saturation;
+        transition: opacity 0.25s ease;
+      }
+      .health-stat.combat-off { display: none; }
       .phone-panel.calling {
         left: 16px;
         top: auto;
         bottom: calc(var(--safe-bottom, 0px) + 18px);
         width: min(216px, calc(100vw - 32px));
         height: auto;
-        max-height: 204px;
+        max-height: 290px;
       }
 
       body[data-device='mobile'] .phone-panel.calling,
@@ -3732,7 +3773,10 @@
         <span class="waypoint-diamond"></span>
         <span class="waypoint-label"><span class="waypoint-name"></span><span class="waypoint-dist"></span></span>
       </div>
+      <div id="usePrompt" class="power-prompt use-prompt" aria-hidden="true"><span class="pp-icon"></span><kbd class="pp-key"></kbd><span class="pp-label"></span></div>
       <div id="powerPrompt" class="power-prompt" aria-hidden="true"><span class="pp-icon"></span><kbd class="pp-key"></kbd><span class="pp-label"></span></div>
+      <div id="painVignette" class="pain-vignette" aria-hidden="true"></div>
+      <div id="painDesat" class="pain-desat" aria-hidden="true"></div>
       <div id="alarmFlash" class="alarm-flash" aria-hidden="true"></div>
       <div id="hitFlash" class="hit-flash" aria-hidden="true"></div>
       <aside id="phonePanel" class="phone-panel" hidden>
@@ -3744,6 +3788,7 @@
               <div id="phoneStatus" class="phone-status">Phone</div>
             </div>
             <div class="phone-body">
+              <img id="phonePortrait" class="phone-portrait" alt="" width="64" height="64" hidden>
               <div id="phoneContact" class="phone-contact"></div>
               <div id="phoneDetail" class="phone-detail"></div>
               <div id="phoneSpeaker" class="phone-speaker"></div>

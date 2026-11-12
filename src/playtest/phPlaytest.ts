@@ -231,6 +231,12 @@ export type PhProbe = {
   } | null;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
+  /** Test shortcut (`world-hud`): hurts Pierce by `amount` but never below 25 health. */
+  hurt?: (amount: number) => boolean;
+  /** Pain state: vignette level 0..1, heartbeats played, whether the health bar is displayed. */
+  pain?: () => { level: number; heartbeats: number; lastBeatAgoMs: number; healthBarShown: boolean; vignette: number };
+  /** The use prompt hung on the thing in reach: text, on-target or on-button, box. */
+  usePrompt?: () => { shown: boolean; text: string; on: string; words: number; rect: { x: number; y: number; w: number; h: number } | null };
   /** Test shortcut (`living-places`): show the running level's Level Complete card now. */
   showLevelComplete: () => boolean;
   /** What the scene holds right now, for leak checks (also in hawkesPlaytest.state().counts). */
@@ -708,6 +714,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 3 (test shortcut) and rings each scripted call with the probe\'s callTest shortcut (voss-late, voss-meeting, hale-walkout, hale-board, hale-train, voss-morning), answering through real input (F, or the Answer button on touch). Each call must open a reply moment with 2-3 bubbles plus a countdown, every bubble at least 44 px tall and clear of the touch controls and the call caption. The bot chooses by key 1 (desktop) or a tap on the bubble (options.phone: 390x844 touch) about 0.7 s in, while the caller is still talking: the answer log must say cutOff, and the Pierce line must show as a subtitle. On voss-late and hale-walkout it waits out the window instead: the log must say silence, not cut off. Then voss-morning is rung with vossTrust seeded to -2 and to +2: the first Voss line must differ. vossTrust and haleTemper must stay within -2..+2 on the ph-origins-save cookie, and the same after a page reload. Metrics: replyMoments, replyCutOffs, replySilences, replyBubbleMinHeight. Options: phone.',
         seconds: 330,
         tags: ['story', 'phone'],
+      },
+      {
+        id: 'world-hud',
+        title: 'The HUD lives in the world: caller portrait on the phone, pain on the screen edges with a heartbeat, no health bar outside combat, use prompts over the object with a touch glyph, no control hints in objective text',
+        description: 'Starts level 1. Checks the health bar is not displayed (not a combat level) and the objective text carries no control hint. Voss rings: answers (Answer button tap on phone, F on desktop) and checks the phone shows the caller portrait (#phonePortrait, loaded, 40 px or more) and name, and that every reply bubble is 44 px or more (tapped on phone). Hurts Pierce with the hurt shortcut: the pain vignette must rise above 0.3 and a heartbeat must play inside 4 s, and the health bar stays hidden. Then walks to the coffee machine: the use prompt must show within 0.3 s of the action turning live, name the object, show E (desktop) or the touch glyph (phone) and sit on screen. Metrics: portraitPx, replyBubbleMinHeight, painVignette, heartbeats, usePromptMs. Options: phone (390x844 touch).',
+        seconds: 240,
+        tags: ['ui', 'phone'],
       },
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
@@ -5796,6 +5809,87 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     await t.until(() => probe.ready(), 90000, 'game ready');
     if (id === 'stuck-recovery') {
       await stuckRecoveryRun();
+      return;
+    }
+    if (id === 'world-hud') {
+      levelsTotal = 1;
+      const touchy = () => document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+      if (options.phone) { probe.phoneFrame(true); touchWalk = true; t.event('setup', 'phone layout 390x844 (touch)'); await sleep(700); }
+      await enterLevel(1);
+      await waitControl('control on level 1');
+      if (probe.pain?.().healthBarShown) t.problem('bug', 'the health bar is displayed outside combat');
+      else t.event('no-health-bar', 'health bar hidden on a story level');
+      const hint = /\b(press|tap|click|hold)\b|\b(WASD|Tab|Shift)\b|\s[A-Z]\.|\([A-Z]\)/;
+      const objText = probe.objective().text;
+      if (hint.test(objText)) t.problem('bug', `objective text carries a control hint: "${objText}"`);
+      else t.event('objective-clean', objText);
+      // 1. A call: portrait, name, replies
+      await t.until(() => probe.phone().incoming, 25000, 'Voss to ring');
+      if (touchy()) await tapAt(document.getElementById('phoneAnswer'), 'Answer');
+      else { releaseAll(); await once('f', 1500, 'answer call'); }
+      await sleep(600);
+      const img = document.getElementById('phonePortrait') as HTMLImageElement | null;
+      const box = img?.getBoundingClientRect();
+      const portraitOk = Boolean(img && !img.hidden && img.complete && img.naturalWidth > 0 && box && box.width >= 40);
+      t.metric('portraitPx', Math.round(box?.width ?? 0));
+      const nameText = document.getElementById('phoneContact')?.textContent ?? '';
+      if (!portraitOk) t.problem('bug', 'the call shows no caller portrait');
+      else t.event('portrait', `${nameText} portrait ${Math.round(box!.width)} px (${img!.getAttribute('src')})`);
+      if (!nameText) t.problem('bug', 'the call shows no caller name');
+      let minH = 9999;
+      const untilReply = performance.now() + 40000;
+      while (performance.now() < untilReply && !probe.replies?.().open) await sleep(150);
+      const r = probe.replies?.();
+      if (r?.open) {
+        for (const o of r.options) { minH = Math.min(minH, o.rect?.h ?? 0); if ((o.rect?.h ?? 0) < 43.5) t.problem('bug', `reply "${o.text}" is ${Math.round(o.rect?.h ?? 0)} px tall`); }
+        t.metric('replyBubbleMinHeight', Math.round(minH));
+        t.event('replies', r.options.map((o) => o.text).join(' | '));
+        if (touchy()) await tapAt(document.querySelector<HTMLElement>('#callReplies [data-reply="0"]'), 'reply 1');
+        else await tap('1', 'reply 1');
+      } else t.problem('bug', 'the call offered no reply choices');
+      // 2. Pain
+      probe.hurt?.(60);
+      const painUntil = performance.now() + 4000;
+      while (performance.now() < painUntil && !((probe.pain?.().vignette ?? 0) > 0.3 && (probe.pain?.().heartbeats ?? 0) > 0)) await sleep(100);
+      const pain = probe.pain?.();
+      t.metric('painVignette', Number((pain?.vignette ?? 0).toFixed(2)));
+      t.metric('heartbeats', pain?.heartbeats ?? 0);
+      if (!pain || pain.vignette <= 0.3) t.problem('bug', `the screen edges did not darken when hurt (vignette ${pain?.vignette ?? 0})`);
+      if (!pain || pain.heartbeats < 1) t.problem('bug', 'no heartbeat played when hurt');
+      if (pain?.healthBarShown) t.problem('bug', 'the health bar shows outside combat while hurt');
+      if (pain && pain.vignette > 0.3 && pain.heartbeats > 0) t.event('pain', `vignette ${pain.vignette.toFixed(2)}, ${pain.heartbeats} heartbeats, no health bar`);
+      if (probe.phone().busy) {
+        if (touchy()) await tapAt(document.getElementById('phoneEnd'), 'End call');
+        await t.until(() => !probe.phone().busy, 90000, 'the call to finish');
+      }
+      // 3. Use prompt over the coffee machine
+      const coffee = { x: 50.6, z: 25.4 };
+      let liveAt = 0;
+      let shownAt = 0;
+      const promptUntil = performance.now() + 100000;
+      while (performance.now() < promptUntil) {
+        await tick();
+        if (!probe.running() || probe.menu().open || probe.cutscene()) continue;
+        await walkTo(coffee, 'coffee', 1.0);
+        const live = Boolean(probe.action());
+        if (live && !liveAt) liveAt = performance.now();
+        const up = probe.usePrompt?.();
+        if (live && up?.shown && !shownAt) { shownAt = performance.now(); break; }
+        if (!live) liveAt = 0;
+      }
+      releaseAll();
+      const up = probe.usePrompt?.();
+      if (!shownAt || !up) { t.problem('bug', 'no use prompt appeared over the object in reach'); }
+      else {
+        t.metric('usePromptMs', Math.round(shownAt - liveAt));
+        t.event('use-prompt', `${up.text} (${up.on}) ${up.rect ? `${Math.round(up.rect.w)}x${Math.round(up.rect.h)}` : ''}`);
+        const want = touchy() ? '☝' : 'E';
+        if (!up.text.startsWith(want)) t.problem('bug', `use prompt shows "${up.text}", want the ${touchy() ? 'touch glyph' : 'E key'} first`);
+        if (up.rect && (up.rect.h < 43.5 && touchy())) t.problem('bug', `use prompt is ${Math.round(up.rect.h)} px tall on touch`);
+        if (up.rect && (up.rect.x < 0 || up.rect.y < 0 || up.rect.x + up.rect.w > innerWidth || up.rect.y + up.rect.h > innerHeight)) t.problem('bug', 'use prompt leaves the screen');
+        if (shownAt - liveAt > 300) t.problem('bug', `use prompt took ${Math.round(shownAt - liveAt)} ms to show`);
+      }
+      t.finish('done');
       return;
     }
     if (id === 'call-replies') {

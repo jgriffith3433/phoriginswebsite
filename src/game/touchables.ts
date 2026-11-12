@@ -329,6 +329,8 @@ export const createTouchables = (host: TouchHost) => {
     dispose,
     /** The E prompt for the touchable in reach, or null. */
     action: (): string | null => closest()?.def.label ?? null,
+    /** Where the touchable in reach is (for a prompt hung on it), or null. */
+    at: (): { x: number; z: number } | null => { const c = closest(); return c ? { x: c.def.x, z: c.def.z } : null; },
     confirm: (): boolean => {
       const entry = closest();
       if (!entry || !place) return false;
