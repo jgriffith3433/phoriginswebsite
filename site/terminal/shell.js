@@ -1,11 +1,11 @@
-// The shell: state, dispatch, input modes (password, pager, confirm) and every command. Pure logic: it returns
+// The shell: state, dispatch, input modes (pager, confirm) and every command. Pure logic: it returns
 // "effects" (print, seq, clear, go...) and the UI draws them. Nothing here touches the DOM, the network or eval.
 
 import { parseLine, suggest } from './parser.js';
 import { VFS, USERS, modeOf } from './fs.js';
 import { Puzzle } from './puzzle.js';
 import { runBuild, mergeBuilt, isComplete, MODULES, VERSION } from './build.js';
-import { STEPS, GUIDE, MOTD, MOTD_ART, MOTD_TEXT, FORTUNES, TARGET_HOST, OPS_PASSWORD, GW_STRINGS, GW_BACKUP_NAME } from './content.js';
+import { STEPS, GUIDE, MOTD, MOTD_ART, MOTD_TEXT, FORTUNES, TARGET_HOST, GW_STRINGS, GW_BACKUP_NAME } from './content.js';
 import { rng, pad, lpad, bar, reverse, hex } from './util.js';
 
 const P = (text, cls) => ({ k: 'print', text, cls });
@@ -58,7 +58,7 @@ export class Shell {
 
   syncLoot() {
     const loot = this.vfs.node('/home/guest/loot');
-    if (loot && this.puzzle.has('loot')) {
+    if (loot && this.puzzle.extra.includes('loot')) {
       loot.children[GW_BACKUP_NAME] = { type: 'file', binary: true, strings: GW_STRINGS, owner: 'guest', mode: '-rw-r--r--', content: '' };
     }
   }
@@ -346,10 +346,10 @@ const FAKE_TOP = [
 /** The LOGIN GUIDE block: which step, the exact next command, what it does. */
 export function guideLines(sh) {
   const cur = sh.puzzle.current;
-  if (!cur) return ['LOGIN GUIDE', '  All 5 steps done. You are root.', '  Next: /build', ''];
+  if (!cur) return ['LOGIN GUIDE', `  All ${STEPS.length} steps done. You are root.`, '  Next: /build', ''];
   const n = STEPS.findIndex((s) => s.id === cur) + 1;
   const g = GUIDE[cur];
-  return ['LOGIN GUIDE', `  Step ${n} of ${STEPS.length}: ${STEPS[n - 1].title}`, `  Type:  ${g.cmd}`, `  It ${g.what}`, '  (copy it, or press Tab on an empty line. Stuck? type  hint)', ''];
+  return ['LOGIN GUIDE', `  Step ${n} of ${STEPS.length}: ${STEPS[n - 1].title}`, `  Type:  ${g.cmd}`, `  It ${g.what}`, '  (copy it, or press Tab. Or type  hint  and skip ahead.)', ''];
 }
 /** The one-line pointer that ends every step's output. */
 export const nextPointer = (sh) => (sh.puzzle.current ? P(`Next: ${GUIDE[sh.puzzle.current].cmd}`, 'hint') : P('Next: /build', 'hint'));
@@ -391,13 +391,10 @@ const COMMANDS = {
       if (args[0] && args[0].replace(/^\//, '').toLowerCase() !== 'all') return COMMANDS.man.run(sh, args);
       const row = (n) => `  ${pad(COMMANDS[n].root ? '/' + n : n, 11)}${COMMANDS[n].desc}`;
       if (args[0]) return [P(helpAll(sh, row).join('\n'))];
-      const short = {
-        build: 'build the backend', hint: 'the next login command', ls: 'list files (ls -a: hidden)', cat: 'read a file', cd: 'change directory',
-        clear: 'clear the screen', game: 'play PH Origins', man: 'manual for a command',
-      };
-      const line = (n) => `  ${pad(COMMANDS[n].root ? '/' + n : n, 11)}${short[n]}`;
-      const names = sh.isRoot ? ['build', 'hint', 'ls', 'cat', 'cd', 'game', 'clear'] : ['hint', 'ls', 'cat', 'cd', 'game', 'clear', 'man'];
-      const lines = [...guideLines(sh), 'COMMANDS', ...names.map(line), sh.isRoot ? '  more: help all' : `  ${pad('help all', 11)}every command`];
+      if (sh.isRoot) return [P('/build')];
+      const short = { hint: 'log in as root for you', ls: 'list files', cat: 'read a file' };
+      const line = (n) => `  ${pad(n, 11)}${short[n]}`;
+      const lines = [...guideLines(sh), 'COMMANDS', ...['hint', 'ls', 'cat'].map(line), `  ${pad('help all', 11)}every command`];
       return [P(lines.join('\n'))];
     },
   },
@@ -573,12 +570,13 @@ const COMMANDS = {
     run: () => [P('PH Origins\n  a Hawkes Biomedical company\n  Powered by HAWKES GEN\n  Console: the 58th floor gateway. Thanks for hacking the planet.')],
   },
   hint: {
-    desc: 'a nudge for the current step (free)', usage: 'hint',
+    desc: 'log in as root for you (free)', usage: 'hint',
     run(sh) {
-      const h = sh.puzzle.hint();
-      sh.save();
-      if (!h.step) return [P(h.text, 'ok')];
-      return [P(`hint (step ${STEPS.findIndex((s) => s.id === h.step) + 1} of ${STEPS.length}): ${h.text}`, 'hint')];
+      if (sh.isRoot) return [P(sh.puzzle.hint().text, 'ok')];
+      // Runs whatever login steps remain, and drops you at root in one go.
+      sh.puzzle.hintsUsed += 1;
+      for (const s of STEPS) if (s.id !== 'root') sh.puzzle.complete(s.id);
+      return sh.grantRoot('hint: the gateway let you in. (hat read, host knocked, door opened.)');
     },
   },
   progress: {
@@ -696,7 +694,7 @@ const COMMANDS = {
       if (p === '/' || p === '/index.html') return [P('<html><head><title>hawkes-gw staging admin</title></head>\n<body><h1>hawkes-gw</h1><p>staging only. nothing to see. the backups are not linked here.</p></body></html>')];
       if (p === '/robots.txt') return [P('User-agent: *\nDisallow: /backup/gw.cfg.bak')];
       if (p === `/backup/${GW_BACKUP_NAME}`) {
-        const first = sh.puzzle.complete('loot');
+        sh.puzzle.award('loot');
         sh.syncLoot();
         sh.save();
         return [SEQ([
@@ -736,45 +734,6 @@ const COMMANDS = {
       return [P(src.replace(/\n$/, '').split('\n').map(reverse).join('\n'))];
     },
   },
-  john: {
-    desc: 'crack password hashes with a wordlist (also: crack)', usage: 'john [--wordlist=<file>] <hashfile>',
-    run(sh, args) {
-      const { rest } = flagsOf(args.filter((a) => !a.startsWith('--wordlist')));
-      let wl = null;
-      args.forEach((a, i) => { if (a.startsWith('--wordlist=')) wl = a.slice(11); else if (a === '--wordlist') wl = args[i + 1]; });
-      const fileArg = rest.filter((a) => a !== wl)[0];
-      if (!fileArg) return [P('john: usage: john [--wordlist=FILE] <hashfile>', 'err')];
-      const fr = readNode(sh, fileArg, path(sh, fileArg));
-      if (fr.err) return [P(fr.err.replace(/^[^:]+:/, 'john:'), 'err')];
-      const isHash = fr.n.binary && fr.n.strings?.some((l) => l.startsWith('ops_hash='));
-      if (!isHash) return [P(`john: ${fileArg}: no password hashes loaded (this file has none)`, 'err')];
-      const wlPath = wl || '/usr/share/wordlists/rockyou-lite.txt';
-      const wr = readNode(sh, wlPath, path(sh, wlPath));
-      if (wr.err) return [P(wr.err.replace(/^[^:]+:/, 'john:'), 'err')];
-      const words = wr.content.split('\n').filter(Boolean);
-      const hit = words.includes(OPS_PASSWORD);
-      const steps = [
-        { at: 0, text: `Loaded 1 password hash (md5crypt [MD5 32/64]) from ${fileArg}`, cls: 'dim' },
-        { at: 200, text: `Wordlist: ${wlPath} (${words.length} words)`, cls: 'dim' },
-      ];
-      const ticks = 8;
-      for (let i = 1; i <= ticks; i += 1) steps.push({ at: 400 + i * 260, text: `  ${bar(i / ticks)}  ${lpad(Math.round(words.length * i / ticks), 3)}/${words.length} words`, key: 'john' });
-      const end = 400 + (ticks + 1) * 260;
-      if (hit) {
-        const first = sh.puzzle.complete('crack');
-        steps.push({ at: end, text: `${OPS_PASSWORD}      (ops)`, cls: 'ok' });
-        steps.push({ at: end + 150, text: '1g 0:00:00:03 DONE  (password recovered)', cls: 'ok' });
-        steps.push({ at: end + 300, text: first ? 'ssh is open on this host. a username and a password: there is a door.' : 'already cracked. the door is where you left it.', cls: 'dim' });
-        sh.save();
-        steps.push({ at: end + 450, text: nextPointer(sh).text, cls: 'hint' });
-      } else {
-        steps.push({ at: end, text: '0g 0:00:00:03 DONE  (wordlist exhausted: no password found)', cls: 'err' });
-        steps.push({ at: end + 150, text: 'a generic list will not know who wrote this. use the staff wordlist.', cls: 'dim' });
-        steps.push({ at: end + 300, text: nextPointer(sh).text, cls: 'hint' });
-      }
-      return [SEQ(steps)];
-    },
-  },
   ssh: {
     desc: 'log in to a host', usage: 'ssh <user>@<host>',
     run(sh, args) {
@@ -792,18 +751,8 @@ const COMMANDS = {
       if (!sh.puzzle.has('scan')) return [P(`ssh: connect to host ${host} port 22: Connection refused`, 'err'), P('(you have not knocked yet. scan first.)', 'dim'), nextPointer(sh)];
       if (sh.user === 'ops') return [P('already logged in as ops. (inception is not supported.)', 'dim')];
       if (user && user !== 'ops') return [P(`${user}@${host}: Permission denied (publickey). Only the staging admin account may log in here.`, 'err'), nextPointer(sh)];
-      const wait = sh.throttle();
-      if (wait > 0) return [P(`ssh: too many attempts. the gateway rolls its eyes. try again in ${wait}s.`, 'err')];
-      sh.ask(`${user || sh.user}@${host}'s password:`, (pw, s) => {
-        const left = s.throttle();
-        if (left > 0) return [P(`ssh: too many attempts. try again in ${left}s.`, 'err')];
-        if (user === 'ops' && pw === OPS_PASSWORD && s.puzzle.has('crack')) {
-          s.fails = 0;
-          return s.grantRoot(`Welcome to ph-origins (${TARGET_HOST})  -- staging gateway. be nice. ops is a staging admin: root shell.`);
-        }
-        return s.failAuth('ssh');
-      }, { mask: true });
-      return [];
+      sh.fails = 0;
+      return sh.grantRoot(`Welcome to ph-origins (${TARGET_HOST})  -- staging gateway. be nice. ops is a staging admin: root shell.`);
     },
   },
   su: {
@@ -812,14 +761,7 @@ const COMMANDS = {
       const who = args[0] || 'root';
       if (sh.isRoot) return [P('su: you are already root. what more do you want?', 'dim')];
       if (who !== 'root') return [P(`su: user ${who}: login disabled. root is the only account that can be logged into.`, 'err'), nextPointer(sh)];
-      sh.ask('Password:', (pw, s) => {
-        s.suFails += 1;
-        const out = s.failAuth('su');
-        out.unshift(P('su: Authentication failure', 'err'));
-        if (s.suFails >= 2) out.push(P('root\'s password is not written anywhere you can read. staging accounts are lazier than root.', 'dim'));
-        return out;
-      }, { mask: true });
-      return [];
+      return [P('su: Authentication failure. root only answers at the gateway.', 'err'), nextPointer(sh)];
     },
   },
   login: {

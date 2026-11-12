@@ -1,18 +1,20 @@
-// The puzzle state machine. Five steps, strictly ordered: a step only completes when every earlier step is done.
+// The puzzle state machine. Three steps, strictly ordered: a step only completes when every earlier step is done.
 
-import { STEPS, GUIDE, SOLVED_HINT } from './content.js';
+import { STEPS, GUIDE, SOLVED_HINT, OLD_STEP_MAP } from './content.js';
 
 const ORDER = STEPS.map((s) => s.id);
 
 export class Puzzle {
   /** @param {object} [saved] { done: string[], hints: Record<string,number>, hintsUsed: number, extra: string[] } */
   constructor(saved = {}) {
-    this.done = ORDER.filter((id) => (saved.done || []).includes(id)); // keeps order, drops junk
+    // Saves from the old five-step chain (hat, scan, loot, crack, root) land at the matching new step.
+    const mapped = (saved.done || []).map((id) => OLD_STEP_MAP[id]).filter(Boolean);
+    this.done = ORDER.filter((id) => mapped.includes(id)); // keeps order, drops junk
     // A saved list with a gap is not a valid chain: keep only the unbroken prefix.
     const prefix = [];
     for (const id of ORDER) { if (this.done.includes(id)) prefix.push(id); else break; }
     this.done = prefix;
-    this.hints = { ...(saved.hints || {}) };
+    this.hints = Object.fromEntries(Object.entries(saved.hints || {}).filter(([k]) => ORDER.includes(k)));
     this.hintsUsed = saved.hintsUsed || 0;
     this.extra = [...(saved.extra || [])]; // side achievements (konami, sandwich...)
   }

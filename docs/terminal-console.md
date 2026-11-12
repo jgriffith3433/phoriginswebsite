@@ -24,38 +24,28 @@ Hawkes Analytics tags and `play/hawkes-build.js`, `site/hawkes-release.js`, the 
 `[data-play]` swap (same rule as `site/marketing.js`), the footer credits (`data-hawkes-credit`, `p.site-privacy`).
 New: everything under `site/terminal/`. Caching headers are untouched.
 
-## The puzzle chain (5 steps, strictly ordered)
+## The puzzle chain (3 steps, strictly ordered, no password)
 
 State machine: `puzzle.js`. A step completes only when every earlier step is done; a saved game with a gap keeps only
-its unbroken prefix; `hint` levels only go up (3 per step, the next step starts gentle again). Gates are in the tools
-too (the backup file only exists once `curl` fetched it; ssh refuses the right password until the hash was cracked).
+its unbroken prefix. Old five-step saves are mapped on load (`OLD_STEP_MAP` in `content.js`): hat -> hat, scan / loot /
+crack -> scan, root -> root. Nobody finds, reads, cracks or types a password (J's call: "make it easier").
 
-| # | Step id | Clue (where the player finds it) | Action | Result |
-|---|---|---|---|---|
-| 1 | `hat` | MOTD and `README.txt` mention a hat; `ls -a` shows `~/.hat_backwards`; its plain first line says the tool is three letters (`man rev`). `~/.bash_history` nudges too. | `rev ~/.hat_backwards` | Names the host `gw.hawkes.lan` ("scan it before you touch it"). |
-| 2 | `scan` | The decoded hat. The host is in no plain file and not in `/etc/hosts`. | `nmap gw.hawkes.lan` (also completes step 1 if the player decoded it by eye) | Ports 21, 22 (account: ops), 8080 (http-alt) and a robots.txt line pointing at `/backup/gw.cfg.bak`. |
-| 3 | `loot` | The nmap robots line. Without a scan, `curl` to the host is refused. | `curl gw.hawkes.lan:8080/backup/gw.cfg.bak` | Saves `~/loot/gw.cfg.bak` (binary: `cat` refuses and says another tool reads it). |
-| 4 | `crack` | `strings ~/loot/gw.cfg.bak` shows `ssh_user=ops`, an `ops_hash` (md5crypt) and the intern's comment naming `/usr/share/wordlists/hawkes-staff.txt`. | `john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/gw.cfg.bak` (the default list fails, with a nudge) | Cracks the ops password: **`roomforgrace58`** (a word in the staff list; ch.1's public title + the floor). |
-| 5 | `root` | The ssh port and the `ops` user. | `ssh ops@gw.hawkes.lan`, password above; `sudo -l` shows `(root) NOPASSWD: /usr/bin/less /var/log/*`; `sudo less /var/log/syslog`, then at the `:` prompt `!sh` | **ACCESS GRANTED**, prompt `root@ph-origins:/#` turns red, root commands unlock. |
+| # | Step id | Command (the `Next:` line) | Result |
+|---|---|---|---|
+| 1 | `hat` | `rev ~/.hat_backwards` | Names the host `gw.hawkes.lan`. |
+| 2 | `scan` | `nmap gw.hawkes.lan` | Lists the open doors, ssh account ops. (Also completes step 1 if skipped.) |
+| 3 | `root` | `ssh ops@gw.hawkes.lan` | **ACCESS GRANTED**, prompt `root@ph-origins:/#` turns red. |
 
-Failures: wrong ssh or `su` password gives a funny line and a short throttle (0.8 s + 0.9 s per miss, never over 5 s,
-no timers: a timestamp check); `su root` never works (its message nudges toward staging accounts after two misses);
-`sudo` as guest: "not in the sudoers file. This incident will be reported." No cheat: no query flag, no hidden command
-grants root (Konami and the other eggs only award jokes). Root persists in `localStorage` (`ph-origins-terminal`) only
-if the saved chain is complete; `reset` (asks `yes`) wipes it.
-
-Hints (`hint`, free, counted in `hintsUsed`): level 1 vague, 2 points at the tool, 3 gives the command. `progress` and
-`~/.achievements` show the five steps, the egg achievements and hints used.
+`hint` / `/hint` runs every remaining step and grants root in one go. `su` and `login` to anyone, and `ssh` as any user
+but ops, fail in-world; there is no password prompt anywhere. `curl` of the backup still works after the scan, as flavour
+(no step). `john` and the wordlists are gone.
 
 ## Login guide (the path is signposted)
 
-`/help` and `help` open with a **LOGIN GUIDE** block (`guideLines` in `shell.js`): `Step N of 5`, `Type:  <command>`
-(copy-paste ready, from `GUIDE` in `content.js`) and what it does; at root it says `Next: /build`. `hint` prints the
-same `Next: <command>`. Every step's output ends with a `Next: <command>` line (`nextPointer`), the boot banner and
-first prompt say to type `/help`, and Tab on an empty line (or after 2+ characters of it) completes the next command
-(`complete.js`). Step 5 is `ssh ops@gw.hawkes.lan` with the password `john` printed: the gateway gives its staging admin
-root at once (the old `strings` / `sudo -l` / pager `!sh` detour is gone; `strings`, `sudo` and the pager still exist as
-flavour). Step ids are unchanged, so old saves load as they were. Banned in output: "simulation", "no real system",
+`GUIDE` / `STEPS` in `content.js` are the single source. Guest `/help` is the **LOGIN GUIDE** (`guideLines`:
+`Step N of 3`, `Type:  <command>`, what it does) plus `hint`, `ls`, `cat`, `help all`. Root `/help` and `help` print
+exactly `/build`; `help all` still lists everything. Every step's output ends with `Next: <command>` (`nextPointer`),
+and Tab on an empty line completes the next command (`complete.js`). Root-only commands refuse until root. Banned in output: "simulation", "no real system",
 "BACKWARDS (as expected)", "ground truth" (unit test).
 
 ## Commands
@@ -66,7 +56,7 @@ Up/down history, Ctrl+L, Ctrl+C. A pipe works into `grep head tail wc sort rev c
 
 - Look around: `ls cd pwd cat less tree grep head tail wc sort echo`
 - System: `whoami id uname hostname date ps top history clear exit`
-- Network toys (all simulated): `ping nmap curl ssh strings rev john su sudo`
+- Network toys (all simulated): `ping nmap curl ssh strings rev su sudo`
 - Console: `hint progress man theme sound about credits reset`; site: `game`/`play`, `open <page>` (about, characters,
   lore, whatsnew, lore/&lt;chapter&gt;), and `~/site/*.html` stubs
 - Root only: `/build /status /services /logs /deploy /rollback /whoami --root` (guests: permission denied + `hint` nudge)
@@ -159,5 +149,5 @@ by hand.
 
 ## Root-only login and the /build show (current)
 
-- `root` is the only account that can be logged into. `su`/`login`/`ssh` to any other user (guest, admin, kali...) fail in-world; root is reached only through the five GUIDE steps (hat, scan, loot, crack, root). Root commands (`/build /status /deploy /logs /services /rollback`) refuse in one line that names the guide's next step.
+- `root` is the only account that can be logged into. `su`/`login`/`ssh` to any other user (guest, admin, kali...) fail in-world; root is reached only through the three GUIDE steps (hat, scan, root), or `hint`. Root commands (`/build /status /deploy /logs /services /rollback`) refuse in one line that names the guide's next step.
 - `/build`: log flood (1,600+ lines/s) -> `song.mp3` -> flipbook at 16 fps: Michael Jackson silhouette (fedora, glove, moonwalk/lean/spin) on the left, Michael Jordan (Jumpman leap, dunk at a hoop, crossover) on the right, dense glyph fill, tight crop on a portrait phone. Screenshots: `docs/terminal-shots/`.
