@@ -3,6 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { faceSpeak, registerFace, unregisterFace } from '../game/faceTalk';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
+import { SIT_LIFT } from '../game/npcs';
 import { lineAudio, lineText, storyLine } from '../game/locale';
 import { barkFresh, barkSpoken, placeLine } from './placeVoices';
 import { lifeStats } from '../game/lifeStats';
@@ -121,6 +122,15 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     light.diffuse = new BABYLON.Color3(1, 0.85, 0.55);
     own.push(light);
 
+    // A real chair under him (seat top 0.50 m, same as `asset-office-chair`), so he never sits on air.
+    const leather = mat('apex-hall-desk-chair', [0.05, 0.055, 0.065]);
+    const cx = DESK.x + 0.55;
+    box('apex-hall-desk-chair-seat', [0.5, 0.06, 0.5], [cx, 0.47, DESK.z], leather);
+    box('apex-hall-desk-chair-back', [0.06, 0.5, 0.48], [cx + 0.25, 0.78, DESK.z], leather);
+    box('apex-hall-desk-chair-post', [0.07, 0.38, 0.07], [cx, 0.25, DESK.z], metal);
+    box('apex-hall-desk-chair-base', [0.5, 0.04, 0.06], [cx, 0.03, DESK.z], metal);
+    box('apex-hall-desk-chair-base2', [0.06, 0.04, 0.5], [cx, 0.03, DESK.z], metal);
+
     const mesh = BABYLON.MeshBuilder.CreateCapsule('apex-hall-desk-person', { radius: 0.34, height: 1.5 }, host.scene);
     mesh.position.set(DESK.x + 0.55, PLAYER_STAND_Y, DESK.z);
     mesh.visibility = 0;
@@ -130,7 +140,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     own.push(mesh);
     const avatar = createCharacterAvatar(host.scene, 'apex-hall-desk', DESK_ASSET);
     avatar.group.parent = mesh;
-    avatar.group.position.y = -PLAYER_MESH_Y_OFFSET + 0.42;
+    avatar.group.position.y = -PLAYER_MESH_Y_OFFSET + SIT_LIFT;
     avatar.whenReady(() => {
       if (!deskAvatar) return;
       avatar.playClip('sit', true);
