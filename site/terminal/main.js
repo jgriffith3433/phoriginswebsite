@@ -28,4 +28,10 @@ if (window.visualViewport) { window.visualViewport.addEventListener('resize', fi
 window.addEventListener('resize', fit);
 fit();
 
-createTerminal(document.getElementById('app'), { storage: store, reduced, gameUrl });
+// ?songlen=8 ends the song after 8 s (the playtest's fast-forward); the real length is the file's own.
+const songlen = Number((location.search.match(/[?&]songlen=(\d+(?:\.\d+)?)/) || [])[1]) || null;
+const term = createTerminal(document.getElementById('app'), { storage: store, reduced, gameUrl, songSeconds: songlen });
+// ?demo=show starts the three acts straight away on a throw-away seed (the phone playtest looks at the flipbook this way).
+if (/[?&]demo=show\b/.test(location.search)) {
+  import('./build.js').then(({ runBuild }) => setTimeout(() => term.runShow(runBuild({ seed: 58 }).events, { seed: 58 }, () => {}), 1500)); // after the boot
+}

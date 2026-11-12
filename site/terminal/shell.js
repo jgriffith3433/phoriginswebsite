@@ -359,7 +359,7 @@ const COMMANDS = {
         ...group('Look around', ['ls', 'cd', 'pwd', 'cat', 'less', 'tree', 'grep', 'head', 'tail', 'wc', 'sort', 'echo']),
         ...group('System', ['whoami', 'id', 'uname', 'hostname', 'date', 'ps', 'top', 'history', 'clear', 'exit']),
         ...group('Network toys (simulated)', ['ping', 'nmap', 'curl', 'ssh', 'strings', 'rev', 'john']),
-        ...group('Console', ['hint', 'progress', 'man', 'theme', 'sound', 'about', 'credits', 'reset']),
+        ...group('Console', ['hint', 'progress', 'man', 'theme', 'sound', 'song', 'about', 'credits', 'reset']),
         ...group('Site', ['game', 'open']),
         `Root only ${sh.isRoot ? '(unlocked)' : '(locked: earn root)'}`,
         ...['build', 'status', 'services', 'logs', 'deploy', 'rollback'].map((n) => `  /${pad(n, 10)}${COMMANDS[n].desc}`),
@@ -568,9 +568,17 @@ const COMMANDS = {
       return [];
     },
   },
+  song: {
+    desc: 'play or stop song.mp3 (the one from /build)', usage: 'song [stop]',
+    run(sh, args) {
+      if ((args[0] || '').toLowerCase() === 'stop') return [{ k: 'song', on: false }, P('song stopped.', 'dim')];
+      return [{ k: 'song', on: true }, P('playing song.mp3 ...  (song stop)', 'ok')];
+    },
+  },
   game: {
     desc: 'open the game (also: play)', usage: 'game',
-    run(sh) {
+    run(sh, args) {
+      if ((args[0] || '').toLowerCase() === 'song') return COMMANDS.song.run(sh, []);
       const note = sh.vfs.built ? ' [backend online: build ' + sh.vfs.built.hash + ']' : '';
       return [P(`launching PH Origins...${note}`, 'ok'), { k: 'go', url: SITE_PAGES.game }];
     },
@@ -808,7 +816,7 @@ const COMMANDS = {
   // ---- root only
   build: {
     root: true, desc: 'build the medical backend framework (--verbose, <module>, status)', usage: 'build [--verbose] [<module>|status]',
-    man: 'Assembles the fictional backend: dependencies, ten modules, tests, packaging. About 30 seconds. Any key skips the animation (the build still finishes).',
+    man: 'Assembles the fictional backend. A full build is a show: the log floods past, song.mp3 plays and the log text forms two silhouettes (M mutes, Esc, Ctrl+C or any tap skips to BUILD SUCCESSFUL; the build still finishes). /build <module> is the quiet version.',
     run(sh, args) {
       const { flags, rest } = flagsOf(args);
       const b = sh.vfs.built;
@@ -826,7 +834,9 @@ const COMMANDS = {
       sh.vfs.built = mergeBuilt(b, res.summary);
       sh.puzzle.award('built');
       sh.save();
-      return [SEQ(res.events.map((e) => ({ at: e.at, text: e.text, cls: e.cls, key: e.key })))];
+      const seq = SEQ(res.events.map((e) => ({ at: e.at, text: e.text, cls: e.cls, key: e.key })));
+      if (!only) seq.show = { seed }; // a full build is the three-act show (log flood, song, text flipbook); a module build stays plain
+      return [seq];
     },
   },
   status: {

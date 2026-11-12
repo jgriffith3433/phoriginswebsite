@@ -65,17 +65,57 @@ Up/down history, Ctrl+L, Ctrl+C. A pipe works into `grep head tail wc sort rev c
 `theme green|amber|white`; `sound on|off` is a tiny WebAudio keyclick, off by default, the context is only created
 after a key press.
 
-## `/build`
+## `/build`: a show in three acts
 
 `build.js` is a pure function `runBuild({ seed, only, verbose })` returning timed events (no timers), so tests run it
-with a seeded clock. A full build is about 27 s: resolve dependencies (a scripted TLS warning, auto-fixed), ten module
-stages each with compile and test progress bars and counters (patient intake, records vault, lab results, imaging,
-consent and audit ledger, scheduling, FHIR-style gateway, notifications, de-identification, billing; a second warning,
-a duplicate LOINC code, auto-fixed), integration suites, packaging, then a summary table, build hash and the BUILD
-SUCCESSFUL banner. `/build --verbose` adds compile lines, `/build <module>` builds one (about 5 s), `/build status`
-reports. Any key skips the animation (the build is already recorded). The result mounts `/opt/hawkes-biomedical/`
+with a seeded clock: resolve dependencies (a scripted TLS warning, auto-fixed), ten module stages each with compile and
+test progress bars and counters (a second warning, a duplicate LOINC code, auto-fixed), integration suites, packaging,
+then a summary table, build hash and the BUILD SUCCESSFUL banner. The result mounts `/opt/hawkes-biomedical/`
 (`README.md`, `BUILD.txt`, `manifest.json`, `bin/`, `modules/<id>/`); `game` then notes "backend online". Fully
 fictional: no PHI, no network, no real build. `/deploy` and `/rollback` ask `[y/N]` and do nothing real.
+`/build status` reports; `/build <module>` builds one module the quiet way (about 5 s, no show).
+
+A **full** `/build` is played by `show.js` (the shell marks the `seq` effect with `show`). Everything is client-side:
+`requestAnimationFrame` only while the show runs, no fetches, no polling timers.
+
+1. **Log flood.** `floodScript(events, seed)` (build.js) puts a burst of filler lines (`cc`, `LD`, `PASS`, `lint`,
+   `sign`, `stage ... %`, across all ten modules) in front of every real event, about 5,000 lines. They play at
+   `FLOOD_RATE` 1,600 lines a second, batched per frame (capped at 2,500 a frame), so over 300 lines show in the first
+   3 s even on a slow frame rate. The DOM stays cheap: one `<pre>`, the visible rows only, one `textContent` write a
+   frame. The stages, progress bars, test counters and the two auto-fixed warnings are in the stream.
+2. **The song.** After the flood an `<audio>` plays `song.mp3` from the site root, resolved against `document.baseURI`
+   (works under GitHub Pages). If the file is missing, errors, or `play()` is rejected, the animation runs on its own
+   clock and the HUD prints `(song.mp3 not found, playing silent)` (also in the log afterwards), with no thrown error.
+   The code never assumes the length: it reads `audio.currentTime` and `audio.duration`, and ends on `ended`.
+   Silent runs stop after 30 s. **M** or the 44 px `sound: on/off` button mutes; **Esc**, **Ctrl+C**, any other key or a
+   tap anywhere else stops song and animation.
+3. **The text flipbook.** `flipbook.js` is data plus a rasteriser. Two articulated skeletons (torso, head, two arms,
+   two legs, tapered capsules, a tilted fedora on the dancer, a ball and jersey/shorts on the player) are posed from 8
+   key poses each (dancer: point up, hat tip, moonwalk, spin, toe stand, the lean, arms wide, hat brim crouch; player:
+   dribble crouch, drive, the Jumpman leap, dunk, fadeaway, landing, triple threat, pivot), eased between every 2 beats
+   at 112 BPM, with a small bounce on each beat, and rasterised to a character grid (cell aspect measured, each figure
+   fitted to its own half, so a 390x844 phone shows both side by side). The mask is filled with the scrolling build log
+   (a space inside a silhouette shows a dot, so the shape has no holes); the same text sits behind it, dim. A frame is
+   flipped at 16 fps; the beat comes from the audio clock when there is audio. Silhouettes only: poses, hat, jersey
+   outline, no faces. Left figure `#flipL` (bright), right figure `#flipR` (amber), overlay `#termShow`, which carries
+   `data-act` (flood, flip), `data-lines`, `data-frames`, `data-audio` (pending, playing, silent, ended), `data-nl` and
+   `data-nr` (cells in each half) for the playtest. Text is 10 px on a phone, up to 14 px on a wide screen.
+
+When the song ends, or on any skip, the show hides and the real log prints at once (stages, bars, counters, table,
+banner) ending in BUILD SUCCESSFUL, and `/opt/hawkes-biomedical` is there (the build is recorded when `/build` starts).
+
+**Reduced motion** (`prefers-reduced-motion` or `?motion=off`): no flood, no flipbook, no autoplay. The short normal log
+prints, then one still frame of both silhouettes (`staticFrame`) and `play song`. The `song` command (also `play song`,
+`song stop`) plays `song.mp3` alone.
+
+**Swapping in the real song.** Replace `song.mp3` at the repo root; nothing else changes (the length is read from the
+file). The one in the repo is a **placeholder**: 240 s, mono, 22.05 kHz, 64 kbps (about 1.9 MB), a synthesised 112 BPM
+A-minor groove from `tools/genPlaceholderSong.mjs` (then `ffmpeg -i song.wav -ac 1 -ar 22050 -b:a 64k song.mp3`). GitHub
+Pages publishes the repo root, so `/song.mp3` is served from the site root with the other root files; Vite builds only
+`game.html`. The flipbook beat is 112 BPM (`BPM` in flipbook.js); change it to the real song's tempo.
+
+**Test hooks.** `?songlen=8` ends the song after 8 s (the playtest does not wait four minutes). `?demo=show` starts the
+show once the boot ends (the phone playtest looks at the flipbook this way). Neither is linked from anywhere.
 
 ## File tree (virtual)
 
@@ -102,6 +142,6 @@ Tab, up, down, ^C, each 44 px, 8 px gap), no horizontal scroll (ASCII art hidden
 ## Checks
 
 `npm run test:terminal` (parser, completion, filesystem permissions, puzzle order and hint monotonicity, no-root
-without earlier steps, the whole documented chain, throttle, root commands, build determinism and timing, eggs).
+without earlier steps, the whole documented chain, throttle, root commands, build determinism and timing, the flood, the rasteriser (a left and a right blob in every pose on 40x20, 80x24, 40x60, left centre left of right centre, frames differ in small steps), eggs).
 Playtest `terminal` and `terminal-phone` (see `src/playtest/phPlaytest.ts`); Studio runs them, nobody starts a browser
 by hand.

@@ -3,6 +3,7 @@
 
 import { Shell } from './shell.js';
 import { complete } from './complete.js';
+import { createShow, staticFrame, SILENT_NOTE, SONG_FILE } from './show.js';
 
 const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
 const STORE_KEY = 'ph-origins-terminal';
@@ -21,7 +22,7 @@ const BOOT = [
   [960, '[  ok  ] Reached target: Login Prompt', 'ok'],
 ];
 
-export function createTerminal(root, { storage, reduced, gameUrl }) {
+export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = null }) {
   const $ = (id) => root.querySelector(id);
   const logEl = $('#termLog');
   const input = $('#termInput');
@@ -42,6 +43,8 @@ export function createTerminal(root, { storage, reduced, gameUrl }) {
   let konamiAt = 0;
   let pending = [];
   let audio = null;
+  let plainSong = null;
+  const show = createShow({ root, doc });
 
   // ---- drawing
   const scroll = () => { screen.scrollTop = screen.scrollHeight; };
@@ -82,9 +85,10 @@ export function createTerminal(root, { storage, reduced, gameUrl }) {
         const e = effects[i++];
         if (e.k === 'print') { if (e.text !== '') for (const l of e.text.split('\n')) addLine(l, e.cls); else addLine(''); } else if (e.k === 'clear') logEl.replaceChildren();
         else if (e.k === 'theme') setTheme(e.name);
+        else if (e.k === 'song') songCommand(e.on);
         else if (e.k === 'sound') { if (e.on) ensureAudio(); } else if (e.k === 'granted') root.classList.add('is-root');
         else if (e.k === 'reset') { setTheme('green'); root.classList.remove('is-root'); } else if (e.k === 'go') { navigate(e.url); } else if (e.k === 'seq') {
-          play(e.steps, step);
+          if (e.show) runShow(e.steps, e.show, step); else play(e.steps, step);
           return;
         }
       }
@@ -101,7 +105,7 @@ export function createTerminal(root, { storage, reduced, gameUrl }) {
   }
 
   /** Stream a command's output. Steps carry `at` ms from the start; a step with a `key` replaces the last line with that key. */
-  function play(steps, then) {
+  function play(steps, then, instant = false) {
     busy = true;
     input.setAttribute('aria-busy', 'true');
     const keyed = new Map();
@@ -134,8 +138,45 @@ export function createTerminal(root, { storage, reduced, gameUrl }) {
       timer = setTimeout(next, Math.max(0, steps[i].at - steps[i - 1].at));
     };
     flush = finish;
-    if (reduced || !steps.length) { finish(); return; }
+    if (reduced || instant || !steps.length) { finish(); return; }
     timer = setTimeout(next, Math.max(0, steps[0].at));
+  }
+
+  // ---- /build: the three-act spectacle (flood, song, text flipbook). Reduced motion gets the short log and one still frame.
+  function runShow(steps, meta, then) {
+    if (reduced) {
+      play(steps, () => {
+        const cols = Math.max(30, Math.min(72, Math.floor(((root.clientWidth || 390) - 28) / 6.2)));
+        const art = addLine(staticFrame(cols, 22, meta.seed).join('\n'), 'dim flip-static');
+        art.setAttribute('aria-label', 'Two silhouettes made of build text: a dancer in a fedora and a basketball player');
+        addLine('MJ x MJ   (no animation, no autoplay.  type  play song  to hear song.mp3)', 'dim');
+        then?.();
+      });
+      return;
+    }
+    busy = true;
+    input.setAttribute('aria-busy', 'true');
+    root.classList.add('is-showing');
+    const h = show.start({
+      events: steps, seed: meta.seed, songSeconds,
+      onDone: (info) => {
+        root.classList.remove('is-showing');
+        flush = null;
+        play(steps, () => { if (info.note) addLine(info.note, 'dim'); scroll(); then?.(); }, true);
+      },
+    });
+    flush = () => h.skip();
+  }
+
+  function songCommand(on) {
+    if (plainSong) { try { plainSong.pause(); } catch { /* ignore */ } plainSong = null; }
+    if (!on) return;
+    try {
+      const a = new doc.defaultView.Audio(new URL(SONG_FILE, doc.baseURI).href);
+      plainSong = a;
+      a.addEventListener('error', () => { addLine(SILENT_NOTE, 'dim'); plainSong = null; });
+      a.play()?.catch(() => { addLine(SILENT_NOTE, 'dim'); plainSong = null; });
+    } catch { addLine(SILENT_NOTE, 'dim'); }
   }
 
   // ---- commands
@@ -211,7 +252,8 @@ export function createTerminal(root, { storage, reduced, gameUrl }) {
 
     if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); clearScreen(); return; }
     if (e.ctrlKey && e.key.toLowerCase() === 'c' && !(doc.getSelection()?.toString())) { e.preventDefault(); ctrlC(); return; }
-    if (busy && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { e.preventDefault(); flush?.(); return; } // any key skips
+    if (show.active && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm') { e.preventDefault(); show.toggleMute(); return; } // M mutes the song, it does not skip
+    if (busy && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { e.preventDefault(); flush?.(); return; } // any key (Esc too) skips to BUILD SUCCESSFUL
     if (e.key === 'ArrowUp') { e.preventDefault(); histStep(-1); } else if (e.key === 'ArrowDown') { e.preventDefault(); histStep(1); } else if (e.key === 'Tab') { e.preventDefault(); tab(); } else if (shell.sound && e.key.length === 1) click();
   }
 
@@ -276,5 +318,5 @@ export function createTerminal(root, { storage, reduced, gameUrl }) {
 
   startBoot();
   input.focus({ preventScroll: true });
-  return { shell, submit, input };
+  return { shell, submit, input, show, runShow };
 }

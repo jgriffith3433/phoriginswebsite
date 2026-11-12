@@ -5,7 +5,9 @@ import { parseLine, parseCommand, tokenize, suggest } from '../parser.js';
 import { complete } from '../complete.js';
 import { Shell } from '../shell.js';
 import { Puzzle } from '../puzzle.js';
-import { runBuild, MODULES, mergeBuilt } from '../build.js';
+import { runBuild, MODULES, mergeBuilt, floodScript } from '../build.js';
+import { rasterize, blob, composeFrame, BEAT_SEC, BPM, POSES_MJ, POSES_JORDAN } from '../flipbook.js';
+import { staticFrame } from '../show.js';
 import { STEPS, OPS_PASSWORD } from '../content.js';
 
 const mk = (o = {}) => { let t = 1e12; const store = { s: null }; const sh = new Shell({ load: () => store.s, save: (v) => { store.s = v; }, now: () => t, ...o }); sh.tick = (ms) => { t += ms; }; sh.store2 = store; return sh; };
@@ -199,4 +201,76 @@ test('easter eggs and misc', () => {
   assert.match(run(sh, 'echo $USER'), /guest/);
   assert.match(run(sh, 'open about'), /opening about\.html/);
   assert.equal(sh.run('game').some((e) => e.k === 'go' && e.url === './play/game.html'), true);
+});
+
+// ---- the /build spectacle: flood, song, text flipbook
+test('flood: thousands of lines, every stage and warning inside, deterministic', () => {
+  const b = runBuild({ seed: 58 });
+  const a = floodScript(b.events, 58);
+  assert.deepEqual(a, floodScript(b.events, 58));
+  assert.ok(a.length > 3000, `flood is ${a.length} lines`);
+  for (const m of MODULES) assert.ok(a.some((l) => l.text.includes(m.id)), m.id);
+  assert.ok(a.some((l) => /WARN/.test(l.text)) && a.some((l) => /FIX/.test(l.text)));
+  assert.ok(a.some((l) => /\d+\/\d+ passed/.test(l.text)) && a.some((l) => /\[#+-*\]/.test(l.text)));
+  assert.match(a.at(-1).text, /BUILD SUCCESSFUL|online/);
+  const sh = mk();
+  solve(sh);
+  const seq = sh.run('/build').find((e) => e.k === 'seq');
+  assert.ok(seq.show, 'a full build is the show');
+  assert.ok(!sh.run('/build billing').find((e) => e.k === 'seq').show, 'a module build stays plain');
+});
+
+const GRIDS = [[40, 20], [80, 24], [40, 60]];
+test('flipbook: a left and a right blob in every pose, left centre left of right centre', () => {
+  assert.equal(BPM, 112);
+  assert.ok(POSES_MJ.length >= 6 && POSES_MJ.length <= 10 && POSES_JORDAN.length >= 6 && POSES_JORDAN.length <= 10);
+  for (const [cols, rows] of GRIDS) {
+    const half = cols / 2;
+    // every pose exactly (a key pose is reached at every 2 beats), and the in-betweens
+    for (let beat = 0; beat < 16 * 2 + 1; beat += 0.5) {
+      const m = rasterize(cols, rows, beat * BEAT_SEC);
+      const l = blob(m, cols, 1);
+      const r = blob(m, cols, 2);
+      assert.ok(l.n >= 6, `left blob ${l.n} cells at beat ${beat} on ${cols}x${rows}`);
+      assert.ok(r.n >= 6, `right blob ${r.n} cells at beat ${beat} on ${cols}x${rows}`);
+      assert.ok(l.cx < r.cx, `left ${l.cx} < right ${r.cx} (beat ${beat}, ${cols}x${rows})`);
+      for (let i = 0; i < m.length; i += 1) {
+        if (m[i] === 1) assert.ok(i % cols < half);
+        if (m[i] === 2) assert.ok(i % cols >= half);
+      }
+    }
+  }
+});
+
+test('flipbook: consecutive frames at 16 fps differ, but only by small steps', () => {
+  for (const [cols, rows] of GRIDS) {
+    let changed = 0;
+    let worst = 0;
+    const N = 16 * 20; // twenty seconds of frames
+    let prev = rasterize(cols, rows, 0);
+    for (let i = 1; i <= N; i += 1) {
+      const cur = rasterize(cols, rows, i / 16);
+      let diff = 0;
+      let union = 0;
+      for (let k = 0; k < cur.length; k += 1) { if (cur[k] !== prev[k]) diff += 1; if (cur[k] || prev[k]) union += 1; }
+      if (diff > 0) changed += 1;
+      worst = Math.max(worst, diff / union);
+      prev = cur;
+    }
+    assert.ok(changed > N * 0.7, `${changed} of ${N} frames differ on ${cols}x${rows}`);
+    assert.ok(worst < 0.6, `largest frame step changes ${(worst * 100).toFixed(0)}% of the shape on ${cols}x${rows}`);
+  }
+});
+
+test('flipbook: the text frame is the log text, in both halves, with no holes', () => {
+  const src = Array.from({ length: 80 }, (_, i) => `compile patient-intake line ${i}`);
+  const m = rasterize(80, 24, 1.3);
+  const f = composeFrame(m, 80, 24, src);
+  assert.ok(f.nl > 20 && f.nr > 20);
+  assert.equal(f.left.split('\n').length, 24);
+  assert.ok(f.left.split('\n').every((l) => l.length === 40) && f.right.split('\n').every((l) => l.length === 40));
+  assert.match(f.left + f.right, /compile|patient|line/);
+  const still = staticFrame(64, 22);
+  assert.ok(still.length === 22 && still.join('').replace(/\s/g, '').length > 60);
+  assert.ok(still.every((l) => l.length <= 64));
 });

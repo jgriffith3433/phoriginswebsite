@@ -1030,14 +1030,14 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'terminal',
         title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the five-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
-        description: 'Loads index.html in an overlay (the page is now a fake terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the clues: rev ~/.hat_backwards, nmap the named host, curl the robots-listed backup, strings it, john with the wordlist the config names, ssh as ops, sudo less and !sh. The prompt must turn root@ph-origins:/# (red). /build runs at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
+        description: 'Loads index.html in an overlay (the page is now a fake terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the clues: rev ~/.hat_backwards, nmap the named host, curl the robots-listed backup, strings it, john with the wordlist the config names, ssh as ops, sudo less and !sh. The prompt must turn root@ph-origins:/# (red). /build (page loaded with ?songlen=8, an 8 s song) prints more than 300 log lines in its first 3 s (terminalFloodLines3s), then the song starts or the silent fallback line shows, the text flipbook updates at least 10 times in 2 s with both silhouettes non-empty every sample (terminalFlipFrames2s), Esc skips to BUILD SUCCESSFUL; a second /build left alone ends by itself with at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
         seconds: 150,
         tags: ['site', 'first-minute', 'ui'],
       },
       {
         id: 'terminal-phone',
         title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot',
-        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, footer links 44 px. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
+        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, footer links 44 px. Then a second page (?demo=show&songlen=6, motion on) shows the /build text flipbook at 390x844: both silhouettes side by side and non-empty, flipbook text at least 10 px, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
         seconds: 60,
         tags: ['site', 'phone', 'ui'],
       },
@@ -2514,7 +2514,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.scene(phone ? 'Terminal on a phone' : 'Terminal');
       const frame = document.createElement('iframe');
       frame.title = 'terminal';
-      frame.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html' + (phone ? '?motion=off' : ''), location.href).href;
+      frame.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html' + (phone ? '?motion=off' : '?songlen=8'), location.href).href;
       Object.assign(frame.style, phone
         ? { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '9999', border: '0', background: '#000' }
         : { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '9999', border: '0', background: '#000' });
@@ -2615,6 +2615,36 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (input.value !== '' || !/\^C/.test(log())) t.problem('bug', 'terminal phone: the ^C button did not cancel the line');
           await tap('ls'); await t.until(idle, 5000, 'ls');
           expect(log(), /README\.txt/, 'the ls button did not list the home directory');
+          // ---- the flipbook at 390x844 (a second page with the show started at once; the phone page above is motion off)
+          const f2 = document.createElement('iframe');
+          f2.title = 'terminal show';
+          f2.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html?demo=show&songlen=6', location.href).href;
+          Object.assign(f2.style, { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '10000', border: '0', background: '#000' });
+          frame.style.display = 'none';
+          document.body.appendChild(f2);
+          try {
+            const d2 = () => f2.contentDocument as Document | null;
+            await t.until(() => d2()?.getElementById('termShow')?.dataset.act === 'flip', 20000, 'the phone flipbook to start');
+            await t.until(() => Number(d2()?.getElementById('termShow')?.dataset.frames ?? 0) >= 3, 5000, 'the phone flipbook to flip');
+            const w2 = f2.contentWindow as any;
+            const L = d2()!.getElementById('flipL') as HTMLElement;
+            const R = d2()!.getElementById('flipR') as HTMLElement;
+            const fpx = parseFloat(w2.getComputedStyle(L).fontSize);
+            const lr = L.getBoundingClientRect();
+            const rr = R.getBoundingClientRect();
+            const nl = (L.textContent ?? '').replace(/\s/g, '').length;
+            const nr = (R.textContent ?? '').replace(/\s/g, '').length;
+            t.metric('terminalFlipFontPx', fpx);
+            t.metric('terminalFlipScrollWidth', d2()!.documentElement.scrollWidth);
+            if (fpx < 10) t.problem('bug', `terminal phone: flipbook text is ${fpx}px, under 10px`);
+            if (nl < 20 || nr < 20) t.problem('bug', `terminal phone: a silhouette is missing (left ${nl} chars, right ${nr})`);
+            if (!(lr.right <= rr.left + 1 && lr.left >= 0 && rr.right <= 391)) t.problem('bug', `terminal phone: the silhouettes are not side by side on screen (left ${Math.round(lr.left)}-${Math.round(lr.right)}, right ${Math.round(rr.left)}-${Math.round(rr.right)})`);
+            if (d2()!.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll in the flipbook (${d2()!.documentElement.scrollWidth}px)`);
+            const mute = d2()!.getElementById('showMute')!.getBoundingClientRect();
+            if (mute.width < 44 || mute.height < 44) t.problem('bug', `terminal phone: the mute button is ${Math.round(mute.width)}x${Math.round(mute.height)}, under 44 px`);
+            const e2: string[] = w2.__termErrors ?? [];
+            if (e2.length) t.problem('bug', `terminal phone flipbook: ${e2.length} page error(s): ${e2.slice(0, 3).join(' | ')}`);
+          } finally { f2.remove(); frame.style.display = ''; }
         } else {
           // ---- /help and the permission wall
           const help = await runLine('/help');
@@ -2652,16 +2682,57 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (!appEl.classList.contains('is-root')) t.problem('bug', 'terminal: the prompt did not turn red after root');
           t.event('milestone', 'terminal root reached');
 
-          // ---- /build
+          // ---- /build: three acts. Run 1 looks at the flood, the song and the flipbook, then skips with Esc.
+          const showEl = () => doc.getElementById('termShow') as HTMLElement | null;
+          const startBuild = async () => {
+            await t.until(idle, 60000, 'the previous output to finish');
+            await type('/build');
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            (doc.getElementById('termForm') as HTMLFormElement).requestSubmit();
+            await sleep(40);
+          };
+          await startBuild();
+          const s0 = performance.now();
+          await t.until(() => !!showEl() && !showEl()!.hidden, 4000, 'the build show to appear');
+          await sleep(Math.max(0, 3000 - (performance.now() - s0)));
+          const floodLines = Number(showEl()?.dataset.lines ?? 0);
+          t.metric('terminalFloodLines3s', floodLines);
+          if (floodLines <= 300) t.problem('bug', `terminal: /build printed ${floodLines} log lines in its first 3 s (want more than 300)`);
+          await t.until(() => showEl()?.dataset.act === 'flip', 15000, 'the flood to hand over to the song');
+          await t.until(() => showEl()?.dataset.audio === 'playing' || showEl()?.dataset.audio === 'silent', 20000, 'the song to start or fall back to silent');
+          const audioState = showEl()?.dataset.audio ?? '';
+          t.event('terminal-song', audioState);
+          if (audioState === 'silent' && !/song\.mp3 not found, playing silent/.test(showEl()?.textContent ?? '')) t.problem('bug', 'terminal: the silent fallback line is missing');
+          const f0 = Number(showEl()?.dataset.frames ?? 0);
+          let bothFull = 0;
+          let samples = 0;
+          const fs0 = performance.now();
+          while (performance.now() - fs0 < 2000) {
+            const l = (doc.getElementById('flipL')?.textContent ?? '').replace(/\s/g, '').length;
+            const r = (doc.getElementById('flipR')?.textContent ?? '').replace(/\s/g, '').length;
+            samples += 1;
+            if (l > 0 && r > 0) bothFull += 1;
+            await sleep(100);
+          }
+          const frames2s = Number(showEl()?.dataset.frames ?? 0) - f0;
+          t.metric('terminalFlipFrames2s', frames2s);
+          t.metric('terminalFlipBothHalves', Math.round((100 * bothFull) / Math.max(1, samples)));
+          if (frames2s < 10) t.problem('bug', `terminal: the flipbook updated ${frames2s} times in 2 s (want 10 or more)`);
+          if (bothFull < samples) t.problem('bug', `terminal: the flipbook had an empty half in ${samples - bothFull} of ${samples} samples`);
+          input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+          await t.until(() => idle() && /BUILD SUCCESSFUL/.test(log()), 5000, 'Esc to skip to BUILD SUCCESSFUL');
+          t.add('interactions');
+          // Run 2: left alone, the show ends with the (short, 8 s) song and lands on the same summary.
           const b0 = performance.now();
-          await enter('/build', 90000);
+          await startBuild();
+          await t.until(idle, 60000, '/build to finish on its own');
           const seconds = (performance.now() - b0) / 1000;
           t.metric('terminalBuildSeconds', Math.round(seconds * 10) / 10);
           const text = log();
           const stages = doc.querySelectorAll('#termLog .line.head').length;
           t.metric('terminalBuildStages', stages);
           if (stages < 8) t.problem('bug', `terminal: /build showed ${stages} stages, under 8`);
-          if (seconds < 15 || seconds > 45) t.problem('bug', `terminal: /build ran ${seconds.toFixed(1)} s (want about 20-40)`);
+          if (seconds < 8 || seconds > 40) t.problem('bug', `terminal: /build ran ${seconds.toFixed(1)} s (want the flood, then the 8 s test song)`);
           expect(text, /BUILD SUCCESSFUL/, '/build should end in BUILD SUCCESSFUL');
           expect(text, /TOTAL\s+\d+\s+\d+/, '/build should end with a summary table');
           expect(text, /\[#+-*\]\s+\d+%/, '/build should draw progress bars');
