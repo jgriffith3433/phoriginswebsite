@@ -3,9 +3,8 @@
 import { reverse } from './util.js';
 
 export const TARGET_HOST = 'gw.hawkes.lan';
-export const OPS_PASSWORD = 'roomforgrace58';
 
-const HAT_PLAIN = 'target: gw.hawkes.lan (staging gateway, "ops" lives there). scan it before you touch it. then ask it for its backups. it is polite.';
+const HAT_PLAIN = 'target: gw.hawkes.lan (staging gateway, "ops" lives there). scan it before you touch it. then knock: ssh in as ops. it is polite.';
 
 /** The old pen-test team wore their hats backwards, and wrote the same way. The first line is plain, the rest is not. */
 export const HAT_REVERSED = [
@@ -19,46 +18,28 @@ export const GW_STRINGS = [
   'listen=0.0.0.0:8080',
   'db_host=10.58.0.31',
   'ssh_user=ops',
-  'ops_hash=$1$hat$0b9o1fR3w8H0H5uXx0Bz.1',
-  'hash_type=md5crypt',
-  '# TODO(intern): audit wordlist = /usr/share/wordlists/hawkes-staff.txt  <- delete before prod!!',
+  'ssh_auth=staging-admin (no key, no questions)',
+  '# TODO(intern): remove the open staging login before prod!!',
   'ssh_banner=staging gateway. be nice.',
 ];
 
 export const GW_BACKUP_NAME = 'gw.cfg.bak';
 
-const STAFF_WORDS = [
-  'apexpeak', 'hawkes', 'hawkes1', 'hawkes123', 'tower58', 'floor58', 'fiftyeight', 'boardroom', 'boardmeeting', 'chairman',
-  'zurich', 'zurichdate', 'lang2024', 'voss123', 'vosscapital', 'halefury', 'directorhale', 'piercehawkes', 'pierce58',
-  'libertysquare', 'midnightdiner', 'nightshift', 'nightcleaner', 'eveningmrhawkes', 'valuation', 'marketshare', 'compliance',
-  'ceilingmine', 'secretlab', 'recordsyoucantrust', 'recordsyoucanfind', 'elevator58', 'goinghome', 'thestation', 'thedesk',
-  'themorning', 'thereturn', 'roomforgrace58', 'walnut', 'navycarpet', 'glasswall', 'skyline', 'coffeelow', 'password',
-  'letmein', 'staging', 'stagingops', 'opsopsops', 'gateway', 'hatbackwards', 'backwardshat', 'intern', 'internpass',
-  'changeme', 'welcome1', 'quarterly', 'zurich58', 'toweroflies', 'hawkesbio', 'biomedical', 'lobbydesk', 'cleaner',
-];
-export const WORDLIST_STAFF = STAFF_WORDS.join('\n') + '\n';
-
-const LITE = ['123456', 'password', 'qwerty', 'letmein', 'dragon', 'monkey', 'abc123', 'iloveyou', 'admin', 'welcome',
-  'sunshine', 'football', 'trustno1', 'princess', 'master', 'hunter2', 'shadow', 'baseball', 'superman', 'starwars',
-  'batman', 'whatever', 'freedom', 'login', 'passw0rd', 'summer', 'flower', 'charlie', 'donald', 'access'];
-export const WORDLIST_LITE = LITE.join('\n') + '\n';
-
 export const STEPS = [
   { id: 'hat', title: 'Read the hat', done: 'You read the hat: the old crew wrote backwards.' },
   { id: 'scan', title: 'Knock on the gateway', done: 'You scanned gw.hawkes.lan and found its open doors.' },
-  { id: 'loot', title: 'Take the backup', done: 'You pulled the staging backup off the admin port.' },
-  { id: 'crack', title: 'Crack the ops hash', done: 'You cracked the ops password with the right wordlist.' },
-  { id: 'root', title: 'Pager to root', done: 'You escaped the pager and became root.' },
+  { id: 'root', title: 'Walk in as root', done: 'The staging gateway let you in as root.' },
 ];
 
 /** The login guide: one exact, copy-paste command per step. Help, hint, Tab and the "Next:" pointers all read this. */
 export const GUIDE = {
-  hat: { cmd: 'rev ~/.hat_backwards', what: 'turns the backwards hat round. It names the gateway you are after.' },
-  scan: { cmd: `nmap ${TARGET_HOST}`, what: 'knocks on the gateway and lists its open doors, and the backup it leaves lying around.' },
-  loot: { cmd: `curl ${TARGET_HOST}:8080/backup/${GW_BACKUP_NAME}`, what: 'downloads that staging backup into ~/loot.' },
-  crack: { cmd: `john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/${GW_BACKUP_NAME}`, what: 'cracks the ops password in the backup with the staff wordlist.' },
-  root: { cmd: `ssh ops@${TARGET_HOST}`, what: `logs in as ops (type the password ${OPS_PASSWORD} when asked). The gateway gives its staging admin root.` },
+  hat: { cmd: 'rev ~/.hat_backwards', what: 'turns the backwards hat round. It names the gateway.' },
+  scan: { cmd: `nmap ${TARGET_HOST}`, what: 'knocks on the gateway and lists its open doors.' },
+  root: { cmd: `ssh ops@${TARGET_HOST}`, what: 'walks in. The staging gateway lets ops straight in as root. No password.' },
 };
+
+/** Step ids saved by the old five-step chain, mapped to where they land now. */
+export const OLD_STEP_MAP = { hat: 'hat', scan: 'scan', loot: 'scan', crack: 'scan', root: 'root' };
 
 export const SOLVED_HINT = 'You are root. Next: /build';
 
