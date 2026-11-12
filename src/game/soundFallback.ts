@@ -36,6 +36,8 @@ export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/touch/emergency-handle.ogg': '/assets/audio/sfx/pistol-holster.ogg',
   // Ledger: the siren plays a car pass if its file fails to load.
   '/assets/audio/sfx/street/siren-police.mp3': '/assets/audio/sfx/street/car-pass.wav',
+  // Going Home rain bed until Gen lands rain-hiss.ogg (rainNight.ts).
+  '/assets/audio/sfx/street/rain-hiss.ogg': '/assets/audio/room-tone.mp3',
 };
 
 export const soundFallback = (url: string): string | null => {

@@ -76,7 +76,7 @@ floor to his own bed.
 - **Looks/sounds:** signals, crosswalks, traffic, a plaza with subway globes, Liberty Square fountain, market
   (x 62-72), diner (96-108), news stand (145-156), park and pond NE, 1150 m of suburb edge. Bed `room-tone` 0.12,
   traffic, sirens, bell on shop doors, footsteps, rain hiss.
-- **Neon landmarks (8 along Pierce's sidewalk, stand-in emissives until Gen WebPs in `assets/textures/city/neon/`):**
+- **Neon landmarks (8 along Pierce's sidewalk; DynamicTexture stand-ins swap to Gen WebPs in `assets/textures/city/neon/` when present):**
   Hawkes Biomedical billboard, pharmacy cross, noodle bar, pawn shop, Midnight Diner, Voss Capital, Liberty Square,
   hotel VACANCY. Public Hawkes signage never names B3, the vat or the creature.
 - **Reflections:** High tier tries SSR; Low/Medium use a shared reflection probe on planar puddle plates (+1.8 cm over
@@ -89,8 +89,8 @@ floor to his own bed.
 - **Mood:** sodium platform wash over tiled walls, humming, one tube failing. HAWKES ST. Rain still falls at the open
   stair end (west concourse); the platform itself is covered.
 - Concourse, six turnstiles, platform, track trench, two cars, tunnel mouths. Bed 0.10. Departure board counting
-  down (emissive amber matrix), tunnel wind, PA (`placeVoices.ts`). Tile / platform-edge / wall surfaces are procedural
-  until Gen seamless paints land (`assets/textures/station/`).
+  down (emissive amber matrix), tunnel wind, PA (`placeVoices.ts`). Tile / platform-concrete / platform-edge stay
+  procedural until Gen seamless WebPs land (`assets/textures/station/`); `stationDress` mixes them in via `stSurf`.
 - **Size:** ~80 m x 15 m; in by the stairs, out through the open train door.
 
 ### 7. The Train (level 7) - `the-train.json`
