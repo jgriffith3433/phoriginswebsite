@@ -19,7 +19,8 @@
     "models:stride": "node tools/clipStride.mjs",
     "check:anim": "node tools/animCheck.mjs",
     "test": "npm run check:scene && npm run check:anim && npm run check:leaks",
-    "audio:missing": "node tools/audioMissing.mjs"
+    "audio:missing": "node tools/audioMissing.mjs",
+    "test:terminal": "node --test \"site/terminal/test/*.test.mjs\""
   },
   "dependencies": {
     "@babylonjs/core": "^7.0.0",

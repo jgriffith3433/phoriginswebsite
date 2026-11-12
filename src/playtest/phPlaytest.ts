@@ -1023,9 +1023,23 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'site-links',
         title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged',
-        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
+        description: 'Taps to play, then shows About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold). Then checks the game page itself carries no credit link.',
         seconds: 60,
         tags: ['menus', 'site'],
+      },
+      {
+        id: 'terminal',
+        title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the three-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
+        description: 'Loads index.html in an overlay (the page is the gateway terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the LOGIN GUIDE (/help prints Step N of 5 and the exact command): rev ~/.hat_backwards, nmap the named host, curl the backup, john with the staff wordlist, ssh as ops. The prompt must turn root@ph-origins:/# (red). /build (page loaded with ?songlen=8, an 8 s song) prints more than 300 log lines in its first 3 s (terminalFloodLines3s), then the song starts or the silent fallback line shows, the dance (one canvas, a timeline of scenes) draws at least 10 frames in 2 s with both dancers on the stage every sample (terminalFlipFrames2s); then Esc, Enter, letters, Ctrl+C, clicks and soft-keyboard text are hammered at it and none may end it or reach the prompt (terminalShowInputs, terminalShowLeaked), it ends by itself on BUILD SUCCESSFUL; a second /build left alone ends by itself with at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
+        seconds: 150,
+        tags: ['site', 'first-minute', 'ui'],
+      },
+      {
+        id: 'terminal-phone',
+        title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot',
+        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, Then a second page (?demo=show&songlen=6, motion on) shows the /build dance show at 390x844: the canvas inside the screen, at least 46 columns, text at least 9 px, both dancers drawn, a tap does not skip it, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
+        seconds: 60,
+        tags: ['site', 'phone', 'ui'],
       },
       {
         id: 'frame-trace',
@@ -2489,9 +2503,281 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       await sleep(3000); // hold the cards for the footage
     };
 
-    /** Each site page in an overlay: the footer's Powered by HAWKES GEN link, and Hawkes Biomedical on Home. */
+
+    /** The landing page is a terminal (index.html). Shown in an overlay and driven with real key and tap events. */
+    const terminalRun = async (phone: boolean) => {
+      levelsTotal = 1;
+      const KEY = 'hawkes-terminal-test-restore';
+      const STORE = 'ph-origins-terminal';
+      const saved = localStorage.getItem(STORE);
+      localStorage.removeItem(STORE); // a clean guest; the visitor's own save comes back at the end
+      t.scene(phone ? 'Terminal on a phone' : 'Terminal');
+      const frame = document.createElement('iframe');
+      frame.title = 'terminal';
+      frame.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html' + (phone ? '?motion=off' : '?songlen=8'), location.href).href;
+      Object.assign(frame.style, phone
+        ? { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '9999', border: '0', background: '#000' }
+        : { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '9999', border: '0', background: '#000' });
+      const t0 = performance.now();
+      document.body.appendChild(frame);
+      void KEY;
+      try {
+        const until = performance.now() + 20000;
+        while (!frame.contentDocument?.getElementById('termInput') && performance.now() < until) await sleep(100);
+        const win = frame.contentWindow as any;
+        const doc = frame.contentDocument as Document;
+        const input = doc.getElementById('termInput') as HTMLInputElement | null;
+        if (!input || !win) { t.problem('bug', 'terminal: index.html did not show a #termInput'); return; }
+        const log = () => (doc.getElementById('termLog') as HTMLElement).innerText;
+        const prompt = () => (doc.getElementById('termPrompt') as HTMLElement).textContent ?? '';
+        const idle = () => !input.hasAttribute('aria-busy');
+        const setValue = (v: string) => {
+          Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!.call(input, v);
+          input.dispatchEvent(new win.Event('input', { bubbles: true }));
+        };
+        const type = async (line: string) => {
+          input.focus();
+          for (const ch of line) { // real key events, one character at a time (the page keeps the value itself)
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: ch, bubbles: true, cancelable: true }));
+            setValue(input.value + ch);
+          }
+        };
+        const enter = async (line: string, wait = 20000) => {
+          await t.until(idle, 60000, 'the previous output to finish');
+          await type(line);
+          input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+          (doc.getElementById('termForm') as HTMLFormElement).requestSubmit();
+          await sleep(40);
+          await t.until(idle, wait, `"${line}" to finish printing`);
+          t.add('interactions');
+        };
+        const runLine = async (line: string) => { const before = log().length; await enter(line); return log().slice(before); };
+        const expect = (out: string, re: RegExp, what: string) => { if (!re.test(out)) t.problem('bug', `terminal: ${what} (wanted ${re}, got "${out.slice(0, 160).replace(/\n/g, ' | ')}")`); };
+
+        // 1. boot, then the guest prompt
+        await t.until(() => /^guest@ph-origins:~\$$/.test(prompt()) && idle() && /Type\s+help/.test(log()), 8000, 'the boot to end on the guest prompt');
+        const bootSeconds = (performance.now() - t0) / 1000;
+        t.metric('terminalBootSeconds', Math.round(bootSeconds * 10) / 10);
+        t.event('terminal-boot', `${bootSeconds.toFixed(1)} s to the prompt`);
+        if (phone) {
+          if (bootSeconds > 1.5) t.problem('bug', `terminal (reduced motion): the boot took ${bootSeconds.toFixed(1)} s, it should print at once`);
+        } else if (bootSeconds > 3.5) t.problem('bug', `terminal: boot to prompt took ${bootSeconds.toFixed(1)} s (limit 3)`);
+        t.event('terminal-first', `prompt ${prompt()}`);
+
+        if (phone) {
+          // ---- layout at 390x844, then 480 tall for a keyboard
+          const de = doc.documentElement;
+          t.metric('terminalScrollWidth', de.scrollWidth);
+          if (de.scrollWidth > 391 || doc.body.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll (${de.scrollWidth}px in a 390px frame)`);
+          const screenEl = doc.getElementById('screen') as HTMLElement;
+          const fs = parseFloat(win.getComputedStyle(screenEl).fontSize);
+          t.metric('terminalFontPx', fs);
+          if (fs < 14) t.problem('bug', `terminal phone: text is ${fs}px, under 14px`);
+          const bar = doc.querySelector('.tapbar') as HTMLElement;
+          const buttons = [...bar.querySelectorAll('button')] as HTMLElement[];
+          if (win.getComputedStyle(bar).display === 'none' || buttons.length < 7) t.problem('bug', `terminal phone: the quick-key row is missing (${buttons.length} buttons)`);
+          let prev: DOMRect | null = null;
+          for (const b of buttons) {
+            const r = b.getBoundingClientRect();
+            if (r.width < 44 || r.height < 44) t.problem('bug', `terminal phone: "${b.textContent}" is ${Math.round(r.width)}x${Math.round(r.height)}, under 44 px`);
+            if (prev && r.left - prev.right < 8 - 0.5) t.problem('bug', `terminal phone: "${b.textContent}" sits ${Math.round(r.left - prev.right)} px from its neighbour (need 8)`);
+            if (r.right > 391) t.problem('bug', `terminal phone: "${b.textContent}" runs off the right edge (${Math.round(r.right)})`);
+            prev = r;
+          }
+          for (const a of [...doc.querySelectorAll('.foot a')] as HTMLElement[]) {
+            const r = a.getBoundingClientRect();
+            if (r.width > 0 && r.height < 44) t.problem('bug', `terminal phone: footer link "${a.textContent?.trim()}" is ${Math.round(r.height)} px tall, under 44`);
+          }
+          frame.style.height = '480px'; // the soft keyboard takes the lower half
+          await sleep(500);
+          const form = (doc.getElementById('termForm') as HTMLElement).getBoundingClientRect();
+          const barRect = bar.getBoundingClientRect();
+          t.event('terminal-keyboard', `prompt bottom ${Math.round(form.bottom)}, button row bottom ${Math.round(barRect.bottom)}, frame 480`);
+          if (form.bottom > 481 || form.top < 0) t.problem('bug', `terminal phone: the prompt is off screen with the keyboard up (top ${Math.round(form.top)}, bottom ${Math.round(form.bottom)} of 480)`);
+          if (barRect.bottom > 481) t.problem('bug', `terminal phone: the quick-key row is under the keyboard (bottom ${Math.round(barRect.bottom)} of 480)`);
+          const guide = await runLine('/help');
+          if (!/LOGIN GUIDE[\s\S]*Step 1 of 5/.test(guide)) t.problem('bug', 'terminal phone: /help shows no LOGIN GUIDE');
+          if (doc.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: the LOGIN GUIDE scrolls sideways (${doc.documentElement.scrollWidth}px)`);
+          const form2 = (doc.getElementById('termForm') as HTMLElement).getBoundingClientRect();
+          if (form2.bottom > 481 || form2.top < 0) t.problem('bug', `terminal phone: the prompt left the screen after /help with the keyboard up (top ${Math.round(form2.top)}, bottom ${Math.round(form2.bottom)})`);
+          const tap = async (act: string) => {
+            const b = bar.querySelector(`[data-act="${act}"]`) as HTMLElement;
+            b.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+            b.click();
+            await sleep(80);
+          };
+          await tap('help');
+          await t.until(idle, 5000, 'help to print');
+          expect(log(), /Look around/, 'the help button did not print the command list');
+          setValue('hel');
+          await tap('tab');
+          if (input.value !== 'help ') t.problem('bug', `terminal phone: the Tab button did not complete "hel" (value "${input.value}")`);
+          setValue('');
+          await tap('up');
+          if (input.value !== 'help') t.problem('bug', `terminal phone: the up arrow did not recall the last command (value "${input.value}")`);
+          setValue('abc');
+          await tap('ctrlc');
+          if (input.value !== '' || !/\^C/.test(log())) t.problem('bug', 'terminal phone: the ^C button did not cancel the line');
+          await tap('ls'); await t.until(idle, 5000, 'ls');
+          expect(log(), /README\.txt/, 'the ls button did not list the home directory');
+          // ---- the dance show at 390x844 (a second page with the show started at once; the phone page above is motion off)
+          const f2 = document.createElement('iframe');
+          f2.title = 'terminal show';
+          f2.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html?demo=show&songlen=6', location.href).href;
+          Object.assign(f2.style, { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '10000', border: '0', background: '#000' });
+          frame.style.display = 'none';
+          document.body.appendChild(f2);
+          try {
+            const d2 = () => f2.contentDocument as Document | null;
+            await t.until(() => d2()?.getElementById('termShow')?.dataset.act === 'flip', 20000, 'the phone show to start');
+            await t.until(() => Number(d2()?.getElementById('termShow')?.dataset.frames ?? 0) >= 6, 5000, 'the phone show to draw frames');
+            const w2 = f2.contentWindow as any;
+            const sh = d2()!.getElementById('termShow') as HTMLElement;
+            const cv = d2()!.getElementById('showCanvas') as HTMLCanvasElement;
+            const cr = cv.getBoundingClientRect();
+            const px = Number(sh.dataset.px);
+            const cols = Number(sh.dataset.cols);
+            t.metric('terminalShowFontPx', px);
+            t.metric('terminalShowCols', cols);
+            t.metric('terminalShowScrollWidth', d2()!.documentElement.scrollWidth);
+            if (px < 9) t.problem('bug', `terminal phone: the show's text is ${px}px, under 9px`);
+            if (cols < 46) t.problem('bug', `terminal phone: the show grid is ${cols} columns wide (want 46 or more)`);
+            if (!(cr.left >= 0 && cr.right <= 391 && cr.width > 300)) t.problem('bug', `terminal phone: the show canvas is not inside the screen (${Math.round(cr.left)}-${Math.round(cr.right)})`);
+            if (Number(sh.dataset.nl) < 40 || Number(sh.dataset.nr) < 40) t.problem('bug', `terminal phone: a dancer is missing from the stage (Jackson ${sh.dataset.nl} marks, Jordan ${sh.dataset.nr})`);
+            if (d2()!.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll in the show (${d2()!.documentElement.scrollWidth}px)`);
+            // a tap does not skip it
+            const frames0 = Number(sh.dataset.frames);
+            cv.dispatchEvent(new w2.PointerEvent('pointerdown', { bubbles: true }));
+            d2()!.getElementById('app')!.dispatchEvent(new w2.PointerEvent('pointerdown', { bubbles: true }));
+            await sleep(600);
+            if (sh.hidden || Number(sh.dataset.frames) <= frames0) t.problem('bug', 'terminal phone: a tap stopped the show');
+            const mute = d2()!.getElementById('showMute')!.getBoundingClientRect();
+            if (mute.width < 44 || mute.height < 44) t.problem('bug', `terminal phone: the mute button is ${Math.round(mute.width)}x${Math.round(mute.height)}, under 44 px`);
+            const e2: string[] = w2.__termErrors ?? [];
+            if (e2.length) t.problem('bug', `terminal phone show: ${e2.length} page error(s): ${e2.slice(0, 3).join(' | ')}`);
+          } finally { f2.remove(); frame.style.display = ''; }
+        } else {
+          // ---- /help and the permission wall
+          const help = await runLine('/help');
+          const names = help.split('\n').filter((l) => /^\s{2}\/?[a-z]+\s{2,}\S/.test(l)).length;
+          t.metric('terminalHelpCommands', names);
+          if (names > 4) t.problem('bug', `terminal: guest /help lists ${names} commands, over 4`);
+          expect(help, /LOGIN GUIDE[\s\S]*Step 1 of 3/, '/help should open with the LOGIN GUIDE');
+          expect(await runLine('/build'), /permission denied/i, '/build as guest should be refused');
+          expect(await runLine('sudo ls'), /sudoers/, 'sudo as guest should be refused');
+          expect(await runLine('su root'), /Authentication failure/, 'su root should fail in-world');
+          expect(prompt(), /^guest@/, 'a failed su should leave the guest prompt, no password prompt');
+          expect(await runLine('ls -a'), /\.hat_backwards/, 'ls -a should show the hat');
+
+          // ---- the documented chain, from the clues only
+          expect(await runLine('rev ~/.hat_backwards'), /gw\.hawkes\.lan/, 'the reversed hat should name the host');
+          expect(await runLine('nmap gw.hawkes.lan'), /8080\/tcp\s+open[\s\S]*gw\.cfg\.bak/, 'nmap should list 8080 and the backup');
+          expect(await runLine('ssh ops@gw.hawkes.lan'), /ACCESS GRANTED/, 'the third command should log in as root, no password');
+          await sleep(300);
+          expect(prompt(), /^root@ph-origins:\/#$/, 'the prompt should be root@ph-origins:/#');
+          const appEl = doc.getElementById('app') as HTMLElement;
+          const col = win.getComputedStyle(doc.getElementById('termPrompt')!).color;
+          t.event('terminal-root', `prompt colour ${col}, is-root ${appEl.classList.contains('is-root')}`);
+          if (!appEl.classList.contains('is-root')) t.problem('bug', 'terminal: the prompt did not turn red after root');
+          t.event('milestone', 'terminal root reached');
+
+          // ---- /build: three acts. Run 1 looks at the flood, the song and the dance, then hammers every kind of input at it: none may end it.
+          const showEl = () => doc.getElementById('termShow') as HTMLElement | null;
+          const startBuild = async () => {
+            await t.until(idle, 60000, 'the previous output to finish');
+            await type('/build');
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            (doc.getElementById('termForm') as HTMLFormElement).requestSubmit();
+            await sleep(40);
+          };
+          await startBuild();
+          const s0 = performance.now();
+          await t.until(() => !!showEl() && !showEl()!.hidden, 4000, 'the build show to appear');
+          await sleep(Math.max(0, 3000 - (performance.now() - s0)));
+          const floodLines = Number(showEl()?.dataset.lines ?? 0);
+          t.metric('terminalFloodLines3s', floodLines);
+          if (floodLines <= 300) t.problem('bug', `terminal: /build printed ${floodLines} log lines in its first 3 s (want more than 300)`);
+          await t.until(() => showEl()?.dataset.act === 'flip', 15000, 'the flood to hand over to the song');
+          await t.until(() => showEl()?.dataset.audio === 'playing' || showEl()?.dataset.audio === 'silent', 20000, 'the song to start or fall back to silent');
+          const audioState = showEl()?.dataset.audio ?? '';
+          t.event('terminal-song', audioState);
+          if (audioState === 'silent' && !/song\.mp3 not found, playing silent/.test(showEl()?.textContent ?? '')) t.problem('bug', 'terminal: the silent fallback line is missing');
+          const f0 = Number(showEl()?.dataset.frames ?? 0);
+          let bothFull = 0;
+          let samples = 0;
+          const fs0 = performance.now();
+          while (performance.now() - fs0 < 2000) {
+            samples += 1;
+            if (Number(showEl()?.dataset.nl) > 0 && Number(showEl()?.dataset.nr) > 0) bothFull += 1;
+            await sleep(100);
+          }
+          const frames2s = Number(showEl()?.dataset.frames ?? 0) - f0;
+          t.metric('terminalFlipFrames2s', frames2s);
+          t.metric('terminalFlipBothHalves', Math.round((100 * bothFull) / Math.max(1, samples)));
+          if (frames2s < 10) t.problem('bug', `terminal: the show drew ${frames2s} frames in 2 s (want 10 or more)`);
+          if (bothFull < samples) t.problem('bug', `terminal: a dancer was missing from the stage in ${samples - bothFull} of ${samples} samples`);
+          // No key, click or tap ends the show: hammer them until it ends by itself.
+          const songStart = performance.now();
+          let inputs = 0;
+          let leaked = 0;
+          const hammer = () => {
+            for (const key of ['Escape', 'Enter', ' ', 'a', 'Tab', 'ArrowUp', 'Backspace']) { input.dispatchEvent(new win.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); inputs += 1; }
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true })); inputs += 1;
+            input.value = 'zz';
+            input.dispatchEvent(new win.Event('input', { bubbles: true }));
+            for (const type of ['pointerdown', 'pointerup', 'click']) { doc.getElementById('app')!.dispatchEvent(new win.MouseEvent(type, { bubbles: true, cancelable: true })); inputs += 1; }
+            if (input.value !== '') leaked += 1;
+          };
+          while (showEl() && !showEl()!.hidden && performance.now() - songStart < 60000) { hammer(); await sleep(150); }
+          const songSeconds = (performance.now() - songStart) / 1000 + 2;
+          t.metric('terminalShowInputs', inputs);
+          t.metric('terminalShowLeaked', leaked);
+          if (songSeconds < 7.5) t.problem('bug', `terminal: an input ended the /build show after ${songSeconds.toFixed(1)} s of its 8 s song`);
+          if (leaked) t.problem('bug', `terminal: typed text reached the prompt ${leaked} time(s) while the show played`);
+          await t.until(() => idle() && /BUILD SUCCESSFUL/.test(log()), 8000, 'the show to end by itself on BUILD SUCCESSFUL');
+          if (input.value !== '') t.problem('bug', `terminal: the prompt was not clean when the show ended ("${input.value}")`);
+          t.add('interactions');
+          // Run 2: left alone, the show ends with the (short, 8 s) song and lands on the same summary.
+          const b0 = performance.now();
+          await startBuild();
+          await t.until(idle, 60000, '/build to finish on its own');
+          const seconds = (performance.now() - b0) / 1000;
+          t.metric('terminalBuildSeconds', Math.round(seconds * 10) / 10);
+          const text = log();
+          const stages = doc.querySelectorAll('#termLog .line.head').length;
+          t.metric('terminalBuildStages', stages);
+          if (stages < 8) t.problem('bug', `terminal: /build showed ${stages} stages, under 8`);
+          if (seconds < 8 || seconds > 40) t.problem('bug', `terminal: /build ran ${seconds.toFixed(1)} s (want the flood, then the 8 s test song)`);
+          expect(text, /BUILD SUCCESSFUL/, '/build should end in BUILD SUCCESSFUL');
+          expect(text, /TOTAL\s+\d+\s+\d+/, '/build should end with a summary table');
+          expect(text, /\[#+-*\]\s+\d+%/, '/build should draw progress bars');
+          expect(text, /\d+\/\d+ passed/, '/build should count tests');
+          const ls = await runLine('ls /opt/hawkes-biomedical');
+          expect(ls, /modules/, 'ls /opt/hawkes-biomedical should list modules');
+          expect(await runLine('ls /opt/hawkes-biomedical/modules'), /patient-intake[\s\S]*billing/, 'the built modules should be listed');
+          expect(await runLine('cat /opt/hawkes-biomedical/README.md'), /medical backend framework/, 'the built README should read');
+          expect(await runLine('/build status'), /COMPLETE/, '/build status should say COMPLETE');
+
+          // ---- the game
+          expect(await runLine('hint'), /root|build/i, 'hint as root should point at /build');
+          await runLine('game');
+          await t.until(() => /game\.html/.test(String(win.location?.pathname ?? '')) || /game\.html/.test(frame.contentWindow?.location.href ?? ''), 6000, 'game to open the game page').catch(() => {});
+          const where = frame.contentWindow?.location.href ?? '';
+          t.event('terminal-game', where);
+          if (!/game\.html/.test(where)) t.problem('bug', `terminal: "game" did not open the game (page is ${where})`);
+        }
+        const errs: string[] = win.__termErrors ?? [];
+        if (errs.length) t.problem('bug', `terminal: ${errs.length} page error(s): ${errs.slice(0, 3).join(' | ')}`);
+        await sleep(1500);
+      } finally {
+        frame.remove();
+        if (saved == null) localStorage.removeItem(STORE); else localStorage.setItem(STORE, saved);
+      }
+    };
+
+    /** Each site page in an overlay: the footer's Powered by HAWKES GEN link. Home is the terminal and has no footer. */
     const siteLinksCheck = async () => {
-      const pages: [string, string][] = [['index.html', 'Home'], ['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
+      const pages: [string, string][] = [['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
       const want: [string, string, RegExp, string][] = [
         ['gen', 'https://hawkesgen.ai', /powered by\s+hawkes gen/i, 'Powered by HAWKES GEN'],
         ['parent', 'https://hawkesbiomedical.com', /hawkes biomedical/i, 'Hawkes Biomedical'],
@@ -2514,7 +2800,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           footer.scrollIntoView({ block: 'end', behavior: 'instant' });
           await sleep(900);
           for (const [kind, href, text, label] of want) {
-            if (kind === 'parent' && file !== 'index.html') continue;
+            if (kind === 'parent') continue;
             const match = (root: ParentNode) => [...root.querySelectorAll<HTMLAnchorElement>('a[href]')].filter((a) => a.href.replace(/\/$/, '') === href);
             const links = match(footer).length ? match(footer) : match(doc);
             const link = links.find((a) => text.test(a.textContent ?? '')) ?? links[0];
@@ -5484,6 +5770,20 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let lastAction = '';
       let stepsDone = 0;
       let scenesSeen: number[] = [];
+      const bedPhases: string[] = [];
+      let bedMinOver = 99;
+      let bedWalked = 0;
+      let bedMaxPitch = 0;
+      let bedMaxRoll = 0;
+      const tvHashes = new Set<number>();
+      let tvBound = false;
+      let tvVisible = false;
+      let tvCoveredSamples = 0;
+      let tvNewsSamples = 0;
+      let tvAudioLive = 0;
+      let tvAudioSeen: { name: string; level: number; at: unknown; cls: string; nodes: number; playing: boolean } | null = null;
+      let roomExitSeen: { cue: string; level: number; voiceLevel: number; plays: number; steps: number } | null = null;
+      let lastLines: { id: string; heard: boolean; audio: boolean }[] = [];
       for (;;) {
         await tick();
         if (performance.now() - t0 > 300000) return 'stuck';
@@ -5498,6 +5798,24 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             t.event('scene', `level 8 ${names[scenesSeen[scenesSeen.length - 1]]} (${scenesSeen.length}/7)`);
           }
           tvText = s.tvText || tvText;
+          lastLines = s.lines;
+          if (s.pose.phase !== 'none' && bedPhases[bedPhases.length - 1] !== s.pose.phase) bedPhases.push(s.pose.phase);
+          if (s.pose.phase === 'asleep' || s.pose.phase === 'wake') {
+            bedMinOver = Math.min(bedMinOver, s.pose.minOverMattress);
+            bedMaxPitch = Math.max(bedMaxPitch, s.pose.pitch);
+            bedMaxRoll = Math.max(bedMaxRoll, Math.abs(s.pose.roll));
+          }
+          bedWalked = Math.max(bedWalked, s.pose.walked);
+          if (s.tv.on && s.beat === 'news') {
+            tvHashes.add(s.tv.hash);
+            tvBound = tvBound || s.tv.bound;
+            tvVisible = tvVisible || s.tv.visible;
+            tvNewsSamples += 1;
+            if (s.tv.covered) tvCoveredSamples += 1;
+            if (s.tvAudio.playing && s.tvAudio.nodes > 0) tvAudioLive += 1;
+            tvAudioSeen = s.tvAudio;
+          }
+          roomExitSeen = s.roomExit;
           if (s.beat !== lastBeat) {
             lastBeat = s.beat;
             t.event('beat', `level 8 beat: ${s.beat}`);
@@ -5559,6 +5877,43 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       const slept = heard.indexOf(textOf('dialogue.morning.slept'));
       t.event('check', `wake: scene ${sawSleepScene ? 'played' : 'NOT seen'}, lying in bed ${sawLying}, woke ${sawWake}, "I slept." ${slept >= 0 ? 'heard' : 'missing'}`);
       if (!sawSleepScene || !sawLying || !sawWake || slept < 0) t.problem('bug', 'Pierce did not wake in bed after sleeping');
+      // 1b: the bed sequence ran its states in order, the body lay on (not in) the mattress, and he walked to the TV.
+      {
+        const want = ['stand', 'turn', 'sitdown', 'sit', 'recline', 'asleep', 'wake', 'situp', 'standup', 'walk', 'face'];
+        const inSeq = want.every((p, i) => bedPhases[i] === p);
+        t.event('check', `bed: phases ${bedPhases.join('>') || 'none'}, flat ${bedMaxPitch.toFixed(2)} rad, shift ${bedMaxRoll.toFixed(2)}, lowest body over mattress ${bedMinOver.toFixed(2)} m, walked ${bedWalked.toFixed(1)} m`);
+        if (!inSeq) t.problem('bug', `the bed scene did not run lie down, sleep, wake, sit up, stand, walk in order (${bedPhases.join('>') || 'none'})`);
+        if (bedMaxPitch < 1.4) t.problem('bug', 'Pierce never lay flat in the bed');
+        if (bedMinOver < 0.05) t.problem('bug', `Pierce sank into the mattress (${bedMinOver.toFixed(2)} m over it)`);
+        if (bedMaxRoll < 0.02) t.problem('bug', 'Pierce never shifted while asleep');
+        if (bedWalked < 2) t.problem('bug', `Pierce did not walk from the bed to the TV (${bedWalked.toFixed(1)} m)`);
+        t.metric('bedWalkedMeters', Math.round(bedWalked * 10) / 10);
+      }
+      // 1c: every voiced line the room asked for played to its end (the scene waited for the voice).
+      {
+        const spoken = lastLines.filter((l) => l.audio);
+        const unheard = spoken.filter((l) => !l.heard).map((l) => l.id);
+        t.event('check', `room lines: ${spoken.length} voiced, ${unheard.length} not played out ${unheard.join(', ')}`);
+        if (spoken.length < 3) t.problem('bug', `the bed and news scenes asked for only ${spoken.length} voiced lines`);
+        if (unheard.length) t.problem('bug', `voiced lines cut off or not finished before the scene moved on: ${unheard.join(', ')}`);
+      }
+      // 1d: the TV texture is bound to the screen mesh, not covered, and changing (two samples differ).
+      {
+        t.event('check', `tv texture: bound ${tvBound}, visible ${tvVisible}, ${tvHashes.size} distinct frames in ${tvNewsSamples} samples, covered in ${tvCoveredSamples}`);
+        if (!tvBound || !tvVisible) t.problem('bug', 'the TV screen has no picture texture bound or is hidden');
+        if (tvHashes.size < 2) t.problem('bug', 'the TV picture did not change between samples (frame hash stayed the same)');
+        if (tvNewsSamples > 0 && tvCoveredSamples / tvNewsSamples > 0.5) t.problem('bug', 'something covers the TV screen from the camera during the news');
+      }
+      // 1e: tv-audio-playing: a connected, running node with a name and level, from the set's position, during the news.
+      // room-exit-sfx: the exit cue's id and its level against the voice (and no old tv-static / door ambience).
+      {
+        t.event('check', `tv-audio-playing: ${tvAudioLive}/${tvNewsSamples} samples live, ${tvAudioSeen ? `${tvAudioSeen.name} level ${tvAudioSeen.level} cls ${tvAudioSeen.cls} at ${JSON.stringify(tvAudioSeen.at)}` : 'never'}`);
+        t.metric('tvAudioLiveSamples', tvAudioLive);
+        if (tvNewsSamples > 0 && (tvAudioLive === 0 || !tvAudioSeen?.name || !tvAudioSeen.level || !tvAudioSeen.at)) t.problem('bug', 'the TV news had no audible sound from the set (no live audio node with a name, level and position)');
+        t.event('check', `room-exit-sfx: ${roomExitSeen ? `${roomExitSeen.cue} level ${roomExitSeen.level} vs voice ${roomExitSeen.voiceLevel}, ${roomExitSeen.plays} door, ${roomExitSeen.steps} steps` : 'none'}`);
+        if (!roomExitSeen || roomExitSeen.plays < 1) t.problem('bug', 'leaving the bed played no door or footstep cue');
+        else if (roomExitSeen.level >= roomExitSeen.voiceLevel) t.problem('bug', 'the room-exit sound is not quieter than the voice');
+      }
       // 2: the TV names the tower and Pierce.
       t.event('check', `tv: ${tvText}`);
       if (!/HAWKES TOWER/.test(tvText) || !/PIERCE HAWKES/.test(tvText) || !sawTv) t.problem('bug', `the TV did not name Hawkes Tower and Pierce Hawkes (${tvText || 'nothing shown'})`);
@@ -7945,6 +8300,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.event('card-after', card1?.text ?? 'none');
       if (!new RegExp(`Lore\\s+${found}\\s+of\\s+${total}`).test(card1?.text ?? '')) t.problem('bug', `card 1 does not show Lore ${found} of ${total} after finding them: ${card1?.text}`);
       void rows;
+      t.finish('done');
+      return;
+    }
+
+    if (id === 'terminal' || id === 'terminal-phone') {
+      await terminalRun(id === 'terminal-phone');
+      t.progress(1);
       t.finish('done');
       return;
     }

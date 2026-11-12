@@ -6,6 +6,7 @@ import { TRANSFORM_HERO_ASSET_ID } from '../game/modelLoader';
 import { DOUBLE_LAYER } from './bathroomMirror';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { voiceBusy } from '../game/sfxMix';
+import { noteRoomExit, playSoftDoor, roomExitState, startTvBroadcast, tvAudioState, type RoomExitState, type TvAudioState, type TvBroadcast } from './morningSound';
 import { deathsBucket, ledgerBand, type LedgerApi, type LedgerBand } from '../game/ledger';
 import type { StoryCarry } from './act1';
 
@@ -34,7 +35,13 @@ export type MorningHost = {
   placePierce: (x: number, z: number, yaw: number) => void;
   /** Lie Pierce flat on his back at this spot (feet end at x, z), or stand him up again. */
   lie: (on: boolean, x: number, y: number, z: number, yaw: number) => void;
-  playClip: (clip: string, loop: boolean, speed?: number) => void;
+  /**
+   * Pose the body about its pelvis: the pelvis sits at (x, y, z), turned to `yaw`, tipped back `pitch` radians
+   * (0 upright, PI/2 flat on the back) and rolled `roll`. `pelvis` is the pelvis height above the feet in the
+   * clip that is playing, so a seated pose keeps its feet on the floor.
+   */
+  poseBody: (x: number, y: number, z: number, yaw: number, pitch: number, roll: number, pelvis: number) => void;
+  playClip: (clip: string, loop: boolean, speed?: number) => boolean | void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
   stepCineScene?: (
@@ -55,7 +62,7 @@ export type MorningHost = {
   clearMarker: () => void;
   showObjective: (visible: boolean) => void;
   setObjective: (title: string, text: string, target: { x: number; z: number; y?: number } | null) => void;
-  playFile: (url: string, volume: number) => void;
+  playFile: (url: string, volume: number, at?: { x: number; y: number; z: number }) => void;
   setWalk: (moving: boolean) => void;
   setCarry: (items: StoryCarry[]) => void;
   playerXZ: () => { x: number; z: number };
@@ -100,6 +107,15 @@ export type MorningStory = {
   /** The newspaper on the table: its headline, and whether the player read it. */
   paper: string;
   paperRead: boolean;
+  /** The bed scene's pose: phase, tip back in radians, roll, pelvis height over the floor, clip, walked metres. */
+  pose: { phase: string; pitch: number; roll: number; x: number; y: number; z: number; clip: string; frames: number; minOverMattress: number; walked: number };
+  /** The TV picture: on, hash of sampled pixels (changes as it plays), draws so far, texture bound to the screen mesh. */
+  tv: { on: boolean; hash: number; frames: number; bound: boolean; visible: boolean; covered: boolean };
+  /** Voiced lines this room asked for; `heard` once the voice channel went quiet after the line started. */
+  lines: { id: string; at: number; heard: boolean; audio: boolean }[];
+  /** The TV broadcast's audio (cue name, level, nodes live, position) and the room-exit cue (id, level vs the voice). */
+  tvAudio: TvAudioState;
+  roomExit: RoomExitState;
 };
 
 export const ENDING_TRACK = '/assets/audio/ending-6.mp3';
@@ -114,11 +130,10 @@ const MIRROR = { x: 2.35, y: 1.3, z: 2.94 };
 const COAT = { x: 3.45, z: 2.45 };
 /** The newspaper on the coffee table (top at y 0.4) and where he stands to read it. */
 const PAPER = { x: 3.2, y: 0.408, z: -1.3 };
+const PHOTO = { x: 2.85, z: -1.3 };
 const READ_AT = { x: 3.2, z: -0.4 };
 /** How far the front door opens on Leave, in radians. */
 const DOOR_SWING = 1.3;
-/** Where the bot and the marker stand to use the door. */
-const LIE = { x: 5.75, y: 0.64, z: BED.z, yaw: Math.PI / 2 };
 
 const CARRY: StoryCarry[] = [
   { id: 'phone', name: 'Phone', note: 'F. Voss will ring.' },
@@ -219,11 +234,15 @@ export const createTheMorning = (host: MorningHost) => {
   let flags = new Set<string>();
   let tvOn = false;
   let tvBright = 0;
+  let tvHash = 0;
+  let tvFrames = 0;
   let tvSeen: string[] = [];
   let paperMesh: BABYLON.Mesh | null = null;
   let paperText = '';
   let paperRead = false;
   let reading = 0;
+  /** The face-down photo on the table: turned over once, a short caption and a quiet paper sound. */
+  let photoSeen = false;
   let readLine = '';
   let reportSeen = '';
   let snap = { band: 0 as LedgerBand, kills: 0 };
@@ -244,6 +263,7 @@ export const createTheMorning = (host: MorningHost) => {
   let clipEls: Partial<Record<ClipName, HTMLVideoElement>> = {};
   let clipName: ClipName | null = null;
   let drawCount = 0;
+  let lastDt = 0.016;
   let newsT = 0;
   let scenes: number[] = [];
   let coatTaken = false;
@@ -268,9 +288,26 @@ export const createTheMorning = (host: MorningHost) => {
   const owned: (BABYLON.Mesh | BABYLON.Material | BABYLON.BaseTexture)[] = [];
   let tvTexture: BABYLON.DynamicTexture | null = null;
   let tvMaterial: BABYLON.StandardMaterial | null = null;
+  let screenMesh: BABYLON.Mesh | null = null;
+  /** True when a mesh sits between the lens and the screen's centre (the camera ray hits something else first). */
+  const tvCovered = () => {
+    const cam = host.scene.activeCamera;
+    if (!cam || !screenMesh) return false;
+    const from = cam.globalPosition;
+    const to = screenMesh.getAbsolutePosition();
+    const dir = to.subtract(from);
+    const len = dir.length();
+    if (len < 0.1) return false;
+    const hit = host.scene.pickWithRay(new BABYLON.Ray(from, dir.normalize(), len - 0.05), (m) => m.isVisible && m.isEnabled() && m !== screenMesh && m.name !== 'morning-tv-frame' && !m.name.startsWith('morning-tv') && m.getTotalVertices() > 0 && m.visibility > 0.5);
+    return !!hit?.hit;
+  };
   let windowMaterial: BABYLON.StandardMaterial | null = null;
   /** The front door, hinged on its west edge so Leave can swing it open. */
   let door: BABYLON.Mesh | null = null;
+  /** The synthesized TV broadcast, heard from the set while the news scene runs (morningSound.ts). */
+  let broadcast: TvBroadcast | null = null;
+  let anchorWas = false;
+  const stopBroadcast = () => { broadcast?.stop(); broadcast = null; anchorWas = false; };
   let led: BABYLON.StandardMaterial | null = null;
   const lamps: { light: BABYLON.Light; night: number; day: number }[] = [];
 
@@ -279,8 +316,14 @@ export const createTheMorning = (host: MorningHost) => {
     const url = lineAudio(line.id);
     if (url) host.playFile(url, line.volume ?? 0.92);
     lineUntil = time + line.hold;
+    lineLog.push({ id: line.id, at: time, heard: false, audio: !!url });
   };
-
+  /** Every spoken line the room asked for, and whether its voice played out before the scene moved on. */
+  const lineLog: { id: string; at: number; heard: boolean; audio: boolean }[] = [];
+  const markHeard = () => {
+    const last = lineLog[lineLog.length - 1];
+    if (last && !last.heard && time - last.at > 0.5 && !voiceBusy()) last.heard = true;
+  };
   // ---------- The room ----------
   const box = (name: string, cx: number, cy: number, cz: number, w: number, h: number, d: number, material: BABYLON.Material, solid = false) => {
     const mesh = BABYLON.MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, host.scene);
@@ -297,14 +340,18 @@ export const createTheMorning = (host: MorningHost) => {
   const sampleTvBright = (ctx: CanvasRenderingContext2D, W: number, H: number) => {
     let sum = 0;
     let n = 0;
-    for (let y = 24; y < H; y += 48) {
-      for (let x = 24; x < W; x += 64) {
+    let h = 2166136261;
+    for (let y = 9; y < H; y += 18) {
+      for (let x = 11; x < W; x += 32) {
         const d = ctx.getImageData(x, y, 1, 1).data;
         sum += (d[0] + d[1] + d[2]) / 3;
         n += 1;
+        h = Math.imul(h ^ ((d[0] << 16) | (d[1] << 8) | d[2]), 16777619);
       }
     }
     tvBright = n ? sum / n / 255 : 0;
+    tvHash = h >>> 0;
+    tvFrames += 1;
   };
 
   const drawTv = () => {
@@ -317,6 +364,7 @@ export const createTheMorning = (host: MorningHost) => {
       ctx.fillRect(0, 0, W, H);
       tvTexture.update();
       tvBright = 0;
+      tvHash = 0;
       return;
     }
     if (still === 'static') {
@@ -348,53 +396,99 @@ export const createTheMorning = (host: MorningHost) => {
         ctx.fillText(`CAM 02 LOBBY  03:${String(14 + Math.floor(newsT)).padStart(2, '0')}:07`, 10, 40);
       }
     } else {
-    // Still, placeholder drawings while a clip has not loaded.
+    // A code-drawn news broadcast (also the fallback for any footage that fails to load): studio, anchor,
+    // an inset picture for the story, the logo bug, a lower third, a scrolling ticker, a light roll and scanlines.
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, '#0d1626');
-    g.addColorStop(1, '#1d2a40');
+    g.addColorStop(0, '#13213a');
+    g.addColorStop(1, '#223657');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
+    // Studio backdrop: a city wall of lit windows that drift with the programme clock.
+    for (let i = 0; i < 18; i++) {
+      const bx = i * 30 - ((newsT * 6) % 30);
+      ctx.fillStyle = '#0c1424';
+      ctx.fillRect(bx, 70 + (i % 5) * 9, 24, 130);
+      ctx.fillStyle = (i * 7 + Math.floor(newsT / 2)) % 4 === 0 ? '#f2c96b' : '#33507f';
+      for (let wy = 0; wy < 6; wy++) ctx.fillRect(bx + 4 + (wy % 2) * 9, 80 + (i % 5) * 9 + wy * 20, 6, 8);
+    }
+    // The anchor, left of centre, mouth moving while she reads.
+    ctx.fillStyle = '#10151f';
+    ctx.beginPath();
+    ctx.ellipse(130, 252, 82, 62, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = '#c9a88c';
+    ctx.beginPath();
+    ctx.arc(130, 150, 30, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#2a1d17';
+    ctx.beginPath();
+    ctx.arc(130, 140, 32, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = '#6b2b2b';
+    const mouth = 2 + Math.abs(Math.sin(newsT * 9)) * 5;
+    ctx.fillRect(122, 160, 16, mouth);
+    ctx.fillStyle = '#4c5d7d';
+    ctx.fillRect(0, 214, 250, 12);
+    // The inset: a picture for the story, right of the anchor.
+    const px = 262;
+    const py = 44;
+    const pw = 232;
+    const ph = 130;
+    ctx.fillStyle = '#05080e';
+    ctx.fillRect(px - 3, py - 3, pw + 6, ph + 6);
+    const ig = ctx.createLinearGradient(0, py, 0, py + ph);
+    ig.addColorStop(0, '#0d1626');
+    ig.addColorStop(1, '#2a3b5a');
+    ctx.fillStyle = ig;
+    ctx.fillRect(px, py, pw, ph);
     if (still === 'tower' || still === 'police') {
       head = 'HAWKES TOWER';
       ctx.fillStyle = '#0a0f18';
-      ctx.fillRect(190, 30, 120, 200);
-      ctx.fillRect(220, 12, 60, 24);
+      ctx.fillRect(px + 90, py + 8, 52, ph - 8);
+      ctx.fillRect(px + 105, py - 0, 22, 12);
       ctx.fillStyle = '#e9c46a';
-      for (let y = 44; y < 220; y += 14) for (let x = 200; x < 300; x += 18) if ((x * 7 + y * 3) % 5 !== 0) ctx.fillRect(x, y, 8, 6);
+      for (let y = py + 20; y < py + ph - 6; y += 12) for (let x = px + 96; x < px + 138; x += 11) if ((x * 7 + y * 3) % 5 !== 0) ctx.fillRect(x, y, 6, 5);
       if (still === 'police') {
         ctx.fillStyle = Math.floor(newsT * 3) % 2 ? '#d33' : '#37c';
-        ctx.fillRect(60, 200, 40, 14);
-        ctx.fillRect(412, 200, 40, 14);
+        ctx.fillRect(px + 14, py + ph - 14, 34, 10);
+        ctx.fillRect(px + pw - 48, py + ph - 14, 34, 10);
       }
     } else if (still === 'portrait') {
       head = 'PIERCE HAWKES';
       ctx.fillStyle = '#2b3445';
-      ctx.fillRect(176, 28, 160, 190);
+      ctx.fillRect(px + 70, py + 10, 92, ph - 10);
       ctx.fillStyle = '#9b8672';
       ctx.beginPath();
-      ctx.arc(256, 100, 40, 0, Math.PI * 2);
+      ctx.arc(px + 116, py + 48, 24, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#141a26';
-      ctx.fillRect(206, 150, 100, 68);
-      ctx.fillStyle = '#c9ced6';
-      ctx.font = '12px Georgia, serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('FOUNDER AND CHAIRMAN', 256, 232);
-    } else {
+      ctx.fillRect(px + 88, py + 76, 56, ph - 76);
+    } else if (still === 'board') {
       head = 'THE BOARD';
       ctx.fillStyle = '#273247';
-      ctx.fillRect(110, 110, 292, 30);
+      ctx.fillRect(px + 20, py + 70, pw - 40, 18);
       ctx.fillStyle = '#9aa4b6';
-      for (let i = 0; i < 6; i++) ctx.fillRect(122 + i * 48, 78, 28, 34);
+      for (let i = 0; i < 6; i++) ctx.fillRect(px + 30 + i * 32, py + 44, 18, 22);
     }
     }
-    // Headline band, channel bug and the lower third.
+    // Logo bug and the headline band.
     ctx.fillStyle = '#b01c2a';
-    ctx.fillRect(0, 0, W, 24);
+    ctx.fillRect(0, 0, W, 26);
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(18, 13, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#b01c2a';
+    ctx.font = 'bold 11px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('HB', 18, 17);
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 15px Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`MORNING NEWS · ${head}`, 10, 17);
+    ctx.fillText(`MORNING NEWS · ${head}`, 36, 18);
+    ctx.textAlign = 'right';
+    ctx.fillText(`LIVE ${String(6 + Math.floor(newsT / 60)).padStart(2, '0')}:${String(Math.floor(newsT) % 60).padStart(2, '0')}`, W - 10, 18);
+    ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
     ctx.fillRect(W - 66, 28, 56, 20);
     ctx.fillStyle = '#b01c2a';
@@ -402,23 +496,47 @@ export const createTheMorning = (host: MorningHost) => {
     ctx.textAlign = 'center';
     ctx.fillText('HN 6', W - 38, 43);
     ctx.textAlign = 'left';
+    // Lower third: the story, then the ticker that scrolls under it.
+    const lowerIndex = Math.min(NEWS_CAPTIONS.length - 1, Math.max(0, captionsShown - 1));
+    const lower = caption(lowerIndex, variant());
     ctx.fillStyle = 'rgba(0,0,0,0.78)';
-    ctx.fillRect(0, H - 52, W, 52);
+    ctx.fillRect(0, H - 86, W, 86);
     ctx.fillStyle = '#e9c46a';
-    ctx.font = 'bold 20px Arial, sans-serif';
-    // The ticker follows the lower third on screen, so the headline and the clip change together.
-    const tickIndex = Math.max(0, Math.min(TICKERS.length - 1, captionsShown - 1));
+    ctx.fillRect(0, H - 86, 6, 60);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 17px Arial, sans-serif';
+    const words = lower.split(' ');
+    let row = '';
+    let ry = H - 66;
+    for (const w of words) {
+      if (ctx.measureText(`${row}${w}`).width > W - 28 && row) {
+        ctx.fillText(row.trim(), 14, ry);
+        ry += 21;
+        row = '';
+      }
+      row += `${w} `;
+    }
+    ctx.fillText(row.trim(), 14, ry);
+    ctx.fillStyle = '#b01c2a';
+    ctx.fillRect(0, H - 26, W, 26);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 15px Arial, sans-serif';
+    const tickIndex = Math.floor(newsT / 3) % TICKERS.length;
     const tid = tickIndex === 3 ? tickId(variant()) : TICKERS[tickIndex];
     const t = lineText(tid, TICK_FALLBACK[tid] ?? 'HAWKES BIOMEDICAL REMOVES FOUNDER AS CHAIRMAN');
-    ctx.fillText(t, 12, H - 28);
-    ctx.fillStyle = '#fff';
-    ctx.font = '13px Arial, sans-serif';
-    ctx.fillText('LIVE · HAWKES TOWER · PIERCE HAWKES', 12, H - 8);
+    const reel = `${t}   ///   `;
+    const rw = Math.max(80, ctx.measureText(reel).width);
+    const off = (newsT * 70) % rw;
+    for (let x = -off; x < W; x += rw) ctx.fillText(reel, x, H - 8);
     if (!tvSeen.includes(head)) tvSeen.push(head);
     if (!tvSeen.includes(t)) tvSeen.push(t);
     if (vid && clipName && !tvSeen.includes(`clip:${clipName}`)) tvSeen.push(`clip:${clipName}`);
-    // Scanlines and a soft screen glow over the picture, the chrome included.
-    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    if (!tvSeen.includes(lower)) tvSeen.push(lower);
+    // Light roll and scanlines: the picture breathes the way a tube does.
+    const roll = ((newsT * 40) % (H + 60)) - 30;
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(0, roll, W, 30);
+    ctx.fillStyle = 'rgba(0,0,0,0.10)';
     for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
     const glow = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.7);
     glow.addColorStop(0, 'rgba(120,170,255,0.05)');
@@ -614,9 +732,9 @@ export const createTheMorning = (host: MorningHost) => {
     const dark = mat(s, 'morning-dark', 0.07, 0.07, 0.08);
     owned.push(wood, cloth, sheet, dark);
     // Bed: frame, mattress with sheet, pillow, headboard on the east wall.
-    box('morning-bed-frame', BED.x, 0.22, BED.z, 2.3, 0.44, 2.0, wood, true);
-    box('morning-bed-mattress', BED.x, 0.52, BED.z, 2.2, 0.18, 1.9, sheet);
-    box('morning-bed-pillow', 7.55, 0.68, BED.z, 0.5, 0.14, 0.9, mat(s, 'morning-pillow', 0.85, 0.85, 0.82));
+    box('morning-bed-frame', BED.x, 0.18, BED.z, 2.3, 0.36, 2.0, wood, true);
+    box('morning-bed-mattress', BED.x, 0.43, BED.z, 2.2, 0.14, 1.9, sheet);
+    box('morning-bed-pillow', 7.55, 0.57, BED.z, 0.5, 0.14, 0.9, mat(s, 'morning-pillow', 0.85, 0.85, 0.82));
     box('morning-bed-headboard', 7.95, 0.8, BED.z, 0.1, 1.0, 2.1, wood);
     // Nightstand with the landline and a photo frame turned face down.
     box('morning-nightstand', 7.55, 0.3, -0.45, 0.6, 0.6, 0.6, wood, true);
@@ -640,6 +758,9 @@ export const createTheMorning = (host: MorningHost) => {
     tvMaterial.backFaceCulling = false;
     owned.push(tvMaterial);
     const screen = BABYLON.MeshBuilder.CreatePlane('morning-tv-screen', { width: 1.6, height: 0.9 }, s);
+    screenMesh = screen;
+    screen.alwaysSelectAsActiveMesh = true;
+    screen.metadata = { ...(screen.metadata ?? {}), castShadow: false };
     screen.position.set(TV.x, 1.3, TV.z + 0.08);
     // The default plane faces -z; the room looks at it from +z.
     screen.rotation.y = Math.PI;
@@ -665,6 +786,8 @@ export const createTheMorning = (host: MorningHost) => {
     box('morning-sofa', 3.2, 0.3, 0.6, 2.0, 0.6, 0.85, cloth, true);
     box('morning-sofa-back', 3.2, 0.7, 1.0, 2.0, 0.5, 0.2, cloth);
     box('morning-table', 3.2, 0.2, -1.3, 1.1, 0.4, 0.6, wood, true);
+    // A photo lying face down on the table top (bottom on the surface: 0.4 + half its 0.012 thickness).
+    box('morning-photo', PHOTO.x, 0.406, PHOTO.z, 0.22, 0.012, 0.16, dark);
     box('morning-chair', 1.0, 0.25, -1.3, 0.6, 0.5, 0.6, cloth, true);
     // His coat hangs on a hook by the front door, beside the hall mirror.
     box('morning-coat-hook', COAT.x, 1.75, 2.9, 0.34, 0.05, 0.08, dark);
@@ -711,6 +834,7 @@ export const createTheMorning = (host: MorningHost) => {
     freeClips();
     tvTexture = null;
     tvMaterial = null;
+    screenMesh = null;
     paperTex = null;
     paperMesh = null;
     windowMaterial = null;
@@ -754,10 +878,11 @@ export const createTheMorning = (host: MorningHost) => {
 
   const endSleep = () => {
     host.lie(false, 0, 0, 0, 0);
-    host.placePierce(BED_SIDE.x, BED_SIDE.z, BED_SIDE.yaw);
+    host.placePierce(WATCH.x, WATCH.z, Math.PI);
+    host.playClip('rebornidle', true);
     host.fade(0, 0.2);
     setMorning(true);
-    setTv(true, 'static');
+    if (!tvOn) setTv(true, 'static');
     playing = false;
     control();
     beat = 'news';
@@ -768,6 +893,7 @@ export const createTheMorning = (host: MorningHost) => {
 
   const endNews = () => {
     playing = false;
+    stopBroadcast();
     host.fade(0, 0.2);
     host.placePierce(WATCH.x, WATCH.z, Math.PI);
     showClip(null);
@@ -867,49 +993,260 @@ export const createTheMorning = (host: MorningHost) => {
     }
   };
 
-  const stepSleep = () => {
-    if (!flags.has('home')) {
-      flags.add('home');
-      host.fade(1, 1.1);
-      host.placePierce(BED_SIDE.x, BED_SIDE.z, BED_SIDE.yaw);
-      host.playClip('rebornidle', true);
-      say(L_HOME);
+  /**
+   * The bed scene, in phases (each ends on its clock, and a spoken line also waits for its voice, bounded):
+   *   stand    fade up beside the bed, "Home."
+   *   turn     turns his back on the room to face the bed edge
+   *   sitdown  sits on the edge (SitIdle; pelvis lowered with the feet kept on the floor)
+   *   sit      a breath
+   *   recline  lies back and swings round until his head is on the pillow (the view goes dark under it)
+   *   asleep   dark, breathing and one small shift; the morning comes up
+   *   wake     "I slept." / "I don't sleep." with the TV coming on
+   *   situp    sits up on the edge again
+   *   standup  stands, turned toward the TV
+   *   walk     crosses the room to the set at walking pace
+   *   face     squares up to the screen
+   */
+  type SleepPhase = 'stand' | 'turn' | 'sitdown' | 'sit' | 'recline' | 'asleep' | 'wake' | 'situp' | 'standup' | 'walk' | 'face';
+  const SLEEP_ORDER: SleepPhase[] = ['stand', 'turn', 'sitdown', 'sit', 'recline', 'asleep', 'wake', 'situp', 'standup', 'walk', 'face'];
+  const SLEEP_MIN: Record<SleepPhase, number> = { stand: 1.8, turn: 0.8, sitdown: 1.1, sit: 1.0, recline: 2.2, asleep: 5.6, wake: 6.4, situp: 1.8, standup: 1.1, walk: 2.0, face: 0.7 };
+  const STAND_PELVIS = 0.95;
+  const SIT_PELVIS = 0.5;
+  /** Feet on the floor at the bedside, then sitting on the edge (pelvis over the mattress, feet clear of the frame). */
+  const AT_SIDE = { x: BED_SIDE.x, z: BED_SIDE.z };
+  const AT_EDGE = { x: 5.95, z: -0.72, y: 0.54 };
+  const ON_PILLOW = { x: 6.5, y: 0.64, z: BED.z };
+  const YAW_SIT = 0;
+  const YAW_LIE = -Math.PI / 2;
+  const YAW_WEST = -Math.PI / 2;
+  const ease = (k: number) => {
+    const c = Math.min(1, Math.max(0, k));
+    return c * c * (3 - 2 * c);
+  };
+  const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+  let sleepPhase: SleepPhase = 'stand';
+  let sleepT = 0;
+  let poseState = { phase: 'stand' as SleepPhase, pitch: 0, roll: 0, x: 0, y: 0, z: 0, clip: '', frames: 0, minOverMattress: 99, walked: 0 };
+  let sleepClip = '';
+  const sleepClipTo = (clip: string) => {
+    if (sleepClip === clip) return;
+    sleepClip = clip;
+    host.playClip(clip, true);
+  };
+  const sleepLineFor: Partial<Record<SleepPhase, Line>> = { stand: L_HOME };
+  const enterSleepPhase = (next: SleepPhase) => {
+    sleepPhase = next;
+    sleepT = 0;
+    if (next === 'sitdown') {
+      sleepClipTo('sit');
+      host.playFile(PLACE_SFX.bed, 0.4);
+    } else if (next === 'recline') {
+      setMorning(false);
+      setTv(false, 'off');
+      host.fade(0.9, 1.2);
+      host.playFile(PLACE_SFX.bed, 0.5);
+    } else if (next === 'asleep') {
+      sleepClipTo('rebornidle');
+    } else if (next === 'wake') {
+      setMorning(true);
+      host.fade(0, 2.2);
+    } else if (next === 'situp') {
+      sleepClipTo('sit');
+      host.playFile(PLACE_SFX.bed, 0.4);
+    } else if (next === 'standup') {
+      sleepClipTo('rebornidle');
+    } else if (next === 'walk') {
+      sleepClipTo('walk');
+      // Leaving the bed for the room: the old tv-static / door ambience is gone; a soft door and carpet steps instead.
+      if (playSoftDoor({ x: 5.2, y: 1.0, z: 0.9 })) noteRoomExit({ x: 5.2, y: 1.0, z: 0.9 }, 0);
+    } else if (next === 'face') {
+      sleepClipTo('rebornidle');
     }
-    if (time < 1.4) {
-      host.frameCamera({ x: 4.6, y: 1.7, z: 0.5 }, { x: BED.x, y: 0.7, z: BED.z });
-    } else if (time < 6.2) {
-      // Lights out. He lies in the bed in the dark.
-      if (!flags.has('down')) {
-        flags.add('down');
-        setMorning(false);
-        setTv(false, 'off');
-        host.placePierce(LIE.x, LIE.z, LIE.yaw);
-        host.playFile(PLACE_SFX.bed, 0.5);
+    const line = sleepLineFor[next];
+    if (line) say(line);
+  };
+
+  /** Pose the body for this phase and say whether its work is done. */
+  const poseSleep = (): boolean => {
+    const k = ease(sleepT / SLEEP_MIN[sleepPhase]);
+    let pitch = 0;
+    let roll = 0;
+    let yaw = YAW_SIT;
+    let px = 0;
+    let py = 0;
+    let pz = 0;
+    let pel = STAND_PELVIS;
+    // The pelvis path: standing at the bedside, sitting on the edge, on the pillow.
+    const standP = (x: number, z: number) => ({ x, y: STAND_PELVIS, z });
+    switch (sleepPhase) {
+      case 'stand':
+        ({ x: px, y: py, z: pz } = standP(AT_SIDE.x, AT_SIDE.z));
+        yaw = Math.PI;
+        break;
+      case 'turn':
+        ({ x: px, y: py, z: pz } = standP(AT_SIDE.x, AT_SIDE.z));
+        yaw = lerp(Math.PI, YAW_SIT, k);
+        break;
+      case 'sitdown':
+      case 'standup': {
+        const d = sleepPhase === 'sitdown' ? k : 1 - k;
+        px = lerp(AT_SIDE.x, AT_EDGE.x, d);
+        pz = lerp(AT_SIDE.z, AT_EDGE.z, d);
+        py = lerp(STAND_PELVIS, AT_EDGE.y, d);
+        pel = lerp(STAND_PELVIS, SIT_PELVIS, d);
+        yaw = sleepPhase === 'sitdown' ? YAW_SIT : lerp(YAW_WEST, YAW_SIT, d);
+        break;
       }
-      host.lie(true, LIE.x, LIE.y, LIE.z, LIE.yaw);
+      case 'sit': {
+        px = AT_EDGE.x;
+        pz = AT_EDGE.z;
+        pel = SIT_PELVIS;
+        // Breathing out: the pelvis does not move; the shoulders cannot be driven without a clip, so a hair of pitch.
+        py = AT_EDGE.y;
+        pitch = Math.sin(sleepT * 2.2) * 0.012;
+        break;
+      }
+      case 'recline':
+      case 'situp': {
+        const d = sleepPhase === 'recline' ? k : 1 - k;
+        px = lerp(AT_EDGE.x, ON_PILLOW.x, d);
+        pz = lerp(AT_EDGE.z, ON_PILLOW.z, d);
+        py = lerp(AT_EDGE.y, ON_PILLOW.y, d);
+        pel = lerp(SIT_PELVIS, STAND_PELVIS, d);
+        pitch = d * (Math.PI / 2);
+        yaw = lerp(YAW_SIT, YAW_LIE, d);
+        break;
+      }
+      case 'asleep':
+      case 'wake': {
+        px = ON_PILLOW.x;
+        pz = ON_PILLOW.z;
+        pel = STAND_PELVIS;
+        pitch = Math.PI / 2;
+        yaw = YAW_LIE;
+        // Breathing (about 0.22 Hz, a few millimetres) and one small shift of the weight at 2 s.
+        const breath = Math.sin(sleepT * 1.4);
+        py = ON_PILLOW.y + 0.006 * breath;
+        pitch += 0.01 * breath;
+        const shift = sleepPhase === 'asleep' ? Math.max(0, Math.sin(Math.min(1, Math.max(0, (sleepT - 2) / 1.6)) * Math.PI)) : 0;
+        roll = 0.07 * shift;
+        break;
+      }
+      case 'walk': {
+        const from = { x: AT_SIDE.x, z: AT_SIDE.z };
+        px = lerp(from.x, WATCH.x, k);
+        pz = lerp(from.z, WATCH.z, k);
+        py = STAND_PELVIS;
+        yaw = YAW_WEST;
+        break;
+      }
+      case 'face':
+        px = WATCH.x;
+        pz = WATCH.z;
+        py = STAND_PELVIS;
+        yaw = lerp(YAW_WEST, -Math.PI, k);
+        break;
+    }
+    if (sleepPhase === 'walk') {
+      // Walking is on the floor like any other step: placePierce keeps the feet planted and the camera behind him.
+      host.placePierce(px, pz, yaw);
+    } else if (sleepPhase === 'stand' || sleepPhase === 'turn' || sleepPhase === 'face') {
+      host.placePierce(px, pz, yaw);
+    } else {
+      host.poseBody(px, py, pz, yaw, pitch, roll, pel);
+    }
+    // Probe numbers: how far the body's lowest part is above the mattress while he lies (a gap under 0 is a limb in it).
+    const lyingNow = sleepPhase === 'asleep' || sleepPhase === 'wake';
+    poseState = {
+      phase: sleepPhase,
+      pitch,
+      roll,
+      x: px,
+      y: py,
+      z: pz,
+      clip: sleepClip,
+      frames: poseState.frames + 1,
+      minOverMattress: lyingNow ? Math.min(poseState.minOverMattress, py - 0.5) : poseState.minOverMattress,
+      walked: sleepPhase === 'walk' ? Math.hypot(px - AT_SIDE.x, pz - AT_SIDE.z) : poseState.walked,
+    };
+    // Camera: wide on the bed, closer while he lies, then following him across the room.
+    if (sleepPhase === 'walk' || sleepPhase === 'face') {
+      host.frameCamera({ x: Math.min(7.0, px + 1.5), y: 1.5, z: 1.1 }, { x: px - 0.6, y: 1.1, z: pz - 0.5 });
+    } else if (lyingNow || sleepPhase === 'recline' || sleepPhase === 'situp') {
       host.frameCamera({ x: 4.9, y: 1.45, z: -0.9 }, { x: 7.0, y: 0.75, z: BED.z });
     } else {
-      host.lie(true, LIE.x, LIE.y, LIE.z, LIE.yaw);
-      if (!flags.has('wake')) {
-        flags.add('wake');
-        beat = 'wake';
-        setMorning(true);
-        host.fade(0, 2.2);
-        host.frameCamera({ x: 4.9, y: 1.45, z: -0.9 }, { x: 7.0, y: 0.75, z: BED.z });
+      host.frameCamera({ x: 4.6, y: 1.7, z: 0.5 }, { x: BED.x - 0.4, y: 0.7, z: BED.z + 0.4 });
+    }
+    // Phase work that depends on the clock inside the phase.
+    if (sleepPhase === 'asleep' && sleepT > 2.4 && !flags.has('dawn')) {
+      flags.add('dawn');
+      host.fade(0, 2.4);
+      setMorning(true);
+    }
+    if (sleepPhase === 'recline' && k > 0.5) sleepClipTo('rebornidle');
+    // Soft carpet steps while he crosses the room (the walk is scripted, so the stride clock does not run).
+    if (sleepPhase === 'walk') {
+      const due = Math.min(4, Math.floor(sleepT / 0.55) + (sleepT > 0.2 ? 1 : 0));
+      while ((stepsPlayed as number) < due) {
+        stepsPlayed += 1;
+        host.playFile(`/assets/audio/sfx/step/carpet-${1 + (stepsPlayed % 4)}.ogg`, 0.28, { x: px, y: 0.1, z: pz });
+        noteRoomExit({ x: px, y: 0.1, z: pz }, 1);
       }
-      if (time > 7.2 && !flags.has('slept')) {
+    } else stepsPlayed = 0;
+    if (sleepPhase === 'wake') {
+      if (sleepT > 1.2 && !flags.has('slept')) {
         flags.add('slept');
         say(L_SLEPT);
-      } else if (time > 10 && !flags.has('dont')) {
+        waitFrom = sleepT;
+      } else if (flags.has('slept') && !flags.has('dont') && lineClear(L_SLEPT, 0.5)) {
         flags.add('dont');
         say(L_DONT);
-      } else if (time > 13.2 && !flags.has('tv')) {
+        waitFrom = sleepT;
+      } else if (flags.has('dont') && !flags.has('tv') && lineClear(L_DONT, 0.4)) {
         flags.add('tv');
+        // Picture only: the set's sound is the broadcast (morningSound.ts), not the old static burst.
         setTv(true, 'static');
-        host.playFile(PLACE_SFX.tvStatic, 0.3);
+        waitFrom = sleepT;
       }
+      // Done once both lines have played out and the set has been on for a moment.
+      return flags.has('tv') && sleepT > waitFrom + 1.2;
     }
-    if (time > 15) endSleep();
+    return sleepT >= SLEEP_MIN[sleepPhase] && (sleepPhase !== 'stand' || lineClear(L_HOME, 0));
+  };
+  let waitFrom = 0;
+  let stepsPlayed = 0;
+  /** True once the line has had its time and its voice is over (never waits more than 6 s past it). */
+  const lineClear = (line: Line, extra: number) => {
+    const since = sleepT - waitFrom;
+    if (since < Math.max(line.hold, 0.4) + extra) return since > line.hold + 6;
+    return !voiceBusy() || since > line.hold + 6;
+  };
+
+  const stepSleep = () => {
+    if (!flags.has('begin')) {
+      flags.add('begin');
+      sleepPhase = 'stand';
+      sleepT = 0;
+      waitFrom = 0;
+      sleepClip = '';
+      poseState = { ...poseState, frames: 0, minOverMattress: 99, walked: 0 };
+      host.fade(1, 0);
+      host.fade(0, 1.1);
+      host.placePierce(AT_SIDE.x, AT_SIDE.z, Math.PI);
+      sleepClipTo('rebornidle');
+      beat = 'sleep';
+      enterSleepPhase('stand');
+    }
+    sleepT += lastDt;
+    if (poseSleep()) {
+      const i = SLEEP_ORDER.indexOf(sleepPhase);
+      if (i === SLEEP_ORDER.length - 1) {
+        endSleep();
+        return;
+      }
+      enterSleepPhase(SLEEP_ORDER[i + 1]);
+    }
+    if (sleepPhase === 'wake' || sleepPhase === 'situp' || sleepPhase === 'standup' || sleepPhase === 'walk' || sleepPhase === 'face') beat = 'wake';
   };
 
   const stepNews = () => {
@@ -925,7 +1262,7 @@ export const createTheMorning = (host: MorningHost) => {
       host.placePierce(WATCH.x, WATCH.z, Math.PI);
       host.playClip('rebornidle', true);
       setTv(true, 'static');
-      host.playFile(PLACE_SFX.newsSting, 0.4);
+      broadcast = startTvBroadcast({ x: TV.x, y: 1.0, z: TV.z });
     }
     // Captions in order; the first one lands as the programme's opening sting ends.
     let at = 2.4;
@@ -964,6 +1301,15 @@ export const createTheMorning = (host: MorningHost) => {
       const aspect = eng.getRenderWidth() / Math.max(1, eng.getRenderHeight());
       const fit = Math.min(2.55, Math.max(1.2, 1.15 / (0.4228 * Math.max(0.3, aspect)) - 4.15 + 1.2));
       host.frameCamera({ x: 4.1 + (fit - 1.2) * 0.1, y: 1.55, z: Math.min(fit, 2.55) }, { x: TV.x, y: 1.3, z: TV.z });
+    }
+    if (broadcast) {
+      // The anchor stand-in murmurs only while no recorded take reads the line, and never over a voice.
+      const recorded = shown >= 0 && !!lineAudio(captionKey(shown, variant()));
+      const murmur = shown >= 0 && !flags.has('without') && !recorded && !voiceBusy();
+      if (murmur !== anchorWas) {
+        anchorWas = murmur;
+        broadcast.setAnchor(murmur);
+      }
     }
     if (shown >= 0 && shown + 1 > captionsShown) {
       captionsShown = shown + 1;
@@ -1023,7 +1369,7 @@ export const createTheMorning = (host: MorningHost) => {
     // The door swings open into the room and the hall behind it is dawn.
     if (time >= 0.5 && !flags.has('door-sound')) {
       flags.add('door-sound');
-      host.playFile(PLACE_SFX.door, 0.6);
+      host.playFile(PLACE_SFX.door, 0.35, { x: DOOR.x, y: 1.0, z: DOOR.z });
     }
     const t = Math.min(1, Math.max(0, (time - 0.5) / 1.4));
     if (door) door.rotation.y = DOOR_SWING * t * t * (3 - 2 * t);
@@ -1069,6 +1415,7 @@ export const createTheMorning = (host: MorningHost) => {
       if (beat === 'news' && near({ x: TV.x, z: -1.2 }, 1.9)) return lineText('ui.action.morning.watch', 'Watch');
       if (beat === 'out' && near(COAT, 1.1)) return lineText('ui.action.morning.coat', 'Take coat');
       if (beat === 'door' && near(DOOR, 1.3)) return lineText('ui.action.morning.leave', 'Leave');
+      if ((beat === 'home' || beat === 'news' || beat === 'call' || beat === 'out') && !photoSeen && near(PHOTO, 0.75)) return lineText('ui.action.morning.photo', 'Turn the photo');
       if ((beat === 'call' || beat === 'out') && !reading && !paperRead && near(READ_AT, 1.1)) return lineText('ui.action.morning.paper', 'Read the paper');
       return null;
     },
@@ -1091,6 +1438,13 @@ export const createTheMorning = (host: MorningHost) => {
         beginScene('leaving');
         return true;
       }
+      if ((beat === 'home' || beat === 'news' || beat === 'call' || beat === 'out') && !photoSeen && near(PHOTO, 0.75)) {
+        photoSeen = true;
+        host.playFile(PLACE_SFX.paper, 0.3, { x: PHOTO.x, y: 0.4, z: PHOTO.z });
+        host.showLine('Pierce', lineText('bark.morning.photo', 'I left it face down. I know whose it is.'));
+        lineUntil = time + 3.5;
+        return true;
+      }
       if ((beat === 'call' || beat === 'out') && !reading && !paperRead && near(READ_AT, 1.1)) {
         beginRead();
         return true;
@@ -1106,7 +1460,7 @@ export const createTheMorning = (host: MorningHost) => {
     },
     story: (): MorningStory => ({
       beat,
-      lying: flags.has('down') && (beat === 'sleep' || beat === 'wake'),
+      lying: playing && (sleepPhase === 'asleep' || sleepPhase === 'wake') && (beat === 'sleep' || beat === 'wake') && flags.has('begin'),
       tvOn,
       tvBright,
       tvText: tvSeen.join(' | '),
@@ -1122,8 +1476,21 @@ export const createTheMorning = (host: MorningHost) => {
       report: reportSeen,
       paper: paperText,
       paperRead,
+      pose: { ...poseState, phase: playing && flags.has('begin') ? sleepPhase : 'none' },
+      tv: {
+        on: tvOn,
+        hash: tvHash,
+        frames: tvFrames,
+        bound: !!(tvMaterial && tvTexture && tvMaterial.emissiveTexture === tvTexture && screenMesh?.material === tvMaterial),
+        visible: !!screenMesh && screenMesh.isEnabled() && screenMesh.isVisible,
+        covered: tvCovered(),
+      },
+      lines: lineLog.map((l) => ({ ...l })),
+      tvAudio: broadcast ? broadcast.state() : tvAudioState(),
+      roomExit: roomExitState(),
     }),
     dispose: () => {
+      stopBroadcast();
       active = false;
       playing = false;
       prepared = false;
@@ -1165,6 +1532,7 @@ export const createTheMorning = (host: MorningHost) => {
       host.setPush(0);
       if (hookCoat) hookCoat.setEnabled(true);
       paperRead = false;
+      photoSeen = false;
       reading = 0;
       reportSeen = '';
       readLedger();
@@ -1182,10 +1550,12 @@ export const createTheMorning = (host: MorningHost) => {
     step: (delta: number) => {
       if (!active || beat === 'done') return;
       const dt = Math.min(0.05, Math.max(0, delta));
+      lastDt = dt;
       time += dt;
       blink += dt;
       if (led) led.emissiveColor = new BABYLON.Color3(blink % 1 < 0.5 ? 0.9 : 0.1, 0.05, 0.05);
       refreshMirror();
+      markHeard();
       if (playing) {
         if (beat === 'ride' || beat === 'walk') stepIntro();
         else if (beat === 'sleep' || beat === 'wake') stepSleep();
@@ -1214,7 +1584,8 @@ export const createTheMorning = (host: MorningHost) => {
           return;
         }
         // Free play. Static on the TV flickers; the first line comes once control is his.
-        if (tvOn && still === 'static') {
+        if (tvOn) {
+          newsT += dt;
           tvClock += dt;
           if (tvClock > 0.12) {
             tvClock = 0;

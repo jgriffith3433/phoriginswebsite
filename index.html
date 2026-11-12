@@ -2,236 +2,47 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#05080c" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="theme-color" content="#020a04" />
     <meta
       name="description"
-      content="PH Origins is a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark."
+      content="PH Origins is a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark. This front page is the Hawkes gateway terminal: follow the guide, get root, build the backend."
     />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <title>PH Origins</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./site/marketing.css" />
+    <link rel="stylesheet" href="./site/terminal/terminal.css" />
     <!-- Hawkes Analytics (anonymous, no cookies): the build from the last game build, then the SDK from Hawkes Gen. -->
     <script src="./play/hawkes-build.js" defer></script>
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" data-product="phorigins" defer></script>
   </head>
   <body data-page="home">
-    <a class="skip" href="#content">Skip to content</a>
-
-    <header class="nav">
-      <div class="nav-inner">
-        <a class="brand" href="./index.html">
-          <svg viewBox="0 0 256 256" aria-hidden="true">
-            <path d="M72 176L128 52l56 124H72zm28-18h60L128 94l-28 64z" fill="#67d2ff" />
-            <circle cx="128" cy="86" r="20" fill="#7af0c9" />
-          </svg>
-          PH Origins
-        </a>
-        <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="nav-links">
-          Menu
-        </button>
-        <nav class="nav-links" id="nav-links" aria-label="Primary">
-          <a href="./index.html" data-nav="home">Home</a>
-          <a href="./about.html" data-nav="about">About</a>
-          <a href="./characters.html" data-nav="characters">Characters</a>
-          <a href="./lore.html" data-nav="lore">Lore</a>
-        </nav>
-        <div class="nav-tools">
-          <button type="button" class="music-btn" id="musicBtn" aria-pressed="false" aria-label="Play music">
-            <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 10v4h3l4 3V7L7 10H4z" />
-              <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-              <path d="M18 6a8.5 8.5 0 0 1 0 12" />
-            </svg>
-            <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 10v4h3l4 3V7L7 10H4z" />
-              <path d="M16 9l5 6M21 9l-5 6" />
-            </svg>
-          </button>
-          <a class="nav-play" data-play href="./play/game.html">Play</a>
-        </div>
+    <a class="skip" href="#termInput">Skip to the terminal</a>
+    <div id="app">
+      <h1 class="sr-only">PH Origins: gateway console</h1>
+      <main id="screen" aria-label="Terminal">
+        <div id="termLog" role="log" aria-live="polite" aria-relevant="additions" aria-label="Terminal output"></div>
+        <form id="termForm" class="promptrow" autocomplete="off">
+          <label id="termPrompt" class="prompt" for="termInput">guest@ph-origins:~$</label>
+          <div class="inputwrap">
+            <span id="termMirror" aria-hidden="true"></span>
+            <input id="termInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text" aria-label="Terminal command" />
+          </div>
+        </form>
+        <noscript>
+          <p class="line">The Hawkes gateway terminal lives here and needs JavaScript. Without it: <a href="./play/game.html">play the game</a>, read <a href="./about.html">about</a>, meet <a href="./characters.html">the cast</a>, or read <a href="./lore.html">the lore</a>.</p>
+        </noscript>
+      </main>
+      <div class="tapbar" role="toolbar" aria-label="Quick keys">
+        <button type="button" data-act="help">help</button>
+        <button type="button" data-act="ls">ls</button>
+        <button type="button" data-act="hint">hint</button>
+        <button type="button" data-act="tab" aria-label="Tab (complete)">Tab</button>
+        <button type="button" data-act="up" aria-label="Previous command">&uarr;</button>
+        <button type="button" data-act="down" aria-label="Next command">&darr;</button>
+        <button type="button" data-act="ctrlc" aria-label="Control C (cancel)">^C</button>
       </div>
-    </header>
-
-    <main id="content">
-      <section class="hero" aria-label="Introduction">
-        <div class="stage" aria-hidden="true">
-          <div class="stage-shot" id="shotA"></div>
-          <div class="stage-shot" id="shotB"></div>
-          <video class="stage-loop" data-hero-loop autoplay muted loop playsinline webkit-playsinline preload="auto" disablepictureinpicture disableremoteplayback poster="./site/hero-loop.jpg?v=2" aria-hidden="true"><source src="./site/hero-loop.mp4?v=2" type="video/mp4"></video>
-          <script>
-            // The hero's muted gameplay loop. Reduced motion keeps the still poster. Phones in Low Power Mode or data
-            // saver refuse autoplay until the visitor does something, so it asks again on every tap, click, key, scroll
-            // and return to the tab (only a tap's touchend/pointerup/click counts as a gesture on iOS, not touchstart)
-            // until it is actually playing.
-            (function () {
-              var v = document.querySelector('[data-hero-loop]');
-              if (!v) return;
-              if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
-                v.removeAttribute('autoplay');
-                v.pause();
-                return;
-              }
-              v.muted = true;
-              v.defaultMuted = true;
-              v.setAttribute('muted', '');
-              var types = ['touchend', 'pointerup', 'click', 'keydown', 'scroll'];
-              var play = function () {
-                if (!v.paused) return;
-                if (v.readyState === 0) v.load();
-                var p = v.play();
-                if (p && p.catch) p.catch(function () {});
-              };
-              var stop = function () {
-                types.forEach(function (type) { window.removeEventListener(type, play, true); });
-              };
-              types.forEach(function (type) { window.addEventListener(type, play, { capture: true, passive: true }); });
-              v.addEventListener('playing', stop);
-              document.addEventListener('visibilitychange', function () {
-                if (!document.hidden) play();
-              });
-              window.addEventListener('pageshow', play);
-              play();
-            })();
-          </script>
-          <div class="stage-vignette"></div>
-        </div>
-        <div class="hero-copy">
-          <p class="eyebrow">Hawkes Biomedical</p>
-          <h1 class="display">PH Origins</h1>
-          <p class="lede">
-            Pierce Hawkes sells dominance from the 58th floor. Below the tower, B3 has started writing back.
-          </p>
-          <div class="actions">
-            <a class="play-btn" data-play href="./play/game.html">Play now</a>
-            <a class="text-link" href="./about.html">About the game</a>
-          </div>
-        </div>
-      </section>
-
-      <section class="band band-tight" aria-labelledby="film-title">
-        <div class="wrap-wide">
-          <p class="film-note" id="film-title">
-            The tower belongs to <a href="https://hawkesbiomedical.com">Hawkes Biomedical</a>, the parent company.
-          </p>
-          <div class="frame">
-            <iframe
-              src="https://www.youtube-nocookie.com/embed/_pqt7CLaN5Y?rel=0&modestbranding=1&playsinline=1"
-              title="PH Origins"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
-              referrerpolicy="strict-origin-when-cross-origin"
-            ></iframe>
-          </div>
-        </div>
-      </section>
-
-      <section class="band" aria-labelledby="night-title">
-        <div class="wrap-wide">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Act I</p>
-              <h2 class="section-title" id="night-title">One night in the tower</h2>
-            </div>
-            <a class="text-link" href="./about.html">Read the story</a>
-          </div>
-          <div class="beats">
-            <a class="beat" href="./about.html#board">
-              <div class="beat-media">
-                <img src="./assets/landing/bg-3.jpg" alt="The board seated along a long table under a blue hologram, city lights behind the glass." />
-              </div>
-              <div class="beat-body">
-                <p class="kicker">01 — The Apex Peak</p>
-                <h3>Room for Grace</h3>
-                <p>A meeting about market ownership. The basement is the thing nobody puts on the slide.</p>
-              </div>
-            </a>
-            <a class="beat" href="./about.html#glass">
-              <div class="beat-media">
-                <img src="./assets/landing/Man_gazing_at_city_skyline_20261007170747.jpg" alt="Pierce Hawkes standing at the office glass, looking out over a night city." />
-              </div>
-              <div class="beat-body">
-                <p class="kicker">02 — The glass</p>
-                <h3>Fifty-eight</h3>
-                <p>The board files out. Pierce stays at the window until the next room starts screaming.</p>
-              </div>
-            </a>
-            <a class="beat" href="./about.html#basement">
-              <div class="beat-media">
-                <img src="./assets/landing/Man_standing_in_elevator_20261007172913.jpg" alt="Pierce in profile inside an elevator stopped on floor 58, with B3 lit on the panel." />
-              </div>
-              <div class="beat-body">
-                <p class="kicker">03 — B3</p>
-                <h3>The ride down</h3>
-                <p>He does not send a team. The cab drops past the lobby, toward the floor he ordered dark.</p>
-              </div>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section class="band" aria-labelledby="cast-title">
-        <div class="wrap-wide">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">The table</p>
-              <h2 class="section-title" id="cast-title">Who is in the room</h2>
-            </div>
-            <a class="text-link" href="./characters.html">The cast</a>
-          </div>
-          <div class="cast">
-            <a class="cast-card" href="./characters.html#pierce">
-              <p class="kicker">Chairman</p>
-              <h3>Pierce Hawkes</h3>
-              <p>Head of the table. He keeps B3 off the books until the books start keeping him.</p>
-            </a>
-            <a class="cast-card" href="./characters.html#hale">
-              <p class="kicker">Director</p>
-              <h3>Hale</h3>
-              <p>The street, the quarter, the number that dies in public if the basement leaks.</p>
-            </a>
-            <a class="cast-card" href="./characters.html#voss">
-              <p class="kicker">The charter</p>
-              <h3>Voss</h3>
-              <p>Still calls them patients. Pierce has already decided they are the product.</p>
-            </a>
-            <a class="cast-card" href="./characters.html#lang">
-              <p class="kicker">The timeline</p>
-              <h3>Lang</h3>
-              <p>Zurich wants a date. Lang is the one who has to walk in with one.</p>
-            </a>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <footer>
-      <div class="wrap-wide site-footer">
-        <span>Hawkes Tower — 58th floor</span>
-        <nav aria-label="Footer">
-          <a href="./about.html">About</a>
-          <a href="./characters.html">Characters</a>
-          <a href="./whatsnew.html">What&rsquo;s new</a>
-          <a data-play href="./play/game.html">Play</a>
-        </nav>
-        <a class="footer-version" href="./whatsnew.html" data-hawkes-version data-prefix="Version " hidden></a>
-        <p class="hawkes-credit">
-          <a href="https://hawkesbiomedical.com" target="_blank" rel="noopener" data-hawkes-credit="parent">A <strong>Hawkes Biomedical</strong> company</a>
-          <span class="hawkes-credit-sep" aria-hidden="true">&middot;</span>
-          <a href="https://hawkesgen.ai" target="_blank" rel="noopener" data-hawkes-credit="gen">Powered by <strong>HAWKES GEN</strong></a>
-        </p>
-        <p class="site-privacy">This site collects anonymous gameplay statistics to improve the game: no cookies, no personal data, no IP address stored.</p>
-      </div>
-    </footer>
-
-    <audio id="landingAudio" src="./assets/audio/landing-page-song.mp3" loop preload="metadata" playsinline></audio>
-    <script src="./site/marketing.js" defer></script>
+    </div>
+    <script type="module" src="./site/terminal/main.js"></script>
     <script src="./site/hawkes-release.js" data-releases="./releases.json" defer></script>
     <script>
       // Hawkes Studio's playtest bot opens the site's front page and waits for window.hawkesPlaytest. The game (and
@@ -290,7 +101,9 @@
           { id: 'level-7-release', title: 'The Station Continue enters The Train; End Level only after the story, then the station song and level 7 credits; Continue and Exit; Load Level lists it', seconds: 480, tags: ['level'] },
           { id: 'level-7', title: 'Level 7, The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door, then the end song and credits', seconds: 240, tags: ['level'] },
           { id: 'lore-link', title: 'Finish level 4 and unlock its lore entry, open its Read more page, check every lore page has Play this level', seconds: 200, tags: ['level', 'site'] },
-          { id: 'site-links', title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged', seconds: 60, tags: ['menus', 'site'] },
+          { id: 'site-links', title: 'Hawkes Gen credit on every site page except the terminal home, About lists levels 1-7 playable, the game screen unchanged', seconds: 60, tags: ['menus', 'site'] },
+          { id: 'terminal', title: 'Terminal landing page: boot to prompt, /help, solve the three-step chain from the clues, root, /build as a three-act show (log flood, song, a hand-drawn ASCII dance for Jackson and Jordan; nothing skips it) to BUILD SUCCESSFUL, game opens the game; no console errors', seconds: 220, tags: ['site', 'first-minute', 'ui'] },
+          { id: 'terminal-phone', title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot, the /build dance show with both dancers visible', seconds: 90, tags: ['site', 'phone', 'ui'] },
           { id: 'frame-trace', title: 'Frame-time trace on all eight levels (desktop and phone): hitch counts, worst causes, no post-grace frame over 100 ms', seconds: 420, tags: ['smoke', 'perf'] },
           { id: 'first-five', title: 'First five: Tap to play goes straight into a playable B3 hall (flashlight on, creature on screen), then "Six hours earlier." and the title; warm under Tap to play; hitchFailOver100', seconds: 120, tags: ['ftue', 'first-minute', 'perf'] },
           { id: 'quiet-light', title: 'Quiet chapters light: Morning sun shafts + TV spill, Desk lamp long shadows + mirror text, Return buzzing tube (options.phone: 390x844 Low shafts ≥30 fps)', seconds: 420, tags: ['level', 'feel', 'phone', 'quality'] }

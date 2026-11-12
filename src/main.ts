@@ -3416,14 +3416,24 @@ const morning: TheMorning = createTheMorning({
   scene,
   placePierce,
   lie: (on, x, y, z, yaw) => {
-    // Flat on his back, head toward the pillow; standing again restores the upright pose.
-    playerAvatar.group.rotation.x = on ? -Math.PI / 2 : 0;
+    // Standing again restores the upright pose (the bed scene poses the body itself with poseBody).
+    playerAvatar.group.rotation.x = on ? Math.PI / 2 : 0;
+    playerAvatar.group.rotation.z = 0;
     if (on) {
       playerAvatar.group.position.set(x, y, z);
       playerAvatar.group.rotation.y = yaw + Math.PI;
     }
   },
-  playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
+  poseBody: (x, y, z, yaw, pitch, roll, pelvis) => {
+    // The avatar's forward is local -z, so a positive rotation.x tips the head to local +z: back onto the bed.
+    const g = playerAvatar.group;
+    g.rotation.set(pitch, yaw + Math.PI, roll);
+    g.position.set(0, 0, 0);
+    g.computeWorldMatrix(true);
+    const w = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(0, pelvis, 0), g.getWorldMatrix());
+    g.position.set(x - w.x, y - w.y, z - w.z);
+  },
+  playClip: (clip, loop, speed) => playerAvatar.playClip(clip, loop, speed),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
@@ -3455,7 +3465,7 @@ const morning: TheMorning = createTheMorning({
   clearMarker: () => objectiveMarker.setTarget(null),
   showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
   setObjective,
-  playFile: (url, volume) => { audio.play(url, volume); },
+  playFile: (url, volume, at) => { audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined); },
   setWalk: (moving) => audio.setWalk(moving),
   setCarry: (items) => { storyCarry = items; },
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
