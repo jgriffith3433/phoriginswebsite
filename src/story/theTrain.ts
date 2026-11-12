@@ -69,6 +69,18 @@ export type TheTrainHost = {
   power?: (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'train-stop',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
   ringCall: (id: string) => void;
@@ -724,6 +736,7 @@ export const createTheTrain = (host: TheTrainHost) => {
     playing = false;
     host.showLine('', '');
     host.setWalk(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     host.holdScene(false);
     // playClip locks cinematic. Calling it after resume leaves him sliding in idle.
@@ -814,7 +827,37 @@ export const createTheTrain = (host: TheTrainHost) => {
     host.refreshHud();
   };
 
-  const stopShot = () => host.frameCamera({ x: 7.6, y: 1.78, z: -1.05 }, { x: STOP_DOOR.x + 0.2, y: 1.2, z: 1.25 });
+  const stopShot = (dt = 0.016) => {
+    if (host.stepCineScene) {
+      const spk = said.has(L_BACK.id) || said.has(L_WAIT.id)
+        ? 'Pierce'
+        : said.has(L_NIGHT.id) || said.has(L_MINE.id)
+          ? 'OldBody'
+          : 'Pierce';
+      const lineKey = said.has(L_BACK.id)
+        ? L_BACK.id
+        : said.has(L_WAIT.id)
+          ? L_WAIT.id
+          : said.has(L_NIGHT.id)
+            ? L_NIGHT.id
+            : said.has(L_MINE.id)
+              ? L_MINE.id
+              : said.has(L_STOP.id)
+                ? L_STOP.id
+                : 'train.stop';
+      const spkPos = spk === 'OldBody' && double && !double.gone
+        ? { x: double.mesh.position.x, y: 1.38, z: double.mesh.position.z }
+        : { x: 7.3, y: 1.44, z: -0.35 };
+      host.stepCineScene('train-stop', sceneTime, dt, {
+        applyCamera: true,
+        speaker: spk,
+        lineKey,
+        speakerPosOverride: spkPos,
+      });
+      return;
+    }
+    host.frameCamera({ x: 7.6, y: 1.78, z: -1.05 }, { x: STOP_DOOR.x + 0.2, y: 1.2, z: 1.25 });
+  };
 
   const beginStop = () => {
     beat = 'stop';
@@ -858,7 +901,7 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const stepStop = (dt: number) => {
     sceneTime += dt;
-    stopShot();
+    stopShot(dt);
     const speed = host.car()?.speed() ?? 0;
     if (speed < 7.5) cue(L_STOP, 0.4);
     if (openedAt < 0 && (speed < 0.3 || sceneTime > 12)) {

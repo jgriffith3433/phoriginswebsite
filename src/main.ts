@@ -2961,6 +2961,16 @@ act = createAct1({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
     cinecam.stepScene(sceneId, atSeconds, dt, opts);
   },
   endCineScene: (clearCam = true) => {
@@ -3072,6 +3082,16 @@ const home: GoingHome = createGoingHome({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
     cinecam.stepScene(sceneId, atSeconds, dt, opts);
   },
   endCineScene: (clearCam = true) => {
@@ -3135,6 +3155,16 @@ const desk: TheDesk = createTheDesk({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
     cinecam.stepScene(sceneId, atSeconds, dt, opts);
   },
   endCineScene: (clearCam = true) => {
@@ -3204,6 +3234,16 @@ const station: TheStation = createTheStation({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
     cinecam.stepScene(sceneId, atSeconds, dt, opts);
   },
   endCineScene: (clearCam = true) => {
@@ -3240,6 +3280,16 @@ const morning: TheMorning = createTheMorning({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
     cinecam.stepScene(sceneId, atSeconds, dt, opts);
   },
   endCineScene: (clearCam = true) => {
@@ -3346,6 +3396,16 @@ const train: TheTrain = createTheTrain({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
     cinecam.stepScene(sceneId, atSeconds, dt, opts);
   },
   endCineScene: (clearCam = true) => {
