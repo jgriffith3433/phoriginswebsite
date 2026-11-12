@@ -33,11 +33,43 @@ test('parser: did you mean', () => {
   assert.match(run(sh, 'hlep'), /command not found[\s\S]*help/);
 });
 
-test('help lists at least 15 commands, with or without a slash', () => {
+const cmdLines = (txt) => txt.split('\n').filter((l) => /^ {2}\/?[a-z]+( all)? {2,}\S/.test(l));
+
+test('help is short: the guide plus at most 8 command lines, with or without a slash', () => {
   const sh = mk();
   const a = run(sh, '/help');
-  assert.ok(a.split('\n').filter((l) => /^ {2}\/?[a-z]+ {2,}\S/.test(l)).length >= 15);
+  assert.match(a, /LOGIN GUIDE/);
+  assert.ok(cmdLines(a).length <= 8 && cmdLines(a).length >= 5, a);
+  assert.ok(!/\/status|\/deploy|cowsay|\/logs|\/services|\/rollback/.test(a), 'root-only or joke commands leaked into guest help');
+  assert.match(a, /help all/);
+  assert.ok(a.split('\n').length <= 18, 'must fit a phone screen');
   assert.equal(run(sh, 'help'), a);
+});
+
+test('help as root: /build first, at most 8 command lines, and a "more: help all" line', () => {
+  const sh = mk();
+  sh.user = 'root';
+  const a = run(sh, 'help');
+  const cmds = cmdLines(a);
+  assert.ok(cmds.length <= 8, a);
+  assert.match(cmds[0], /^ {2}\/build/);
+  assert.match(a, /more: help all/);
+  assert.ok(!/cowsay|\/status/.test(a));
+});
+
+test('help all lists every registered command, and man works for each', async () => {
+  const { COMMANDS } = await import('../shell.js');
+  for (const who of ['guest', 'root']) {
+    const sh = mk();
+    sh.user = who;
+    const all = run(sh, '/help all');
+    assert.equal(run(sh, 'help all'), all);
+    for (const [n, c] of Object.entries(COMMANDS)) {
+      if (c.secret) continue;
+      assert.ok(new RegExp(`^ {2}${c.root ? '/' : ''}${n} {2,}`, 'm').test(all), `help all misses ${n}`);
+      assert.doesNotMatch(run(sh, `man ${n}`), /No manual entry/, n);
+    }
+  }
 });
 
 test('tab completion: commands and paths', () => {
