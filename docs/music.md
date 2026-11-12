@@ -84,6 +84,14 @@ Stingers 1-5 below, plus the three above, are the eight.
 
 Each is logged as an `events` entry of kind `stinger`, and ducks under voice like the stems.
 
+## Layered ambience (not the score)
+
+Each chapter also keeps a living SFX bed: the level music-trigger loop plus randomised 3D one-shots
+(`src/game/chapterAmbience.ts`, probe `sound().ambience`, playtest `layered-ambience`). Spots pause during
+cutscenes and when the bed is ducked (mirror look). Score silences above do **not** mute the ambience bed
+except where the bed itself is ducked. Low tier / phone: at most 4 live spots. Station and Train PA lines
+live in `locales/en.json` (`pa.station.*`, `pa.train.*`) and fire from `theStation.ts` / `theTrain.ts`.
+
 ## Open
 
 Stems are still not generated. Theme (90 s), corrupted theme (90 s), Voss motif (30 s) and the 8 stingers (6.5 s, faded) are in `assets/audio/music/` as Ogg Vorbis, made with Gen `audio.music`, looped with `audio.music-loop` and levelled with `audio.process`.

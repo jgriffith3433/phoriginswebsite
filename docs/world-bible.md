@@ -252,8 +252,9 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   Hale's standing silhouette through the board doorway flinches Pierce (*Exists*, `apexBoardHall`, beat 35); the alarm
   and red monitor; the board's departure; hall 2 practicals flicker (*Exists*, `apexSlice`); the city 205 m below moves;
   the cleaner walk (*Exists*, beat 29).
-- **Sound:** room-tone 0.14; HVAC; phone tones; alarm loop 0.46; cab hum 0.5; chimes; cart wheels, sofa creak, skyline,
-  screen tap, troffer flicker, door-locked (`locales/sfx.json` apex group).
+- **Sound:** bed `office-night.ogg` 0.14; layered spots (`src/game/chapterAmbience.ts`): HVAC, distant phones,
+  printers, elevator dings, low office walla, troffer flicker, skyline, glass tick. Phone tones; alarm 0.46; cab hum;
+  cart wheels, sofa creak, screen tap, door-locked (`locales/sfx.json` apex / ambience groups).
 - **Changes:** the valuation screen's number ticks down on each tap; the monitor goes dark; by level 4 the papers are
   on the floor and the room is bright.
 - **Gap budget:** hall 1: desk person + locked door + board murmur + sconces; hall 2: cleaner and cart + art + flicker +
@@ -266,7 +267,8 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   drawer for a keycard (**new**).
 - **Own events:** the creature hunts and rests; pipes knock; steam bursts at the drops; light dips on a rush; red edge
   flash; a gurney wheel squeals when he passes (**new**); one halogen fails every ~40 s.
-- **Sound:** `b3-drone`, drips, skitter, breath, hiss, heartbeat when near, chitter.
+- **Sound:** bed `b3-drone.ogg`; layered spots: drips, pipe groans, distant machinery, fluorescent buzz, radio
+  crackle, knock, scrape, glass tick (`chapterAmbience` ch2). Creature skitter, breath, hiss, heartbeat when near.
 - **Changes:** pools dim as the creature approaches; after the vat break the hall lights come up (Return).
 - **Gap budget:** every room has a practical, a drip and a pipe sound within 5 m.
 
@@ -275,7 +277,9 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   line), flush the sink (**new**, E: running water over the reflection), shove papers (scripted), read a paper (**new**).
 - **Own events:** the cab sways; floor LEDs cycle; Hale rings at x 44, z 30; phone buzzes; one clinical tube buzzes and
   stutters in the Return halls; The Desk's lamp is the only warm pool (city rim on the glass).
-- **Sound:** cab hum, chimes, door slide, water, mirror breathing, fluorescent buzz (`sfx.b3.fluorescent-buzz`).
+- **Sound:** Return layered spots: fluorescent hum, a far-off door, flicker, drip, pipe, distant ding (`chapterAmbience`
+  ch3). Desk: city through the glass, a clock, HVAC, muffled phone, paper (`chapterAmbience` ch4). Cab hum, chimes,
+  mirror look ducks the bed.
 - **Changes:** Pierce's reflection shows the new body; Return stays over-bright; The Desk goes dark but for the lamp;
   the desk becomes a mess.
 - **The Desk, played (built):** walking up to the glass (no prompt) eases the camera over his shoulder; the reflection
@@ -299,7 +303,8 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   medkit/ammo box, phone, flashlight, minimap.
 - **Own events:** signals cycle 30 s; traffic and police; peds scream; lights bloom; a car hits and knocks back;
   shopkeepers call; sirens (**new**, a siren Doppler every ~45 s); the diner cook shouts (**new**).
-- **Sound:** traffic bed, footsteps, Shadow Shock, scream, siren, bell, busker at distance, wind, rain on awning (**new**).
+- **Sound:** bed `street-night.ogg`; layered spots: rain on cars/awnings, distant sirens, traffic hiss, neon buzz,
+  passers-by walla, shop bell (`chapterAmbience` ch5). Footsteps, Shadow Shock, scream.
 - **Changes:** Voss's text arrives; police arrive; wet reflections; the plaza globes get closer; a building window row
   goes dark as the streets empty (**new**).
 - **Gap budget:** an avenue block is ~50 m = 16 s; there is always a shop sign, a pedestrian, a car or a siren within 10 s.
@@ -309,14 +314,17 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   trash bins, newsstand (**new**), turnstile (hop with a E), Shadow powers on commuters.
 - **Own events:** the departure board counts down each second; a train passes (wind and light); the tube fails; the PA;
   the scripted shadow-commuter scene; Hale's call after 0.7 s.
-- **Sound:** station bed 0.10, tunnel wind, PA, train passing roar, rat squeak.
+- **Sound:** bed `platform.ogg` 0.10; layered spots: arriving/departing trains with brake squeal, crowd walla,
+  PA chime, door air (`chapterAmbience` ch6). Eight voiced Platform PA lines (`pa.station.01`–`08`, place names Hawkes
+  Street, Liberty Square, Riverside, Tower Street). Tunnel wind, train pass.
 - **Changes:** commuters thin out; the board's next train changes to "BOARDING".
 
 ### Train
 - **Interactions:** E Next car at the front door, grab a pole (**new**, E: sways with it), read an ad (**new**, E:
   zooms), answer Hale at the stop, Shadow powers on riders, hold the door (**new**, fails).
 - **Own events:** lamps pass; sway; jolt; train brakes into the unnamed stop; the old body walks out; the doors close.
-- **Sound:** wheel rumble loop, rail joints, brake squeal, door chime, conductor PA.
+- **Sound:** bed `train/rumble.ogg` 0.22; layered spots: wheel clatter on a rhythm, door chimes, brakes
+  (`chapterAmbience` ch7). Six voiced conductor PA lines (`pa.train.01`–`06`).
 - **Changes:** car 1 full, car 2 sparse, car 3 empty but for the two; the stop's tile glows green.
 
 ### The Morning
@@ -326,7 +334,8 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 - **Own events:** kettle through the wall, building elevator, a neighbour's door, the TV timer; dawn shafts slide east
   across the floor after Sleep; dust catches the beams; TV blue flicker on the sofa wall while Watch plays; the red
   light blinks.
-- **Sound:** `morning-room.ogg` 0.16, traffic, kettle, TV audio.
+- **Sound:** bed `morning-room.ogg` 0.16; layered spots: birds, distant traffic, fridge hum, TV static, bed creak,
+  neighbour door (`chapterAmbience` ch8). Score stays near silence (docs/music.md); the bed and spots still run.
 - **Changes:** light moves across the room during the sleep scene; the TV picks up his name.
 
 ---

@@ -45,6 +45,7 @@ import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
 import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
+import { createChapterAmbience } from './game/chapterAmbience';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
 import { createAct1, type Act1, type ImpairState, type StoryCarry } from './story/act1';
 import { createFootsteps, surfaceFor, stepUrls } from './game/footsteps';
@@ -1074,6 +1075,8 @@ const beginNamedCutscene = (id: string) => {
 };
 
 const musicTriggerPlayer = createMusicTriggerPlayer();
+/** Layered spot one-shots per chapter (beds stay on music triggers). Created after `audio` below. */
+let chapterAmbience: ReturnType<typeof createChapterAmbience> | null = null;
 
 /** Reverb zones and the occlusion ray (acoustics.ts): the loaded scene says which rooms are where. */
 configureTier(lowPowerGraphics);
@@ -1212,6 +1215,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
     applyLoadedScene(loaded);
     triggerRunner.bind(loaded?.data.triggers ?? []);
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
+    chapterAmbience?.stop();
     if (mode === 'boot' && loaded?.data && !isDeskLevel()) {
       npcs.push(...spawnNpcsFromScene(scene, loaded.data));
       syncBoardFaces();
@@ -1658,6 +1662,7 @@ const audio = {
   win() {
     stopEndingSong();
     musicTriggerPlayer.stop();
+    chapterAmbience?.stop();
     if (!this.enabled) return;
     this.ensure();
     const song = createUnlockedAudio(endingTrack(state.level), 'music');
@@ -1672,6 +1677,14 @@ const audio = {
     void song.play().catch(() => {});
   },
 };
+
+chapterAmbience = createChapterAmbience({
+  play: (url, volume, world) => audio.play(url, volume, undefined, world),
+  player: () => ({ x: state.player.x, y: Math.max(1.2, playerMeshY(state.player.y) + 1.2), z: state.player.z }),
+  scriptedSilence: () => state.inCutscene || bedDuck < 0.08,
+  active: () => state.running && audio.enabled && !isPaused() && messageBox.classList.contains('hidden'),
+  lowTier: () => lowPowerGraphics || memoryTier.tier === 'low',
+});
 
 const updateHud = () => {
   const healthPct = Math.max(0, Math.min(100, (state.health / MAX_HEALTH) * 100));
@@ -3371,6 +3384,7 @@ const beginGame = () => {
   updateHud();
   hideMessage();
   music.chapterStart(state.level, isMorningLevel() ? 'silence' : 'calm');
+  chapterAmbience?.start(state.level);
   act.onStart();
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
@@ -5652,6 +5666,7 @@ const renderLoop = () => {
     state.running && audio.enabled,
     state.inCutscene ? 0.18 * bedDuck : bedDuck,
   );
+  chapterAmbience?.update(delta);
 
   if (possessBar && possessFill) {
     const left = shadowPlay().linked() ? shadowPlay().possessLeft() : 0;
@@ -6253,6 +6268,7 @@ installPhPlaytest({
     settings: soundSettings(),
     bed: musicTriggerPlayer.active(),
     bedPlaying: musicTriggerPlayer.playing(),
+    ambience: chapterAmbience?.probe() ?? null,
     footsteps: walkWanted,
     stepCount: footsteps.count(),
     steps: footsteps.events(),
