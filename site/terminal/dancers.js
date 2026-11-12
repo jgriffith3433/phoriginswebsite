@@ -1,43 +1,411 @@
-// The two dancers of the /build show, hand drawn in ASCII. Pure data: no DOM, no timers. Every frame is FRAME_H rows
-// (the feet stand on the last row) of FRAME_W columns, centred on column CENTER. Rows are written after a `|` marker so
-// the leading spaces survive, on this ruler (the centre is column 8; the frame adds a margin each side for sparkles):
-//
-//      |01234567890123456
-//
-// A frame is a head (HEAD_ROWS rows) plus a body (BODY_ROWS rows). Frames face right; flip() mirrors one to face left.
-// ASCII only, so every cell is exactly one monospace glyph wide.
-// Names stay as in the existing show: Jackson (the fedora and the sequined glove) and Jordan (the jersey and the ball).
+// The data and ASCII/block geometry for the /build show: the equations that run the internet, the GPU server farm racks,
+// the network nodes and packet links, the token stream, and the rising hearts. Pure data and pure functions: no DOM, no
+// timers, no network.
 
-export const FRAME_W = 23;
-export const FRAME_H = 16;
-export const CENTER = 11;
-const MARGIN = 3;
-const HEAD_ROWS = 5;
-const BODY_ROWS = FRAME_H - HEAD_ROWS;
+export const BPM_DEFAULT = 118;
+export const BEAT_OFFSET_DEFAULT = 0.31;
+export const BEAT_SEC_DEFAULT = 60 / BPM_DEFAULT;
 
-const rows = (list) => list.map((r) => {
-  if (r[0] !== '|') throw new Error(`row without a marker: ${r}`);
-  const body = ' '.repeat(MARGIN) + r.slice(1);
-  if (body.length > FRAME_W) throw new Error(`row wider than ${FRAME_W} (${body.length}): ${r}`);
-  return body.padEnd(FRAME_W, ' ');
-});
+export const CORE_EQUATIONS = [
+  'GPU + Text = Hearts - Credits',
+  'Hearts = GPU + Text + Credits',
+  'Credits = Hearts - GPU - Text',
+  'Hearts + Credits = GPU + Text + 2(Credits)',
+];
 
-/**
- * A frame: a head and a body, each a list of `|` rows. Trailing empty rows are dropped and the figure is bottom-aligned
- * (the feet stand on the last row), so a short frame is simply a short figure; the scene lifts it when it should be in the air.
- */
-const F = (head, body) => {
-  if (head.length !== HEAD_ROWS) throw new Error(`head has ${head.length} rows`);
-  const all = [...head, ...body];
-  while (all.length && all[all.length - 1].trim() === '|') all.pop();
-  if (all.length > FRAME_H) throw new Error(`frame has ${all.length} rows: ${all[0]}`);
-  const blank = '|';
-  return rows([...Array(FRAME_H - all.length).fill(blank), ...all]);
+// Canonical base values satisfying the internet identity `Hearts = GPU + Text + Credits` and every network equation.
+export const DEFAULT_VARS = {
+  GPU: 4,
+  Text: 24,
+  Credits: 12,
+  Hearts: 40,
+  Tokens: 3,
+  Latency: 2,
+  Bandwidth: 20,
+  Packets: 62,
+  Downtime: 2,
+  Uptime: 4,
+  Cache: 18,
+  DNS: 10,
+  Gateway: 58,
+  Nodes: 16,
+  Streams: 8,
 };
 
-const MIRROR = { '/': '\\', '\\': '/', '(': ')', ')': '(', '<': '>', '>': '<', '[': ']', ']': '[', '{': '}', '}': '{', '`': '\'', '\'': '`' };
+const T = (term, v, sign = '+', coeff = 1, extra = {}) => ({ term, var: v, sign, coeff, ...extra });
 
-/** The same frame facing the other way. Runs of digits and capitals (a jersey number) keep their reading order. */
+const RAW_EQUATIONS = [
+  // ---- J's four core equations, first and each on its own beat
+  {
+    id: 'core-1',
+    core: true,
+    beat: 2,
+    op: 'add',
+    text: 'GPU + Text = Hearts - Credits',
+    left: [T('GPU', 'GPU', '+', 1), T('Text', 'Text', '+', 1)],
+    right: [T('Hearts', 'Hearts', '+', 1), T('Credits', 'Credits', '-', -1)],
+    moved: { term: 'Credits', fromSide: 'left', toSide: 'right', fromSign: '+', toSign: '-' },
+    caption: 'LAW I: THE CORE LEDGER',
+  },
+  {
+    id: 'core-2',
+    core: true,
+    beat: 6,
+    op: 'add',
+    text: 'Hearts = GPU + Text + Credits',
+    left: [T('Hearts', 'Hearts', '+', 1)],
+    right: [T('GPU', 'GPU', '+', 1), T('Text', 'Text', '+', 1), T('Credits', 'Credits', '+', 1)],
+    moved: { term: 'Credits', fromSide: 'left', toSide: 'right', fromSign: '-', toSign: '+' },
+    caption: 'LAW II: HEARTS SYNTHESIS',
+  },
+  {
+    id: 'core-3',
+    core: true,
+    beat: 10,
+    op: 'add',
+    text: 'Credits = Hearts - GPU - Text',
+    left: [T('Credits', 'Credits', '+', 1)],
+    right: [T('Hearts', 'Hearts', '+', 1), T('GPU', 'GPU', '-', -1), T('Text', 'Text', '-', -1)],
+    moved: { term: 'GPU + Text', fromSide: 'left', toSide: 'right', fromSign: '+', toSign: '-' },
+    caption: 'LAW III: CREDIT EXTRACTION',
+  },
+  {
+    id: 'core-4',
+    core: true,
+    beat: 14,
+    op: 'add',
+    text: 'Hearts + Credits = GPU + Text + 2(Credits)',
+    left: [T('Hearts', 'Hearts', '+', 1), T('Credits', 'Credits', '+', 1)],
+    right: [T('GPU', 'GPU', '+', 1), T('Text', 'Text', '+', 1), T('2(Credits)', 'Credits', '+', 2)],
+    moved: { term: 'Credits', fromSide: 'left', toSide: 'right', fromSign: '+', toSign: '+2x' },
+    caption: 'LAW IV: DOUBLE CREDIT COMPOUND',
+  },
+
+  // ---- 20 more equations that control the entire internet (24 total)
+  {
+    id: 'eq-tokens-gpu',
+    core: false,
+    beat: 18,
+    op: 'mul-div',
+    text: 'Tokens x GPU = Text / Latency',
+    left: [T('Tokens', 'Tokens', '+', 1), T('GPU', 'GPU', 'x', 1)],
+    right: [T('Text', 'Text', '+', 1), T('Latency', 'Latency', '/', 1)],
+    moved: { term: 'Latency', fromSide: 'left', toSide: 'right', fromSign: 'x', toSign: '/' },
+    caption: 'TOKEN THROUGHPUT LAW',
+  },
+  {
+    id: 'eq-packets-lat',
+    core: false,
+    beat: 22,
+    op: 'add',
+    text: 'Packets - Latency = Bandwidth + Hearts',
+    left: [T('Packets', 'Packets', '+', 1), T('Latency', 'Latency', '-', -1)],
+    right: [T('Bandwidth', 'Bandwidth', '+', 1), T('Hearts', 'Hearts', '+', 1)],
+    moved: { term: 'Latency', fromSide: 'right', toSide: 'left', fromSign: '+', toSign: '-' },
+    caption: 'BACKBONE PACKETconservation',
+  },
+  {
+    id: 'eq-uptime-cred',
+    core: false,
+    beat: 26,
+    op: 'mul-div',
+    text: 'Uptime = Credits / (Downtime + 1)',
+    left: [T('Uptime', 'Uptime', '+', 1)],
+    right: [T('Credits', 'Credits', '+', 1), T('(Downtime + 1)', 'Downtime', '/', 1, { add: 1 })],
+    moved: { term: '(Downtime + 1)', fromSide: 'left', toSide: 'right', fromSign: 'x', toSign: '/' },
+    caption: 'SLA FIVE-NINES INVARIANT',
+  },
+  {
+    id: 'eq-gpu-solve',
+    core: false,
+    beat: 30,
+    op: 'add',
+    text: 'GPU = Hearts - Text - Credits',
+    left: [T('GPU', 'GPU', '+', 1)],
+    right: [T('Hearts', 'Hearts', '+', 1), T('Text', 'Text', '-', -1), T('Credits', 'Credits', '-', -1)],
+    moved: { term: 'Text', fromSide: 'left', toSide: 'right', fromSign: '+', toSign: '-' },
+    caption: 'SOLVING FOR SILICON',
+  },
+  {
+    id: 'eq-text-solve',
+    core: false,
+    beat: 34,
+    op: 'add',
+    text: 'Text = Hearts - GPU - Credits',
+    left: [T('Text', 'Text', '+', 1)],
+    right: [T('Hearts', 'Hearts', '+', 1), T('GPU', 'GPU', '-', -1), T('Credits', 'Credits', '-', -1)],
+    moved: { term: 'GPU', fromSide: 'left', toSide: 'right', fromSign: '+', toSign: '-' },
+    caption: 'CORPUS CONSERVATION',
+  },
+  {
+    id: 'eq-hearts-minus-text',
+    core: false,
+    beat: 38,
+    op: 'add',
+    text: 'Hearts - Text = GPU + Credits',
+    left: [T('Hearts', 'Hearts', '+', 1), T('Text', 'Text', '-', -1)],
+    right: [T('GPU', 'GPU', '+', 1), T('Credits', 'Credits', '+', 1)],
+    moved: { term: 'Text', fromSide: 'right', toSide: 'left', fromSign: '+', toSign: '-' },
+    caption: 'NET ENGAGEMENT DELTA',
+  },
+  {
+    id: 'eq-hearts-minus-gpu',
+    core: false,
+    beat: 42,
+    op: 'add',
+    text: 'Hearts - GPU = Text + Credits',
+    left: [T('Hearts', 'Hearts', '+', 1), T('GPU', 'GPU', '-', -1)],
+    right: [T('Text', 'Text', '+', 1), T('Credits', 'Credits', '+', 1)],
+    moved: { term: 'GPU', fromSide: 'right', toSide: 'left', fromSign: '+', toSign: '-' },
+    caption: 'POST-COMPUTE SURPLUS',
+  },
+  {
+    id: 'eq-double-all',
+    core: false,
+    beat: 46,
+    op: 'add',
+    text: '2(Hearts) = 2(GPU) + 2(Text) + 2(Credits)',
+    left: [T('2(Hearts)', 'Hearts', '+', 2)],
+    right: [T('2(GPU)', 'GPU', '+', 2), T('2(Text)', 'Text', '+', 2), T('2(Credits)', 'Credits', '+', 2)],
+    moved: { term: '2(Credits)', fromSide: 'left', toSide: 'right', fromSign: '-', toSign: '+' },
+    caption: 'CLUSTER SCALING FACTOR x2',
+  },
+  {
+    id: 'eq-packets-full',
+    core: false,
+    beat: 50,
+    op: 'add',
+    text: 'Packets = Bandwidth + Hearts + Latency',
+    left: [T('Packets', 'Packets', '+', 1)],
+    right: [T('Bandwidth', 'Bandwidth', '+', 1), T('Hearts', 'Hearts', '+', 1), T('Latency', 'Latency', '+', 1)],
+    moved: { term: 'Latency', fromSide: 'left', toSide: 'right', fromSign: '-', toSign: '+' },
+    caption: 'FULL DUPLEX PACKET SUM',
+  },
+  {
+    id: 'eq-bandwidth-solve',
+    core: false,
+    beat: 54,
+    op: 'add',
+    text: 'Bandwidth = Packets - Hearts - Latency',
+    left: [T('Bandwidth', 'Bandwidth', '+', 1)],
+    right: [T('Packets', 'Packets', '+', 1), T('Hearts', 'Hearts', '-', -1), T('Latency', 'Latency', '-', -1)],
+    moved: { term: 'Hearts', fromSide: 'left', toSide: 'right', fromSign: '+', toSign: '-' },
+    caption: 'FIBER PIPE CAPACITY',
+  },
+  {
+    id: 'eq-gateway-58',
+    core: false,
+    beat: 58,
+    op: 'add',
+    text: 'Gateway + Latency = Bandwidth + Hearts',
+    left: [T('Gateway', 'Gateway', '+', 1), T('Latency', 'Latency', '+', 1)],
+    right: [T('Bandwidth', 'Bandwidth', '+', 1), T('Hearts', 'Hearts', '+', 1)],
+    moved: { term: 'Latency', fromSide: 'right', toSide: 'left', fromSign: '-', toSign: '+' },
+    caption: '58TH FLOOR GATEWAY ROUTING',
+  },
+  {
+    id: 'eq-gateway-uptime',
+    core: false,
+    beat: 61,
+    op: 'add',
+    text: 'Gateway = Packets - Uptime',
+    left: [T('Gateway', 'Gateway', '+', 1)],
+    right: [T('Packets', 'Packets', '+', 1), T('Uptime', 'Uptime', '-', -1)],
+    moved: { term: 'Uptime', fromSide: 'left', toSide: 'right', fromSign: '+', toSign: '-' },
+    caption: 'GATEWAY 58 DISPATCH',
+  },
+  {
+    id: 'eq-cache-lat',
+    core: false,
+    beat: 65,
+    op: 'add',
+    text: 'Cache + Latency = Bandwidth',
+    left: [T('Cache', 'Cache', '+', 1), T('Latency', 'Latency', '+', 1)],
+    right: [T('Bandwidth', 'Bandwidth', '+', 1)],
+    moved: { term: 'Latency', fromSide: 'right', toSide: 'left', fromSign: '-', toSign: '+' },
+    caption: 'L3 EDGE CACHE HIT',
+  },
+  {
+    id: 'eq-cache-dns',
+    core: false,
+    beat: 69,
+    op: 'add',
+    text: 'Cache + DNS = GPU + Text',
+    left: [T('Cache', 'Cache', '+', 1), T('DNS', 'DNS', '+', 1)],
+    right: [T('GPU', 'GPU', '+', 1), T('Text', 'Text', '+', 1)],
+    moved: { term: 'DNS', fromSide: 'right', toSide: 'left', fromSign: '-', toSign: '+' },
+    caption: 'DNS RESOLUTION EQUIVALENCE',
+  },
+  {
+    id: 'eq-dns-credits',
+    core: false,
+    beat: 73,
+    op: 'add',
+    text: 'DNS + Latency = Credits',
+    left: [T('DNS', 'DNS', '+', 1), T('Latency', 'Latency', '+', 1)],
+    right: [T('Credits', 'Credits', '+', 1)],
+    moved: { term: 'Latency', fromSide: 'right', toSide: 'left', fromSign: '-', toSign: '+' },
+    caption: 'ROOT ZONE TOLL',
+  },
+  {
+    id: 'eq-nodes-streams',
+    core: false,
+    beat: 77,
+    op: 'add',
+    text: 'Nodes + Streams = Text',
+    left: [T('Nodes', 'Nodes', '+', 1), T('Streams', 'Streams', '+', 1)],
+    right: [T('Text', 'Text', '+', 1)],
+    moved: { term: 'Streams', fromSide: 'right', toSide: 'left', fromSign: '-', toSign: '+' },
+    caption: 'TOKEN STREAM TOPOLOGY',
+  },
+  {
+    id: 'eq-nodes-credits',
+    core: false,
+    beat: 81,
+    op: 'add',
+    text: 'Nodes = Credits + Uptime',
+    left: [T('Nodes', 'Nodes', '+', 1)],
+    right: [T('Credits', 'Credits', '+', 1), T('Uptime', 'Uptime', '+', 1)],
+    moved: { term: 'Uptime', fromSide: 'left', toSide: 'right', fromSign: '-', toSign: '+' },
+    caption: 'ACTIVE MESH QUORUM',
+  },
+  {
+    id: 'eq-gateway-cache',
+    core: false,
+    beat: 85,
+    op: 'add',
+    text: 'Gateway - Cache = Hearts',
+    left: [T('Gateway', 'Gateway', '+', 1), T('Cache', 'Cache', '-', -1)],
+    right: [T('Hearts', 'Hearts', '+', 1)],
+    moved: { term: 'Cache', fromSide: 'right', toSide: 'left', fromSign: '+', toSign: '-' },
+    caption: 'UNFILTERED HEART OUTPUT',
+  },
+  {
+    id: 'eq-packets-dns',
+    core: false,
+    beat: 88,
+    op: 'add',
+    text: 'Packets + DNS = Hearts + Bandwidth + Credits',
+    left: [T('Packets', 'Packets', '+', 1), T('DNS', 'DNS', '+', 1)],
+    right: [T('Hearts', 'Hearts', '+', 1), T('Bandwidth', 'Bandwidth', '+', 1), T('Credits', 'Credits', '+', 1)],
+    moved: { term: 'DNS', fromSide: 'right', toSide: 'left', fromSign: '-', toSign: '+' },
+    caption: 'GLOBAL ROUTING TABLE',
+  },
+  {
+    id: 'eq-gateway-credits',
+    core: false,
+    beat: 91,
+    op: 'add',
+    text: 'Gateway + Credits = Hearts + Bandwidth + DNS',
+    left: [T('Gateway', 'Gateway', '+', 1), T('Credits', 'Credits', '+', 1)],
+    right: [T('Hearts', 'Hearts', '+', 1), T('Bandwidth', 'Bandwidth', '+', 1), T('DNS', 'DNS', '+', 1)],
+    moved: { term: 'Credits', fromSide: 'right', toSide: 'left', fromSign: '-', toSign: '+' },
+    caption: '58TH FLOOR SETTLEMENT',
+  },
+];
+
+export const EQUATIONS = RAW_EQUATIONS.map((eq, index) => ({
+  ...eq,
+  index,
+  time: +(BEAT_OFFSET_DEFAULT + eq.beat * BEAT_SEC_DEFAULT).toFixed(3),
+}));
+
+/** Format one side of an equation (`left` or `right`) from its structured terms and signs. */
+export function formatSide(terms) {
+  return terms
+    .map((t, i) => {
+      if (i === 0) return t.sign === '-' ? `- ${t.term}` : t.term;
+      return `${t.sign} ${t.term}`;
+    })
+    .join(' ');
+}
+
+/** Reconstruct the full equation text from its structured left and right sides. */
+export function formatEquation(eq) {
+  return `${formatSide(eq.left)} = ${formatSide(eq.right)}`;
+}
+
+/** Evaluate one side of an equation for a given variable map. */
+export function evalSide(terms, vars = DEFAULT_VARS) {
+  if (!terms.length) return 0;
+  let acc = 0;
+  for (let i = 0; i < terms.length; i += 1) {
+    const t = terms[i];
+    const base = (vars[t.var] ?? 0) + (t.add ?? 0);
+    if (i === 0) {
+      acc = t.coeff * base;
+    } else if (t.sign === 'x') {
+      acc *= t.coeff * base;
+    } else if (t.sign === '/') {
+      acc /= t.coeff * base;
+    } else {
+      acc += t.coeff * base;
+    }
+  }
+  return acc;
+}
+
+/**
+ * Verify that an equation's structured left and right sides match its text and balance numerically (and symbolically
+ * under `Hearts = GPU + Text + Credits` for the core equations).
+ */
+export function balanceEquation(eq, vars = DEFAULT_VARS) {
+  const leftText = formatSide(eq.left);
+  const rightText = formatSide(eq.right);
+  const fullText = `${leftText} = ${rightText}`;
+  const leftValue = evalSide(eq.left, vars);
+  const rightValue = evalSide(eq.right, vars);
+  // For additive equations over {GPU, Text, Credits, Hearts}, also verify symbolic balance under Hearts = GPU + Text + Credits
+  let symbolicOk = true;
+  if (eq.core) {
+    const net = { GPU: 0, Text: 0, Credits: 0 };
+    const addSide = (side, dir) => {
+      for (const t of side) {
+        if (t.var === 'Hearts') {
+          net.GPU += dir * t.coeff;
+          net.Text += dir * t.coeff;
+          net.Credits += dir * t.coeff;
+        } else {
+          net[t.var] = (net[t.var] ?? 0) + dir * t.coeff;
+        }
+      }
+    };
+    addSide(eq.left, 1);
+    addSide(eq.right, -1);
+    symbolicOk = net.GPU === 0 && net.Text === 0 && net.Credits === 0;
+  }
+  const balanced = Math.abs(leftValue - rightValue) < 1e-9 && fullText === eq.text && symbolicOk;
+  return { balanced, leftValue, rightValue, leftText, rightText, fullText, symbolicOk };
+}
+
+/**
+ * Map all equations into a song of `duration` seconds so every equation has a distinct beat time strictly inside `(0, duration)`.
+ */
+export function equationsForDuration(duration, { offset = BEAT_OFFSET_DEFAULT, beatSec = BEAT_SEC_DEFAULT } = {}) {
+  const d = Math.max(1, duration);
+  const maxRawTime = EQUATIONS[EQUATIONS.length - 1].time;
+  if (d > maxRawTime + 1) {
+    return EQUATIONS.map((eq) => ({ ...eq }));
+  }
+  const span = Math.max(0.5, d - Math.min(offset, d * 0.1) - 0.2);
+  const t0 = Math.min(offset, d * 0.05);
+  return EQUATIONS.map((eq, i) => {
+    const time = +(t0 + ((i + 0.5) / EQUATIONS.length) * span).toFixed(3);
+    const beat = +((time - t0) / beatSec).toFixed(2);
+    return { ...eq, beat, time };
+  });
+}
+
+// =====================================================================================================================
+// ASCII / block server rack and network node sprites (kept deterministic and ASCII-clean).
+// =====================================================================================================================
+export const FRAME_W = 14;
+export const FRAME_H = 12;
+export const CENTER = 7;
+
+export const FAN_GLYPHS = ['|', '/', '-', '\\'];
+
+const MIRROR = { '/': '\\', '\\': '/', '(': ')', ')': '(', '<': '>', '>': '<', '[': ']', ']': '[', '{': '}', '}': '{', '`': '\'', '\'': '`' };
 export function flip(frame) {
   return frame.map((r) => {
     const s = [...r].reverse().map((c) => MIRROR[c] ?? c).join('');
@@ -45,150 +413,126 @@ export function flip(frame) {
   });
 }
 
-// =====================================================================================================================
-// Jackson. The fedora, the jacket, one sequined glove ([*]), white socks, black loafers.
-// =====================================================================================================================
-const HAT = ['|       ___', '|     _/___\\_', '|  .-\'-------\'-.', '|      ( . )', '|       `-\''];
-const HAT_BACK = ['|       ___', '|     _/___\\_', '|  .-\'-------\'-.', '|      (   )', '|       `-\''];
-const LEGS = ['|       | |', '|       | |', '|       | |', '|       | |', '|      _| |_', '|    (__) (__)'];
+/** Build the GPU farm state for a grid of `cols` x `rows` at beat `beat` and zoom `zoom` (0..1). */
+export function buildFarmState(cols, rows, beat, { zoom = 1, calm = false } = {}) {
+  const phone = cols < 64;
+  const rackCount = phone ? 3 : cols < 96 ? 5 : 6;
+  const rackW = phone ? 12 : 14;
+  const gap = phone ? 2 : Math.max(2, Math.floor((cols - rackCount * rackW) / (rackCount + 1)));
+  const totalW = rackCount * rackW + (rackCount - 1) * gap;
+  const startX = Math.max(1, Math.floor((cols - totalW) / 2));
+  const bi = Math.floor(Math.max(0, beat));
+  const fanStep = calm ? 0 : Math.floor(Math.max(0, beat) * 4);
+  const racks = [];
+  for (let i = 0; i < rackCount; i += 1) {
+    const phase = i * 1.3 + Math.max(0, beat) * 0.7;
+    const util = Math.min(99, Math.max(42, Math.round(74 + 22 * Math.sin(phase) * zoom)));
+    const tempC = Math.round(68 + (util - 40) * 0.42 + (i % 2) * 2);
+    const fan = FAN_GLYPHS[(fanStep + i) % FAN_GLYPHS.length];
+    const ledA = (bi + i) % 2 === 0 ? '*' : 'o';
+    const ledB = (bi + i) % 3 === 0 ? '#' : ':';
+    racks.push({
+      id: `R${i + 1}`,
+      index: i,
+      x: startX + i * (rackW + gap),
+      w: rackW,
+      util,
+      tempC,
+      fan,
+      ledA,
+      ledB,
+      hot: tempC >= 86,
+    });
+  }
+  const step = Math.max(1, Math.floor(Math.max(0, beat) * 3) + 10);
+  const gpuCount = DEFAULT_VARS.GPU * step;
+  const textCount = DEFAULT_VARS.Text * step;
+  const creditsCount = DEFAULT_VARS.Credits * step;
+  const heartsCount = gpuCount + textCount + creditsCount;
+  return {
+    rackCount,
+    racks,
+    avgUtil: Math.round(racks.reduce((s, r) => s + r.util, 0) / racks.length),
+    maxTemp: Math.max(...racks.map((r) => r.tempC)),
+    credits: creditsCount,
+    gpu: gpuCount,
+    text: textCount,
+    hearts: heartsCount,
+    tokensPerSec: 1200 + step * 48,
+  };
+}
 
-export const JACKSON = {
-  // easy standing, the glove at his side
-  stand: F(HAT, [
-    '|      _/|\\_', '|     / /|\\ \\', '|    / / | \\ \\', '|   [*]  |   o', '|       |_|', ...LEGS,
-  ]),
-  // the glove up, pointing at the lights
-  point: F(['|       ___      *', '|     _/___\\_  * |', '|  .-\'-------\'-.\\|/', '|      ( . )  [*]', '|       `-\'  /'], [
-    '|      _/|\\_/', '|     / /|\\ /', '|    / / | \\', '|   o    |', '|       |_|', ...LEGS,
-  ]),
-  // two fingers to the brim, the other hand out
-  hatTip: F(['|       ___', '|     _/___\\_', '|  .-\'-------\'-.', '|      ( . )  /', '|       `-\'  /'], [
-    '|      _/|\\_/', '|     / /|\\ |', '|    / / | \\|', '|   o    |', '|       |_|', ...LEGS,
-  ]),
-  // the moonwalk: the front foot slides back flat while the other rises onto its toe. Four frames.
-  mw1: F(HAT, [
-    '|      _/|\\_', '|     / /|\\ \\', '|    / / | \\ \\', '|   [*]  |   o', '|       |_|',
-    '|       | |', '|       | |', '|       | |', '|       / |', '|      /  |_', '|    _/  (__)',
-  ]),
-  mw2: F(HAT, [
-    '|      _/|\\_', '|     / /|\\ \\', '|    / / | \\ \\', '|   o    |   [*]', '|       |_|',
-    '|       | |', '|       | |', '|       | |', '|       | |', '|       | |', '|     __| |__',
-  ]),
-  mw3: F(HAT, [
-    '|      _/|\\_', '|     / /|\\ \\', '|    / / | \\ \\', '|   [*]  |   o', '|       |_|',
-    '|       | |', '|       | |', '|       | |', '|       | \\', '|      _|  \\_', '|    (__)  (__)',
-  ]),
-  mw4: F(HAT, [
-    '|      _/|\\_', '|     / /|\\ \\', '|    / / | \\ \\', '|   o    |   [*]', '|       |_|',
-    '|       | |', '|       | |', '|       | |', '|       | |', '|       / |', '|      (_ _)',
-  ]),
-  // the spin, four frames: broad, edge on, from behind, edge on
-  spinA: F(HAT, [
-    '|      _/|\\_', '|   [*]/|\\ \\', '|      /|\\|  o', '|       |_|', '|       | |',
-    '|       | |', '|       | |', '|       | |', '|       | |', '|      _| |_', '|    (__) (__)',
-  ]),
-  spinB: F(['|        _', '|      _/_\\_', '|    .-\'---\'-.', '|       (.)', '|        `'], [
-    '|        |', '|       /|\\', '|       |||', '|       |||', '|       |||',
-    '|       |||', '|       |||', '|       |||', '|       |||', '|      _|_|_', '|     (_) (_)',
-  ]),
-  spinC: F(HAT_BACK, [
-    '|      _/|\\_', '|     / /|\\ \\', '|  o  \\/ | \\/ [*]', '|      \\|_|/', '|       | |',
-    '|       | |', '|       | |', '|       | |', '|       | |', '|      _| |_', '|    (__) (__)',
-  ]),
-  spinD: F(['|        _', '|      _/_\\_', '|    .-\'---\'-.', '|       (.)', '|        `'], [
-    '|        |', '|      [*]|\\', '|       |||', '|       |||', '|       |||',
-    '|       |||', '|       |||', '|       |||', '|       |||', '|      _|_|_', '|     (_) (_)',
-  ]),
-  // up on the toes, long and tall, both arms thrown up: the toe stand. The heels are off the floor (shoes are `^`).
-  toe: F(['|   \\   ___   /', '|    \\_/___\\_/', '|  .-\'-------\'-.', '|      ( . )', '|       `-\''], [
-    '|      _/|\\_', '|     / /|\\ \\', '|    [*] | o', '|       |_|', '|       | |',
-    '|       | |', '|       | |', '|       | |', '|       | |', '|      ^| |^', '|',
-  ]),
-  // the lean: forward at forty-five degrees, hat low, arms swung back, feet planted
-  lean: F(['|         ___', '|       _/___\\_', '|    .-\'-------\'-.', '|        ( . )', '|         `-\''], [
-    '|      .-"|\\_', '|     /  /|\\ \\', '|  [*]  / | \\ \\', '|      /  |   o', '|     /  /|',
-    '|    /  / |', '|       | |', '|       | |', '|       | |', '|      _| |_', '|    (__) (__)',
-  ]),
-  leanB: F(['|          ___', '|        _/___\\_', '|     .-\'-------\'-.', '|         ( . )', '|          `-\''], [
-    '|      .-"|\\_', '|     /  /|\\ \\', '|  o   / | \\ \\', '|      /  |  [*]', '|     /  /|',
-    '|    /  / |', '|       | |', '|       | |', '|       | |', '|      _| |_', '|    (__) (__)',
-  ]),
-  // the sparkle glove: raised and shown to the crowd, two frames of waving; the stars are the shine
-  gloveA: F(['|       ___   * .', '|     _/___\\_ .  *', '|  .-\'-------\'-.  *', '|      ( . )  {*}', '|       `-\'  /'], [
-    '|      _/|\\_/', '|     / /|\\ /', '|    / / | \\', '|   o    |', '|       |_|', ...LEGS,
-  ]),
-  gloveB: F(['|       ___ *    .', '|     _/___\\_  *', '|  .-\'-------\'-. .  *', '|      ( . ) \\ | /', '|       `-\'   [*]'], [
-    '|      _/|\\_ /', '|     / /|\\ /', '|    / / | \\', '|   o    |', '|       |_|', ...LEGS,
-  ]),
-  // the freeze: one knee up, hat low, the glove thrown out, the other hand on the hip
-  freeze: F(HAT, [
-    '|    ,-_/|\\_', '|   /  / /|\\ \\--[*]', '|  |   \\/ | |', '|   \\   /|_|', '|    `-\' | |',
-    '|       | |', '|       | /', '|       |/', '|      _|  ', '|    (__)', '|',
-  ]),
-  // a hand on the hip, hat tilted back, the cool-down pose
-  hip: F(HAT, [
-    '|      _/|\\_', '|    ,/ /|\\ \\,', '|   ( / / | \\ )', '|    \\/   |  \\/', '|       |_|', ...LEGS,
-  ]),
-};
+/** Build the internet network topology and moving packets for a grid of `cols` x `rows` at beat `beat`. */
+export function buildNetState(cols, rows, topY, botY, beat, { calm = false } = {}) {
+  const cx = Math.floor(cols / 2);
+  const cy = Math.floor((topY + botY) / 2);
+  const rx = Math.max(14, Math.floor(cols * 0.36));
+  const ry = Math.max(5, Math.floor((botY - topY) * 0.38));
+  const phone = cols < 64;
 
-// =====================================================================================================================
-// Jordan. Bald head, the red jersey with the 23, black shorts, high-tops, and the ball. In the ball frames the ball is
-// part of the art ((@)); in the dribble frames the ball is drawn on its own, so it can bounce.
-// =====================================================================================================================
-const HEAD = ['|      .---.', '|     /     \\', '|    |  . .  |', '|     \\  -  /', "|      '---'"];
-const HEAD_TONGUE = ['|      .---.', '|     /     \\', '|    |  o o  |', '|     \\ =P= /', "|      '---'"];
-const HEAD_UP = ['|      .---.', "|     /  ' \\", '|    |  ^ ^  |', '|     \\  -  /', "|      '---'"];
-const J0 = '|     _/---\\_';
-const J1 = '|    / /|23|\\ \\';
-const J2 = '|   / / |  | \\ \\';
-const J3 = '|   o   |__|   o';
-const JERSEY = [J0, J1, J2, J3];
-// shorts and legs, standing: the waist, the shorts, three shins, the ankles, the shoes
-const STAND_LEGS = ['|      |===|', '|      |/ \\|', '|       | |', '|       | |', '|       | |', '|      _| |_', '|     (=) (=)'];
-// bent knees: lower and wider, so the figure is shorter
-const CROUCH_LEGS = ['|      |===|', '|     /|   |\\', '|    / |   | \\', '|   (=)     (=)'];
-const STRIDE_LEGS = ['|      |===|', '|      |/ \\\\_', '|      / |   \\_', '|     /  |     \\', '|    (=)  |    (=)'];
-const SPLIT_LEGS = ['|      |===|', '|     _/   \\_', '|   _/       \\_', '|  /           \\', '| (=)         (=)'];
-const TUCK_LEGS = ['|      |===|', '|      |/ \\|', '|       / |', '|      /  |', '|     (=) (=)'];
+  const nodes = phone
+    ? [
+        { id: 'CORE', label: 'GW-58', x: cx, y: cy, core: true },
+        { id: 'GPU', label: 'GPU', x: Math.max(5, cx - rx), y: Math.max(topY + 2, cy - ry + 1) },
+        { id: 'TEXT', label: 'TEXT', x: Math.min(cols - 6, cx + rx), y: Math.max(topY + 2, cy - ry + 1) },
+        { id: 'DNS', label: 'DNS', x: Math.max(5, cx - rx), y: Math.min(botY - 2, cy + ry - 1) },
+        { id: 'HEART', label: 'HEART', x: Math.min(cols - 6, cx + rx), y: Math.min(botY - 2, cy + ry - 1) },
+        { id: 'CRED', label: 'CRED', x: cx, y: Math.min(botY - 1, cy + ry) },
+      ]
+    : [
+        { id: 'CORE', label: 'GW-58 CORE', x: cx, y: cy, core: true },
+        { id: 'GPU', label: 'GPU-POOL', x: Math.max(7, cx - rx), y: Math.max(topY + 2, cy - ry + 1) },
+        { id: 'TEXT', label: 'TEXT-LLM', x: Math.min(cols - 8, cx + rx), y: Math.max(topY + 2, cy - ry + 1) },
+        { id: 'DNS', label: 'DNS-ROOT', x: Math.max(7, cx - rx - 2), y: cy },
+        { id: 'CACHE', label: 'CACHE-L3', x: Math.min(cols - 8, cx + rx + 2), y: cy },
+        { id: 'BAND', label: 'BANDWIDTH', x: Math.max(7, cx - Math.floor(rx * 0.85)), y: Math.min(botY - 2, cy + ry - 1) },
+        { id: 'HEART', label: 'HEART-MUX', x: Math.min(cols - 8, cx + Math.floor(rx * 0.85)), y: Math.min(botY - 2, cy + ry - 1) },
+        { id: 'CRED', label: 'CRED-LEDGER', x: cx, y: Math.min(botY - 1, cy + ry) },
+      ];
 
-export const JORDAN = {
-  // the ready stance for the dribble: knees bent, low and wide, a hand out for the ball
-  ready: F(HEAD, [J0, J1, '|   /  /|  |\\  \\', '|  o  / |__| \\  o', ...CROUCH_LEGS]),
-  // the dribble: the ball hand low on one side (the ball itself is drawn by the scene); dribL is its mirror
-  dribR: F(HEAD, [J0, J1, '|   / / |  |  \\ \\', '|   o   |__|    \\', '|      |===|', '|     /|   |\\', '|    / |   | \\', '|   (=)     (=)'].map((r, i) => (i === 3 ? '|   o   |__|    \\o' : r))),
-  // the crossover: low hips, the shoulder dropped, the ball hand across the body
-  cross: F(['|       .---.', '|      /     \\', '|     |  . .  |', '|      \\  -  /', "|       '---'"], ['|     _/---\\_', '|    / /|23|\\ \\', '|   o \\ \\|  |/ /', '|      \\_|__|_/  o', ...CROUCH_LEGS]),
-  // the drive: one long stride, the ball low in front, the other arm back
-  drive: F(HEAD, [J0, J1, '|   / / |  |  \\ \\', '|   o   |__|    o', ...STRIDE_LEGS]),
-  // gather: down into the jump, the ball pulled in to the chest
-  gather: F(HEAD, [J0, J1, '|   /  /(@)\\  \\', '|   \\_/ |__| \\_/', ...CROUCH_LEGS]),
-  // the jump shot: off the floor, one arm straight up with the ball, the knees tucked
-  jump: F(['|      .---.   (@)', "|     /  ' \\   |", '|    |  ^ ^  |  /', '|     \\  -  / /', "|      '---'/"], ['|     _/---\\/', '|    / /|23|\\|', '|   / / |  |', '|   o   |__|', ...TUCK_LEGS]),
-  // the release: the follow-through, the wrist flopped over, the ball already gone
-  release: F(HEAD_UP, ['|     _/---\\_  *', '|    / /|23|\\ \\/', '|   / / |  |  /', '|   o   |__|  \'', ...STAND_LEGS]),
-  // the dunk leap: stretched, the ball held in one hand high above the head, the legs trailing
-  leap: F(['|      .---.   (@)', "|     /  ' \\  /", '|    |  ^ ^  |/', '|     \\  -  /', "|      '---'"], ['|     _/---\\/', '|    / /|23|\\|', '|   / / |  |', '|   o   |__|', ...SPLIT_LEGS]),
-  // the slam: the arm all the way up, the ball going through the rim
-  dunk: F(['|      .---.   \\@/', "|     /  ' \\   |", '|    |  ^ ^  | /', '|     \\  -  / /', "|      '---'/"], ['|     _/---\\/', '|    / /|23|\\|', '|   / / |  |', '|   o   |__|', ...TUCK_LEGS]),
-  // hang time: the legs scissored, the tongue out, the ball up in one hand
-  hang: F(['|      .---.   (@)', '|     /     \\ /', '|    |  o o  |/', '|     \\ =P= /', "|      '---'"], ['|     _/---\\/', '|    / /|23|\\|', '|   / / |  |', '|  o    |__|', ...SPLIT_LEGS]),
-  // the landing: down on both feet, knees soft, the ball tucked
-  land: F(HEAD, [J0, J1, '|   / / |  |  \\ \\', '|   o   |__|   (@)', ...CROUCH_LEGS]),
-  // the shrug: the shoulders up, both palms open, the tongue out
-  shrug: F(HEAD_TONGUE, ['|    _/-----\\_', '|   /  |23|  \\', '|  o_\\  |  |  /_o', '|     \\_|__|_/', ...STAND_LEGS]),
-  // the Jumpman: one arm up with the ball, the legs split in the air
-  jumpman: F(['|      .---.   (@)', '|     /     \\  /', '|    |  . .  |/', '|     \\  -  /', "|      '---'"], ['|    _/---\\/', '|   / /|23|\\|', '|  /  / |  |', '| o   |__|', ...SPLIT_LEGS]),
-  // the pivot: weight on the back foot, the ball held out wide
-  pivot: F(HEAD, [J0, J1, '|   / / |  | \\(@)', '|   o   |__|', ...STRIDE_LEGS]),
-};
+  const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+  const linkPairs = phone
+    ? [
+        ['GPU', 'CORE', '*'],
+        ['TEXT', 'CORE', '#'],
+        ['CORE', 'DNS', '>'],
+        ['CORE', 'HEART', '<3'],
+        ['CORE', 'CRED', '$'],
+        ['GPU', 'DNS', ':'],
+        ['TEXT', 'HEART', '+'],
+      ]
+    : [
+        ['GPU', 'CORE', '*'],
+        ['TEXT', 'CORE', '#'],
+        ['DNS', 'CORE', '>'],
+        ['CORE', 'CACHE', '<'],
+        ['CORE', 'BAND', '='],
+        ['CORE', 'HEART', 'v'],
+        ['CORE', 'CRED', '$'],
+        ['GPU', 'DNS', '+'],
+        ['TEXT', 'CACHE', '~'],
+        ['BAND', 'CRED', '$'],
+        ['CACHE', 'HEART', '*'],
+      ];
 
-// ---------------------------------------------------------------------------------------------------------------------
-// The hoop (front view, 13 wide): the board, the rim, the net, in three wobble frames; and the ball.
-// ---------------------------------------------------------------------------------------------------------------------
-export const HOOP_W = 13;
-export const HOOP_FRAMES = [
-  ['+-----------+', '|  +-----+  |', '|  |     |  |', '+--+-----+--+', '   (=====)   ', '    \\|||||/   ', '     \\|||/    ', '      \\_/     '],
-  ['+-----------+', '|  +-----+  |', '|  |     |  |', '+--+-----+--+', '    (=====)  ', '     \\|||||/  ', '      \\|||/   ', '       \\_/    '],
-  ['+-----------+', '|  +-----+  |', '|  |     |  |', '+--+-----+--+', '  (=====)    ', '   \\|||||/    ', '    \\|||/     ', '     \\_/      '],
-];
-export const HOOP_H = HOOP_FRAMES[0].length;
+  const links = linkPairs.map(([a, b, glyph], idx) => ({
+    index: idx,
+    from: byId[a],
+    to: byId[b],
+    glyph: glyph[0],
+  }));
+
+  const packets = [];
+  const b = Math.max(0, beat);
+  const perLink = calm ? 1 : 2;
+  links.forEach((lk, li) => {
+    for (let k = 0; k < perLink; k += 1) {
+      const u = ((b * (0.45 + (li % 3) * 0.12) + k * 0.5 + li * 0.17) % 1 + 1) % 1;
+      const x = Math.round(lk.from.x + (lk.to.x - lk.from.x) * u);
+      const y = Math.round(lk.from.y + (lk.to.y - lk.from.y) * u);
+      packets.push({ linkIndex: li, u, x, y, ch: lk.glyph });
+    }
+  });
+
+  return { nodes, links, packets, cx, cy };
+}
