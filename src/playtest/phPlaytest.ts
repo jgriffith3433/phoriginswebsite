@@ -5562,6 +5562,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       // 2: the TV names the tower and Pierce.
       t.event('check', `tv: ${tvText}`);
       if (!/HAWKES TOWER/.test(tvText) || !/PIERCE HAWKES/.test(tvText) || !sawTv) t.problem('bug', `the TV did not name Hawkes Tower and Pierce Hawkes (${tvText || 'nothing shown'})`);
+      const clipsSeen = (tvText.match(/clip:[a-z-]+/g) ?? []).length;
+      t.metric('tvClips', clipsSeen);
+      if (clipsSeen < 4) t.problem('bug', `the Morning TV played ${clipsSeen} of 4 news clips (${tvText || 'nothing shown'})`);
       if (!heard.some((x) => /Hawkes Tower/.test(x)) || !heard.some((x) => /Pierce Hawkes/.test(x))) t.problem('bug', 'the news captions never named Hawkes Tower and Pierce Hawkes');
       // 3: Voss's call plays in full, in order.
       const order = vossIds.map((id) => heard.indexOf(textOf(id)));
