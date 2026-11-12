@@ -18,6 +18,7 @@ export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/desk/paper-land.ogg': '/assets/audio/sfx/pistol-holster.ogg',
   '/assets/audio/sfx/desk/desk-impact.ogg': '/assets/audio/sfx/glass-tick.ogg',
   '/assets/audio/sfx/desk/terminal-crash.ogg': '/assets/audio/sfx/glass-tick.ogg',
+  // Power effects (powerFx.ts): until each take is made, the sound the power had before.
   // Touchables (touchables.ts): until each take is made, a sound the game already has.
   '/assets/audio/sfx/touch/desk-phone.ogg': '/assets/audio/sfx/phone/connect.wav',
   '/assets/audio/sfx/touch/coffee-machine.ogg': '/assets/audio/sfx/home/tv-static.ogg',
@@ -29,6 +30,8 @@ export const SOUND_FALLBACK: Readonly<Record<string, string>> = {
   '/assets/audio/sfx/touch/strap-swing.ogg': '/assets/audio/sfx/apex/sofa-creak.ogg',
   '/assets/audio/sfx/touch/stop-request.ogg': '/assets/audio/train/doors-close.ogg',
   '/assets/audio/sfx/touch/emergency-handle.ogg': '/assets/audio/sfx/pistol-holster.ogg',
+  // Ledger: the siren plays a car pass if its file fails to load.
+  '/assets/audio/sfx/street/siren-police.mp3': '/assets/audio/sfx/street/car-pass.wav',
 };
 
 export const soundFallback = (url: string): string | null => {

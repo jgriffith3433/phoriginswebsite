@@ -2663,6 +2663,10 @@
 
       .settings-privacy { margin: 14px 0 0; font-size: 11px; line-height: 1.4; opacity: 0.6; }
 
+      /* Graphics Low / Medium / High: three equal 44 px switches under the label. */
+      .graphics-tiers { display: flex; gap: 8px; }
+      .graphics-tiers .graphics-tier { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 10px 6px; }
+
       @media (max-height: 480px) {
         .overlay-card .panel { padding: 18px 20px; }
         .overlay-card h1 { font-size: 28px; margin-bottom: 6px; }
@@ -3543,6 +3547,29 @@
       /* Landscape grid keeps its three columns but gets room for the larger type. */
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) { grid-template-columns: repeat(3, 100px); }
       body:is([data-device='mobile'], [data-device='tablet'])[data-orientation='landscape'] .inventory-hud:not(.open) .phone-hint { min-width: 0; font-size: 13px; padding: 6px; }
+
+      /* Power effects (src/game/powerFx.ts): screen-space layer above the canvas, under the HUD. No backdrop-filter. */
+      #powerFx { position: fixed; inset: 0; pointer-events: none; z-index: 6; overflow: hidden; }
+      #powerFx i { position: absolute; inset: 0; opacity: 0; display: block; }
+      #powerFx .pfx-ink { background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 42%, rgba(8,0,18,0.55) 72%, rgba(2,0,6,0.92) 100%); transition: opacity 0.7s ease-out; }
+      #powerFx .pfx-ink.shadow { opacity: 0.35; }
+      #powerFx .pfx-ink.on { opacity: 1; }
+      #powerFx .pfx-grey { background: rgba(120,120,130,0.5); mix-blend-mode: saturation; }
+      #powerFx .pfx-grey-on { animation: pfxGrey 0.7s ease-out; }
+      #powerFx .pfx-grey-off { animation: pfxGrey 0.4s ease-out reverse; }
+      @keyframes pfxGrey { 0% { opacity: 0; } 25% { opacity: 0.9; } 100% { opacity: 0; } }
+      #powerFx .pfx-ripple { background: radial-gradient(circle at 50% 55%, rgba(0,0,0,0) 0, rgba(0,0,0,0) 30%, rgba(160,120,255,0.5) 33%, rgba(0,0,0,0) 40%); transform-origin: 50% 55%; }
+      #powerFx .pfx-ripple-go { animation: pfxRipple 0.6s ease-out; }
+      @keyframes pfxRipple { 0% { opacity: 0.9; transform: scale(0.1); } 100% { opacity: 0; transform: scale(3.2); } }
+      #powerFx .pfx-flash { background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.7), rgba(255,255,255,0) 70%); }
+      #powerFx .pfx-flash-white { animation: pfxFlash 0.14s ease-out; }
+      #powerFx .pfx-flash-white-big { animation: pfxFlash 0.2s ease-out; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95), rgba(255,240,200,0) 85%); }
+      #powerFx .pfx-flash-violet { background: radial-gradient(circle at 50% 50%, rgba(190,150,255,0.65), rgba(90,30,200,0) 80%); animation: pfxFlash 0.18s ease-out; }
+      @keyframes pfxFlash { 0% { opacity: 1; } 100% { opacity: 0; } }
+      #powerFx .pfx-veins { background: radial-gradient(ellipse at 50% 100%, rgba(150,60,255,0.55), rgba(60,0,120,0) 60%), repeating-linear-gradient(100deg, rgba(190,120,255,0) 0 22px, rgba(190,120,255,0.18) 23px 24px); }
+      #powerFx .pfx-veins-flare { animation: pfxVeins 0.9s ease-out; }
+      @keyframes pfxVeins { 0% { opacity: 0; } 20% { opacity: 1; } 100% { opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) { #powerFx .pfx-ripple-go, #powerFx .pfx-grey-on, #powerFx .pfx-grey-off { animation-duration: 0.01s; } }
     </style>
     <!-- Hawkes Analytics from Hawkes Gen (src/game/analytics.ts): before the game module, never a copy here. -->
     <script src="https://hawkesgen.ai/sdk/analytics@1.js" defer></script>
@@ -3807,6 +3834,15 @@
             <div class="settings-row">
               <label for="touchSens">Touch sensitivity <output id="touchSensOut" for="touchSens">1.0×</output></label>
               <input type="range" id="touchSens" min="50" max="200" step="5" value="100" />
+            </div>
+            <div class="settings-section">Graphics</div>
+            <div class="settings-row graphics-row">
+              <span class="settings-label" id="graphicsLabel">Graphics</span>
+              <div class="graphics-tiers" id="graphicsTiers" role="radiogroup" aria-labelledby="graphicsLabel">
+                <button type="button" class="sound-switch graphics-tier" data-tier="low" role="radio" aria-checked="false">Low</button>
+                <button type="button" class="sound-switch graphics-tier" data-tier="medium" role="radio" aria-checked="false">Medium</button>
+                <button type="button" class="sound-switch graphics-tier" data-tier="high" role="radio" aria-checked="false">High</button>
+              </div>
             </div>
             <div class="settings-section">Subtitles</div>
             <div class="settings-row inline">

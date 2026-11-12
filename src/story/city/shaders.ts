@@ -8,6 +8,8 @@
  * that follows the player, so any number of lamps costs one texture read.
  */
 
+import { KEY_SHADOW_GLSL } from '../../render/keyShadow';
+
 const COMMON = /* glsl */ `
 uniform vec3 cameraPos;
 uniform vec3 fogColor;
@@ -93,6 +95,7 @@ varying vec2 vUV2;
 varying vec2 vUV3;
 varying vec4 vInfo;
 //#COMMON
+${KEY_SHADOW_GLSL}
 
 float band(float x, float a, float b) {
   return step(a, x) * step(x, b);
@@ -291,7 +294,8 @@ void main(void) {
 
   vec3 L = lmSample(wp);
   vec3 light = ambient * (0.9 + 0.1 * n1) + L;
-  vec3 color = albedo * light * lit + emis;
+  // Key-light contact shadow (src/render/keyShadow.ts) under Pierce, people, cars and street furniture.
+  vec3 color = albedo * light * lit * keyShadow(vWorld + vec3(0.0, 0.02, 0.0)) + emis;
   // Wet sheen: streaks of the light map toward the camera, plus a sky tint.
   if (wet > 0.01) {
     vec2 toCam = normalize(V.xz + vec2(1e-4));

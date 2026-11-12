@@ -326,7 +326,39 @@
         },
         {
           "line": "phone.voss-morning.03",
-          "duration": 3.87
+          "duration": 3.87,
+          "alt": [
+            {
+              "when": {
+                "ledgerBand": {
+                  "min": 0,
+                  "max": 0
+                }
+              },
+              "line": "phone.voss-morning.03b0",
+              "duration": 5.01
+            },
+            {
+              "when": {
+                "ledgerBand": {
+                  "min": 1,
+                  "max": 1
+                }
+              },
+              "line": "phone.voss-morning.03b1",
+              "duration": 5.51
+            },
+            {
+              "when": {
+                "ledgerBand": {
+                  "min": 2,
+                  "max": 2
+                }
+              },
+              "line": "phone.voss-morning.03b2",
+              "duration": 4.85
+            }
+          ]
         },
         {
           "line": "phone.voss-morning.04",
@@ -338,7 +370,39 @@
         },
         {
           "line": "phone.voss-morning.06",
-          "duration": 3.79
+          "duration": 3.79,
+          "alt": [
+            {
+              "when": {
+                "ledgerBand": {
+                  "min": 0,
+                  "max": 0
+                }
+              },
+              "line": "phone.voss-morning.06b0",
+              "duration": 5.74
+            },
+            {
+              "when": {
+                "ledgerBand": {
+                  "min": 1,
+                  "max": 1
+                }
+              },
+              "line": "phone.voss-morning.06b1",
+              "duration": 6.45
+            },
+            {
+              "when": {
+                "ledgerBand": {
+                  "min": 2,
+                  "max": 2
+                }
+              },
+              "line": "phone.voss-morning.06b2",
+              "duration": 7.34
+            }
+          ]
         },
         {
           "line": "phone.voss-morning.07",

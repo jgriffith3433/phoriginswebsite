@@ -1,7 +1,10 @@
 /**
  * Camera and subtitle choices, saved beside hawkes.sound as localStorage "hawkes.settings".
- * Invert Y defaults off for new players; a saved choice is kept. Sensitivity is 0.5×–2×.
+ * Invert Y defaults off for new players; a saved choice is kept. Sensitivity is 0.5×–2×. Graphics is the
+ * Settings tier (src/render/pipeline.ts); null lets the device pick.
  */
+
+import { parseGraphicsTier, type GraphicsTier } from '../render/pipeline';
 
 export type SubtitleSize = 'sm' | 'md' | 'lg';
 
@@ -12,6 +15,8 @@ export type GameSettings = {
   subtitles: boolean;
   subtitleSize: SubtitleSize;
   subtitleBox: boolean;
+  /** Graphics Low / Medium / High; null until the player picks one (the device decides). */
+  graphics: GraphicsTier | null;
 };
 
 export const GAME_SETTINGS_KEY = 'hawkes.settings';
@@ -23,6 +28,7 @@ const DEFAULTS: GameSettings = {
   subtitles: true,
   subtitleSize: 'md',
   subtitleBox: true,
+  graphics: null,
 };
 
 const clampSens = (value: unknown, fallback: number) => {
@@ -45,6 +51,7 @@ export const readGameSettings = (): GameSettings => {
       subtitles: parsed.subtitles !== false,
       subtitleSize: sizeOf(parsed.subtitleSize),
       subtitleBox: parsed.subtitleBox !== false,
+      graphics: parseGraphicsTier(parsed.graphics),
     };
   } catch {
     return { ...DEFAULTS };
@@ -64,6 +71,7 @@ export const setGameSettings = (next: Partial<GameSettings>) => {
     subtitles: next.subtitles ?? current.subtitles,
     subtitleSize: sizeOf(next.subtitleSize ?? current.subtitleSize),
     subtitleBox: next.subtitleBox ?? current.subtitleBox,
+    graphics: next.graphics !== undefined ? parseGraphicsTier(next.graphics) : current.graphics,
   };
   try {
     localStorage.setItem(GAME_SETTINGS_KEY, JSON.stringify(current));

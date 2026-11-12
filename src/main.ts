@@ -28,8 +28,11 @@ import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
+import { createRenderPipeline, GRAPHICS_TIERS, pickGraphicsTier, type GraphicsTier } from './render/pipeline';
 import { createShadowVeil } from './game/shadowVeil';
+import { createPowerFx } from './game/powerFx';
 import { createPhone, STAT_MAX, STAT_MIN } from './game/phone';
+import { clampLedger, emptyLedger, ledgerBand, type Ledger, type LedgerApi } from './game/ledger';
 import { mountPipeDrips } from './game/drips';
 import { createLevelDressing } from './game/levelDressing';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
@@ -260,13 +263,8 @@ capTextureSize(engine, textureCap);
     };
   }
 }
-const LOW_POWER_PIXELS = 1_000_000;
-const applyRenderScale = () => {
-  if (!lowPowerGraphics) return;
-  const pixels = Math.max(1, canvas.clientWidth * canvas.clientHeight);
-  engine.setHardwareScalingLevel(Math.max(1, Math.sqrt(pixels / LOW_POWER_PIXELS)));
-};
-applyRenderScale();
+// The render size follows the graphics tier (src/render/pipeline.ts): Low caps it near a megapixel.
+const applyRenderScale = () => render.applyRenderScale();
 // A lost WebGL context (a phone reclaiming the GPU, a driver reset) freezes the canvas. Babylon already calls
 // preventDefault on the loss and rebuilds buffers, shaders and textures when the browser restores the context.
 // Here the game holds still behind a short "Recovering…" overlay, resumes the level on restore, and restarts the
@@ -352,7 +350,19 @@ hemi.intensity = 0.8;
 const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
 sun.position = new BABYLON.Vector3(12, 18, 6);
 sun.intensity = 0.9;
-const grade = createSceneGrade(scene, [followCamera.camera, menuCamera], { lowPower: lowPowerGraphics });
+/**
+ * One rendering pipeline for every chapter (src/render/pipeline.ts, docs/render.md): ACES, bloom, LUT, grain,
+ * aberration, SSAO on High, cascaded key-light shadows. The tier is `?quality=`, then Settings, then the device.
+ */
+const graphicsPick = pickGraphicsTier(qualityParam, gameSettings().graphics, lowPowerGraphics);
+document.body.dataset.graphics = graphicsPick.tier;
+const render = createRenderPipeline(scene, [followCamera.camera, menuCamera], { tier: graphicsPick.tier, canvas });
+render.setChapter('apex-peak');
+const grade = createSceneGrade(scene, render);
+render.onTier((tier) => {
+  document.body.dataset.graphics = tier;
+  grade.reapply();
+});
 
 const readDevLevelConfig = () => {
   try {
@@ -393,6 +403,7 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     missionScene = loaded.data;
     applyTheme(scene, loaded.data.theme || currentThemeName);
     applySceneLighting(scene, loaded.data);
+    render.setChapter(getLevelDefinition(state.level).libraryId);
     grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
     grade.apply(loaded.data.theme || currentThemeName);
     followCamera.setVolumes(loaded.data.cameraVolumes ?? []);
@@ -439,7 +450,8 @@ const phone = createPhone(scene, {
     analytics?.dialogue('call', callId, how, heard, of);
     if (callId.startsWith('voss')) music.voss(false);
   },
-  getStat: (stat) => clampStat(save[stat]),
+  getStat: (stat) => (stat === 'ledgerBand' ? ledgerBand(ledger.get()) : clampStat(save[stat])),
+  onLedgerLine: () => { ledger.add('reported'); },
   addStat: (stat, delta) => saveGame({ [stat]: clampStat((save[stat] ?? 0) + delta) })[stat] ?? 0,
   onHand: (raised) => {
     if (!raised || phone.locksBody()) {
@@ -1235,6 +1247,8 @@ type SaveData = {
   vossTrust?: number;
   /** How hot Hale runs against Pierce (-2..+2), moved by what he says on Hale's calls. */
   haleTemper?: number;
+  /** What the Shadow did on the street (kills, possessions, consumes, witnesses, things reported). See docs/story/ledger.md. */
+  ledger?: Ledger;
 };
 const clampStat = (value: unknown) => Math.max(STAT_MIN, Math.min(STAT_MAX, Math.round(Number(value) || 0)));
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
@@ -1293,6 +1307,7 @@ const parseSave = (raw: string): SaveData => {
     lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
     vossTrust: clampStat(parsed.vossTrust),
     haleTemper: clampStat(parsed.haleTemper),
+    ledger: clampLedger(parsed.ledger),
   };
 };
 
@@ -1359,9 +1374,21 @@ const saveGame = (next: Partial<SaveData>) => {
     lore: next.lore ?? save.lore,
     vossTrust: clampStat(next.vossTrust ?? save.vossTrust),
     haleTemper: clampStat(next.haleTemper ?? save.haleTemper),
+    ledger: clampLedger(next.ledger ?? save.ledger),
   };
   writeSaveCookie(save);
   return save;
+};
+
+/** The street ledger as the stories see it: read, add, reset. Every change is written to the save cookie. */
+const ledger: LedgerApi = {
+  get: () => clampLedger(save.ledger),
+  add: (kind, amount = 1) => {
+    const now = clampLedger(save.ledger);
+    now[kind] += amount;
+    return saveGame({ ledger: now }).ledger ?? now;
+  },
+  reset: () => saveGame({ ledger: emptyLedger() }).ledger ?? emptyLedger(),
 };
 
 const hasProgress = () => save.unlocked > 1 || save.level > 1;
@@ -2367,6 +2394,7 @@ shadowHint?.addEventListener('click', (event) => {
       markMission('power-shadow');
       analytics?.used('shadow-mode');
     }
+    powerFx.toggleShadow(shadowPlay().shadowMode());
     music.power(shadowPlay().shadowMode());
     if (!shadowPlay().shadowMode()) {
       playerAvatar.setArmed(false);
@@ -2618,6 +2646,7 @@ const applyLevelConfig = (config: LevelDefinition) => {
   applyLevelCombat(config);
   applyTheme(scene, config.theme);
   if (missionScene) applySceneLighting(scene, missionScene);
+  render.setChapter(config.libraryId);
   grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
   grade.apply(config.theme);
 };
@@ -2670,7 +2699,7 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
   if (fresh) {
-    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0 });
+    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0, ledger: emptyLedger() });
   } else if (typeof save.health === 'number') {
     state.health = save.health;
     state.inventory.items.ammo = save.ammo ?? 0;
@@ -2912,6 +2941,7 @@ const touch = createTouchables({
 });
 
 const home: GoingHome = createGoingHome({
+  ledger,
   scene,
   camera,
   running: () => state.running,
@@ -2943,6 +2973,7 @@ const home: GoingHome = createGoingHome({
   refreshHud: () => updateHud(),
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   hand: () => {
     const joint = playerAvatar.findJoint('RightHand');
     if (!joint) return null;
@@ -3006,6 +3037,7 @@ const desk: TheDesk = createTheDesk({
 });
 
 const station: TheStation = createTheStation({
+  ledger,
   scene,
   camera,
   running: () => state.running,
@@ -3035,6 +3067,7 @@ const station: TheStation = createTheStation({
   },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   showLine: (title, text) => showCineHud(title, text),
@@ -3053,6 +3086,7 @@ const station: TheStation = createTheStation({
 });
 
 const morning: TheMorning = createTheMorning({
+  ledger,
   scene,
   placePierce,
   lie: (on, x, y, z, yaw) => {
@@ -3124,6 +3158,7 @@ const train: TheTrain = createTheTrain({
   },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   showLine: (title, text) => showCineHud(title, text),
@@ -3154,6 +3189,34 @@ storyObjectiveId = () => {
   if (isMorningLevel()) return morning.objectiveKey();
   return act.objectiveKey();
 };
+
+
+// Signature power effects (powerFx.ts): GPU particles, bolt, tendril, hit-stop. Hosts call `power`; the clicks below do the rest.
+const powerFxHand = new BABYLON.Vector3();
+const powerFxChest = new BABYLON.Vector3();
+const powerFx = createPowerFx(scene, {
+  low: lowPowerGraphics,
+  play: (url, volume, rate, at) => audio.play(url, volume, rate, at ? { at, cls: 'effect' } : undefined),
+  hand: () => {
+    const joint = playerAvatar.findJoint('RightHand');
+    if (joint) return powerFxHand.copyFrom(joint.getAbsolutePosition());
+    return powerFxHand.set(state.player.x + Math.sin(state.characterYaw) * 0.42, 1.2, state.player.z + Math.cos(state.characterYaw) * 0.42);
+  },
+  chest: () => powerFxChest.set(state.player.x, 1.3 + playerLift, state.player.z),
+});
+const onPowerHit = (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => {
+  const at = new BABYLON.Vector3(e.x, e.y, e.z);
+  if (e.kind === 'shock') powerFx.shock(at);
+  else powerFx.melee(e.kind, at, e.hit);
+};
+(window as unknown as { __phPowerFx?: unknown }).__phPowerFx = powerFx;
+// Gen-made particle textures replace the drawn stand-ins once each loads (a failed load keeps the stand-in).
+for (const [name, file] of [['wisp', 'smoke'], ['ink', 'ink'], ['ember', 'ember'], ['star', 'star']] as const) {
+  const t = new BABYLON.Texture(`/assets/textures/fx/${file}.webp`, scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, () => {
+    t.hasAlpha = false;
+    powerFx.setTexture(name, t);
+  });
+}
 
 // Level 7 keeps the station's Shadow mode (its riders are the targets).
 const shadowPlay = () => (isStationLevel() ? station : isTrainLevel() ? train : home);
@@ -4151,7 +4214,11 @@ const possessAimed = () => {
   const took = (spot && shadowPlay().possessAt(spot.x, spot.y, spot.z)) || shadowPlay().possessLook();
   if (!took) return false;
   markMission('power-possess');
-  audio.tone(78, 0.1, 'sine', 0.06);
+  const focus = shadowPlay().linkFocus();
+  if (focus) {
+    powerFx.possess(new BABYLON.Vector3(focus.x, 1.55, focus.z));
+    powerFx.setPossessing(true, new BABYLON.Vector3(focus.x, 1.6, focus.z));
+  }
   updateHud();
   return true;
 };
@@ -4161,7 +4228,10 @@ const useShadowClick = () => {
   analytics?.used(shadowPick === 'possess' ? (shadowPlay().linked() ? 'consume' : 'possess') : 'shadow-shock');
   if (shadowPick === 'possess') {
     if (shadowPlay().linked()) {
+      const victim = shadowPlay().linkFocus();
       if (shadowPlay().consume()) {
+        if (victim) powerFx.consume(new BABYLON.Vector3(victim.x, 1.2, victim.z));
+        powerFx.setPossessing(false);
         markMission('power-consume');
         audio.tone(64, 0.14, 'sine', 0.07);
       }
@@ -4375,6 +4445,7 @@ window.addEventListener('keydown', (event) => {
         markMission('power-shadow');
         analytics?.used('shadow-mode');
       }
+      powerFx.toggleShadow(shadowPlay().shadowMode());
       music.power(shadowPlay().shadowMode());
       if (!shadowPlay().shadowMode()) {
         playerAvatar.setArmed(false);
@@ -4722,6 +4793,7 @@ const subsSwitch = document.getElementById('subsSwitch') as HTMLButtonElement;
 const subsSize = document.getElementById('subsSize') as HTMLInputElement;
 const subsSizeOut = document.getElementById('subsSizeOut') as HTMLOutputElement;
 const subsBoxSwitch = document.getElementById('subsBoxSwitch') as HTMLButtonElement;
+const graphicsTierButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#graphicsTiers .graphics-tier'));
 
 const SUB_SIZE_LABELS: SubtitleSize[] = ['sm', 'md', 'lg'];
 const SUB_SIZE_WORDS = ['Small', 'Medium', 'Large'];
@@ -4759,6 +4831,8 @@ const renderGameSettings = () => {
   subsSizeOut.textContent = SUB_SIZE_WORDS[sizeIdx];
   subsBoxSwitch.setAttribute('aria-checked', String(s.subtitleBox));
   subsBoxSwitch.textContent = s.subtitleBox ? 'On' : 'Off';
+  const tier = render.tier();
+  for (const button of graphicsTierButtons) button.setAttribute('aria-checked', String(button.dataset.tier === tier));
 };
 
 const renderSettings = () => {
@@ -4807,6 +4881,18 @@ subsBoxSwitch.addEventListener('click', () => {
   setGameSettings({ subtitleBox: !gameSettings().subtitleBox });
   analytics?.setting('subtitleBox', gameSettings().subtitleBox ? 'on' : 'off');
 });
+// Graphics Low / Medium / High: the pipeline switches at once (shadows, SSAO, post passes, render size) and the
+// choice is saved; it wins over the device's pick on the next visit.
+for (const button of graphicsTierButtons) {
+  button.addEventListener('click', () => {
+    const tier = button.dataset.tier as GraphicsTier;
+    if (!GRAPHICS_TIERS.includes(tier)) return;
+    render.setTier(tier);
+    setGameSettings({ graphics: tier });
+    analytics?.setting('graphics', tier);
+    analytics?.context({ graphics: tier });
+  });
+}
 
 const settingsOpen = () => !settingsMenu.hidden;
 const openSettings = () => {
@@ -5084,7 +5170,19 @@ const renderLoop = () => {
     scene.render();
     return;
   }
-  const delta = engine.getDeltaTime() / 1000;
+  const rawDelta = engine.getDeltaTime() / 1000;
+  // Hit-stop: a real-time hold (50-100 ms) with the action frozen; Babylon animation stops too.
+  const stopped = powerFx.hitStopLeft() > 0;
+  scene.animationTimeScale = stopped ? 0 : 1;
+  const delta = stopped ? 0.0001 : rawDelta;
+  powerFx.update(rawDelta, camera);
+  {
+    const linked = shadowPlay().controls() && shadowPlay().linked();
+    const focus = linked ? shadowPlay().linkFocus() : null;
+    powerFx.setPossessing(linked, focus ? new BABYLON.Vector3(focus.x, 1.6, focus.z) : undefined);
+    powerFx.setRunning(shadowPlay().controls() && shadowRunActive(), new BABYLON.Vector3(state.player.x, 0.9 + playerLift, state.player.z));
+  }
+  render.update(delta);
   screenFade.update(delta);
   syncActionHint();
   stepHuntRetry(delta);
@@ -5175,7 +5273,7 @@ const renderLoop = () => {
     train.step(delta);
     morning.step(delta);
     if (isDeskLevel()) desk.step(delta);
-    const streetShake = Math.max(home.shake(), desk.shake());
+    const streetShake = Math.max(home.shake(), desk.shake(), powerFx.shake());
     if (streetShake > 0) {
       camera.position.x += (Math.random() - 0.5) * streetShake;
       camera.position.y += (Math.random() - 0.5) * streetShake * 0.65;
@@ -5516,7 +5614,7 @@ analytics = createGameAnalytics({
   }),
   player: () => ({ x: state.player.x, z: state.player.z }),
 });
-analytics.context({ graphics: lowPowerGraphics ? 'low' : 'high' });
+analytics.context({ graphics: render.tier() });
 
 // Hawkes playtest contract (src/playtest/phPlaytest.ts). Read-only probe; the bot plays through real input.
 installPhPlaytest({
@@ -5578,9 +5676,16 @@ installPhPlaytest({
       log: phone.replyLog(),
       caption: phonePanel && !phonePanel.hidden ? box(phonePanel) : null,
       stats: { vossTrust: clampStat(save.vossTrust), haleTemper: clampStat(save.haleTemper), min: STAT_MIN, max: STAT_MAX },
+      ledger: ledger.get(),
     };
   },
   /** Test shortcut: ring a scripted call (as the story does) and set the saved trust values. */
+  /** Test shortcut: the street ledger (counts, band) so two playtests can be compared, or set it before The Morning. */
+  ledger: (seed?: Partial<Ledger>) => {
+    if (seed) saveGame({ ledger: { ...ledger.get(), ...seed } });
+    const now = ledger.get();
+    return { ...now, band: ledgerBand(now) };
+  },
   callTest: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => {
     if (seed) saveGame({ vossTrust: seed.vossTrust ?? save.vossTrust, haleTemper: seed.haleTemper ?? save.haleTemper });
     phone.ring(id);
@@ -5654,6 +5759,10 @@ installPhPlaytest({
   ],
   /** Apex Peak vertical-slice quality readings for the playtest. */
   desk: () => desk.stats(),
+  /** What the city did about the street ledger (Going Home's siren and car, the Station gate's officer). */
+  heat: () => home.heat(),
+  /** Playtest setup shortcut (named): Going Home hands over Shock without its lesson. */
+  grantShock: () => { if (isHomeLevel()) home.grantShock(); },
   life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
@@ -5724,6 +5833,33 @@ installPhPlaytest({
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   waypoint: () => objectiveWaypoint.view(),
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
+  render: () => render.stats(),
+  // Mean colour of the next finished frame (after the grade): read in the same frame, so it works without a
+  // preserved drawing buffer. A coarse 32x18 grid is plenty for a chapter's colour fingerprint.
+  frameColor: () => new Promise((resolve) => {
+    scene.onAfterRenderObservable.addOnce(() => {
+      try {
+        const gl = (engine as unknown as { _gl?: WebGL2RenderingContext })._gl;
+        if (!gl) { resolve(null); return; }
+        const w = gl.drawingBufferWidth;
+        const h = gl.drawingBufferHeight;
+        // One read (one GPU sync), then a 32x18 grid out of it.
+        const px = new Uint8Array(w * h * 4);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let iy = 0; iy < 18; iy += 1) {
+          for (let ix = 0; ix < 32; ix += 1) {
+            const i = (Math.floor(((iy + 0.5) / 18) * h) * w + Math.floor(((ix + 0.5) / 32) * w)) * 4;
+            r += px[i]; g += px[i + 1]; b += px[i + 2]; n += 1;
+          }
+        }
+        r /= n * 255; g /= n * 255; b /= n * 255;
+        resolve({ r, g, b, luma: 0.2126 * r + 0.7152 * g + 0.0722 * b });
+      } catch {
+        resolve(null);
+      }
+    });
+  }),
   graphics: () => ({
     memoryTier: memoryTier.tier,
     deviceMemory: memoryTier.deviceMemory,
