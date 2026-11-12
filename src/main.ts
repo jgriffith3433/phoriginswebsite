@@ -22,6 +22,8 @@ import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
 import { installMenuNav } from './game/menuNav';
 import { lineText } from './game/locale';
 import { chapterCopy, createChapterCard } from './game/chapterCard';
+import { createChapterOpening } from './game/chapterOpening';
+import { playChapterSting } from './game/chapterSting';
 import { loreEntry, withLore } from './game/lore';
 import { goalLine, levelReward } from './game/rewards';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
@@ -3285,8 +3287,11 @@ const beginGame = () => {
   spaceDown = false;
   stopEndingSong();
   beginGameAt = performance.now();
-  // Keep the black veil under the chapter card until reveal crossfades it away.
-  screenFade.to(1, 0);
+  const handover = openingHandover;
+  openingHandover = false;
+  // Keep the black veil under a plain chapter card until reveal crossfades it away. After an opening shot the world
+  // is already on screen, so the veil stays clear and the lens glides instead.
+  if (!handover) screenFade.to(1, 0);
   audio.start();
   state.running = true;
   menuCameraActive = false;
@@ -3312,6 +3317,10 @@ const beginGame = () => {
   analytics?.levelStarted();
   checkpoint = { x: state.player.x, z: state.player.z };
   lostWatcher.reset();
+  if (handover) {
+    void chapterOpening.glide().then(() => chapterCard.release(300));
+    return;
+  }
   void waitFrames(REVEAL_PAINT_FRAMES).then(() => {
     revealFromBlack(() => state.running);
   });
@@ -3399,6 +3408,55 @@ const cancelColdOpen = async () => {
   showMessage('PH Origins', levelStartLine());
 };
 
+/**
+ * Chapter openings (src/game/chapterOpening.ts): the title shot runs on the warmed scene before `beginGame`, then
+ * `beginGame` glides the lens into the follow camera. `openingHandover` tells `beginGame` the world is already on
+ * screen (no black veil, no hold-until-painted: the shot was painted already).
+ */
+let openingHandover = false;
+const chapterOpening = createChapterOpening({
+  scene,
+  camera: followCamera.camera,
+  snapToSpawn: (spawn) => followCamera.snapTo({ x: spawn.x, y: PLAYER_STAND_Y, z: spawn.z }, gatherCameraIgnoreMeshes(), spawn.yaw),
+  isSolid: (mesh) => {
+    if (mesh === playerCollider || mesh === muzzleFlash.mesh || mesh.isDescendantOf(playerAvatar.group)) return false;
+    const meta = mesh.metadata as { pickup?: unknown; cameraFade?: number } | undefined;
+    if (meta?.pickup || (meta?.cameraFade ?? 0) > 0.35) return false;
+    return !FEEL_SKIP.test(mesh.name);
+  },
+  dip: () => {
+    screenFade.to(1, 0.12);
+    window.setTimeout(() => screenFade.to(0, 0.3), 160);
+  },
+});
+
+/** Run the level's opening shot: the title over the moving world, a sting, one press skips. Resolves when it ends. */
+const playOpening = async (level: { id: number; name: string }, warm: Promise<unknown>) => {
+  let pendingSkip = false;
+  chapterCard.show(level.id, level.name, () => {
+    pendingSkip = true;
+    chapterOpening.skip();
+  });
+  // Black under the title while the scene finishes its first-use warm; nothing compiles after the shot starts.
+  screenFade.to(1, 0);
+  await Promise.race([warm, new Promise<void>((resolve) => window.setTimeout(resolve, 4600 + WARM_AFTER_CARD_MS))]);
+  stopLevelWarm();
+  await whenShadersCompiled(performance.now() + 4000);
+  activateGameCamera(scene, camera);
+  chapterOpening.prepare(level.id);
+  if (pendingSkip) chapterOpening.skip();
+  // The shot's first frame must be painted before the veil lifts: no black frame, no pop.
+  await waitFrames(REVEAL_PAINT_FRAMES);
+  const until = performance.now() + 2500;
+  while (performance.now() < until && (await worldLitShare()) < WORLD_LIT_MIN) await waitFrames(1);
+  const running = chapterOpening.run();
+  screenFade.to(0, 0.7);
+  window.setTimeout(() => chapterCard.titleIn(), 450);
+  if (playChapterSting(level.id)) chapterOpening.noteSting(level.id);
+  await running;
+  chapterCard.titleOut();
+};
+
 let startingLevel = false;
 
 /** After the chapter card closes, first-use warm may still finish — never hold Start more than this past the card. */
@@ -3447,11 +3505,15 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
       return stats;
     }).catch(() => null);
     if (chapter) {
-      await chapterCard.show(level.id, level.name);
-      await Promise.race([
-        warm,
-        new Promise<void>((resolve) => window.setTimeout(resolve, WARM_AFTER_CARD_MS)),
-      ]);
+      try {
+        await playOpening(level, warm);
+        openingHandover = true;
+      } catch (error) {
+        console.warn('opening failed, starting the level directly', error);
+        chapterOpening.cancel();
+        chapterCard.release(0);
+        openingHandover = false;
+      }
     } else {
       void warm;
     }
@@ -5748,6 +5810,8 @@ installPhPlaytest({
     phone.ring(id);
   },
   chapter: () => chapterCard.view(),
+  chapterLayout: () => chapterCard.layout(),
+  opening: () => chapterOpening.probe(),
   hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
   worldLuma: () => worldLitShare(),
   menu: () => ({

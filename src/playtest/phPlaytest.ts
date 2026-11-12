@@ -64,6 +64,10 @@ export type PhProbe = {
   /** Share (0-1) of the rendered world canvas that is not black. */
   worldLuma: () => Promise<number>;
   chapter: () => { open: boolean; kicker: string; title: string; line: string; closing: boolean };
+  /** The title over the opening shot: is it faded in, and the boxes (CSS px) of the text and the Skip button. */
+  chapterLayout: () => { titled: boolean; text: { x: number; y: number; w: number; h: number } | null; skip: { x: number; y: number; w: number; h: number } | null; viewport: { w: number; h: number }; scale: number };
+  /** The in-engine opening shot (src/game/chapterOpening.ts). */
+  opening: () => { phase: 'idle' | 'shot' | 'handover' | 'glide'; level: number; place: string; seconds: number; elapsed: number; moved: number; turned: number; scale: number; framesInside: number; framesNear: number; cuts: number; skipped: boolean; skipToGlideMs: number; stingPlayed: number; pos: [number, number, number]; starts: number };
   menu: () => { open: boolean; title: string; text: string; start: string | null; startEnabled: boolean; newGame: boolean };
   subtitle: () => { speaker: string; text: string };
   /** Letterbox + HUD-hidden presentation during cutscenes / scripted scenes. */
@@ -720,6 +724,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         id: 'transition',
         title: 'Chapter card to world: card held until the world has rendered, crossfade, HUD only after; no black frames (levels 1-8, desktop and 844x390)',
         description: 'Level 1 on desktop starts with the real Start button (the live smoke path); levels 2-8 and the phone pass use the setup shortcut. While the chapter card is up it samples the world canvas every tick: pause/HUD must stay hidden, and once the level is running the card must not leave until the canvas is more than 3% non-black. After the card lifts it samples a few more frames and fails on a mostly-black frame or on HUD over black. Metrics: transitionSamples. Problems: black frame under/after the card, HUD over the card or over black.',
+        seconds: 600,
+        tags: ['level', 'ui'],
+      },
+      {
+        id: 'chapter-openings',
+        title: 'Chapter openings: 8 in-engine title shots with a sting, skip within 0.5 s, handover to the player camera without a cut (options.phone: 390x844 touch)',
+        description: 'Each level 1-8 (test shortcut, as Continue does) opens on a moving shot of its place with the chapter title typeset over it. The bot waits for the shot, checks the camera moves (position or pan), the title is faded in and sits inside the viewport, the Skip button is at least 44 px and inside the viewport, a sting was played, and the world is not black. It then presses skip (a tap on the Skip button with options.phone, Space on desktop): the shot must end within 500 ms and the lens glide into the follow camera must show no black frame. Levels 1 and 6 are also played without a press to check the natural handover. The camera detector runs over every shot and glide and must report 0 frames inside geometry (the opening reports its own count too). Metrics: openingsSeen, openingSkipMs, openingInsideFrames, openingBlackFrames, openingMovedMin. Options: phone.',
         seconds: 600,
         tags: ['level', 'ui'],
       },
@@ -6273,6 +6284,130 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         }
         if (phone) probe.phoneFrame(false);
       }
+      t.finish('done');
+      return;
+    }
+
+    if (id === 'chapter-openings') {
+      levelsTotal = 8;
+      const phone = Boolean(options.phone);
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
+      const feel = probe.feel;
+      const cw = installCameraWatch({
+        scene: () => probe.scene,
+        player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
+        isSolid: (m) => (feel ? feel.isSolid(m) : true),
+        active: () => probe.opening().phase === 'shot' || probe.opening().phase === 'glide',
+        label: () => `opening ${probe.opening().level}`,
+        emit: (type, detail) => t.event(type, detail),
+      });
+      cw.start();
+      let skipMsTotal = 0;
+      let insideTotal = 0;
+      let blackTotal = 0;
+      let movedMin = Infinity;
+      const toGlideEnd = async (n: number, why: string) => {
+        let black = 0;
+        const until = performance.now() + 30000;
+        while (probe.chapter().open && performance.now() < until) {
+          const lit = await probe.worldLuma();
+          if (lit < 0.03) black += 1;
+          await tick();
+        }
+        if (probe.chapter().open) t.problem('bug', `level ${n} (${why}): the chapter card never left after the opening`);
+        blackTotal += black;
+        if (black) t.problem('bug', `level ${n} (${why}): ${black} mostly-black frames between the opening and the player camera`);
+      };
+      const begin = async (n: number) => {
+        t.event('setup', `start at level ${n} directly (test shortcut)`);
+        void probe.setupLevel(n);
+        const until = performance.now() + 120000;
+        while (probe.opening().phase !== 'shot' || probe.opening().level !== n) {
+          if (performance.now() > until) throw new Error(`level ${n} never started its opening shot`);
+          await tick();
+        }
+        const o = probe.opening();
+        t.scene(`Opening ${n}: ${o.place}`);
+        t.event('opening-start', { level: n, place: o.place, seconds: o.seconds, startOffsetMeters: o.scale });
+        return o;
+      };
+      const finishLevel = async (n: number) => {
+        const until = performance.now() + 90000;
+        while (!(probe.running() && probe.level().id === n)) {
+          if (performance.now() > until) throw new Error(`timed out waiting for level ${n} to start after its opening`);
+          await tick();
+        }
+        const o = probe.opening();
+        insideTotal += o.framesInside;
+        if (o.framesInside > 0) t.problem('bug', `level ${n}: the opening lens was inside geometry on ${o.framesInside} frame(s)`);
+        releaseAll();
+        await sleep(400);
+      };
+      for (let n = 1; n <= 8; n++) {
+        levelIndex = n - 1;
+        await begin(n);
+        const first = probe.opening();
+        // The title fades in slowly once the shot moves.
+        await t.until(() => probe.chapterLayout().titled, 8000, `level ${n} title to fade in`);
+        await sleep(1800);
+        const a = probe.opening();
+        const layout = probe.chapterLayout();
+        const sc = layout.scale || 1;
+        const text = layout.text;
+        const card = probe.chapter();
+        t.event('opening-title', { level: n, kicker: card.kicker, title: card.title, line: card.line, titled: layout.titled });
+        if (!card.title || !/^chapter /i.test(card.kicker)) t.problem('bug', `level ${n}: the opening shows no chapter title (${card.kicker} | ${card.title})`);
+        if (!text || text.x < -1 || text.y < -1 || text.x + text.w > layout.viewport.w + 1 || text.y + text.h > layout.viewport.h + 1) {
+          t.problem('bug', `level ${n}: the chapter title does not fit the screen (${text ? `${Math.round(text.x)},${Math.round(text.y)} ${Math.round(text.w)}x${Math.round(text.h)}` : 'no box'} in ${Math.round(layout.viewport.w)}x${Math.round(layout.viewport.h)})`);
+        }
+        const skipBox = layout.skip;
+        if (!skipBox || skipBox.w / sc < 44 || skipBox.h / sc < 44) t.problem('bug', `level ${n}: the Skip button is under 44 px (${skipBox ? `${Math.round(skipBox.w / sc)}x${Math.round(skipBox.h / sc)}` : 'missing'})`);
+        else if (skipBox.x < 0 || skipBox.y < 0 || skipBox.x + skipBox.w > layout.viewport.w + 1 || skipBox.y + skipBox.h > layout.viewport.h + 1) t.problem('bug', `level ${n}: the Skip button runs off the screen`);
+        const lit = await probe.worldLuma();
+        if (lit < 0.03) t.problem('bug', `level ${n}: the opening shot is mostly black (${lit.toFixed(2)})`);
+        const move = Math.max(a.moved, a.turned * 2);
+        movedMin = Math.min(movedMin, move);
+        if (a.moved < 0.05 && a.turned < 0.03 && first.phase === 'shot') t.problem('bug', `level ${n}: the opening camera does not move (moved ${a.moved} m, turned ${a.turned} rad after ${a.elapsed}s)`);
+        if (a.stingPlayed !== n) t.problem('bug', `level ${n}: no chapter sting played (${a.stingPlayed})`);
+        t.event('opening-motion', { level: n, moved: a.moved, turned: a.turned, elapsed: a.elapsed, litShare: Math.round(lit * 100) / 100 });
+        // One press (a tap on Skip with options.phone, Space on desktop) ends the shot within 0.5 s.
+        const at = performance.now();
+        if (phone) await tapAt(document.querySelector('.chapter-skip') as HTMLElement | null, `skip opening ${n}`);
+        else await tap(' ', `skip opening ${n}`);
+        let skipMs = -1;
+        while (performance.now() - at < 3000) {
+          if (probe.opening().phase !== 'shot') { skipMs = Math.round(performance.now() - at); break; }
+          await sleep(15);
+        }
+        t.event('opening-skip', { level: n, ms: skipMs, phone });
+        if (skipMs < 0 || skipMs > 500) t.problem('bug', `level ${n}: skip took ${skipMs < 0 ? 'more than 3 s' : `${skipMs} ms`} (under 500 ms wanted)`);
+        skipMsTotal += Math.max(0, skipMs);
+        await toGlideEnd(n, 'skipped');
+        await finishLevel(n);
+        t.add('openingsSeen');
+        t.progress(n / 10);
+      }
+      // The natural handover, nobody pressing: the shot ends by itself and glides into the follow camera.
+      for (const n of [1, 6]) {
+        await begin(n);
+        const until = performance.now() + 60000;
+        while (probe.opening().phase === 'shot' && performance.now() < until) await tick();
+        await toGlideEnd(n, 'natural');
+        await finishLevel(n);
+        t.event('opening-natural', { level: n, cuts: probe.opening().cuts });
+        t.progress(n === 1 ? 0.95 : 1);
+      }
+      cw.stop();
+      const sum = cw.summary();
+      insideTotal += sum.inside;
+      t.metric('openingSkipMs', Math.round(skipMsTotal / 8));
+      t.metric('openingInsideFrames', insideTotal);
+      t.metric('openingBlackFrames', blackTotal);
+      t.metric('openingMovedMin', Math.round((movedMin === Infinity ? 0 : movedMin) * 100) / 100);
+      t.metric('cameraInside', sum.inside);
+      t.metric('cameraSnaps', sum.snaps);
+      if (sum.inside > 0) t.problem('bug', `the camera detector reported ${sum.inside} frame(s) inside geometry during the openings`);
       t.finish('done');
       return;
     }
