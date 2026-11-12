@@ -6300,6 +6300,7 @@ installPhPlaytest({
       left: view.repliesLeft,
       total: view.repliesTotal,
       log: phone.replyLog(),
+      windows: phone.replyWindows(),
       caption: phonePanel && !phonePanel.hidden ? box(phonePanel) : null,
       stats: { vossTrust: clampStat(save.vossTrust), haleTemper: clampStat(save.haleTemper), min: STAT_MIN, max: STAT_MAX },
       ledger: ledger.get(),

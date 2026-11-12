@@ -59,6 +59,7 @@ export type PhProbe = {
     options: { key: number; text: string; rect: { x: number; y: number; w: number; h: number } | null }[];
     left: number; total: number;
     log: { call: string; moment: string; choice: string; cutOff: boolean; delta: number; stat: string; value: number }[];
+    windows: { call: string; moment: string; words: number; window: number; openedAt: number; voiceEndAt: number; closedAt: number; how: string }[];
     caption: { x: number; y: number; w: number; h: number } | null;
     stats: { vossTrust: number; haleTemper: number; min: number; max: number };
   };
@@ -5969,6 +5970,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               if (caption && hit(o.rect, caption)) t.problem('bug', `${callId}: reply bubble "${o.text}" overlaps the call caption`);
               for (const c of controls) if (hit(o.rect, c)) t.problem('bug', `${callId}: reply bubble "${o.text}" overlaps #${c.id}`);
             }
+            const bar = document.querySelector<HTMLElement>('#callReplies .cr-timer');
+            if (!bar || bar.getBoundingClientRect().width < 1) t.problem('bug', `${callId}: no visible countdown bar while the answer window is open`);
             t.event('replies-open', `${callId}: ${r.options.map((o) => `${o.key} ${o.text}`).join(' | ')} (${r.total}s)`);
             if (mode === 'cut') {
               await sleep(700);
@@ -5978,7 +5981,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               if (touch()) await tapAt(document.querySelector<HTMLElement>('#callReplies [data-reply="0"]'), `reply 1 (${chosenText})`);
               else await tap('1', `reply 1 (${chosenText})`);
             } else {
-              await t.until(() => (probe.replies?.().log.length ?? 0) > handled, 12000, `${callId} silence answer`);
+              await t.until(() => (probe.replies?.().log.length ?? 0) > handled, 40000, `${callId} silence answer`);
             }
             const log = probe.replies?.().log ?? [];
             const last = log[log.length - 1];
@@ -6025,6 +6028,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         await sleep(300);
       }
       if (firsts[0] === firsts[1]) t.problem('bug', `voss-morning opens with the same line at vossTrust -2 and +2: "${firsts[0]}"`);
+      // Every window: at least max(8 s, 6 s + 0.35 s per option word), clock from the voice's end, never closed at or before it.
+      const wins = probe.replies?.().windows ?? [];
+      let minAfterVoice = 9999;
+      for (const w of wins) {
+        const need = Math.max(8, 6 + 0.35 * w.words);
+        if (w.window < need - 0.01) t.problem('bug', `${w.call}/${w.moment}: window ${w.window.toFixed(1)} s is under ${need.toFixed(1)} s for ${w.words} words`);
+        t.event('reply-window', `${w.call}/${w.moment}: ${w.words} words, window ${w.window.toFixed(1)} s, ${w.how}`);
+        if (w.how === 'timeout') {
+          const open = (w.closedAt - w.voiceEndAt) / 1000;
+          minAfterVoice = Math.min(minAfterVoice, open);
+          if (!w.voiceEndAt || w.closedAt <= w.voiceEndAt) t.problem('bug', `${w.call}/${w.moment}: the window closed at or before the voice ended`);
+          else if (open < need - 0.5) t.problem('bug', `${w.call}/${w.moment}: the buttons stayed ${open.toFixed(1)} s after the voice ended, under ${need.toFixed(1)} s`);
+        }
+      }
+      t.metric('replyWindowMinAfterVoice', Math.round((minAfterVoice === 9999 ? 0 : minAfterVoice) * 10) / 10);
       t.metric('replyMoments', moments);
       t.metric('replyCutOffs', cutOffs);
       t.metric('replySilences', silences);
