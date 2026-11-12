@@ -470,10 +470,14 @@ export function drawFrame(S, buf, tl, t, { calm = false, spec = null, lowFx = fa
   const tallyRow = F;
   if (!st.credits) {
     const tlObj = st.tally;
-    const tallyStr =
-      cols >= 72
-        ? `LIVE TALLY: GPU(${tlObj.gpu}) + Text(${tlObj.text}) = Hearts(${tlObj.hearts}) - Credits(${tlObj.credits}) [EQUAL]`
-        : `GPU(${tlObj.gpu})+Text(${tlObj.text})=Hearts(${tlObj.hearts})-Credits(${tlObj.credits})`;
+    const forms = [
+      `LIVE TALLY: GPU(${tlObj.gpu}) + Text(${tlObj.text}) = Hearts(${tlObj.hearts}) - Credits(${tlObj.credits}) [EQUAL]`,
+      `GPU(${tlObj.gpu}) + Text(${tlObj.text}) = Hearts(${tlObj.hearts}) - Credits(${tlObj.credits})`,
+      `GPU(${tlObj.gpu})+Text(${tlObj.text})=Hearts(${tlObj.hearts})-Credits(${tlObj.credits})`,
+      `GPU ${tlObj.gpu}+Text ${tlObj.text}=Hearts ${tlObj.hearts}-Cr ${tlObj.credits}`,
+      `${tlObj.gpu}+${tlObj.text}=${tlObj.hearts}-${tlObj.credits}`,
+    ];
+    const tallyStr = forms.find((f) => f.length <= cols) || forms[forms.length - 1];
     clearRow(buf, tallyRow, 0, cols - 1);
     textC(buf, tallyRow, tallyStr.slice(0, cols), C.CYAN, 1);
   }
