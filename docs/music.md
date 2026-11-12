@@ -86,5 +86,5 @@ Each is logged as an `events` entry of kind `stinger`, and ducks under voice lik
 
 ## Open
 
-Stems are still not generated. Theme, corrupted theme, Voss motif and the 8 stingers are queued in Hawkes Gen (`.hawkes/waiting-jobs.txt`) and land in `assets/audio/music/` when the jobs finish; until then the director logs and stays silent on them.
+Stems are still not generated. Theme (90 s), corrupted theme (90 s), Voss motif (30 s) and the 8 stingers (6.5 s, faded) are in `assets/audio/music/` as Ogg Vorbis, made with Gen `audio.music`, looped with `audio.music-loop` and levelled with `audio.process`.
 Beat checks the director cannot make itself: playtest B3 hunt rise within 1 s needs a hunt run.
