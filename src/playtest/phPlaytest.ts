@@ -345,6 +345,11 @@ class SmokeStuck extends Error {}
 
 /** Usual timeline lengths, seconds. A scripted scene (lobby, desk, station opening) has no timeline file. */
 const SCRIPTED_LIMIT = 150;
+/** Meshes a scene refers to, by scene id: the audit reports any that never exist while the scene runs. */
+const SCENE_PROPS: Record<string, RegExp[]> = {
+  'station-opening': [/^station-man$/, /^station-double$/, /^station-shade$/],
+  'the-desk': [/^desk-paper-\d$/],
+};
 /** In `full`, these long rides are skipped after this many seconds. Levels 1–6 stay near ten minutes; level 7 is the train after them. */
 const FULL_SKIP_AFTER: Record<string, number> = { 'elevator-b3': 16, 'elevator-up': 16 };
 
@@ -918,6 +923,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['level', 'story'],
       },
       {
+        id: 'scene-audit',
+        title: 'Every scripted scene, hands off: the lobby, the station platform, the train opening and stop, the morning — no Skip, no input',
+        description: 'Starts levels 5, 6, 7 and 8 directly (test shortcuts) and touches nothing: no keys, no stick, no Skip. Each scene that starts (probe.scripted() or a timeline cutscene) is timed and audited every frame: the walk clip playing with no movement (walking in place), movement with no walk clip (sliding), and the props the scene refers to (SCENE_PROPS). A scene that runs past its limit is a bug and is then skipped so the run can go on. Metrics per scene: scene:<id>:walkInPlaceFrames, scene:<id>:slideFrames, cutscene:<id> (seconds); events scene-audit. Options: level (one level number only).',
+        seconds: 600,
+        tags: ['level', 'story', 'quality'],
+      },
+      {
         id: 'analytics',
         title: 'Hawkes Analytics: level 1 played to its card, the events going out (debug log), the feedback card after the level',
         description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
@@ -1234,7 +1246,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     // ---- what the bot watches every frame
     let lastLine = '';
     let lastPhone = '';
-    let scene: { id: string; t0: number; limit: number; skipAt: number; last: number; skipped: boolean } | null = null;
+    let scene: {
+      id: string; t0: number; limit: number; skipAt: number; last: number; skipped: boolean;
+      /** Scene audit: samples taken, samples with the walk clip and no movement, movement without a walk clip, the last position, props never seen. */
+      samples: number; walkInPlace: number; slide: number; lastP: { x: number; z: number } | null; propsSeen: Set<string>;
+    } | null = null;
     let lastPos: { x: number; z: number; y: number } | null = null;
     let fallen = false;
     // Animation trace (quality rule 5): how long each mismatch between motion and clip has lasted.
@@ -1300,7 +1316,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         const skipAfter = full ? FULL_SKIP_AFTER[nowId]
           : smoke && (cut || smokeSkipScripted) ? (FULL_SKIP_AFTER[nowId] ?? SMOKE_SKIP_AFTER) : undefined;
         const bySpeed = speed > 1 && cut ? cut.duration / speed : undefined;
-        scene = { id: nowId, t0: performance.now(), limit, skipAt: Math.min(skipAfter ?? Infinity, bySpeed ?? Infinity), last: -1, skipped: false };
+        scene = {
+          id: nowId, t0: performance.now(), limit, skipAt: Math.min(skipAfter ?? Infinity, bySpeed ?? Infinity), last: -1, skipped: false,
+          samples: 0, walkInPlace: 0, slide: 0, lastP: null, propsSeen: new Set(),
+        };
         t.add('cutscenes');
         t.event('cutscene-start', nowId);
         levelSteps += 1;
@@ -1312,6 +1331,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         const secs = (performance.now() - scene.t0) / 1000;
         const time = cut?.time ?? secs;
         if (time > scene.last + 0.5) { scene.last = time; mark(); }
+        auditSceneFrame(scene);
         if (!scene.skipped && secs > scene.skipAt) {
           scene.skipped = true;
           t.event('cutscene-skip', `${scene.id} at ${secs.toFixed(0)} s`);
@@ -1408,9 +1428,39 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
     };
 
+    /** Scene audit: while a scene runs, is the walk clip playing with no movement, is he moving with no walk clip, and are its props there. */
+    const auditSceneFrame = (sc: NonNullable<typeof scene>) => {
+      const p = probe.player();
+      const clip = String(probe.motion?.()?.clip ?? '').toLowerCase();
+      const walking = /walk|run/.test(clip);
+      if (sc.lastP) {
+        const moved = Math.hypot(p.x - sc.lastP.x, p.z - sc.lastP.z);
+        sc.samples += 1;
+        // A cut (placePierce to a new mark) is a jump of metres: not a slide.
+        if (walking && moved < 0.005) sc.walkInPlace += 1;
+        if (!walking && clip && moved > 0.15 && moved < 2.5) sc.slide += 1;
+      }
+      sc.lastP = { x: p.x, z: p.z };
+      for (const re of SCENE_PROPS[sc.id] ?? []) {
+        if (sc.propsSeen.has(re.source)) continue;
+        if (probe.scene.meshes.some((m) => re.test(m.name) && m.isEnabled())) sc.propsSeen.add(re.source);
+      }
+    };
+
     const endScene = () => {
       if (!scene) return;
       const secs = (performance.now() - scene.t0) / 1000;
+      // The audit's findings, per scene: shown as metrics and, when it matters, as bugs.
+      t.metric(`scene:${scene.id}:walkInPlaceFrames`, scene.walkInPlace);
+      t.metric(`scene:${scene.id}:slideFrames`, scene.slide);
+      if (scene.walkInPlace > 3) t.problem('bug', `scene "${scene.id}": the walk clip played with no movement for ${scene.walkInPlace} frames (walking in place)`);
+      if (scene.slide > 3) t.problem('warning', `scene "${scene.id}": Pierce moved with no walk clip for ${scene.slide} frames (sliding)`);
+      const lastSecs = secs;
+      if (lastSecs > 4) {
+        const missing = (SCENE_PROPS[scene.id] ?? []).filter((re) => !scene!.propsSeen.has(re.source));
+        if (missing.length) t.problem('bug', `scene "${scene.id}": props it refers to were never present: ${missing.map((re) => re.source).join(', ')}`);
+      }
+      t.event('scene-audit', `${scene.id}: started, ${scene.skipped ? 'ended only by Skip' : 'ended by itself'}, ${secs.toFixed(1)} s, walk-in-place ${scene.walkInPlace}, slide ${scene.slide}`);
       t.event('cutscene-end', `${scene.id} after ${secs.toFixed(1)} s${scene.skipped ? ' (skipped)' : ''}`);
       t.metric(`cutscene:${scene.id}`, Math.round(secs * 10) / 10);
       scene = null;
@@ -8220,6 +8270,40 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return;
     }
 
+    if (id === 'scene-audit') {
+      levelsTotal = 4;
+      if (probe.sound().prompt) await tapToPlay();
+      const only = Number(options.level) || 0;
+      const plan: { n: number; seconds: number }[] = [
+        { n: 5, seconds: 70 }, { n: 6, seconds: 90 }, { n: 7, seconds: 60 }, { n: 8, seconds: 60 },
+      ].filter((p) => !only || p.n === only);
+      let started = 0;
+      for (const { n, seconds } of plan) {
+        t.scene(`scene-audit L${n}`);
+        if (n === 7) await probe.setupHidden('the-train');
+        else await probe.setupLevel(n);
+        await t.until(() => probe.running() && probe.level().id === n, 90000, `level ${n} running`);
+        const t0 = performance.now();
+        let sawScene = false;
+        while ((performance.now() - t0) / 1000 < seconds) {
+          await tick();
+          if (probe.cutscene() || probe.scripted()) sawScene = true;
+          // A scene that ended and gave control back is done: the rest of the window is not the audit's.
+          if (sawScene && controllable()) break;
+        }
+        if (!sawScene) t.problem('bug', `level ${n}: no scene started by itself within ${seconds} s`);
+        else {
+          started += 1;
+          if (!controllable()) t.problem('bug', `level ${n}: its scene was still running after ${seconds} s with no Skip`);
+        }
+        levelIndex += 1;
+        t.progress(levelIndex / plan.length);
+      }
+      t.metric('scenesStartedLevels', started);
+      t.finish(started === plan.length ? 'done' : 'error');
+      return;
+    }
+
     if (id === 'scenes-no-skip') {
       levelsTotal = 1;
       if (probe.sound().prompt) await tapToPlay();
@@ -8245,7 +8329,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (meshes.some((m) => m.isEnabled() && m.isVisible)) papersSeen = true;
           const p = probe.player();
           const moved = Math.hypot(p.x - lastPos.x, p.z - lastPos.z);
-          if (moved < 0.001 && /walk/i.test(String((probe as unknown as { anim?: () => string }).anim?.() ?? ''))) walkClipWhileHeld += 1;
+          if (moved < 0.001 && /walk/i.test(String(probe.motion?.()?.clip ?? ''))) walkClipWhileHeld += 1;
           lastPos = p;
         }
         if (d.phase === 'done') { doneAt = now; break; }
