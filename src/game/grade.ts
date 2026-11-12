@@ -6,6 +6,11 @@ export type SceneGrade = {
   apply: (themeName: string) => void;
   /** Heightened contrast and saturation while Pierce is the changed body. */
   setPowers: (on: boolean) => void;
+  /**
+   * Quiet-chapter grade on the shared pipeline: desk night (one lamp), morning dawn,
+   * or null to clear. Applied after theme / powers.
+   */
+  setQuiet: (mode: 'desk' | 'morning' | null) => void;
   /** 0–1. Basement only: tighter red vignette and a darker exposure while the creature is close. */
   setFear: (amount: number) => void;
   /** Apply the current theme again (after a graphics tier change resets the bloom caps). */
@@ -23,10 +28,60 @@ export const createSceneGrade = (scene: BABYLON.Scene, render: RenderPipeline): 
 
   let theme = '';
   let powers = false;
+  let quiet: 'desk' | 'morning' | null = null;
   let baseExposure = 1;
   let baseVignette = 2.2;
   const curves = new BABYLON.ColorCurves();
   image.colorCurves = curves;
+
+  const applyQuiet = () => {
+    if (quiet === 'desk') {
+      // One desk lamp in the dark: crush fill, warm midtones, deep vignette.
+      image.exposure = 0.78;
+      image.contrast = 1.22;
+      image.vignetteWeight = 3.4;
+      image.vignetteColor.set(0.02, 0.03, 0.06, 0);
+      pipeline.bloomWeight = 0.32;
+      pipeline.bloomThreshold = 0.42;
+      pipeline.bloomKernel = 36;
+      pipeline.bloomScale = 0.48;
+      curves.globalSaturation = -6;
+      curves.shadowsExposure = -28;
+      curves.highlightsExposure = 18;
+      curves.midtonesHue = 22;
+      curves.shadowsHue = 32;
+      image.colorCurvesEnabled = true;
+      paintHemiGround(0.02, 0.03, 0.06);
+      scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+      scene.fogColor = new BABYLON.Color3(0.02, 0.025, 0.05);
+      scene.fogStart = 8;
+      scene.fogEnd = 42;
+      render.setSsao({ wanted: true, strength: 0.55, radius: 1.1 });
+    } else if (quiet === 'morning') {
+      // Grey-gold dawn: soft contrast, warm highlights, open vignette.
+      image.exposure = 1.08;
+      image.contrast = 1.06;
+      image.vignetteWeight = 1.35;
+      image.vignetteColor.set(0.08, 0.06, 0.04, 0);
+      pipeline.bloomWeight = 0.22;
+      pipeline.bloomThreshold = 0.55;
+      pipeline.bloomKernel = 40;
+      pipeline.bloomScale = 0.46;
+      curves.globalSaturation = 8;
+      curves.highlightsHue = 18;
+      curves.midtonesHue = 14;
+      curves.shadowsHue = 8;
+      curves.highlightsExposure = 10;
+      curves.shadowsExposure = 12;
+      image.colorCurvesEnabled = true;
+      paintHemiGround(0.28, 0.24, 0.18);
+      scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+      scene.fogColor = new BABYLON.Color3(0.42, 0.4, 0.38);
+      scene.fogStart = 18;
+      scene.fogEnd = 70;
+      render.setSsao({ wanted: true, strength: 0.32, radius: 0.95 });
+    }
+  };
 
   const apply = (themeName: string) => {
     theme = themeName;
@@ -142,6 +197,13 @@ export const createSceneGrade = (scene: BABYLON.Scene, render: RenderPipeline): 
     if (powers) render.setSsao({ wanted: true, strength: basement ? 0.16 : 0.38, radius: 1.05 });
     else if (apex) render.setSsao({ wanted: true, strength: 0.5, radius: 0.9 });
     else render.setSsao({ wanted: true, strength: basement ? 0.95 : 0.7, radius: basement ? 1.6 : 1.25 });
+    // Quiet chapters override the theme look last (desk night, morning dawn).
+    if (quiet) {
+      applyQuiet();
+      render.capBloom();
+      baseExposure = image.exposure;
+      baseVignette = image.vignetteWeight;
+    }
   };
 
   const liftFill = (hemiIntensity: number, sunIntensity: number) => {
@@ -162,6 +224,12 @@ export const createSceneGrade = (scene: BABYLON.Scene, render: RenderPipeline): 
     if (theme) apply(theme);
   };
 
+  const setQuiet = (mode: 'desk' | 'morning' | null) => {
+    if (quiet === mode) return;
+    quiet = mode;
+    if (theme) apply(theme);
+  };
+
   const setFear = (amount: number) => {
     if (theme !== 'B3 Basement') return;
     const t = Math.max(0, Math.min(1, amount));
@@ -173,6 +241,7 @@ export const createSceneGrade = (scene: BABYLON.Scene, render: RenderPipeline): 
   return {
     apply,
     setPowers,
+    setQuiet,
     setFear,
     reapply: () => {
       if (theme) apply(theme);

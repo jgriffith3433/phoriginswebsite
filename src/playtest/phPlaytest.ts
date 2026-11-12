@@ -179,6 +179,11 @@ export type PhProbe = {
     fogMode: string; landmarks: { id: string; lit: boolean }[]; vatWallsLit: number; flickerOn: boolean;
     creatureRim: boolean; fpsHint: number;
   } | null;
+  /** Quiet chapters (src/game/quietLight.ts): Return / Desk / Morning looks. Null off those levels. */
+  quietLight?: () => {
+    mode: string; deskLamp: boolean; deskShadowLong: boolean; mirrorTextOk: boolean; sunShafts: boolean;
+    volumetric: boolean; tvSpill: boolean; buzzTube: boolean; dust: boolean; fpsHint: number;
+  } | null;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
   /** Test shortcut (`living-places`): show the running level's Level Complete card now. */
@@ -787,6 +792,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 2 (test shortcut). Turns the flashlight on with G (or the Flashlight touch button on phone), walks the long hall toward the lab for about 30 s through real input, and checks: the beam cone is on, flashlight shadows cast from at least 3 objects, the vat lights at least 2 nearby walls, fog is exp2 so corridor ends stay dark, and at least 3 light landmarks (EXIT signs / practicals / vat) mark the route. Options.phone: 390x844 touch, Low graphics, reports fpsP5 ≥ 30 with beam and fog on. Metrics: b3ShadowCasters, b3VatWalls, b3Landmarks, b3Fps, b3FogMode. Probe: b3Horror().',
         seconds: 120,
         tags: ['level', 'feel', 'phone'],
+      },
+      {
+        id: 'quiet-light',
+        title: 'Quiet chapters light: Morning sun shafts + TV spill, Desk lamp long shadows + mirror text, Return buzzing tube (options.phone: 390x844 Low shafts ≥30 fps)',
+        description: 'Plays The Morning (test shortcut): skips S0/S1, walks to the bed and presses Sleep (E / Interact), waits for dawn, checks sun shafts and dust (quietLight().sunShafts), walks to the TV and presses Watch, checks TV spill on walls/Pierce (tvSpill). Then The Desk: checks the desk lamp is the key light with long shadows, walks to the bathroom mirror and checks the vanity HAWKES plaque has no negative scale (mirrorTextOk) while MirrorTexture reverses it. Then The Return: checks one fluorescent tube buzzes under the clinical wash. Options.phone: 390x844 touch, Low graphics, Morning only, reports phone.fpsP5 ≥ 30 with shaft meshes. Metrics: morningShafts, tvSpill, deskLamp, mirrorTextOk, returnBuzz, morningFps. Probe: quietLight().',
+        seconds: 420,
+        tags: ['level', 'feel', 'phone', 'quality'],
       },
       {
         id: 'ledger-city',
@@ -3594,6 +3606,178 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.finish(boardSeen ? 'done' : 'stuck');
     };
 
+
+    // ---- quiet-light: Morning shafts + TV spill, Desk lamp + mirror text, Return buzz tube
+    const quietLightRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const phone = !!(options as { phone?: boolean }).phone;
+      if (phone) {
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+        await sleep(400);
+        t.event('setup', 'phone 390x844 touch');
+      }
+
+      const forceLowGraphics = async () => {
+        const pause = document.getElementById('pauseBtn') as HTMLButtonElement | null;
+        if (pause && !pause.hidden) {
+          await tapAt(pause, 'Pause');
+          await sleep(350);
+        }
+        await tapAt(document.getElementById('pauseSettingsBtn') ?? document.getElementById('settingsBtn'), 'Settings');
+        await sleep(400);
+        const lowBtn = document.querySelector<HTMLButtonElement>('#graphicsTiers .graphics-tier[data-tier="low"]');
+        if (lowBtn) {
+          await tapAt(lowBtn, 'Graphics Low');
+          await sleep(350);
+          t.event('graphics-tier', `Low (pipeline ${probe.render?.()?.tier ?? '?'})`);
+        } else {
+          t.problem('warning', 'Graphics Low button missing; shaft meshes may not be the path under test');
+        }
+        const back = document.getElementById('settingsBack') as HTMLButtonElement | null;
+        if (back && !back.hidden) await tapAt(back, 'Back');
+        await sleep(200);
+        const resume = document.getElementById('resumeBtn') as HTMLButtonElement | null;
+        if (resume && !resume.hidden) await tapAt(resume, 'Resume');
+        await sleep(300);
+      };
+
+      const fpsSamples: number[] = [];
+      const sampleFps = () => {
+        const q = probe.quietLight?.();
+        if (q) fpsSamples.push(q.fpsHint);
+      };
+
+      // --- The Morning: shafts after Sleep, TV spill while Watching ---
+      t.scene('The Morning: dawn shafts');
+      await enterLevel(8);
+      await waitControl('The Morning');
+      for (let i = 0; i < 80 && probe.scripted(); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(350);
+      }
+      await t.until(() => probe.running() && !probe.scripted() && !probe.menu().open, 60000, 'control in the apartment');
+      if (phone) await forceLowGraphics();
+      t.progress(0.15);
+      const bed = { x: 5.9, z: -0.45 };
+      const walkPhone = async (to: Point, label: string) => {
+        const zone = document.getElementById('leftStickZone') as HTMLElement | null;
+        const start = performance.now();
+        while (performance.now() - start < 25000) {
+          const p = probe.player();
+          if (dist(p, to) < 0.55) break;
+          if (phone && zone) {
+            const heading = Math.atan2(to.x - p.x, to.z - p.z);
+            const rel = Math.atan2(Math.sin(heading - probe.cameraYaw()), Math.cos(heading - probe.cameraYaw()));
+            const zr = zone.getBoundingClientRect();
+            const init = { pointerId: 71, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + Math.sin(rel) * zr.width * 0.38, clientY: zr.top + zr.height / 2 - Math.cos(rel) * zr.height * 0.38 };
+            zone.dispatchEvent(new PointerEvent('pointerdown', init));
+            zone.dispatchEvent(new PointerEvent('pointermove', init));
+            await sleep(200);
+            zone.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0 }));
+          } else {
+            steer(to, true);
+            await sleep(200);
+          }
+          sampleFps();
+        }
+        releaseAll();
+        t.event('walk', `${label} at (${probe.player().x.toFixed(1)}, ${probe.player().z.toFixed(1)})`);
+      };
+      await walkPhone(bed, 'bed');
+      const interact = async (label: string) => {
+        if (phone) await tapAt(document.getElementById('interactBtn'), label);
+        else await once('e', 1400, label);
+      };
+      await interact('Sleep');
+      t.event('action', 'Sleep');
+      for (let i = 0; i < 90 && (probe.scripted() || probe.morning()?.beat === 'sleep' || probe.morning()?.beat === 'wake'); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        sampleFps();
+        await sleep(400);
+      }
+      await sleep(800);
+      const afterDawn = probe.quietLight?.();
+      t.event('quiet-morning', `shafts ${afterDawn?.sunShafts ? 'on' : 'OFF'}, dust ${afterDawn?.dust ? 'on' : 'off'}, volumetric ${afterDawn?.volumetric ? 'on' : 'off'}, day beat ${probe.morning()?.beat}`);
+      t.metric('morningShafts', afterDawn?.sunShafts ? 1 : 0);
+      if (!afterDawn?.sunShafts) t.problem('bug', 'Morning sun shafts are not visible after Sleep');
+      if (!afterDawn?.dust) t.problem('bug', 'Morning dust motes are missing in the shafts');
+      t.progress(0.35);
+
+      await walkPhone({ x: 3.2, z: -0.4 }, 'TV');
+      await interact('Watch');
+      t.event('action', 'Watch');
+      for (let i = 0; i < 40 && probe.scripted(); i += 1) {
+        sampleFps();
+        await sleep(400);
+      }
+      await sleep(600);
+      let tvSpill = false;
+      for (let i = 0; i < 25; i += 1) {
+        sampleFps();
+        const q = probe.quietLight?.();
+        if (q?.tvSpill) tvSpill = true;
+        await sleep(200);
+      }
+      t.metric('tvSpill', tvSpill ? 1 : 0);
+      t.event('quiet-tv', `TV spill ${tvSpill ? 'on' : 'OFF'} while the programme plays`);
+      if (!tvSpill) t.problem('bug', 'The TV does not cast flickering light on the wall / Pierce');
+      t.progress(0.5);
+
+      const fpsSorted = [...fpsSamples].sort((a, b) => a - b);
+      const fpsP5 = fpsSorted.length ? fpsSorted[Math.max(0, Math.floor(fpsSorted.length * 0.05))] : 0;
+      t.metric('morningFps', fpsP5);
+      if (phone) {
+        t.metric('phone.fpsP5', fpsP5);
+        if (fpsP5 < 30) t.problem('bug', `phone fps p5 ${fpsP5} under 30 with Morning shaft meshes`);
+        probe.phoneFrame(false);
+        t.progress(1);
+        return 'done';
+      }
+
+      // --- The Desk: lamp key + mirror plaque ---
+      t.scene('The Desk: lamp and mirror');
+      await enterLevel(4);
+      await waitControl('The Desk');
+      for (let i = 0; i < 40 && (probe.cutscene() || probe.scripted()); i += 1) await tick();
+      await sleep(800);
+      const deskQ = probe.quietLight?.();
+      t.event('quiet-desk', `lamp ${deskQ?.deskLamp ? 'on' : 'OFF'}, long shadows ${deskQ?.deskShadowLong ? 'on' : 'off'}, mirror text ok ${deskQ?.mirrorTextOk}`);
+      t.metric('deskLamp', deskQ?.deskLamp ? 1 : 0);
+      t.metric('mirrorTextOk', deskQ?.mirrorTextOk ? 1 : 0);
+      if (!deskQ?.deskLamp) t.problem('bug', 'The Desk has no desk-lamp key light');
+      if (!deskQ?.deskShadowLong) t.problem('bug', 'The Desk is not set up for long desk-lamp shadows');
+      if (!deskQ?.mirrorTextOk) t.problem('bug', 'Bathroom vanity text is mirrored or missing in normal view');
+      // Walk into the bath so footage shows the plaque and the glass.
+      await walkPhone({ x: 18.6, z: 28.15 }, 'bathroom mirror');
+      await sleep(1200);
+      const plaque = probe.scene.getMeshByName('quiet-bath-sign');
+      const sx = plaque?.scaling.x ?? 0;
+      const sy = plaque?.scaling.y ?? 0;
+      const sz = plaque?.scaling.z ?? 0;
+      if (!plaque) t.problem('bug', 'quiet-bath-sign vanity plaque is missing');
+      else if (sx < 0 || sy < 0 || sz < 0) t.problem('bug', `vanity plaque has a negative scale (${sx},${sy},${sz}) — text would read backwards in normal view`);
+      const glass = probe.scene.getMeshByName('desk-mirror');
+      const mat = glass?.material as { reflectionTexture?: { name?: string } } | null;
+      if (!mat?.reflectionTexture) t.problem('bug', 'The Desk mirror has no MirrorTexture (text in the glass would not reverse)');
+      else t.event('mirror-texture', `MirrorTexture on desk-mirror (${mat.reflectionTexture.name ?? 'tex'})`);
+      t.progress(0.75);
+
+      // --- The Return: clinical buzz tube ---
+      t.scene('The Return: clinical fluorescents');
+      await enterLevel(3);
+      await waitControl('The Return');
+      for (let i = 0; i < 40 && (probe.cutscene() || probe.scripted()); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(300);
+      }
+      await sleep(1000);
+      const retQ = probe.quietLight?.();
+      t.event('quiet-return', `buzz tube ${retQ?.buzzTube ? 'on' : 'OFF'}, mode ${retQ?.mode}`);
+      t.metric('returnBuzz', retQ?.buzzTube ? 1 : 0);
+      if (!retQ?.buzzTube) t.problem('bug', 'The Return has no buzzing fluorescent tube');
+      t.progress(1);
+      return 'done';
+    };
 
     // ---- b3-horror-light: flashlight beam + moving shadows, vat green, dark corridors, landmarks; phone fps
     const b3HorrorLightRun = async (): Promise<Outcome> => {
@@ -7023,6 +7207,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
 
     if (id === 'b3-horror-light') {
       const outcome = await b3HorrorLightRun();
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'quiet-light') {
+      const outcome = await quietLightRun();
       t.finish(outcome);
       return;
     }

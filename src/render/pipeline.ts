@@ -79,12 +79,12 @@ export type ChapterLook = {
 export const CHAPTER_LOOKS: Record<string, ChapterLook> = {
   'apex-peak': { lut: 'apex-peak', lutLevel: 0.9, keyDir: [0.22, -1, 0.16], shadow: 0.5, shadowMaxZ: 34, aberration: 5, grain: 5, env: 'night-city' },
   'b3-basement': { lut: 'b3-basement', lutLevel: 1, keyDir: [0.12, -1, 0.2], shadow: 0.55, shadowMaxZ: 26, aberration: 7, grain: 9, env: 'sodium-underground' },
-  'the-return': { lut: 'the-return', lutLevel: 0.95, keyDir: [0.18, -1, 0.12], shadow: 0.42, shadowMaxZ: 30, aberration: 6, grain: 4, env: 'sodium-underground' },
-  'the-desk': { lut: 'the-desk', lutLevel: 1, keyDir: [0.3, -1, 0.22], shadow: 0.55, shadowMaxZ: 30, aberration: 5, grain: 6, env: 'night-city' },
+  'the-return': { lut: 'the-return', lutLevel: 0.95, keyDir: [0.12, -1, 0.08], shadow: 0.38, shadowMaxZ: 32, aberration: 6, grain: 4, env: 'sodium-underground' },
+  'the-desk': { lut: 'the-desk', lutLevel: 1, keyDir: [0.78, -0.48, -0.25], shadow: 0.62, shadowMaxZ: 28, aberration: 5, grain: 6, env: 'night-city' },
   'going-home': { lut: 'going-home', lutLevel: 1, keyDir: [0.28, -1, -0.18], shadow: 0.5, shadowMaxZ: 40, aberration: 6, grain: 7, env: 'night-city' },
   'the-station': { lut: 'the-station', lutLevel: 1, keyDir: [0.15, -1, 0.1], shadow: 0.5, shadowMaxZ: 34, aberration: 5, grain: 7, env: 'sodium-underground' },
   'the-train': { lut: 'the-train', lutLevel: 1, keyDir: [0.05, -1, 0.06], shadow: 0.48, shadowMaxZ: 22, aberration: 6, grain: 8, flicker: true, env: 'sodium-underground' },
-  'the-morning': { lut: 'the-morning', lutLevel: 0.95, keyDir: [0.55, -1, 0.3], shadow: 0.45, shadowMaxZ: 24, aberration: 4, grain: 6, env: 'grey-dawn' },
+  'the-morning': { lut: 'the-morning', lutLevel: 0.95, keyDir: [0.72, -0.58, 0.18], shadow: 0.48, shadowMaxZ: 22, aberration: 4, grain: 6, env: 'grey-dawn' },
 };
 
 const DEFAULT_LOOK = CHAPTER_LOOKS['apex-peak'];
@@ -271,8 +271,12 @@ export const createRenderPipeline = (
     });
   }
 
+  /** Quiet-chapter override (desk lamp throw, dawn window). Null restores the chapter look. */
+  let keyDirOverride: [number, number, number] | null = null;
+
   const applyKey = () => {
-    key.direction.set(look.keyDir[0], look.keyDir[1], look.keyDir[2]);
+    const dir = keyDirOverride ?? look.keyDir;
+    key.direction.set(dir[0], dir[1], dir[2]);
     key.direction.normalize();
     if (csm) csm.shadowMaxZ = look.shadowMaxZ;
   };
@@ -339,6 +343,11 @@ export const createRenderPipeline = (
     setChapter,
     chapter: () => chapter,
     look: () => look,
+    /** Quiet chapters: steer the contact-shadow key (desk lamp, dawn window). Null clears. */
+    setKeyDir: (dir: [number, number, number] | null) => {
+      keyDirOverride = dir;
+      applyKey();
+    },
     /** grade.ts: whether this theme wants SSAO and how strong. Only the high tier draws it. */
     setSsao: (profile: SsaoProfile) => {
       ssaoProfile = profile;

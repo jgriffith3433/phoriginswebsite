@@ -55,9 +55,12 @@ floor to his own bed.
   Gen wet-surface albedos (concrete, grating, lab tile, algae wall) replace procedural stand-ins when credits allow.
 
 ### 3. The Return and The Desk (levels 3-4) - B3 hall, cab, Apex office, restroom mirror
-- **Mood:** too bright, too clean; powers grade over-lit. A man learning his own hands.
+- **Mood:** The Return: clinical over-bright humming fluorescents that blow out highlights, too clean and too empty,
+  with one tube that buzzes (`src/game/quietLight.ts`). The Desk: a single desk-lamp key in the dark with long shadows
+  across the desk and floor, city glow through the window as rim, MirrorTexture vanity plaque that reads reversed in
+  the glass. A man learning his own hands.
 - The ride up (`elevator-up`, ~69 s), the mirror (`bathroomMirror.ts`), the desk (papers shoved off). Same room as
-  Apex so the player sees what changed, not what is new.
+  Apex so the player sees what changed, not what is new. Playtest `quiet-light`.
 
 ### 4. Hawkes Tower lobby (level 5 opening) - `going-home.json`
 - **Mood:** marble night-shift. Receptionist desk beside the east elevator, doors on floor L.
@@ -83,7 +86,9 @@ floor to his own bed.
 - **In/out:** in from the open door; out the north door at the unnamed stop (End Level).
 
 ### 8. The Morning (level 8) - `the-morning.json`
-- **Mood:** one room after the worst night; grey-gold light, a kettle through the wall, a TV on its timer.
+- **Mood:** one room after the worst night; grey-gold dawn. Sunlight through venetian blinds as visible shafts in the
+  air (VolumetricLightScattering on High, light-shaft meshes on Low), slowly sliding across the room; dust motes in the
+  beams; the TV casting flickering blue spill synced to its picture (`src/game/quietLight.ts`). Playtest `quiet-light`.
 - Apartment shell + runtime furniture, chair at the window, coat, face-down photo, landline with a red light, bed, TV,
   door. Bed `morning-room.ogg` 0.16.
 - **Size:** one room, about 6 x 5 m; the whole level is ~8 minutes of scenes and one short walk.
@@ -213,9 +218,11 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 ### The Return and The Desk
 - **Interactions:** Ride Elevator, answer Hale (F), Look in mirror (E), open a stall door (**new**, E: a creak and a
   line), flush the sink (**new**, E: running water over the reflection), shove papers (scripted), read a paper (**new**).
-- **Own events:** the cab sways; floor LEDs cycle; Hale rings at x 44, z 30; phone buzzes; fluorescent hum in the bath.
-- **Sound:** cab hum, chimes, door slide, water, mirror breathing.
-- **Changes:** Pierce's reflection shows the new body; the powers grade; the desk becomes a mess.
+- **Own events:** the cab sways; floor LEDs cycle; Hale rings at x 44, z 30; phone buzzes; one clinical tube buzzes and
+  stutters in the Return halls; The Desk's lamp is the only warm pool (city rim on the glass).
+- **Sound:** cab hum, chimes, door slide, water, mirror breathing, fluorescent buzz (`sfx.b3.fluorescent-buzz`).
+- **Changes:** Pierce's reflection shows the new body; Return stays over-bright; The Desk goes dark but for the lamp;
+  the desk becomes a mess.
 - **The Desk, played (built):** walking up to the glass (no prompt) eases the camera over his shoulder; the reflection
   lags him up to 0.5 s and turns its head once before he does, the bed and his breath go silent, "That's me." plays.
   At the desk a held drag (mouse or one finger) sweeps papers, folder, glass and terminal off with paper and impact
@@ -261,8 +268,9 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 - **Interactions:** E at the door, Sleep, Watch, Leave, answer the landline (F), open the fridge (**new**, E: a jar,
   a cold light, one line), turn the radio on (**new**, E: static to the same news), touch the photo (**new**, E: stays
   face down).
-- **Own events:** kettle through the wall, building elevator, a neighbour's door, the TV timer; the sun climbs across
-  the floor; the red light blinks.
+- **Own events:** kettle through the wall, building elevator, a neighbour's door, the TV timer; dawn shafts slide east
+  across the floor after Sleep; dust catches the beams; TV blue flicker on the sofa wall while Watch plays; the red
+  light blinks.
 - **Sound:** `morning-room.ogg` 0.16, traffic, kettle, TV audio.
 - **Changes:** light moves across the room during the sleep scene; the TV picks up his name.
 

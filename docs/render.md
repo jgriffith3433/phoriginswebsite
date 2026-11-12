@@ -37,8 +37,10 @@ practicals are unchanged; the shadow is the key's occlusion.
   only. Casters self-shadow with `bias` 0.0018 and `normalBias` 0.018, small enough that contact shadows stay
   under the feet (no peter-panning). Soft PCF: 4 (Low) or 8 (Medium, High) hardware-compared taps, kernel 1.4-2.6
   texels; the last cascade fades out at its rim.
-- Per chapter (`CHAPTER_LOOKS`): direction (steep, overhead practicals; The Morning slants from the window),
-  strength 0.42-0.55, range 22-40 m.
+- Per chapter (`CHAPTER_LOOKS`): direction (steep, overhead practicals; The Morning slants from the window; The Desk
+  throws long from the lamp), strength 0.42-0.55, range 22-40 m. Quiet chapters may override the key with
+  `render.setKeyDir` (`src/game/quietLight.ts`: Return clinical wash + buzzing tube, Desk lamp + city rim, Morning
+  dawn shafts / VLS-or-meshes + TV spill). Playtest `quiet-light`.
 
 ## Tiers
 

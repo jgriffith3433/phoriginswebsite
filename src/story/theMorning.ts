@@ -66,6 +66,8 @@ export type MorningStory = {
   beat: 'ride' | 'walk' | 'home' | 'sleep' | 'wake' | 'news' | 'call' | 'out' | 'coat' | 'door' | 'leaving' | 'done';
   lying: boolean;
   tvOn: boolean;
+  /** 0–1 mean luminance of the TV canvas (quiet-light spill tracks the picture). */
+  tvBright: number;
   /** Everything the TV has shown so far (headline and still captions), for the playtest. */
   tvText: string;
   captions: number;
@@ -191,6 +193,7 @@ export const createTheMorning = (host: MorningHost) => {
   let lineUntil = 0;
   let flags = new Set<string>();
   let tvOn = false;
+  let tvBright = 0;
   let tvSeen: string[] = [];
   let paperMesh: BABYLON.Mesh | null = null;
   let paperText = '';
@@ -263,6 +266,19 @@ export const createTheMorning = (host: MorningHost) => {
     return mesh;
   };
 
+  const sampleTvBright = (ctx: CanvasRenderingContext2D, W: number, H: number) => {
+    let sum = 0;
+    let n = 0;
+    for (let y = 24; y < H; y += 48) {
+      for (let x = 24; x < W; x += 64) {
+        const d = ctx.getImageData(x, y, 1, 1).data;
+        sum += (d[0] + d[1] + d[2]) / 3;
+        n += 1;
+      }
+    }
+    tvBright = n ? sum / n / 255 : 0;
+  };
+
   const drawTv = () => {
     if (!tvTexture) return;
     const ctx = tvTexture.getContext() as CanvasRenderingContext2D;
@@ -272,6 +288,7 @@ export const createTheMorning = (host: MorningHost) => {
       ctx.fillStyle = '#050607';
       ctx.fillRect(0, 0, W, H);
       tvTexture.update();
+      tvBright = 0;
       return;
     }
     if (still === 'static') {
@@ -283,6 +300,7 @@ export const createTheMorning = (host: MorningHost) => {
         }
       }
       tvTexture.update();
+      sampleTvBright(ctx, W, H);
       return;
     }
     // Still, placeholder drawings until the real stills are generated.
@@ -346,6 +364,7 @@ export const createTheMorning = (host: MorningHost) => {
     if (!tvSeen.includes(head)) tvSeen.push(head);
     if (!tvSeen.includes(t)) tvSeen.push(t);
     tvTexture.update();
+    sampleTvBright(ctx, W, H);
   };
 
   /** The newspaper on the coffee table. Headline by ledger band; big type so a phone reads it up close. */
@@ -959,6 +978,7 @@ export const createTheMorning = (host: MorningHost) => {
       beat,
       lying: flags.has('down') && (beat === 'sleep' || beat === 'wake'),
       tvOn,
+      tvBright,
       tvText: tvSeen.join(' | '),
       captions: captionsShown,
       callDone,

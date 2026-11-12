@@ -408,7 +408,8 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     applyTheme(scene, loaded.data.theme || currentThemeName);
     applySceneLighting(scene, loaded.data);
     render.setChapter(getLevelDefinition(state.level).libraryId);
-    grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
+    grade.setPowers(isReturnLevel() || isHomeLevel());
+    grade.setQuiet(isDeskLevel() ? 'desk' : isMorningLevel() ? 'morning' : null);
     grade.apply(loaded.data.theme || currentThemeName);
     followCamera.setVolumes(loaded.data.cameraVolumes ?? []);
     applyAcousticZones(loaded.data);
@@ -1195,7 +1196,22 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
       if (isTrainLevel()) await train.mount();
     }
     // Runtime dressing that is not in the level file (city under the office, basement air, station kit, the train car).
-    dressing.mount({ levelId: loaded?.data.id ?? '', powers: isReturnLevel() });
+    dressing.mount({
+      levelId: loaded?.data.id ?? '',
+      libraryId: getLevelDefinition(state.level).libraryId,
+      powers: isReturnLevel(),
+      setKeyDir: (dir) => render.setKeyDir(dir),
+      morning: {
+        tvOn: () => morning.story().tvOn,
+        tvBright: () => morning.story().tvBright,
+        day: () => {
+          const beat = morning.story().beat;
+          if (beat === 'ride' || beat === 'walk' || beat === 'home' || beat === 'sleep') return 0;
+          if (beat === 'wake') return 0.55;
+          return 1;
+        },
+      },
+    });
     if (mode !== 'credits') touch.mount(getLevelDefinition(state.level).libraryId);
     preloadClips(TOUCH_SOUNDS);
     await Promise.all([
@@ -2672,7 +2688,8 @@ const applyLevelConfig = (config: LevelDefinition) => {
   applyTheme(scene, config.theme);
   if (missionScene) applySceneLighting(scene, missionScene);
   render.setChapter(config.libraryId);
-  grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
+  grade.setPowers(isReturnLevel() || isHomeLevel());
+  grade.setQuiet(config.libraryId === 'the-desk' ? 'desk' : config.libraryId === 'the-morning' ? 'morning' : null);
   grade.apply(config.theme);
 };
 
@@ -6010,6 +6027,7 @@ installPhPlaytest({
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
   render: () => render.stats(),
   b3Horror: () => dressing.b3Horror(),
+  quietLight: () => dressing.quietLight(),
   // Mean colour of the next finished frame (after the grade): read in the same frame, so it works without a
   // preserved drawing buffer. A coarse 32x18 grid is plenty for a chapter's colour fingerprint.
   frameColor: () => new Promise((resolve) => {
