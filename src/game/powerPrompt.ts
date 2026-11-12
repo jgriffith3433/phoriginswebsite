@@ -11,11 +11,15 @@ export type PowerPromptState = {
   key: string;
   label: string;
   /** Button the prompt belongs to on touch (and on desktop when there is no world target). */
-  button: 'shadow' | 'fire' | 'ability';
+  button: 'shadow' | 'fire' | 'ability' | 'interact';
+  /** Optional picture for the icon (a WebP in assets/textures/ui/icons). */
+  iconUrl?: string;
+  /** Hang on the world target even on touch (a use prompt rides the object; a power prompt rides its button). */
+  preferTarget?: boolean;
   world: BABYLON.Vector3 | null;
 };
 
-const BUTTON_IDS = { shadow: 'shadowHint', fire: 'fireBtn', ability: 'abilityHint' } as const;
+const BUTTON_IDS = { shadow: 'shadowHint', fire: 'fireBtn', ability: 'abilityHint', interact: 'interactBtn' } as const;
 const W = 132;
 const H = 34;
 
@@ -24,12 +28,13 @@ export const createPowerPrompt = (
   engine: BABYLON.Engine,
   scene: BABYLON.Scene,
   read: (out: PowerPromptState) => void,
+  elementId = 'powerPrompt',
 ) => {
-  const el = document.getElementById('powerPrompt') as HTMLDivElement | null;
+  const el = document.getElementById(elementId) as HTMLDivElement | null;
   const iconEl = el?.querySelector('.pp-icon') as HTMLElement | null;
   const keyEl = el?.querySelector('.pp-key') as HTMLElement | null;
   const labelEl = el?.querySelector('.pp-label') as HTMLElement | null;
-  const info: PowerPromptState = { active: false, icon: '', key: '', label: '', button: 'fire', world: null };
+  const info: PowerPromptState = { active: false, icon: '', key: '', label: '', button: 'fire', world: null, iconUrl: undefined };
   const projected = new BABYLON.Vector3();
   const identity = BABYLON.Matrix.Identity();
   const viewport = new BABYLON.Viewport(0, 0, 1, 1);
@@ -49,6 +54,8 @@ export const createPowerPrompt = (
 
   const update = () => {
     if (!el || !iconEl || !keyEl || !labelEl) return;
+    info.iconUrl = undefined;
+    info.preferTarget = false;
     read(info);
     if (!info.active) { hide(); return; }
     const w = root.clientWidth;
@@ -62,7 +69,7 @@ export const createPowerPrompt = (
     let y = 0;
     let on = 'button';
     const button = document.getElementById(BUTTON_IDS[info.button]);
-    const onButton = touch || !info.world;
+    const onButton = (touch && !info.preferTarget) || !info.world;
     if (onButton && button && !button.hidden) {
       const r = button.getBoundingClientRect();
       // Above the button, centred on it, never under another control: touch buttons sit low, the prompt rides over them.
@@ -81,10 +88,12 @@ export const createPowerPrompt = (
       x = Math.min(w - W / 2 - 8, Math.max(W / 2 + 8, x));
       y = Math.min(h - 140, Math.max(90, y));
     } else { hide(); return; }
-    const text = `${info.icon}|${info.key}|${info.label}|${touch ? 't' : 'd'}`;
+    const text = `${info.icon}|${info.iconUrl ?? ''}|${info.key}|${info.label}|${touch ? 't' : 'd'}`;
     if (text !== lastText) {
       lastText = text;
-      iconEl.textContent = info.icon;
+      iconEl.textContent = info.iconUrl ? '' : info.icon;
+      iconEl.style.backgroundImage = info.iconUrl ? `url(${info.iconUrl})` : '';
+      iconEl.classList.toggle('pp-img', Boolean(info.iconUrl));
       keyEl.textContent = info.key;
       labelEl.textContent = info.label;
     }

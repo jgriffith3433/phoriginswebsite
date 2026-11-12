@@ -1602,7 +1602,7 @@
       "id": "objective.lab",
       "type": "objective",
       "speaker": "Objective",
-      "text": "Find the lab door. G lights the dark, F opens the phone.",
+      "text": "Find the lab door.",
       "audio": "",
       "note": "Objective lab. speaker is the short title."
     },
@@ -1610,7 +1610,7 @@
       "id": "objective.lab.touch",
       "type": "objective",
       "speaker": "Objective",
-      "text": "Find the lab door. Tap Light for the dark, Phone for your phone.",
+      "text": "Find the lab door.",
       "audio": "",
       "note": "Objective lab, shown on touch devices instead of the key letters."
     },
@@ -1698,7 +1698,7 @@
       "id": "objective.shove",
       "type": "objective",
       "speaker": "Shove",
-      "text": "They will not move. V knocks them back.",
+      "text": "They will not move. Knock them back.",
       "audio": "",
       "note": "Objective shove. speaker is the short title."
     },
@@ -3166,7 +3166,7 @@
       "id": "objective.home.linked",
       "type": "objective",
       "speaker": "Shadow Link",
-      "text": "Walk them. Click again to end.",
+      "text": "Walk them. End it when you choose.",
       "audio": "",
       "note": "Going Home, while linked"
     },
@@ -3238,7 +3238,7 @@
       "id": "objective.home.consume",
       "type": "objective",
       "speaker": "Consume",
-      "text": "Click again to consume.",
+      "text": "Consume them.",
       "audio": "",
       "note": "Going Home, Consume while linked to the station guard"
     },
@@ -3262,7 +3262,7 @@
       "id": "objective.station.link-walk",
       "type": "objective",
       "speaker": "Shadow Link",
-      "text": "WASD walks them. Click kills. Tab switches the ability.",
+      "text": "Walk them. Or end it.",
       "audio": "",
       "note": "The Station, while linked"
     },
@@ -3270,7 +3270,7 @@
       "id": "objective.station.shadow",
       "type": "objective",
       "speaker": "Shadow mode",
-      "text": "Tab switches the ability. Q raises the hands.",
+      "text": "Switch your ability. Raise your hands.",
       "audio": "",
       "note": "The Station, Shadow mode on"
     },
@@ -3278,7 +3278,7 @@
       "id": "objective.station.link-aim",
       "type": "objective",
       "speaker": "Shadow Link",
-      "text": "Aim at them. Click uses Possess.",
+      "text": "Aim at them. Possess.",
       "audio": "",
       "note": "The Station, hands raised"
     },
@@ -3286,7 +3286,7 @@
       "id": "objective.station.train",
       "type": "objective",
       "speaker": "The train",
-      "text": "The open door, down the platform. Tab switches the ability.",
+      "text": "The open door, down the platform.",
       "audio": "",
       "note": "The Station, main objective"
     },
@@ -3903,7 +3903,7 @@
       "id": "objective.morning.call",
       "type": "objective",
       "speaker": "Voss",
-      "text": "Answer the phone. F.",
+      "text": "Answer the phone.",
       "audio": "",
       "note": "Level 8 while Voss rings"
     },
