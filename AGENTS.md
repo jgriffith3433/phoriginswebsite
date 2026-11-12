@@ -255,6 +255,10 @@ Touch (`body[data-device]` mobile/tablet) controls never overlap and are 44 px o
 
 `src/game/rewards.ts` + `reward.N.*` lines in `locales/en.json`. The Missions panel's first row (`#missionGoal`, "On finish") names the level's rank and unlocked tool; the Level Complete card (`#rewardEntry`, `showReward` in `main.ts`) shows rank, unlocked tool, "Full marks" when every side mission is done, and a hook into the next level. Probe `showLevelComplete()` is a test shortcut; playtest `living-places` (`rewardGoalCheck`) checks the panel row, the card, no sideways scroll and 44 px card buttons.
 
+## Chapter Select
+
+Title button **Chapter Select** (was Load Level; `#loadModelBtn`): eight cards from the save, see `src/game/chapterSelect.ts` and `docs/story/lore.md` (best time, Lore n of m, three hidden floor pages per chapter, hover cue, a tap starts the chapter). Card art `assets/textures/chapters/NN.webp` is still to be painted (Gen credits ran out); cards draw a gradient until the file exists. Playtest `chapter-select` (option `phone`).
+
 ## Lore entries
 
 Level Complete unlocks that chapter's lore entry (`src/game/lore.ts`, `lore: number[]` on `ph-origins-save`): the card shows it with a **Read more** link to `lore/<slug>.html`. Each lore page has **Play this level** (`play/game.html?level=N`; `main.ts` opens the title card on that level). Pages are built by `node tools/buildLore.mjs` from `site/lore.json` + `locales/en.json` (`lore.N.*`). See `docs/story/lore.md`. Playtest: `lore-link`.
@@ -453,6 +457,12 @@ Texture pipeline: sources in `phoriginsassets/textures` (or `assets/textures/sou
 Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would beat `PistolAim` fallback. Lab consoles also sit in chem, decon, containment, and the transformation wing. The rest of the basement is still boxes. Landing stills are placeholders. Arena combat code still exists and stays off on story levels. Opaque level materials are PBR (albedo, normal, roughness). Do not assign `scene.environmentTexture`; characters and props use the flat probe in `assets/textures/probe/`.
 
 When you change IDs, clip names, sequence phases, or these constraints, **update this file**.
+
+## HUD in the world (calls, pain, prompts)
+
+- **Calls**: while a call is out or connected the handset shows in Pierce's hand and its screen is a `DynamicTexture` plane (`phoneScreenUi`, turned by rotation, never mirrored) painted in `phone.ts` `paintScreen`: caller portrait (`assets/textures/phone/portrait-{voss,hale,lang,unknown}.webp`, stand-ins until Gen art), name, timer, reply choices and countdown. The DOM call card also shows the portrait (`#phonePortrait`), and the reply bubbles stay 44 px+ tappable. Contacts `lang` and `unknown` exist in `phone.json` but are not dialable. No new scene light is added for screen glow (light slots are capped); the screen is emissive only.
+- **Pain** (`main.ts` `syncPain`): below 70% health `--pain` (0..1) drives `#painVignette` / `#painDesat`, a synthesized heartbeat and breath whose rate rises with pain. The health bar (`.health-stat`) shows only on combat levels (`levelAllowsCombat`). Probe `pain()`, shortcut `hurt(n)`.
+- **Use prompts** (`#usePrompt`, second instance of `powerPrompt.ts`): icon (`assets/textures/ui/icons/*.webp`) + E, or the touch glyph, over the object in reach (`touch.at()`, the supply, else the objective marker). Objective text carries no control hints. Probe `usePrompt()`; playtest `world-hud` (option `phone`).
 
 ## Analytics (Hawkes Analytics)
 

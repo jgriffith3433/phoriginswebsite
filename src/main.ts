@@ -28,6 +28,7 @@ import { chapterCopy, createChapterCard } from './game/chapterCard';
 import { createChapterOpening } from './game/chapterOpening';
 import { playChapterSting } from './game/chapterSting';
 import { loreEntry, withLore } from './game/lore';
+import { CHAPTER_COUNT, createLoreObjects, formatBest, loreFoundCount, loreFoundLine, loreTotal, LORE_SPOTS, renderChapterCards, chapterCueLog, stopChapterCue } from './game/chapterSelect';
 import { goalLine, levelReward } from './game/rewards';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
@@ -222,6 +223,7 @@ const pulseUnlock = (power: 'shadow' | 'shock' | 'possess' | 'consume' | 'melee'
 const phonePanel = document.getElementById('phonePanel') as HTMLElement | null;
 const phoneStatus = document.getElementById('phoneStatus') as HTMLElement | null;
 const phoneContact = document.getElementById('phoneContact') as HTMLElement | null;
+const phonePortrait = document.getElementById('phonePortrait') as HTMLImageElement | null;
 const phoneDetail = document.getElementById('phoneDetail') as HTMLElement | null;
 const phoneClock = document.getElementById('phoneClock') as HTMLElement | null;
 const phoneSpeaker = document.getElementById('phoneSpeaker') as HTMLElement | null;
@@ -1226,6 +1228,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
     boardHall.dispose();
     apexLife.dispose();
     touch.dispose();
+    loreObjects.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive' || mode === 'credits') state.inCutscene = true;
@@ -1272,6 +1275,8 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
       },
     });
     if (mode !== 'credits') touch.mount(getLevelDefinition(state.level).libraryId);
+    // Hidden lore pages (Chapter Select). The Return's office swap has none of the basement's floor.
+    if (mode === 'boot' && !coldOpen) loreObjects.mount(state.level, save.found?.[String(state.level)] ?? []);
     preloadClips(TOUCH_SOUNDS);
     await Promise.all([
       waitAvatarReady(playerAvatar),
@@ -1341,6 +1346,10 @@ type SaveData = {
   missions?: Record<string, string[]>;
   /** Lore entries unlocked by finishing a level (chapter numbers). */
   lore?: number[];
+  /** Best finish time in seconds per library id (Chapter Select). */
+  best?: Record<string, number>;
+  /** Hidden lore pages found, per chapter number. */
+  found?: Record<string, string[]>;
   /** How far Voss trusts Pierce (-2..+2), moved by what he says on Voss's calls. */
   vossTrust?: number;
   /** How hot Hale runs against Pierce (-2..+2), moved by what he says on Hale's calls. */
@@ -1381,6 +1390,17 @@ const clearSave = () => {
   }
 };
 
+const cleanBest = (raw: unknown) => {
+  const out: Record<string, number> = {};
+  if (raw && typeof raw === 'object') for (const [k, v] of Object.entries(raw)) if (Number.isFinite(v) && (v as number) > 0) out[k] = Math.round(v as number);
+  return out;
+};
+const cleanFound = (raw: unknown) => {
+  const out: Record<string, string[]> = {};
+  if (raw && typeof raw === 'object') for (const [k, v] of Object.entries(raw)) if (Array.isArray(v)) out[k] = [...new Set(v.filter((x) => typeof x === 'string'))];
+  return out;
+};
+
 const parseSave = (raw: string): SaveData => {
   const parsed = JSON.parse(raw) as Partial<SaveData>;
   const unlocked = Math.max(1, Number(parsed.unlocked) || 1);
@@ -1403,6 +1423,8 @@ const parseSave = (raw: string): SaveData => {
     medkits: Number.isFinite(medkits) ? Math.max(0, Math.min(3, medkits)) : undefined,
     missions,
     lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
+    best: cleanBest(parsed.best),
+    found: cleanFound(parsed.found),
     vossTrust: clampStat(parsed.vossTrust),
     haleTemper: clampStat(parsed.haleTemper),
     ledger: clampLedger(parsed.ledger),
@@ -1470,6 +1492,8 @@ const saveGame = (next: Partial<SaveData>) => {
     medkits: next.medkits ?? save.medkits,
     missions: next.missions ?? save.missions,
     lore: next.lore ?? save.lore,
+    best: next.best ?? save.best,
+    found: next.found ?? save.found,
     vossTrust: clampStat(next.vossTrust ?? save.vossTrust),
     haleTemper: clampStat(next.haleTemper ?? save.haleTemper),
     ledger: clampLedger(next.ledger ?? save.ledger),
@@ -1709,7 +1733,69 @@ chapterAmbience = createChapterAmbience({
   lowTier: () => lowPowerGraphics || memoryTier.tier === 'low',
 });
 
+const painVignette = document.getElementById('painVignette') as HTMLElement | null;
+const painDesat = document.getElementById('painDesat') as HTMLElement | null;
+const healthStatEl = healthBar.closest('.health-stat') as HTMLElement | null;
+let painLevel = 0;
+let nextHeartbeatAt = 0;
+let heartbeats = 0;
+let painLastBeat = 0;
+
+/** Lub-dub from two low thumps, synthesized so it needs no file; faster and louder as health drops. */
+const playHeartbeat = (pain: number) => {
+  const vol = 0.07 + 0.1 * pain;
+  audio.tone(58, 0.11, 'sine', vol);
+  window.setTimeout(() => audio.tone(46, 0.14, 'sine', vol * 0.75), 130 - 30 * pain);
+  heartbeats += 1;
+  painLastBeat = performance.now();
+};
+
+/** Breath: a short band of noise through the effects bus; shorter and quicker the more hurt he is. */
+const playBreath = (pain: number) => {
+  if (!audio.enabled) return;
+  audio.ensure();
+  const ctx = audio.ctx;
+  if (!ctx) return;
+  const len = Math.floor(ctx.sampleRate * (0.5 - 0.22 * pain));
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.sin((Math.PI * i) / len);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 900 + 500 * pain;
+  filter.Q.value = 0.8;
+  const gain = ctx.createGain();
+  gain.gain.value = 0.05 + 0.08 * pain;
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(busInput(ctx, 'sfx'));
+  src.onended = () => { src.disconnect(); filter.disconnect(); gain.disconnect(); };
+  src.start();
+};
+
+/** Pain 0..1: 0 above 70% health, 1 at none. Drives the screen-edge vignette, the heartbeat and the breathing. */
+const syncPain = () => {
+  const target = state.running && !state.inCutscene && state.health > 0
+    ? Math.max(0, Math.min(1, (0.7 - state.health / MAX_HEALTH) / 0.7))
+    : 0;
+  painLevel += (target - painLevel) * 0.2;
+  if (Math.abs(target - painLevel) < 0.005) painLevel = target;
+  painVignette?.style.setProperty('--pain', painLevel.toFixed(3));
+  painDesat?.style.setProperty('--pain', painLevel.toFixed(3));
+  const now = performance.now();
+  if (target > 0.02 && now >= nextHeartbeatAt && !isPaused()) {
+    playHeartbeat(target);
+    if (heartbeats % 2 === 0) playBreath(target);
+    nextHeartbeatAt = now + 1100 - 600 * target;
+  }
+};
+
 const updateHud = () => {
+  syncPain();
+  const combatNow = levelAllowsCombat();
+  healthStatEl?.classList.toggle('combat-off', !combatNow);
   const healthPct = Math.max(0, Math.min(100, (state.health / MAX_HEALTH) * 100));
   const healthBand = healthPct > 75 ? 'high' : healthPct >= 35 ? 'mid' : 'low';
   healthFill.style.width = `${healthPct}%`;
@@ -1786,6 +1872,13 @@ const syncPhoneHud = () => {
   phonePanel?.toggleAttribute('hidden', shotHidesPanel || !view.panel);
   if (phoneStatus) phoneStatus.textContent = view.status;
   if (phoneContact) phoneContact.textContent = view.contact;
+  if (phonePortrait) {
+    const calling = Boolean(view.contactId) && (view.ringing || view.focused || view.outgoing);
+    phonePortrait.hidden = !calling;
+    const src = calling ? `/assets/textures/phone/portrait-${view.contactId}.webp` : '';
+    if (src && phonePortrait.getAttribute('src') !== src) phonePortrait.setAttribute('src', src);
+    phonePortrait.alt = calling ? view.contact : '';
+  }
   if (phoneDetail) phoneDetail.textContent = view.detail;
   if (phoneClock) {
     if (view.clock) phoneClock.textContent = view.clock;
@@ -2182,9 +2275,9 @@ const syncStartButtonLabel = () => {
   resetBtn.style.display = messageTitle.textContent === 'Defeat' ? '' : 'none';
   resetBtn.textContent = 'Main Menu';
   const hideLoad = messageTitle.textContent === 'Defeat' || messageTitle.textContent === 'Mission Clear';
-  loadModelBtn.textContent = 'Load Level';
+  loadModelBtn.textContent = 'Chapter Select';
   loadModelBtn.style.display = hideLoad ? 'none' : '';
-  loadModelBtn.disabled = !hasProgress();
+  loadModelBtn.disabled = false;
 };
 
 const unlockPointer = () => {
@@ -3068,6 +3161,32 @@ const touch = createTouchables({
   scene,
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
+});
+
+const loreToast = document.getElementById('loreToast') as HTMLDivElement | null;
+let loreToastTimer = 0;
+const loreObjects = createLoreObjects({
+  scene,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  active: () => state.running && !state.inCutscene && messageBox.classList.contains('hidden'),
+  onFound: (chapter, id) => {
+    const list = [...new Set([...(save.found?.[String(chapter)] ?? []), id])];
+    const found = { ...(save.found ?? {}), [String(chapter)]: list };
+    saveGame({ found });
+    const total = loreTotal(chapter);
+    const count = loreFoundCount({ found }, chapter);
+    // Every page of a chapter also unlocks that chapter's lore entry on the site.
+    if (count >= total && !(save.lore ?? []).includes(chapter)) saveGame({ lore: withLore(save.lore, chapter) });
+    actionPulse('pickup');
+    audio.play('/assets/audio/sfx/pickup.ogg', 0.5);
+    analytics?.feature('lore-page', `${chapter}.${id}`);
+    if (loreToast) {
+      loreToast.textContent = `${lineText('ui.chapters.found', 'Page found')} · ${count}/${total} — ${loreFoundLine(chapter, id)}`;
+      loreToast.hidden = false;
+      window.clearTimeout(loreToastTimer);
+      loreToastTimer = window.setTimeout(() => { loreToast.hidden = true; }, 5200);
+    }
+  },
 });
 
 const home: GoingHome = createGoingHome({
@@ -4455,6 +4574,9 @@ const presentLevelEnd = () => {
   audio.win();
   screenFade.to(1, 1.15);
   markMission('main');
+  const libraryId = getLevelDefinition(state.level).libraryId;
+  const took = beginGameAt > 0 ? Math.round((performance.now() - beginGameAt) / 1000) : 0;
+  if (took > 0 && (!save.best?.[libraryId] || took < save.best[libraryId])) saveGame({ best: { ...(save.best ?? {}), [libraryId]: took } });
   updateHud();
   showMessage(card.title, card.text);
   analytics?.levelCompleted();
@@ -5350,6 +5472,35 @@ const powerPrompt = createPowerPrompt(root, engine, scene, (out) => {
 });
 scene.onAfterRenderObservable.add(powerPrompt.update);
 
+// Use prompt: icon + key (or a touch glyph) hung on the thing in reach, from the same action E takes.
+const USE_ICONS: [RegExp, string][] = [
+  [/mirror/i, 'mirror'], [/sleep|bed/i, 'bed'], [/watch|tv/i, 'tv'], [/coat/i, 'coat'], [/coffee/i, 'coffee'],
+  [/phone|answer|call/i, 'phone'], [/elevator|press b3|ride/i, 'elevator'], [/monitor|terminal|screen|examine/i, 'terminal'],
+  [/paper|read|document|chart/i, 'document'], [/sit|seat|join|sofa/i, 'seat'], [/door|leave|open|outside|window/i, 'door'],
+];
+const useIconFor = (label: string) => `/assets/textures/ui/icons/${USE_ICONS.find(([re]) => re.test(label))?.[1] ?? 'use'}.webp`;
+const useWorld = new BABYLON.Vector3();
+const usePrompt = createPowerPrompt(root, engine, scene, (out) => {
+  const label = storyAction();
+  const supply = label ? null : (state.running && !state.inCutscene && !panelsOpen() ? nearestSupply() : null);
+  const supplyText = supply && roomFor(state.inventory, supply.item) > 0 ? SUPPLY_LABEL[supply.item] : '';
+  const text = label ?? supplyText;
+  out.active = Boolean(text) && state.running && !paused && !state.inCutscene && messageBox.classList.contains('hidden')
+    && !settingsOpen() && !scriptedNow() && !panelsOpen();
+  if (!out.active || !text) return;
+  const touchDevice = document.body.dataset.device === 'mobile' || document.body.dataset.device === 'tablet';
+  out.icon = '•';
+  out.iconUrl = useIconFor(text);
+  out.key = touchDevice ? '☝' : 'E';
+  out.label = text.split(/\s+/).slice(0, 4).join(' ');
+  out.button = 'interact';
+  out.preferTarget = true;
+  const spot = supply ? supply.mesh.getAbsolutePosition() : touch.at() ?? (objectiveMarker.isVisible() ? objectiveMarker.worldPosition() : null);
+  const close = spot && Math.hypot(spot.x - state.player.x, spot.z - state.player.z) < 6;
+  out.world = close && spot ? useWorld.set(spot.x, 1.3, spot.z) : null;
+}, 'usePrompt');
+scene.onAfterRenderObservable.add(usePrompt.update);
+
 // "Lost? Return to objective" (src/game/returnToObjective.ts): after 60 s of real play with no progress a prompt
 // shows (R or a tap), and Pause always offers the same move. Pierce is placed on safe ground beside the live objective.
 const lostHint = document.getElementById('lostHint') as HTMLButtonElement | null;
@@ -5590,6 +5741,7 @@ const renderLoop = () => {
   }
   render.update(delta);
   screenFade.update(delta);
+  syncPain();
   syncActionHint();
   stepHuntRetry(delta);
   if (defeatLeft > 0) {
@@ -5690,6 +5842,7 @@ const renderLoop = () => {
     apex.step(delta);
     boardHall.step(delta);
     if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
+    loreObjects.step(delta);
     updateFaces(delta, {
       pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
       boardMeeting: false,
@@ -5856,56 +6009,42 @@ const hasDebugQuery = () => new URLSearchParams(location.search).has('debug');
 // The FPS / MEM readout shows only when ?debug is in the URL or the dev panel is toggled open.
 if (hasDebugQuery()) document.body.dataset.debug = 'true';
 
+/** What the save recorded in a chapter: the calls made, then the street's ledger or how Voss was left. */
+const chapterOutcome = (n: number, libraryId: string) => {
+  const done = doneMissionIds(libraryId);
+  const parts = [missionLabel(libraryId, done)];
+  const ledger = clampLedger(save.ledger);
+  if (n === 5 || n === 6) parts.push(ledger.kills > 0 ? `${ledger.kills} lost on the street` : 'Nobody died');
+  if (n === 8) parts.push(`Voss ${(save.vossTrust ?? 0) > 0 ? 'trusts him' : (save.vossTrust ?? 0) < 0 ? 'doubts him' : 'is waiting'}`);
+  if (n <= 4 || n === 7) parts.push(`Hale ${(save.haleTemper ?? 0) > 0 ? 'calmer' : (save.haleTemper ?? 0) < 0 ? 'furious' : 'cold'}`);
+  return parts.filter(Boolean).join(' · ');
+};
+
 const renderLevelSelect = () => {
-  levelList.innerHTML = '';
-  // Hidden slots (`comingSoon`) are not listed at all. Level 7 is listed.
-  const levels = getLevels().filter((level) => !level.comingSoon);
-
-  levels.forEach((level) => {
-    const comingSoon = level.comingSoon;
-    const unlocked = !comingSoon && level.id <= state.progression.highestUnlocked;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `level-item${comingSoon ? ' coming-soon' : unlocked ? '' : ' locked'}`;
-    button.disabled = comingSoon || !unlocked;
-    button.setAttribute('aria-disabled', comingSoon || !unlocked ? 'true' : 'false');
-    button.innerHTML = comingSoon
-      ? `
-      <div>
-        <strong>Level ${level.id}</strong>
-        <small>Coming soon</small>
-      </div>
-      <span>Coming soon</span>
-    `
-      : `
-      <div>
-        <strong>Level ${level.id}: ${level.name}</strong>
-        <small>${level.reward} · ${missionLabel(level.libraryId, doneMissionIds(level.libraryId))}</small>
-      </div>
-      <span>${unlocked ? 'Play' : 'Locked'}</span>
-    `;
-
-    button.addEventListener('click', () => {
-      if (comingSoon) {
-        messageText.textContent = 'Coming soon.';
-        return;
-      }
-      if (!unlocked) return;
-      analytics?.feature('level-select', level.id);
-      levelPicked = true;
-      state.level = level.id;
-      state.progression.currentLevel = level.id;
-      applyLevelConfig(level);
-      void withLoadTimeout(loadMissionScene(level.path)).catch((error) => showLoadError('level', error));
-      levelSelect.classList.add('hidden');
-      messageTitle.textContent = 'PH Origins';
-      messageText.textContent = levelStartLine(level);
-      syncStartButtonLabel();
-      updateCrosshairVisibility();
-    });
-
-    levelList.appendChild(button);
-  });
+  // Hidden slots (`comingSoon`) are not listed at all. Eight chapters, locked ones dimmed.
+  const levels = getLevels().filter((level) => !level.comingSoon).slice(0, CHAPTER_COUNT);
+  renderChapterCards(levelList, levels.map((level) => {
+    const unlocked = level.id <= state.progression.highestUnlocked;
+    return {
+      n: level.id,
+      title: level.name,
+      reward: level.reward,
+      unlocked,
+      best: save.best?.[level.libraryId],
+      found: loreFoundCount(save, level.id),
+      total: loreTotal(level.id),
+      outcome: chapterOutcome(level.id, level.libraryId),
+      onPick: () => {
+        if (!unlocked) return;
+        analytics?.feature('level-select', level.id);
+        levelPicked = true;
+        levelSelect.classList.add('hidden');
+        messageTitle.textContent = 'PH Origins';
+        // Straight into the chapter: the save (choices, missions, ledger) is kept, no chapter card in between.
+        void startAtLevel(level.id, false, true, false, false);
+      },
+    };
+  }));
 };
 
 const showLevelSelect = () => {
@@ -5924,7 +6063,6 @@ loadModelBtn.addEventListener('click', () => {
     window.location.assign('/');
     return;
   }
-  if (!hasProgress()) return;
   showLevelSelect();
 });
 closeLevelSelectBtn.addEventListener('click', () => {
@@ -6114,6 +6252,13 @@ installPhPlaytest({
     const view = phone.view();
     return { incoming: view.showAnswer, busy: phone.locksBody(), speaker: view.speaker, line: view.line };
   },
+  hurt: (amount: number) => {
+    if (!state.running || state.inCutscene) return false;
+    applyHurt(Math.max(0, Math.min(amount, state.health - 25)), 'playtest');
+    return true;
+  },
+  pain: () => ({ level: painLevel, heartbeats, lastBeatAgoMs: painLastBeat ? performance.now() - painLastBeat : -1, healthBarShown: Boolean(healthStatEl) && getComputedStyle(healthStatEl as Element).display !== 'none', vignette: Number(painVignette?.style.getPropertyValue('--pain') || 0) }),
+  usePrompt: () => usePrompt.view(),
   replies: () => {
     const view = phone.view();
     const box = (el: Element) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
@@ -6286,9 +6431,21 @@ installPhPlaytest({
     const level = getLevels().find((entry) => entry.libraryId === libraryId);
     return level ? startAtLevel(level.id, true, true, true) : Promise.resolve();
   },
+  chapterSelect: () => ({
+    cards: [...levelList.querySelectorAll<HTMLElement>('.chapter-card')].map((c) => ({
+      n: Number(c.dataset.chapter), unlocked: c.dataset.unlocked === 'true', text: c.innerText.replace(/\s+/g, ' ').trim(),
+      box: (() => { const r = c.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })(),
+    })),
+    cue: chapterCueLog(),
+    list: (() => { const r = levelList.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, scrollTop: levelList.scrollTop, scrollHeight: levelList.scrollHeight, clientHeight: levelList.clientHeight }; })(),
+    save: { found: save.found ?? {}, best: save.best ?? {} },
+  }),
+  loreSpots: () => ({ remaining: loreObjects.remaining(), chapter: state.level, all: LORE_SPOTS[state.level] ?? [] }),
   levelRows: () => {
     renderLevelSelect();
-    return [...levelList.querySelectorAll('.level-item strong')].map((row) => row.textContent?.trim() ?? '');
+    return [...levelList.querySelectorAll<HTMLElement>('.chapter-card')].map(
+      (row) => `Level ${row.dataset.chapter}: ${row.querySelector('.chapter-title')?.textContent?.trim() ?? ''} · ${row.dataset.unlocked === 'true' ? 'Play' : 'Locked'}`,
+    );
   },
   train: () => dressing.train()?.stats() ?? null,
   morning: () => (isMorningLevel() ? morning.story() : null),

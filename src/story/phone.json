@@ -11,6 +11,14 @@
     "pierce": {
       "name": "Pierce",
       "detail": "You"
+    },
+    "lang": {
+      "name": "Lang",
+      "detail": "Board"
+    },
+    "unknown": {
+      "name": "Unknown",
+      "detail": "No caller ID"
     }
   },
   "calls": {

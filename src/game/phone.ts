@@ -98,6 +98,8 @@ export type PhoneView = {
   badge: string;
   status: string;
   contact: string;
+  /** Caller id for the portrait ('voss' | 'hale' | 'lang' | 'unknown'; '' when no call). */
+  contactId: string;
   detail: string;
   speaker: string;
   line: string;
@@ -233,6 +235,25 @@ export const createPhone = (
   screen.checkCollisions = false;
   screen.receiveShadows = false;
 
+  // The live screen: a plane painted from a DynamicTexture (caller portrait, name, timer, reply choices).
+  // A plane reads on its -Z face before rotation; turned half a circle about Y (a rotation, never a mirror) it reads on +Z.
+  const uiTex = new BABYLON.DynamicTexture('phoneUiTex', { width: 256, height: 512 }, scene, true);
+  uiTex.hasAlpha = false;
+  const uiMat = new BABYLON.StandardMaterial('phoneUiMat', scene);
+  uiMat.diffuseColor = BABYLON.Color3.Black();
+  uiMat.specularColor = BABYLON.Color3.Black();
+  uiMat.emissiveTexture = uiTex;
+  uiMat.disableLighting = true;
+  const uiPlane = BABYLON.MeshBuilder.CreatePlane('phoneScreenUi', { width: 0.045, height: 0.0885 }, scene);
+  uiPlane.parent = body;
+  uiPlane.position.z = 0.0045 + 0.00085;
+  uiPlane.rotation.y = Math.PI;
+  uiPlane.material = uiMat;
+  uiPlane.isPickable = false;
+  uiPlane.checkCollisions = false;
+  uiPlane.receiveShadows = false;
+  uiPlane.isVisible = false;
+
   const led = BABYLON.MeshBuilder.CreateBox('phoneLed', { width: 0.009, height: 0.006, depth: 0.003 }, scene);
   led.parent = body;
   led.position.set(0, 0.0525, 0.003);
@@ -283,9 +304,9 @@ export const createPhone = (
     spot.intensity = 30;
   };
 
-  const meshes = [body, screen, led];
+  const meshes = [body, screen, led, uiPlane];
   // Phone meshes only. Avatar meshes are pushed later; this array is the public handset list.
-  const excluded: BABYLON.AbstractMesh[] = [body, screen, led];
+  const excluded: BABYLON.AbstractMesh[] = [body, screen, led, uiPlane];
   const excludedSet = new Set<BABYLON.AbstractMesh>(excluded);
   // Hooked array: pushing a mesh pulls the spot out of that mesh's light list.
   // The slab does not receive shadows. The player rig is added as it loads, every frame,
@@ -508,7 +529,7 @@ export const createPhone = (
   let app: 'home' | 'messages' | 'contacts' | 'recents' = 'home';
   const recents: { contact: string; name: string; detail: string }[] = [];
   const contacts = Object.entries(copy.contacts)
-    .filter(([id]) => id !== 'pierce')
+    .filter(([id]) => id === 'voss' || id === 'hale')
     .map(([id, contact]) => ({ id, name: contact.name, detail: contact.detail }));
 
   const rememberCall = (detail: string) => {
@@ -556,11 +577,95 @@ export const createPhone = (
     syncMesh();
   };
 
+  const portraitImgs = new Map<string, HTMLImageElement>();
+  let paintedKey = '';
+  const portraitFor = (id: string) => {
+    const known = id === 'voss' || id === 'hale' || id === 'lang' ? id : 'unknown';
+    let img = portraitImgs.get(known);
+    if (!img) {
+      img = new Image();
+      img.onload = () => { paintedKey = ''; };
+      img.src = `/assets/textures/phone/portrait-${known}.webp`;
+      portraitImgs.set(known, img);
+    }
+    return img.complete && img.naturalWidth > 0 ? img : null;
+  };
+  const wrap = (c: CanvasRenderingContext2D, text: string, width: number) => {
+    const lines: string[] = [];
+    let cur = '';
+    for (const word of text.split(' ')) {
+      const t = cur ? `${cur} ${word}` : word;
+      if (cur && c.measureText(t).width > width) { lines.push(cur); cur = word; } else cur = t;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+  /** Draws the call onto the handset's screen texture; only when something on it changed. */
+  const paintScreen = () => {
+    const who = script ? contactOf(script.contact) : party ? contactOf(party) : null;
+    const id = script?.contact ?? party;
+    const replies = mode === 'active' && moment ? moment.def.options.map((o) => o.text) : [];
+    const left = mode === 'active' && moment ? Math.ceil(moment.left * 4) : 0;
+    const img = portraitFor(id);
+    const key = [mode, id, clockOf(elapsed), replies.join('|'), left, img ? 1 : 0].join('~');
+    if (key === paintedKey) return;
+    paintedKey = key;
+    const c = uiTex.getContext() as unknown as CanvasRenderingContext2D;
+    c.fillStyle = '#070b14';
+    c.fillRect(0, 0, 256, 512);
+    c.textAlign = 'center';
+    c.fillStyle = '#d4b483';
+    c.font = '600 20px sans-serif';
+    c.fillText(mode === 'outgoing' ? 'Calling' : mode === 'ended' ? 'Ended' : 'Connected', 128, 32);
+    const cy = 128;
+    c.save();
+    c.beginPath();
+    c.arc(128, cy, 62, 0, Math.PI * 2);
+    c.clip();
+    if (img) c.drawImage(img, 66, cy - 62, 124, 124);
+    else { c.fillStyle = '#16213a'; c.fillRect(66, cy - 62, 124, 124); }
+    c.restore();
+    c.strokeStyle = '#d4b483';
+    c.lineWidth = 3;
+    c.beginPath();
+    c.arc(128, cy, 63, 0, Math.PI * 2);
+    c.stroke();
+    c.fillStyle = '#f2f2f7';
+    c.font = '700 36px sans-serif';
+    c.fillText(who?.name ?? 'Unknown', 128, 236);
+    c.fillStyle = '#8fa0c0';
+    c.font = '500 22px sans-serif';
+    c.fillText(clockOf(elapsed), 128, 268);
+    if (replies.length) {
+      c.fillStyle = 'rgba(212,180,131,0.9)';
+      c.fillRect(16, 286, Math.max(0, 224 * (moment ? Math.max(0, moment.left) / moment.def.window : 0)), 4);
+      c.font = '500 19px sans-serif';
+      c.textAlign = 'left';
+      let y = 300;
+      for (const [i, text] of replies.entries()) {
+        const rows = wrap(c, text, 188).slice(0, 2);
+        const h = 18 + rows.length * 22;
+        c.fillStyle = '#16213a';
+        c.fillRect(12, y, 232, h);
+        c.fillStyle = '#d4b483';
+        c.fillText(String(i + 1), 20, y + 27);
+        c.fillStyle = '#f2f2f7';
+        rows.forEach((row, r) => c.fillText(row, 46, y + 27 + r * 22));
+        y += h + 8;
+      }
+    }
+    uiTex.update(false);
+  };
+
   const syncMesh = () => {
-    const show = raised && mode === 'idle' && !disposed;
+    const inCall = mode === 'active' || mode === 'outgoing' || mode === 'ended';
+    const show = ((raised && mode === 'idle') || inCall) && !disposed;
     // Hide the slab only. The attach node stays on so the spot is not switched off with it.
     root.setEnabled(show);
     for (const mesh of meshes) mesh.isVisible = show;
+    uiPlane.isVisible = show && inCall;
+    screen.isVisible = show && !inCall;
+    if (show && inCall) paintScreen();
     screenMat.emissiveColor = show
       ? new BABYLON.Color3(0.25, 0.42, 0.48)
       : new BABYLON.Color3(0, 0, 0);
@@ -892,7 +997,7 @@ export const createPhone = (
     },
     dial: (contactId: string) => {
       if (mode !== 'idle') return;
-      if (!copy.contacts[contactId] || contactId === 'pierce') return;
+      if (!copy.contacts[contactId] || contactId === 'pierce' || contactId === 'lang' || contactId === 'unknown') return;
       stopTones();
       party = contactId;
       script = null;
@@ -1041,6 +1146,7 @@ export const createPhone = (
       }
 
       syncBeamSlot(flashlight && raised && mode === 'idle');
+      if (uiPlane.isVisible) paintScreen();
     },
     view: () => {
       const who = script ? contactOf(script.contact) : party ? contactOf(party) : null;
@@ -1066,6 +1172,7 @@ export const createPhone = (
                 ? 'Ended'
                 : 'Phone',
         contact: who?.name ?? '',
+        contactId: who ? (['voss', 'hale', 'lang'].includes(script?.contact ?? party) ? (script?.contact ?? party) : 'unknown') : '',
         detail: mode === 'outgoing'
           ? 'Ringing'
           : who?.detail ?? (uiOpen && mode === 'idle' ? (flashlight ? 'F hides the screen' : 'G turns the light') : ''),

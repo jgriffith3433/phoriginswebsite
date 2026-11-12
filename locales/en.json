@@ -1602,7 +1602,7 @@
       "id": "objective.lab",
       "type": "objective",
       "speaker": "Objective",
-      "text": "Find the lab door. G lights the dark, F opens the phone.",
+      "text": "Find the lab door.",
       "audio": "",
       "note": "Objective lab. speaker is the short title."
     },
@@ -1610,7 +1610,7 @@
       "id": "objective.lab.touch",
       "type": "objective",
       "speaker": "Objective",
-      "text": "Find the lab door. Tap Light for the dark, Phone for your phone.",
+      "text": "Find the lab door.",
       "audio": "",
       "note": "Objective lab, shown on touch devices instead of the key letters."
     },
@@ -1698,7 +1698,7 @@
       "id": "objective.shove",
       "type": "objective",
       "speaker": "Shove",
-      "text": "They will not move. V knocks them back.",
+      "text": "They will not move. Knock them back.",
       "audio": "",
       "note": "Objective shove. speaker is the short title."
     },
@@ -3166,7 +3166,7 @@
       "id": "objective.home.linked",
       "type": "objective",
       "speaker": "Shadow Link",
-      "text": "Walk them. Click again to end.",
+      "text": "Walk them. End it when you choose.",
       "audio": "",
       "note": "Going Home, while linked"
     },
@@ -3238,7 +3238,7 @@
       "id": "objective.home.consume",
       "type": "objective",
       "speaker": "Consume",
-      "text": "Click again to consume.",
+      "text": "Consume them.",
       "audio": "",
       "note": "Going Home, Consume while linked to the station guard"
     },
@@ -3262,7 +3262,7 @@
       "id": "objective.station.link-walk",
       "type": "objective",
       "speaker": "Shadow Link",
-      "text": "WASD walks them. Click kills. Tab switches the ability.",
+      "text": "Walk them. Or end it.",
       "audio": "",
       "note": "The Station, while linked"
     },
@@ -3270,7 +3270,7 @@
       "id": "objective.station.shadow",
       "type": "objective",
       "speaker": "Shadow mode",
-      "text": "Tab switches the ability. Q raises the hands.",
+      "text": "Switch your ability. Raise your hands.",
       "audio": "",
       "note": "The Station, Shadow mode on"
     },
@@ -3278,7 +3278,7 @@
       "id": "objective.station.link-aim",
       "type": "objective",
       "speaker": "Shadow Link",
-      "text": "Aim at them. Click uses Possess.",
+      "text": "Aim at them. Possess.",
       "audio": "",
       "note": "The Station, hands raised"
     },
@@ -3286,7 +3286,7 @@
       "id": "objective.station.train",
       "type": "objective",
       "speaker": "The train",
-      "text": "The open door, down the platform. Tab switches the ability.",
+      "text": "The open door, down the platform.",
       "audio": "",
       "note": "The Station, main objective"
     },
@@ -3903,7 +3903,7 @@
       "id": "objective.morning.call",
       "type": "objective",
       "speaker": "Voss",
-      "text": "Answer the phone. F.",
+      "text": "Answer the phone.",
       "audio": "",
       "note": "Level 8 while Voss rings"
     },
@@ -5498,6 +5498,254 @@
       "audioPerformance": "default",
       "audioVoice": "IRHApOXLvnW57QJPQH2P",
       "note": "Ledger (docs/story/ledger.md): The Station: officer at the gate once the ledger is at 2 kills or more"
+    },
+    {
+      "id": "lore.1.found.bath",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A motion marked tabled. No one initialed who stayed in the room.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.1.found.office",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "Hale's pen, uncapped beside her water glass, still warm.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.1.found.hall",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A valuation slip with the last figure circled twice.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.2.found.pipe",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A clearance log: one badge, signed out, never signed back.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.2.found.decon",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A Sector 4 floor plan with a room the building does not admit.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.2.found.long",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A drip sheet, pinned to a pipe, initialed by nobody.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.3.found.pipe",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A wall clock stopped at the hour the alarm began.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.3.found.long",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A visitor sticker that no longer sticks, still reading PIERCE.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.3.found.door",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A lamp schedule: everything on, all night, by order.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.4.found.office",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "The quarter's draft, a coffee ring over the headline number.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.4.found.bath",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A framed photograph, face down on the desk.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.4.found.hall",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A sticky note in his own hand: call Hale back.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.5.found.near",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A police scanner printout, the tower's address underlined.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.5.found.mid",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A dropped transit card with eleven dollars on it.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.5.found.far",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A flyer for Liberty Square: the fountain is on tonight.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.6.found.stairs",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A timetable with the uptown 6 crossed out in pencil.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.6.found.mid",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A commuter's paperback, open to a page about doors.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.6.found.edge",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A lost glove, left hand, on the yellow line.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.7.found.one",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A conductor's log: stop not scheduled, stop not named.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.7.found.two",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A folded newspaper, the Hawkes share price circled.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.7.found.three",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A ticket stub with two seats booked and one used.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.8.found.sofa",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A hall key tag, the brass worn to the shape of his thumb.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.8.found.tv",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A television guide with one morning programme highlighted.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "lore.8.found.door",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "A coat receipt: collected, 4:12 a.m., by the owner.",
+      "audio": "",
+      "note": "Hidden page found on the floor (Chapter Select lore n of m). Silent."
+    },
+    {
+      "id": "ui.chapters.title",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "Chapter Select",
+      "audio": "",
+      "note": "Chapter Select copy. Silent."
+    },
+    {
+      "id": "ui.chapters.chapter",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "Chapter",
+      "audio": "",
+      "note": "Chapter Select copy. Silent."
+    },
+    {
+      "id": "ui.chapters.best",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "Best",
+      "audio": "",
+      "note": "Chapter Select copy. Silent."
+    },
+    {
+      "id": "ui.chapters.lore",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "Lore",
+      "audio": "",
+      "note": "Chapter Select copy. Silent."
+    },
+    {
+      "id": "ui.chapters.of",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "of",
+      "audio": "",
+      "note": "Chapter Select copy. Silent."
+    },
+    {
+      "id": "ui.chapters.locked",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "Locked",
+      "audio": "",
+      "note": "Chapter Select copy. Silent."
+    },
+    {
+      "id": "ui.chapters.found",
+      "type": "ui",
+      "speaker": "Chapter",
+      "text": "Page found",
+      "audio": "",
+      "note": "Chapter Select copy. Silent."
     }
   ]
 }
