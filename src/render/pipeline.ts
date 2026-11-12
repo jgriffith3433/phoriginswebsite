@@ -91,6 +91,15 @@ const DEFAULT_LOOK = CHAPTER_LOOKS['apex-peak'];
 
 export type SsaoProfile = { wanted: boolean; strength: number; radius: number };
 
+export type CineDofOptions = {
+  active: boolean;
+  focusDistanceMm: number;
+  fStop?: number;
+  focalLengthMm?: number;
+  screenX?: number;
+  screenY?: number;
+};
+
 export type RenderPipeline = ReturnType<typeof createRenderPipeline>;
 
 export const createRenderPipeline = (
@@ -274,6 +283,66 @@ export const createRenderPipeline = (
   /** Quiet-chapter override (desk lamp throw, dawn window). Null restores the chapter look. */
   let keyDirOverride: [number, number, number] | null = null;
 
+  // ---------- Cinematic depth of field (high tier) / vignette blur (low tier) ----------
+  let cineDof: CineDofOptions = { active: false, focusDistanceMm: 2500, fStop: 2.2, focalLengthMm: 50, screenX: 0.5, screenY: 0.45 };
+  let dofFailed = false;
+  let baseVignetteWeight = image.vignetteWeight;
+  let baseVignetteFov = image.vignetteCameraFov;
+
+  const syncCineDof = () => {
+    const vignetteEl = typeof document !== 'undefined' ? document.getElementById('cineVignetteBlur') : null;
+    if (!cineDof.active) {
+      if (pipeline.depthOfFieldEnabled) {
+        try {
+          pipeline.depthOfFieldEnabled = false;
+        } catch {
+          // ignore
+        }
+      }
+      image.vignetteWeight = baseVignetteWeight;
+      image.vignetteCameraFov = baseVignetteFov;
+      if (vignetteEl) {
+        vignetteEl.classList.remove('active');
+      }
+      return;
+    }
+
+    if (tier === 'high' && !dofFailed) {
+      try {
+        if (!pipeline.depthOfFieldEnabled) {
+          pipeline.depthOfFieldBlurLevel = BABYLON.DepthOfFieldEffectBlurLevel.Low;
+          pipeline.depthOfFieldEnabled = true;
+        }
+        pipeline.depthOfField.focalLength = cineDof.focalLengthMm ?? 50;
+        pipeline.depthOfField.fStop = cineDof.fStop ?? 2.2;
+        pipeline.depthOfField.lensSize = 50;
+        pipeline.depthOfField.focusDistance = Math.max(300, cineDof.focusDistanceMm);
+      } catch (err) {
+        console.warn('DepthOfField unavailable', err);
+        dofFailed = true;
+      }
+      if (vignetteEl) vignetteEl.classList.remove('active');
+    } else {
+      if (pipeline.depthOfFieldEnabled) {
+        try {
+          pipeline.depthOfFieldEnabled = false;
+        } catch {
+          // ignore
+        }
+      }
+      image.vignetteEnabled = true;
+      image.vignetteWeight = Math.max(baseVignetteWeight, 3.6);
+      image.vignetteCameraFov = Math.min(baseVignetteFov, 0.52);
+      if (vignetteEl) {
+        vignetteEl.classList.add('active');
+        const sx = Math.round(Math.max(15, Math.min(85, (cineDof.screenX ?? 0.5) * 100)));
+        const sy = Math.round(Math.max(15, Math.min(85, (cineDof.screenY ?? 0.45) * 100)));
+        vignetteEl.style.setProperty('--focus-x', `${sx}%`);
+        vignetteEl.style.setProperty('--focus-y', `${sy}%`);
+      }
+    }
+  };
+
   const applyKey = () => {
     const dir = keyDirOverride ?? look.keyDir;
     key.direction.set(dir[0], dir[1], dir[2]);
@@ -321,6 +390,7 @@ export const createRenderPipeline = (
     buildShadows();
     applyKey();
     syncSsao();
+    syncCineDof();
     applyLensFx();
     applyRenderScale();
     for (const listener of tierListeners) listener(tier);
@@ -353,6 +423,23 @@ export const createRenderPipeline = (
       ssaoProfile = profile;
       syncSsao();
     },
+    /** cinecam.ts: focus pull on the high tier (DepthOfFieldEffect) and vignette blur on the low tier. */
+    setCineDepthOfField: (next: CineDofOptions) => {
+      if (!cineDof.active && next.active) {
+        baseVignetteWeight = image.vignetteWeight;
+        baseVignetteFov = image.vignetteCameraFov;
+      }
+      cineDof = { ...cineDof, ...next };
+      syncCineDof();
+    },
+    cineDepthOfField: () => ({
+      active: cineDof.active,
+      tier,
+      dofEnabled: Boolean(pipeline.depthOfFieldEnabled),
+      vignetteBlur: Boolean(cineDof.active && tier !== 'high'),
+      focusDistanceMm: cineDof.focusDistanceMm,
+      fStop: cineDof.fStop ?? 2.2,
+    }),
     capBloom,
     applyRenderScale,
     update,
@@ -376,6 +463,9 @@ export const createRenderPipeline = (
         aberration: pipeline.chromaticAberrationEnabled,
         grain: pipeline.grainEnabled,
         vignette: image.vignetteEnabled,
+        dof: Boolean(pipeline.depthOfFieldEnabled),
+        vignetteBlur: Boolean(cineDof.active && tier !== 'high'),
+        focusDistanceMm: cineDof.active ? cineDof.focusDistanceMm : null,
         ssao: Boolean(ssao),
         shadows: Boolean(csm),
         cascades: csm?.numCascades ?? 0,

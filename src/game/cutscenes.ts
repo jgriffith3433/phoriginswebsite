@@ -305,7 +305,9 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
         actor: event.actor,
         restClip: seatedTalk ? 'sit' : clip,
       };
-      cutscene.hooks.onSpeak?.(event.actor, event.audio ?? '', hold);
+      cutscene.hooks.onSpeak?.(event.actor, event.audio ?? event.line ?? '', hold);
+    } else {
+      cutscene.hooks.onSpeak?.(speaker, event.audio ?? event.line ?? event.text ?? '', hold);
     }
     if (event.audio) {
       playFile(cutscene, event.audio, event.volume ?? 0.85, false, hold);
