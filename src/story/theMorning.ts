@@ -6,6 +6,7 @@ import { TRANSFORM_HERO_ASSET_ID } from '../game/modelLoader';
 import { DOUBLE_LAYER } from './bathroomMirror';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { voiceBusy } from '../game/sfxMix';
+import { noteRoomExit, playSoftDoor, roomExitState, startTvBroadcast, tvAudioState, type RoomExitState, type TvAudioState, type TvBroadcast } from './morningSound';
 import { deathsBucket, ledgerBand, type LedgerApi, type LedgerBand } from '../game/ledger';
 import type { StoryCarry } from './act1';
 
@@ -61,7 +62,7 @@ export type MorningHost = {
   clearMarker: () => void;
   showObjective: (visible: boolean) => void;
   setObjective: (title: string, text: string, target: { x: number; z: number; y?: number } | null) => void;
-  playFile: (url: string, volume: number) => void;
+  playFile: (url: string, volume: number, at?: { x: number; y: number; z: number }) => void;
   setWalk: (moving: boolean) => void;
   setCarry: (items: StoryCarry[]) => void;
   playerXZ: () => { x: number; z: number };
@@ -112,6 +113,9 @@ export type MorningStory = {
   tv: { on: boolean; hash: number; frames: number; bound: boolean; visible: boolean; covered: boolean };
   /** Voiced lines this room asked for; `heard` once the voice channel went quiet after the line started. */
   lines: { id: string; at: number; heard: boolean; audio: boolean }[];
+  /** The TV broadcast's audio (cue name, level, nodes live, position) and the room-exit cue (id, level vs the voice). */
+  tvAudio: TvAudioState;
+  roomExit: RoomExitState;
 };
 
 export const ENDING_TRACK = '/assets/audio/ending-6.mp3';
@@ -126,6 +130,7 @@ const MIRROR = { x: 2.35, y: 1.3, z: 2.94 };
 const COAT = { x: 3.45, z: 2.45 };
 /** The newspaper on the coffee table (top at y 0.4) and where he stands to read it. */
 const PAPER = { x: 3.2, y: 0.408, z: -1.3 };
+const PHOTO = { x: 2.85, z: -1.3 };
 const READ_AT = { x: 3.2, z: -0.4 };
 /** How far the front door opens on Leave, in radians. */
 const DOOR_SWING = 1.3;
@@ -223,6 +228,8 @@ export const createTheMorning = (host: MorningHost) => {
   let paperText = '';
   let paperRead = false;
   let reading = 0;
+  /** The face-down photo on the table: turned over once, a short caption and a quiet paper sound. */
+  let photoSeen = false;
   let readLine = '';
   let reportSeen = '';
   let snap = { band: 0 as LedgerBand, kills: 0 };
@@ -281,6 +288,10 @@ export const createTheMorning = (host: MorningHost) => {
   let windowMaterial: BABYLON.StandardMaterial | null = null;
   /** The front door, hinged on its west edge so Leave can swing it open. */
   let door: BABYLON.Mesh | null = null;
+  /** The synthesized TV broadcast, heard from the set while the news scene runs (morningSound.ts). */
+  let broadcast: TvBroadcast | null = null;
+  let anchorWas = false;
+  const stopBroadcast = () => { broadcast?.stop(); broadcast = null; anchorWas = false; };
   let led: BABYLON.StandardMaterial | null = null;
   const lamps: { light: BABYLON.Light; night: number; day: number }[] = [];
 
@@ -689,6 +700,8 @@ export const createTheMorning = (host: MorningHost) => {
     box('morning-sofa', 3.2, 0.3, 0.6, 2.0, 0.6, 0.85, cloth, true);
     box('morning-sofa-back', 3.2, 0.7, 1.0, 2.0, 0.5, 0.2, cloth);
     box('morning-table', 3.2, 0.2, -1.3, 1.1, 0.4, 0.6, wood, true);
+    // A photo lying face down on the table top (bottom on the surface: 0.4 + half its 0.012 thickness).
+    box('morning-photo', PHOTO.x, 0.406, PHOTO.z, 0.22, 0.012, 0.16, dark);
     box('morning-chair', 1.0, 0.25, -1.3, 0.6, 0.5, 0.6, cloth, true);
     // His coat hangs on a hook by the front door, beside the hall mirror.
     box('morning-coat-hook', COAT.x, 1.75, 2.9, 0.34, 0.05, 0.08, dark);
@@ -793,6 +806,7 @@ export const createTheMorning = (host: MorningHost) => {
 
   const endNews = () => {
     playing = false;
+    stopBroadcast();
     host.fade(0, 0.2);
     host.placePierce(WATCH.x, WATCH.z, Math.PI);
     setTv(true, 'portrait');
@@ -955,6 +969,8 @@ export const createTheMorning = (host: MorningHost) => {
       sleepClipTo('rebornidle');
     } else if (next === 'walk') {
       sleepClipTo('walk');
+      // Leaving the bed for the room: the old tv-static / door ambience is gone; a soft door and carpet steps instead.
+      if (playSoftDoor({ x: 5.2, y: 1.0, z: 0.9 })) noteRoomExit({ x: 5.2, y: 1.0, z: 0.9 }, 0);
     } else if (next === 'face') {
       sleepClipTo('rebornidle');
     }
@@ -1080,6 +1096,15 @@ export const createTheMorning = (host: MorningHost) => {
       setMorning(true);
     }
     if (sleepPhase === 'recline' && k > 0.5) sleepClipTo('rebornidle');
+    // Soft carpet steps while he crosses the room (the walk is scripted, so the stride clock does not run).
+    if (sleepPhase === 'walk') {
+      const due = Math.min(4, Math.floor(sleepT / 0.55) + (sleepT > 0.2 ? 1 : 0));
+      while ((stepsPlayed as number) < due) {
+        stepsPlayed += 1;
+        host.playFile(`/assets/audio/sfx/step/carpet-${1 + (stepsPlayed % 4)}.ogg`, 0.28, { x: px, y: 0.1, z: pz });
+        noteRoomExit({ x: px, y: 0.1, z: pz }, 1);
+      }
+    } else stepsPlayed = 0;
     if (sleepPhase === 'wake') {
       if (sleepT > 1.2 && !flags.has('slept')) {
         flags.add('slept');
@@ -1091,8 +1116,8 @@ export const createTheMorning = (host: MorningHost) => {
         waitFrom = sleepT;
       } else if (flags.has('dont') && !flags.has('tv') && lineClear(L_DONT, 0.4)) {
         flags.add('tv');
+        // Picture only: the set's sound is the broadcast (morningSound.ts), not the old static burst.
         setTv(true, 'static');
-        host.playFile(PLACE_SFX.tvStatic, 0.3);
         waitFrom = sleepT;
       }
       // Done once both lines have played out and the set has been on for a moment.
@@ -1101,6 +1126,7 @@ export const createTheMorning = (host: MorningHost) => {
     return sleepT >= SLEEP_MIN[sleepPhase] && (sleepPhase !== 'stand' || lineClear(L_HOME, 0));
   };
   let waitFrom = 0;
+  let stepsPlayed = 0;
   /** True once the line has had its time and its voice is over (never waits more than 6 s past it). */
   const lineClear = (line: Line, extra: number) => {
     const since = sleepT - waitFrom;
@@ -1148,7 +1174,7 @@ export const createTheMorning = (host: MorningHost) => {
       host.placePierce(WATCH.x, WATCH.z, Math.PI);
       host.playClip('rebornidle', true);
       setTv(true, 'static');
-      host.playFile(PLACE_SFX.newsSting, 0.4);
+      broadcast = startTvBroadcast({ x: TV.x, y: 1.0, z: TV.z });
     }
     // Captions in order; the first one lands as the programme's opening sting ends.
     let at = 2.4;
@@ -1176,6 +1202,15 @@ export const createTheMorning = (host: MorningHost) => {
       const aspect = eng.getRenderWidth() / Math.max(1, eng.getRenderHeight());
       const fit = Math.min(2.55, Math.max(1.2, 1.15 / (0.4228 * Math.max(0.3, aspect)) - 4.15 + 1.2));
       host.frameCamera({ x: 4.1 + (fit - 1.2) * 0.1, y: 1.55, z: Math.min(fit, 2.55) }, { x: TV.x, y: 1.3, z: TV.z });
+    }
+    if (broadcast) {
+      // The anchor stand-in murmurs only while no recorded take reads the line, and never over a voice.
+      const recorded = shown >= 0 && !!lineAudio(captionKey(shown, variant()));
+      const murmur = shown >= 0 && !flags.has('without') && !recorded && !voiceBusy();
+      if (murmur !== anchorWas) {
+        anchorWas = murmur;
+        broadcast.setAnchor(murmur);
+      }
     }
     if (shown >= 0 && shown + 1 > captionsShown) {
       captionsShown = shown + 1;
@@ -1235,7 +1270,7 @@ export const createTheMorning = (host: MorningHost) => {
     // The door swings open into the room and the hall behind it is dawn.
     if (time >= 0.5 && !flags.has('door-sound')) {
       flags.add('door-sound');
-      host.playFile(PLACE_SFX.door, 0.6);
+      host.playFile(PLACE_SFX.door, 0.35, { x: DOOR.x, y: 1.0, z: DOOR.z });
     }
     const t = Math.min(1, Math.max(0, (time - 0.5) / 1.4));
     if (door) door.rotation.y = DOOR_SWING * t * t * (3 - 2 * t);
@@ -1281,6 +1316,7 @@ export const createTheMorning = (host: MorningHost) => {
       if (beat === 'news' && near({ x: TV.x, z: -1.2 }, 1.9)) return lineText('ui.action.morning.watch', 'Watch');
       if (beat === 'out' && near(COAT, 1.1)) return lineText('ui.action.morning.coat', 'Take coat');
       if (beat === 'door' && near(DOOR, 1.3)) return lineText('ui.action.morning.leave', 'Leave');
+      if ((beat === 'home' || beat === 'news' || beat === 'call' || beat === 'out') && !photoSeen && near(PHOTO, 0.75)) return lineText('ui.action.morning.photo', 'Turn the photo');
       if ((beat === 'call' || beat === 'out') && !reading && !paperRead && near(READ_AT, 1.1)) return lineText('ui.action.morning.paper', 'Read the paper');
       return null;
     },
@@ -1301,6 +1337,13 @@ export const createTheMorning = (host: MorningHost) => {
       }
       if (beat === 'door' && near(DOOR, 1.3)) {
         beginScene('leaving');
+        return true;
+      }
+      if ((beat === 'home' || beat === 'news' || beat === 'call' || beat === 'out') && !photoSeen && near(PHOTO, 0.75)) {
+        photoSeen = true;
+        host.playFile(PLACE_SFX.paper, 0.3, { x: PHOTO.x, y: 0.4, z: PHOTO.z });
+        host.showLine('Pierce', lineText('bark.morning.photo', 'I left it face down. I know whose it is.'));
+        lineUntil = time + 3.5;
         return true;
       }
       if ((beat === 'call' || beat === 'out') && !reading && !paperRead && near(READ_AT, 1.1)) {
@@ -1344,8 +1387,11 @@ export const createTheMorning = (host: MorningHost) => {
         covered: tvCovered(),
       },
       lines: lineLog.map((l) => ({ ...l })),
+      tvAudio: broadcast ? broadcast.state() : tvAudioState(),
+      roomExit: roomExitState(),
     }),
     dispose: () => {
+      stopBroadcast();
       active = false;
       playing = false;
       prepared = false;
@@ -1387,6 +1433,7 @@ export const createTheMorning = (host: MorningHost) => {
       host.setPush(0);
       if (hookCoat) hookCoat.setEnabled(true);
       paperRead = false;
+      photoSeen = false;
       reading = 0;
       reportSeen = '';
       readLedger();

@@ -5494,6 +5494,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let tvVisible = false;
       let tvCoveredSamples = 0;
       let tvNewsSamples = 0;
+      let tvAudioLive = 0;
+      let tvAudioSeen: { name: string; level: number; at: unknown; cls: string; nodes: number; playing: boolean } | null = null;
+      let roomExitSeen: { cue: string; level: number; voiceLevel: number; plays: number; steps: number } | null = null;
       let lastLines: { id: string; heard: boolean; audio: boolean }[] = [];
       for (;;) {
         await tick();
@@ -5523,7 +5526,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             tvVisible = tvVisible || s.tv.visible;
             tvNewsSamples += 1;
             if (s.tv.covered) tvCoveredSamples += 1;
+            if (s.tvAudio.playing && s.tvAudio.nodes > 0) tvAudioLive += 1;
+            tvAudioSeen = s.tvAudio;
           }
+          roomExitSeen = s.roomExit;
           if (s.beat !== lastBeat) {
             lastBeat = s.beat;
             t.event('beat', `level 8 beat: ${s.beat}`);
@@ -5611,6 +5617,16 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (!tvBound || !tvVisible) t.problem('bug', 'the TV screen has no picture texture bound or is hidden');
         if (tvHashes.size < 2) t.problem('bug', 'the TV picture did not change between samples (frame hash stayed the same)');
         if (tvNewsSamples > 0 && tvCoveredSamples / tvNewsSamples > 0.5) t.problem('bug', 'something covers the TV screen from the camera during the news');
+      }
+      // 1e: tv-audio-playing: a connected, running node with a name and level, from the set's position, during the news.
+      // room-exit-sfx: the exit cue's id and its level against the voice (and no old tv-static / door ambience).
+      {
+        t.event('check', `tv-audio-playing: ${tvAudioLive}/${tvNewsSamples} samples live, ${tvAudioSeen ? `${tvAudioSeen.name} level ${tvAudioSeen.level} cls ${tvAudioSeen.cls} at ${JSON.stringify(tvAudioSeen.at)}` : 'never'}`);
+        t.metric('tvAudioLiveSamples', tvAudioLive);
+        if (tvNewsSamples > 0 && (tvAudioLive === 0 || !tvAudioSeen?.name || !tvAudioSeen.level || !tvAudioSeen.at)) t.problem('bug', 'the TV news had no audible sound from the set (no live audio node with a name, level and position)');
+        t.event('check', `room-exit-sfx: ${roomExitSeen ? `${roomExitSeen.cue} level ${roomExitSeen.level} vs voice ${roomExitSeen.voiceLevel}, ${roomExitSeen.plays} door, ${roomExitSeen.steps} steps` : 'none'}`);
+        if (!roomExitSeen || roomExitSeen.plays < 1) t.problem('bug', 'leaving the bed played no door or footstep cue');
+        else if (roomExitSeen.level >= roomExitSeen.voiceLevel) t.problem('bug', 'the room-exit sound is not quieter than the voice');
       }
       // 2: the TV names the tower and Pierce.
       t.event('check', `tv: ${tvText}`);
