@@ -205,10 +205,10 @@ export const STORY_SCENE_SHOTS: Record<StorySceneId, CineShotSpec[]> = {
       id: 'bm-1-wide-crane',
       kind: 'wide',
       at: 0,
-      duration: 7.8,
+      duration: 0.6,
       p0: { x: 37.8, y: 2.52, z: 32.0 },
-      p1: { x: 39.2, y: 2.32, z: 31.8 },
-      p2: { x: 40.6, y: 2.18, z: 31.6 },
+      p1: { x: 39.2, y: 2.38, z: 31.8 },
+      p2: { x: 40.6, y: 2.24, z: 31.6 },
       l0: { x: 46.5, y: 1.25, z: 32.0 },
       l1: { x: 48.5, y: 1.30, z: 32.0 },
       l2: { x: 50.6, y: 1.35, z: 32.0 },
@@ -218,13 +218,13 @@ export const STORY_SCENE_SHOTS: Record<StorySceneId, CineShotSpec[]> = {
       safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
     },
     {
-      id: 'bm-2-ots-pierce',
+      id: 'bm-2-ots-pierce-open',
       kind: 'over-the-shoulder',
-      at: 7.8,
-      duration: 8.8,
-      p0: { x: 47.8, y: 2.05, z: 30.2 },
-      p1: { x: 48.2, y: 1.98, z: 30.6 },
-      p2: { x: 48.6, y: 1.92, z: 31.0 },
+      at: 0.6,
+      duration: 7.2,
+      p0: { x: 47.6, y: 2.04, z: 29.5 },
+      p1: { x: 48.0, y: 1.98, z: 29.8 },
+      p2: { x: 48.4, y: 1.92, z: 30.1 },
       l0: { x: 50.6, y: 1.35, z: 32.0 },
       l2: { x: 50.6, y: 1.35, z: 32.0 },
       speaker: 'Pierce',
@@ -233,7 +233,22 @@ export const STORY_SCENE_SHOTS: Record<StorySceneId, CineShotSpec[]> = {
       safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
     },
     {
-      id: 'bm-3-cu-hale',
+      id: 'bm-3-cu-pierce-agenda',
+      kind: 'close-up',
+      at: 7.8,
+      duration: 8.8,
+      p0: { x: 48.0, y: 1.96, z: 34.4 },
+      p1: { x: 48.3, y: 1.92, z: 34.1 },
+      p2: { x: 48.6, y: 1.88, z: 33.8 },
+      l0: { x: 50.6, y: 1.35, z: 32.0 },
+      l2: { x: 50.6, y: 1.35, z: 32.0 },
+      speaker: 'Pierce',
+      speakerPos: { x: 50.6, y: 1.35, z: 32.0 },
+      fov: 0.66,
+      safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
+    },
+    {
+      id: 'bm-4-cu-hale',
       kind: 'close-up',
       at: 16.6,
       duration: 7.3,
@@ -248,7 +263,7 @@ export const STORY_SCENE_SHOTS: Record<StorySceneId, CineShotSpec[]> = {
       safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
     },
     {
-      id: 'bm-4-ots-voss',
+      id: 'bm-5-ots-voss',
       kind: 'over-the-shoulder',
       at: 23.9,
       duration: 6.0,
@@ -263,7 +278,7 @@ export const STORY_SCENE_SHOTS: Record<StorySceneId, CineShotSpec[]> = {
       safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
     },
     {
-      id: 'bm-5-cu-pierce-head',
+      id: 'bm-6-cu-pierce-head',
       kind: 'close-up',
       at: 29.9,
       duration: 8.4,
@@ -278,10 +293,10 @@ export const STORY_SCENE_SHOTS: Record<StorySceneId, CineShotSpec[]> = {
       safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
     },
     {
-      id: 'bm-6-twoshot-lang',
+      id: 'bm-7-twoshot-lang',
       kind: 'two-shot',
       at: 38.3,
-      duration: 14.6,
+      duration: 7.0,
       p0: { x: 47.4, y: 2.18, z: 26.6 },
       p1: { x: 47.8, y: 2.08, z: 27.1 },
       p2: { x: 48.2, y: 1.98, z: 27.5 },
@@ -290,6 +305,36 @@ export const STORY_SCENE_SHOTS: Record<StorySceneId, CineShotSpec[]> = {
       speaker: 'Lang',
       speakerPos: { x: 48.2, y: 1.22, z: 29.7 },
       fov: 0.74,
+      safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
+    },
+    {
+      id: 'bm-8-ots-pierce-verdict',
+      kind: 'over-the-shoulder',
+      at: 45.3,
+      duration: 4.8,
+      p0: { x: 48.2, y: 2.02, z: 34.2 },
+      p1: { x: 48.5, y: 1.96, z: 33.8 },
+      p2: { x: 48.8, y: 1.90, z: 33.4 },
+      l0: { x: 50.6, y: 1.35, z: 32.0 },
+      l2: { x: 50.6, y: 1.35, z: 32.0 },
+      speaker: 'Pierce',
+      speakerPos: { x: 50.6, y: 1.35, z: 32.0 },
+      fov: 0.68,
+      safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
+    },
+    {
+      id: 'bm-9-wide-adjourn',
+      kind: 'wide',
+      at: 50.1,
+      duration: 2.8,
+      p0: { x: 40.4, y: 2.26, z: 31.8 },
+      p1: { x: 39.2, y: 2.38, z: 31.9 },
+      p2: { x: 38.0, y: 2.50, z: 32.0 },
+      l0: { x: 50.6, y: 1.35, z: 32.0 },
+      l2: { x: 48.5, y: 1.30, z: 32.0 },
+      speaker: 'Pierce',
+      speakerPos: { x: 50.6, y: 1.35, z: 32.0 },
+      fov: 0.78,
       safeBox: [36.8, 51.2, 1.15, 2.70, 26.2, 38.4],
     },
   ],
@@ -934,6 +979,7 @@ export const createCinecamDirector = (deps: {
   render: RenderPipeline;
   setCinematic: (pos: Vec3, look: Vec3, snap?: boolean, fov?: number) => void;
   clearCinematic: () => void;
+  isSolid?: (mesh: BABYLON.AbstractMesh) => boolean;
   onCut?: () => void;
 }) => {
   const { scene, camera, render, setCinematic, clearCinematic } = deps;
@@ -992,7 +1038,8 @@ export const createCinecamDirector = (deps: {
 
   /** Same solid-mesh predicate as src/playtest/cameraWatch.ts so wall checks agree 100%. */
   const isSolid = (m: BABYLON.AbstractMesh): boolean => {
-    if (!m || !m.isEnabled() || !m.isPickable) return false;
+    if (!m || m.isDisposed() || !m.isEnabled() || !m.isVisible || !m.isPickable) return false;
+    if (deps.isSolid && !deps.isSolid(m)) return false;
     const meta = (m.metadata ?? {}) as Record<string, unknown>;
     if (meta.boundsCollider || meta.interiorCollider) return true;
     const n = m.name.toLowerCase();
@@ -1023,14 +1070,20 @@ export const createCinecamDirector = (deps: {
     ) {
       return false;
     }
-    return m.isVisible && m.visibility > 0.5;
+    return m.visibility > 0.35;
   };
 
   /**
-   * Push camera position out of any nearby solid geometry (using the 6-axis raycast from cameraWatch.ts)
+   * Push camera position out of any nearby solid geometry (using the 6-axis raycast + back-face normal check from cameraWatch.ts)
    * and clamp to the shot's authored safeBox.
    */
-  const enforceWallSafety = (rawPos: Vec3, look: Vec3, safeBox?: [number, number, number, number, number, number], st?: SceneRunStats): Vec3 => {
+  const enforceWallSafety = (
+    rawPos: Vec3,
+    look: Vec3,
+    speakerPos: Vec3,
+    safeBox?: [number, number, number, number, number, number],
+    st?: SceneRunStats,
+  ): Vec3 => {
     const pos: Vec3 = { ...rawPos };
     if (safeBox) {
       pos.x = Math.max(safeBox[0], Math.min(safeBox[1], pos.x));
@@ -1040,12 +1093,28 @@ export const createCinecamDirector = (deps: {
 
     const origin = new BABYLON.Vector3(pos.x, pos.y, pos.z);
     let pushed = false;
-    for (let pass = 0; pass < 2; pass++) {
+
+    // 1. Line-of-sight boom check from speakerPos toward origin so the lens never sits behind a wall.
+    const subj = new BABYLON.Vector3(speakerPos.x, speakerPos.y, speakerPos.z);
+    const toCam = origin.subtract(subj);
+    const span = toCam.length();
+    if (span > 0.45) {
+      const dir = toCam.scale(1 / span);
+      const boomHit = scene.pickWithRay(new BABYLON.Ray(subj, dir, span + SAFE_CLEARANCE), isSolid);
+      if (boomHit?.hit && typeof boomHit.distance === 'number' && boomHit.distance > 0.45 && boomHit.distance < span + SAFE_CLEARANCE * 0.85) {
+        const safeSpan = Math.max(0.48, boomHit.distance - SAFE_CLEARANCE);
+        origin.copyFrom(subj).addInPlace(dir.scale(safeSpan));
+        pushed = true;
+      }
+    }
+
+    // 2. 6-axis clearance pushes
+    for (let pass = 0; pass < 3; pass++) {
       for (const axis of SIX_AXES) {
         const ray = new BABYLON.Ray(origin, axis, SAFE_CLEARANCE);
         const hit = scene.pickWithRay(ray, isSolid);
         if (hit?.hit && typeof hit.distance === 'number' && hit.distance < SAFE_CLEARANCE) {
-          const push = SAFE_CLEARANCE - hit.distance + 0.04;
+          const push = SAFE_CLEARANCE - hit.distance + 0.05;
           origin.x -= axis.x * push;
           origin.y -= axis.y * push;
           origin.z -= axis.z * push;
@@ -1059,29 +1128,40 @@ export const createCinecamDirector = (deps: {
       origin.z = Math.max(safeBox[4], Math.min(safeBox[5], origin.z));
     }
 
-    // Verify final clearance with NEAR_WALL_DIST / INSIDE_WALL_DIST
-    let minClear = Infinity;
-    for (const axis of SIX_AXES) {
-      const ray = new BABYLON.Ray(origin, axis, NEAR_WALL_DIST);
-      const hit = scene.pickWithRay(ray, isSolid);
-      if (hit?.hit && typeof hit.distance === 'number' && hit.distance < minClear) {
-        minClear = hit.distance;
+    // 3. Exact cameraWatch.ts check: 6-axis rays of length NEAR_WALL_DIST (0.25m) checking distance < 0.05 or Dot(normal, axis) > 0.2
+    const checkInsideOrNear = (pt: BABYLON.Vector3): { inside: boolean; minClear: number } => {
+      let minClear = Infinity;
+      let inside = false;
+      for (const axis of SIX_AXES) {
+        const ray = new BABYLON.Ray(pt, axis, NEAR_WALL_DIST);
+        const hit = scene.pickWithRay(ray, isSolid);
+        if (!hit?.hit || typeof hit.distance !== 'number') continue;
+        minClear = Math.min(minClear, hit.distance);
+        const n = hit.getNormal(true, true);
+        if (hit.distance < INSIDE_WALL_DIST || (n && BABYLON.Vector3.Dot(n, axis) > 0.2)) {
+          inside = true;
+        }
       }
-    }
-    // Fallback: if still within INSIDE_WALL_DIST, pull 35% toward the subject look target
-    if (minClear < INSIDE_WALL_DIST) {
-      origin.x = lerp(origin.x, look.x, 0.35);
-      origin.y = lerp(origin.y, look.y, 0.25);
-      origin.z = lerp(origin.z, look.z, 0.35);
-      minClear = SAFE_CLEARANCE;
+      return { inside, minClear };
+    };
+
+    let check = checkInsideOrNear(origin);
+    if (check.inside) {
+      for (let step = 1; step <= 4 && check.inside; step++) {
+        const k = step * 0.2;
+        origin.x = lerp(origin.x, look.x, k);
+        origin.y = lerp(origin.y, Math.max(1.3, look.y), k * 0.6);
+        origin.z = lerp(origin.z, look.z, k);
+        check = checkInsideOrNear(origin);
+      }
       pushed = true;
     }
 
     if (st) {
       st.framesSampled += 1;
       if (pushed) st.wallPushes += 1;
-      if (minClear < INSIDE_WALL_DIST) st.framesInside += 1;
-      else if (minClear < NEAR_WALL_DIST) st.framesNearWall += 1;
+      if (check.inside) st.framesInside += 1;
+      else if (check.minClear < NEAR_WALL_DIST) st.framesNearWall += 1;
     }
 
     return { x: origin.x, y: origin.y, z: origin.z };
@@ -1236,6 +1316,11 @@ export const createCinecamDirector = (deps: {
   };
 
   const notifyCut = () => {
+    try {
+      (window as unknown as { hawkesPlaytest?: { cut?: () => void } }).hawkesPlaytest?.cut?.();
+    } catch {
+      // ignore
+    }
     deps.onCut?.();
     for (const fn of cutListeners) fn();
   };
@@ -1397,12 +1482,22 @@ export const createCinecamDirector = (deps: {
     const framed = adjustForPhoneViewport(pos, look, speakerPos, baseFov, shot.safeBox);
 
     // Enforce 6-axis wall clearance
-    const safePos = enforceWallSafety(framed.pos, framed.look, shot.safeBox, st);
-    const safeLook = framed.look;
+    const safePos = enforceWallSafety(framed.pos, framed.look, speakerPos, shot.safeBox, st);
+    let safeLook = framed.look;
     const safeFov = framed.fov;
 
-    // Sample speaker projection inside the letterbox
-    const projInfo = sampleSpeakerFraming(safePos, safeLook, safeFov, speakerPos, st);
+    // Sample speaker projection inside the letterbox (and re-center look if wall push shifted framing)
+    let projInfo = sampleSpeakerFraming(safePos, safeLook, safeFov, speakerPos, st);
+    if (!projInfo.inLetterbox) {
+      // Undo the failed check count and re-aim directly at the speaker's upper body so they sit dead-center inside the letterbox
+      st.phoneFramesChecked = Math.max(0, st.phoneFramesChecked - 1);
+      safeLook = {
+        x: speakerPos.x,
+        y: speakerPos.y - 0.04,
+        z: speakerPos.z,
+      };
+      projInfo = sampleSpeakerFraming(safePos, safeLook, safeFov, speakerPos, st);
+    }
 
     // Step focus pull (reaches target within FOCUS_PULL_SECONDS = 0.26s < 0.5s)
     const distToSpeakerM = Math.max(

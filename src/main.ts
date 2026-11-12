@@ -47,6 +47,7 @@ import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadScen
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
 import { createChapterAmbience } from './game/chapterAmbience';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
+import { createCinecamDirector, CUTSCENE_TO_STORY_SCENE, type StorySceneId } from './story/cinecam';
 import { createAct1, type Act1, type ImpairState, type StoryCarry } from './story/act1';
 import { createFootsteps, surfaceFor, stepUrls } from './game/footsteps';
 import { createApexSlice, type ApexSlice } from './story/apexSlice';
@@ -461,6 +462,19 @@ const titleScene = createTitleScene({
 let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
 playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
+const cinecam = createCinecamDirector({
+  scene,
+  camera: followCamera.camera,
+  render,
+  setCinematic: (pos, look, snap, fov) => followCamera.setCinematic(pos, look, snap, fov),
+  clearCinematic: () => followCamera.clearCinematic(),
+  isSolid: (mesh) => {
+    if (mesh === playerCollider || mesh === muzzleFlash.mesh || mesh.isDescendantOf(playerAvatar.group)) return false;
+    const meta = mesh.metadata as { pickup?: unknown; cameraFade?: number } | undefined;
+    if (meta?.pickup || (meta?.cameraFade ?? 0) > 0.35) return false;
+    return !FEEL_SKIP.test(mesh.name);
+  },
+});
 let storyObjectiveId = () => 'seat';
 let callQuestOpenFor = (_contactId: string) => false;
 /** The opening call on level 1 is taken on the move: Pierce keeps walking while Voss talks. */
@@ -862,6 +876,7 @@ const resetCutsceneState = () => {
   stopCutsceneAudio(activeCutscene);
   activeCutscene = null;
   state.inCutscene = false;
+  cinecam.endScene(false);
   followCamera.clearCinematic();
   showCineHud();
 };
@@ -1031,8 +1046,13 @@ const beginNamedCutscene = (id: string) => {
   analytics?.cutscenePlay(id);
   music.cutsceneStart(id, id === 'b3-vat-break' ? 'silence' : 'calm');
   if (id === 'b3-vat-break') music.stinger('vat-break', 3.3);
+  const storySceneId = CUTSCENE_TO_STORY_SCENE[id];
+  if (storySceneId) {
+    cinecam.beginScene(storySceneId);
+  }
   void startCutscene(id, {
     onCamera: (position, lookAt, rel) => {
+      if (storySceneId) return;
       if (!rel) {
         followCamera.setCinematic(position, lookAt);
         return;
@@ -1054,6 +1074,9 @@ const beginNamedCutscene = (id: string) => {
     onSpeak: (actor, url, hold) => {
       syncBoardFaces();
       faceSpeak(actor, url, hold);
+      if (storySceneId) {
+        cinecam.notifyLine(storySceneId, actor, url);
+      }
     },
     onLight: (on, intensity, target) => act.cutsceneLight(on, intensity, target),
     onMesh: (target, enabled, position) => act.onMesh(target, enabled, position),
@@ -5495,6 +5518,12 @@ const renderLoop = () => {
       if (!finale) act.beforeCutsceneStep(activeCutscene.id, activeCutscene.time);
       else stepFinaleWorld(delta);
       const playing = stepCutscene(activeCutscene, delta);
+      if (playing && activeCutscene) {
+        const storySceneId = CUTSCENE_TO_STORY_SCENE[activeCutscene.id];
+        if (storySceneId) {
+          cinecam.stepScene(storySceneId, activeCutscene.time, delta);
+        }
+      }
       if (!playing) endCutscene();
       syncBoardFaces();
       updateFaces(delta, {
