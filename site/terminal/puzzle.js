@@ -1,6 +1,6 @@
 // The puzzle state machine. Five steps, strictly ordered: a step only completes when every earlier step is done.
 
-import { STEPS, HINTS, SOLVED_HINT } from './content.js';
+import { STEPS, GUIDE, SOLVED_HINT } from './content.js';
 
 const ORDER = STEPS.map((s) => s.id);
 
@@ -37,10 +37,10 @@ export class Puzzle {
   hint() {
     const cur = this.current;
     if (!cur) return { step: null, level: 0, text: SOLVED_HINT };
-    const level = Math.min((this.hints[cur] || 0) + 1, HINTS[cur].length);
-    if (level > (this.hints[cur] || 0)) this.hintsUsed += 1;
+    const level = 1;
+    if (!this.hints[cur]) this.hintsUsed += 1;
     this.hints[cur] = level;
-    return { step: cur, level, text: HINTS[cur][level - 1] };
+    return { step: cur, level, text: `Next: ${GUIDE[cur].cmd}` };
   }
 
   award(id) { if (!this.extra.includes(id)) { this.extra.push(id); return true; } return false; }

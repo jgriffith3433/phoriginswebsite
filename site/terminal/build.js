@@ -39,7 +39,7 @@ export function runBuild({ seed = 58, only = null, verbose = false } = {}) {
   const den = only ? total + 1 : total + 3;
 
   say(`hawkes-build ${VERSION}  seed=${seed}  target=${only ?? 'all'}  ${verbose ? '(verbose)' : ''}`.trimEnd(), 'dim', 0);
-  say('simulated build. no network, no patient data, no regrets.', 'dim', 250);
+  say('clean build. no patient data, no regrets.', 'dim', 250);
 
   // 1. resolve dependencies
   say('', '', 200);
@@ -51,7 +51,7 @@ export function runBuild({ seed = 58, only = null, verbose = false } = {}) {
   // a scripted warning, auto-fixed
   say('  WARN  vendor tls 1.0 pinned by hl7-bridge (deprecated)', 'warn', 380);
   say('  FIX   bumping to tls13 ... done', 'ok', 520);
-  say(`  ${DEPS.length} packages resolved, 0 vulnerabilities (fictional)`, 'ok', 200);
+  say(`  ${DEPS.length} packages resolved, 0 vulnerabilities`, 'ok', 200);
 
   // 2. compile each module + its tests
   const results = [];
@@ -124,7 +124,7 @@ export function runBuild({ seed = 58, only = null, verbose = false } = {}) {
   say(' |____/ \\___/|___|_____|____/  |____/ \\___/ \\____\\____|_____|____/____/|_|    \\___/|_____|', 'banner art', 40);
   say('', '', 60);
   say(only ? `BUILD SUCCESSFUL  (${only})` : `BUILD SUCCESSFUL  ${results.length} modules, ${tests} tests, ${seconds.toFixed(1)}s`, 'banner', 120);
-  say(only ? '  module installed under /opt/hawkes-biomedical/modules' : '  ls /opt/hawkes-biomedical   -- your backend is online (fictional, but still).', 'ok', 120);
+  say(only ? '  module installed under /opt/hawkes-biomedical/modules' : '  ls /opt/hawkes-biomedical   -- your backend is online  (it is online).', 'ok', 120);
 
   return { events, summary, seconds: Math.round(t) / 1000 };
 }
@@ -161,7 +161,7 @@ export function fillerLine(r) {
     case 3: return `  AR   lib${m}.a  ${r.int(8, 80)} objects`;
     case 4: return `lint ${m}/src/${f}.ts  0 problems`;
     case 5: return `  CHK  ${hex(m + f, 12)}  ${m}/src/${f}.ts`;
-    case 6: return `stage ${m} -> simulated-staging  ${lpad(r.int(1, 100), 3)}%`;
+    case 6: return `stage ${m} -> staging  ${lpad(r.int(1, 100), 3)}%`;
     case 7: return `sign  ${m}.pkg  sha256:${hex(m + r.int(0, 999), 16)}`;
     case 8: return `  ${r.pick(STAGES_FLOOD)}  ${m}/src/${f}.ts -> ${m}/out/${f}.js  ${r.int(1, 40)} ms`;
     default: return `cc ${m}/src/${f}.ts`;

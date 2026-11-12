@@ -13,11 +13,11 @@ const BOOT = [
   [80, 'CPU: HAWKES-58 @ 3.20 GHz .................. ok', ''],
   [160, 'Memory test: 5808 MB ....................... ok', ''],
   [260, 'Detecting drives: /dev/sda (58 GB) .......... ok', ''],
-  [360, 'Hat sensor: orientation ..................... BACKWARDS (as expected)', 'warn'],
+  [360, 'Keyboard: US layout ........................ ok', ''],
   [480, 'Loading PH-OS 58 Apex ...', ''],
   [620, '[  ok  ] Mounting / (read-only for guests)', 'ok'],
   [700, '[  ok  ] Started gw-watcher', 'ok'],
-  [780, '[  ok  ] Started the simulated network (nothing leaves this page)', 'ok'],
+  [780, '[  ok  ] Started the gateway link (10.58.0.0/24)', 'ok'],
   [860, '[ skip ] intern-wiki: nobody reads it', 'warn'],
   [960, '[  ok  ] Reached target: Login Prompt', 'ok'],
 ];
