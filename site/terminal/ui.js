@@ -1,9 +1,10 @@
 // The DOM side: output log, streaming player, input mirror, history, tap buttons. No network, no eval, no polling:
-// timers only chain the lines of one command's output, and any key flushes them.
+// timers only chain the lines of one command's output, and any key flushes them. The /build show is the exception: it
+// cannot be skipped, and while it plays every key, tap and click is swallowed.
 
 import { Shell } from './shell.js';
 import { complete } from './complete.js';
-import { createShow, staticFrame, SILENT_NOTE, SONG_FILE } from './show.js';
+import { createShow, SILENT_NOTE, SONG_FILE } from './show.js';
 
 const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
 const STORE_KEY = 'ph-origins-terminal';
@@ -37,6 +38,7 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   });
 
   let busy = false;
+  let showing = false; // the /build show is on screen: nothing ends it early, and nothing typed reaches the prompt
   let flush = null; // call to finish the running output at once
   let histPos = -1;
   let draft = '';
@@ -142,30 +144,31 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
     timer = setTimeout(next, Math.max(0, steps[0].at));
   }
 
-  // ---- /build: the three-act spectacle (flood, song, text flipbook). Reduced motion gets the short log and one still frame.
+  // ---- /build: the three-act spectacle (flood, song, the dance). It cannot be skipped: it ends when the song ends, or on its
+  // fixed timer if there is no song. Reduced motion gets the calm version (no flood, no sound, slow, no flashes), also
+  // unskippable. Everything typed while it plays is swallowed; the root prompt comes back when it is over.
   function runShow(steps, meta, then) {
-    if (reduced) {
-      play(steps, () => {
-        const cols = Math.max(30, Math.min(72, Math.floor(((root.clientWidth || 390) - 28) / 6.2)));
-        const art = addLine(staticFrame(cols, 22, meta.seed).join('\n'), 'dim flip-static');
-        art.setAttribute('aria-label', 'Two silhouettes made of build text: a dancer in a fedora and a basketball player');
-        addLine('MJ x MJ   (no animation, no autoplay.  type  play song  to hear song.mp3)', 'dim');
-        then?.();
-      });
-      return;
-    }
     busy = true;
+    showing = true;
+    flush = null; // nothing to flush: there is no way to cut the show short
     input.setAttribute('aria-busy', 'true');
+    input.readOnly = true;
+    input.value = '';
+    renderMirror();
     root.classList.add('is-showing');
-    const h = show.start({
-      events: steps, seed: meta.seed, songSeconds,
+    show.start({
+      events: steps, seed: meta.seed, songSeconds, calm: reduced,
       onDone: (info) => {
         root.classList.remove('is-showing');
+        showing = false;
+        input.readOnly = false;
+        input.value = ''; // whatever was typed into the show is gone
+        histPos = -1;
+        renderMirror();
         flush = null;
-        play(steps, () => { if (info.note) addLine(info.note, 'dim'); scroll(); then?.(); }, true);
+        play(steps, () => { if (info.note) addLine(info.note, 'dim'); scroll(); input.focus({ preventScroll: true }); then?.(); }, true);
       },
     });
-    flush = () => h.skip();
   }
 
   function songCommand(on) {
@@ -219,6 +222,7 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   }
 
   function tab() {
+    if (showing) return;
     if (busy) { flush?.(); return; }
     const before = input.value;
     const r = complete(shell, before);
@@ -231,6 +235,7 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   }
 
   function ctrlC() {
+    if (showing) return;
     if (busy) { flush?.(); addLine('^C', 'dim'); scroll(); return; }
     addLine(`${shell.prompt()} ${shell.mode?.mask ? '' : input.value}^C`, 'echo');
     shell.mode = null;
@@ -243,6 +248,12 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   function clearScreen() { logEl.replaceChildren(); scroll(); }
 
   function onKey(e) {
+    // While the show plays: M mutes the song (it does not skip) and every other key is swallowed, Esc and Ctrl+C included.
+    if (showing) {
+      if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'm') show.toggleMute();
+      if (e.key !== 'F5' && !(e.ctrlKey && /^[rwtn]$/i.test(e.key))) e.preventDefault(); // browser chrome (reload, close the tab) is not ours to block
+      return;
+    }
     // Konami works anywhere, including during boot. It only ever prints a joke.
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (k === KONAMI[konamiAt]) {
@@ -252,8 +263,7 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
 
     if (e.ctrlKey && e.key.toLowerCase() === 'l') { e.preventDefault(); clearScreen(); return; }
     if (e.ctrlKey && e.key.toLowerCase() === 'c' && !(doc.getSelection()?.toString())) { e.preventDefault(); ctrlC(); return; }
-    if (show.active && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm') { e.preventDefault(); show.toggleMute(); return; } // M mutes the song, it does not skip
-    if (busy && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { e.preventDefault(); flush?.(); return; } // any key (Esc too) skips to BUILD SUCCESSFUL
+    if (busy && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) { e.preventDefault(); flush?.(); return; } // any key (Esc too) finishes ordinary streamed output at once
     if (e.key === 'ArrowUp') { e.preventDefault(); histStep(-1); } else if (e.key === 'ArrowDown') { e.preventDefault(); histStep(1); } else if (e.key === 'Tab') { e.preventDefault(); tab(); } else if (shell.sound && e.key.length === 1) click();
   }
 
@@ -287,10 +297,12 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
     onKey(e);
   });
   for (const ev of ['input', 'keyup', 'click', 'select', 'focus']) input.addEventListener(ev, renderMirror);
+  // A soft keyboard (or an IME, or a paste) can put text in the field without a keydown the page can cancel: empty it.
+  for (const ev of ['input', 'beforeinput', 'paste', 'compositionend', 'drop']) input.addEventListener(ev, (e) => { if (showing) { e.preventDefault?.(); input.value = ''; renderMirror(); } });
   doc.addEventListener('selectionchange', () => { if (doc.activeElement === input) renderMirror(); });
   input.addEventListener('blur', () => root.classList.add('is-blurred'));
   input.addEventListener('focus', () => root.classList.remove('is-blurred'));
-  $('#termForm').addEventListener('submit', (e) => { e.preventDefault(); submit(input.value); });
+  $('#termForm').addEventListener('submit', (e) => { e.preventDefault(); if (showing) { input.value = ''; return; } submit(input.value); });
 
   // Tapping anywhere puts focus back in the input (unless the visitor is selecting text to copy).
   root.addEventListener('pointerup', (e) => {
@@ -298,12 +310,13 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
     if (doc.getSelection()?.toString()) return;
     input.focus({ preventScroll: true });
   });
-  // A skip tap during streaming.
-  root.addEventListener('pointerdown', () => { if (busy) flush?.(); });
+  // A tap during ordinary streamed output finishes it at once. A tap during the show does nothing at all.
+  root.addEventListener('pointerdown', () => { if (busy && !showing) flush?.(); });
 
   for (const b of root.querySelectorAll('[data-act]')) {
     b.addEventListener('pointerdown', (e) => e.preventDefault()); // keep the keyboard up
     b.addEventListener('click', () => {
+      if (showing) return;
       const act = b.dataset.act;
       if (shell.sound) click();
       if (act === 'tab') tab();

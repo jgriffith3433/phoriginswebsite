@@ -801,7 +801,7 @@ const COMMANDS = {
   // ---- root only
   build: {
     root: true, desc: 'build the medical backend framework (--verbose, <module>, status)', usage: 'build [--verbose] [<module>|status]',
-    man: 'Assembles the medical backend. A full build is a show: the log floods past, song.mp3 plays and the log text forms two silhouettes (M mutes, Esc, Ctrl+C or any tap skips to BUILD SUCCESSFUL; the build still finishes). /build <module> is the quiet version.',
+    man: 'Assembles the medical backend. A full build is a show: the log floods past, song.mp3 plays and two dancers perform it in text. The show cannot be skipped (M mutes the song); the log and BUILD SUCCESSFUL follow when it ends. /build <module> is the quiet version.',
     run(sh, args) {
       const { flags, rest } = flagsOf(args);
       const b = sh.vfs.built;

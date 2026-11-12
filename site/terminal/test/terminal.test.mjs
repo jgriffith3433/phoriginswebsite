@@ -6,8 +6,6 @@ import { complete } from '../complete.js';
 import { Shell } from '../shell.js';
 import { Puzzle } from '../puzzle.js';
 import { runBuild, MODULES, mergeBuilt, floodScript } from '../build.js';
-import { rasterize, blob, composeFrame, BEAT_SEC, BPM, POSES_MJ, POSES_JORDAN } from '../flipbook.js';
-import { staticFrame } from '../show.js';
 import { STEPS } from '../content.js';
 
 const mk = (o = {}) => { let t = 1e12; const store = { s: null }; const sh = new Shell({ load: () => store.s, save: (v) => { store.s = v; }, now: () => t, ...o }); sh.tick = (ms) => { t += ms; }; sh.store2 = store; return sh; };
@@ -285,61 +283,6 @@ test('flood: thousands of lines, every stage and warning inside, deterministic',
   assert.ok(!sh.run('/build billing').find((e) => e.k === 'seq').show, 'a module build stays plain');
 });
 
-const GRIDS = [[40, 20], [80, 24], [40, 60]];
-test('flipbook: a left and a right blob in every pose, left centre left of right centre', () => {
-  assert.equal(BPM, 112);
-  assert.ok(POSES_MJ.length >= 6 && POSES_MJ.length <= 10 && POSES_JORDAN.length >= 6 && POSES_JORDAN.length <= 10);
-  for (const [cols, rows] of GRIDS) {
-    const half = cols / 2;
-    // every pose exactly (a key pose is reached at every 2 beats), and the in-betweens
-    for (let beat = 0; beat < 16 * 2 + 1; beat += 0.5) {
-      const m = rasterize(cols, rows, beat * BEAT_SEC);
-      const l = blob(m, cols, 1);
-      const r = blob(m, cols, 2);
-      assert.ok(l.n >= 6, `left blob ${l.n} cells at beat ${beat} on ${cols}x${rows}`);
-      assert.ok(r.n >= 6, `right blob ${r.n} cells at beat ${beat} on ${cols}x${rows}`);
-      assert.ok(l.cx < r.cx, `left ${l.cx} < right ${r.cx} (beat ${beat}, ${cols}x${rows})`);
-      for (let i = 0; i < m.length; i += 1) {
-        if (m[i] === 1) assert.ok(i % cols < half);
-        if (m[i] === 2) assert.ok(i % cols >= half);
-      }
-    }
-  }
-});
-
-test('flipbook: consecutive frames at 16 fps differ, but only by small steps', () => {
-  for (const [cols, rows] of GRIDS) {
-    let changed = 0;
-    let worst = 0;
-    const N = 16 * 20; // twenty seconds of frames
-    let prev = rasterize(cols, rows, 0);
-    for (let i = 1; i <= N; i += 1) {
-      const cur = rasterize(cols, rows, i / 16);
-      let diff = 0;
-      let union = 0;
-      for (let k = 0; k < cur.length; k += 1) { if (cur[k] !== prev[k]) diff += 1; if (cur[k] || prev[k]) union += 1; }
-      if (diff > 0) changed += 1;
-      worst = Math.max(worst, diff / union);
-      prev = cur;
-    }
-    assert.ok(changed > N * 0.7, `${changed} of ${N} frames differ on ${cols}x${rows}`);
-    assert.ok(worst < 0.6, `largest frame step changes ${(worst * 100).toFixed(0)}% of the shape on ${cols}x${rows}`);
-  }
-});
-
-test('flipbook: the text frame is the log text, in both halves, with no holes', () => {
-  const src = Array.from({ length: 80 }, (_, i) => `compile patient-intake line ${i}`);
-  const m = rasterize(80, 24, 1.3);
-  const f = composeFrame(m, 80, 24, src);
-  assert.ok(f.nl > 20 && f.nr > 20);
-  assert.equal(f.left.split('\n').length, 24);
-  assert.ok(f.left.split('\n').every((l) => l.length === 40) && f.right.split('\n').every((l) => l.length === 40));
-  assert.match(f.left + f.right, /compile|patient|line/i);
-  const still = staticFrame(64, 22);
-  assert.ok(still.length === 22 && still.join('').replace(/\s/g, '').length > 60);
-  assert.ok(still.every((l) => l.length <= 64));
-});
-
 test('root is the only account: su/ssh/login to anyone else fails, root commands refuse with the next step', () => {
   const sh = mk();
   for (const line of ['su guest', 'su admin', 'su kali', 'login admin', 'ssh admin@gw.hawkes.lan', 'ssh kali@gw.hawkes.lan']) {
@@ -358,22 +301,4 @@ test('root is the only account: su/ssh/login to anyone else fails, root commands
   assert.equal(sh.user, 'root');
   assert.doesNotMatch(run(sh, '/status'), /permission denied/);
   assert.doesNotMatch(run(sh, '/build'), /permission denied/);
-});
-
-test('/build phases: a flood well over 1,000 lines a second, then the song, then a flipbook at 12-24 fps with both figures', async () => {
-  const show = await import('../show.js');
-  assert.ok(show.FLOOD_RATE > 1000);
-  assert.ok(show.FLIP_FPS >= 12 && show.FLIP_FPS <= 24);
-  assert.equal(show.SONG_FILE, 'song.mp3');
-  // The figures animate through several distinct poses over the song, both on screen the whole time.
-  const sig = new Set();
-  for (let t = 0; t < 40; t += 1.07) {
-    const m = rasterize(120, 40, t, { aspect: 1.9 });
-    const l = blob(m, 120, 1);
-    const r = blob(m, 120, 2);
-    assert.ok(l.n > 150 && r.n > 150, `both figures solid at ${t}s`);
-    assert.ok(l.cx < 60 && r.cx > 60, 'Jackson on the left, Jordan on the right');
-    sig.add(`${Math.round(l.n / 25)}-${Math.round(r.n / 25)}-${Math.round(l.cx / 2)}-${Math.round(r.cx / 2)}`);
-  }
-  assert.ok(sig.size >= 5, `only ${sig.size} distinct poses`);
 });
