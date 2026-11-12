@@ -454,6 +454,12 @@ Gun grip may still need a millimeter tweak. Real Mixamo Shoot/Equip FBXs would b
 
 When you change IDs, clip names, sequence phases, or these constraints, **update this file**.
 
+## HUD in the world (calls, pain, prompts)
+
+- **Calls**: while a call is out or connected the handset shows in Pierce's hand and its screen is a `DynamicTexture` plane (`phoneScreenUi`, turned by rotation, never mirrored) painted in `phone.ts` `paintScreen`: caller portrait (`assets/textures/phone/portrait-{voss,hale,lang,unknown}.webp`, stand-ins until Gen art), name, timer, reply choices and countdown. The DOM call card also shows the portrait (`#phonePortrait`), and the reply bubbles stay 44 px+ tappable. Contacts `lang` and `unknown` exist in `phone.json` but are not dialable. No new scene light is added for screen glow (light slots are capped); the screen is emissive only.
+- **Pain** (`main.ts` `syncPain`): below 70% health `--pain` (0..1) drives `#painVignette` / `#painDesat`, a synthesized heartbeat and breath whose rate rises with pain. The health bar (`.health-stat`) shows only on combat levels (`levelAllowsCombat`). Probe `pain()`, shortcut `hurt(n)`.
+- **Use prompts** (`#usePrompt`, second instance of `powerPrompt.ts`): icon (`assets/textures/ui/icons/*.webp`) + E, or the touch glyph, over the object in reach (`touch.at()`, the supply, else the objective marker). Objective text carries no control hints. Probe `usePrompt()`; playtest `world-hud` (option `phone`).
+
 ## Analytics (Hawkes Analytics)
 
 Hawkes Analytics is the only analytics here (contract: `hawkesgen/docs/analytics.md`, product id `phorigins`).

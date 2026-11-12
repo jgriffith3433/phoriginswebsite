@@ -683,9 +683,9 @@ export const createGoingHome = (host: GoingHomeHost) => {
   const streetGoal = () => {
     const power = stage();
     if (tether) {
-      if (power === 'consume') return copy('objective.home.consume', 'Consume', 'Click again to consume.');
+      if (power === 'consume') return copy('objective.home.consume', 'Consume', 'Consume them.');
       if (power === 'possess' && !gateOf('tape')?.open) return copy('objective.home.walk', 'Possess', 'Walk him to the tape.');
-      return copy('objective.home.linked', 'Shadow Link', 'Walk them. Click again to end.');
+      return copy('objective.home.linked', 'Shadow Link', 'Walk them. End it when you choose.');
     }
     if (power === 'shadow' && !tut.has('shadow', 'payoff')) {
       return tut.has('shadow', 'safe')
