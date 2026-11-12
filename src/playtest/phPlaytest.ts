@@ -170,6 +170,8 @@ export type PhProbe = {
   setupHidden: (libraryId: string) => Promise<void>;
   /** The rows Load Level shows, as rendered into its list (titles only). */
   levelRows: () => string[];
+  chapterSelect: () => { cards: { n: number; unlocked: boolean; text: string; box: { x: number; y: number; w: number; h: number } }[]; cue: { plays: number; last: number }; list: { x: number; y: number; w: number; h: number; scrollTop: number; scrollHeight: number; clientHeight: number }; save: { found: Record<string, string[]>; best: Record<string, number> } };
+  loreSpots: () => { remaining: { id: string; x: number; z: number }[]; chapter: number; all: { id: string; x: number; z: number }[] };
   /** The train car kit while level 7 is dressed, else null. */
   train: () => {
     seats: number; poles: number; ads: number; windows: number; lampsPassed: number; speed: number; roll: number;
@@ -968,6 +970,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 7 (test shortcut, as ?beat=train) and lets the opening scene play: logs each subtitle with its speaker and checks the four opening lines come in order, that each spoken train line has a clip, and that the old body (the untransformed Pierce) is in the car and walks out through the front end door. Then starts the level again and presses Skip 3 s into the opening: control and the objective must be back within 2 s. Plays on with real input: walks to the objective marker, walks into the front end door (no prompt; the car changes with the fade), sees the old body one car ahead walk away; in car 2 turns Shadow mode on (C), checks the ability readout and Tab, shadow-runs a moment (Shift) and turns it off. In car 3 the train slows into a stop (platform in the windows), the stop scene plays: the door opens, he says "This is me", the commuter says "Night", and he steps out through the door facing away from Pierce (checks he never turns toward him). Answers Hale\'s call, walks to the open door (the end trigger), watches the doors close and presses End Level. End Level must be on the finished beat. The press plays ending-6, rolls the level 7 credits, and the card offers Continue (level 8) and Exit. Checks combat stays off (library row, no hostiles) and no missing clips. Metrics: trainOpeningSeconds, trainCars, trainSeconds.',
         seconds: 240,
         tags: ['level'],
+      },
+      {
+        id: 'chapter-select',
+        title: 'Chapter Select on the title menu: 8 painted cards, locked ones dimmed, best time and lore n of m, a card starts its chapter within 10 s, hidden lore pages raise n of m (options.phone: 390x844 touch)',
+        description: 'Opens on the title (after Tap to play), taps Chapter Select and checks eight cards: art slot, title, and on each unlocked card its best time and "Lore n of m"; locked cards are dimmed and disabled. Every card must be at least 44 px tall and inside the viewport; the list must scroll by swipe (overflow auto, touch-action pan-y, more content than fits at 390x844). Hovering or focusing an unlocked card plays a short cue from its chapter\'s music. A tap on card 1 must start chapter 1 within 10 s. In the chapter the bot walks to each hidden lore page with real input; each one found shows its toast and raises the count on the save, and the card then reads the new n of m. Metrics: chapterCards, chapterStartSeconds, lorePagesFound, chapterCardMinPx. Options: phone.',
+        seconds: 240,
+        tags: ['menus', 'ui', 'level'],
       },
       {
         id: 'lore-link',
@@ -7646,6 +7655,107 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.event('lore-index', `${listed} entries listed`);
       if (listed < 8) t.problem('bug', `lore.html lists ${listed} entries, not 8`);
       t.progress(1);
+      t.finish('done');
+      return;
+    }
+
+    if (id === 'chapter-select') {
+      levelsTotal = 1;
+      const phone = Boolean(options.phone);
+      if (phone) {
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+        t.event('setup', 'phone layout 390x844 (touch)');
+        await sleep(500);
+      }
+      t.scene('Chapter Select');
+      const opener = document.getElementById('loadModelBtn') as HTMLButtonElement | null;
+      if (!opener || !shown(opener)) { t.problem('bug', 'the title menu has no Chapter Select button'); t.finish('done'); return; }
+      if (!/chapter select/i.test(opener.textContent ?? '')) t.problem('bug', `the button reads "${opener.textContent}", not Chapter Select`);
+      await tapAt(opener, 'Chapter Select');
+      await t.until(() => probe.chapterSelect().cards.length >= 8, 8000, 'eight chapter cards');
+      await sleep(600);
+      const view = probe.chapterSelect();
+      t.metric('chapterCards', view.cards.length);
+      t.event('chapter-cards', view.cards.map((c) => `${c.n}${c.unlocked ? '' : ' (locked)'}: ${c.text}`).join(' | '));
+      if (view.cards.length !== 8) t.problem('bug', `Chapter Select shows ${view.cards.length} cards, not 8`);
+      const locked = view.cards.filter((c) => !c.unlocked).length;
+      if (!locked && view.cards.length === 8) t.event('note', 'every chapter is unlocked on this save, none dimmed');
+      let minPx = 9999;
+      for (const c of view.cards) {
+        minPx = Math.min(minPx, c.box.h);
+        if (c.unlocked && !(/Best\s+\S+/i.test(c.text) && /Lore\s+\d+\s+of\s+\d+/i.test(c.text))) t.problem('bug', `unlocked card ${c.n} shows no best time or "Lore n of m": ${c.text}`);
+        if (RAW_KEY.test(c.text)) t.problem('bug', `card ${c.n} shows a raw locale id: ${c.text}`);
+      }
+      t.metric('chapterCardMinPx', Math.round(minPx));
+      if (minPx < 44) t.problem('bug', `a chapter card is ${Math.round(minPx)} px tall, under 44`);
+      const list = document.getElementById('levelList') as HTMLElement;
+      const cs = getComputedStyle(list);
+      const scrolls = /auto|scroll/.test(cs.overflowY) && /pan-y/.test(cs.touchAction);
+      t.event('swipe-list', `overflowY ${cs.overflowY}, touch-action ${cs.touchAction}, ${view.list.scrollHeight} px of content in ${view.list.clientHeight} px`);
+      if (!scrolls) t.problem('bug', 'the chapter list is not swipe-scrollable (needs overflow-y auto and touch-action pan-y)');
+      if (phone && view.list.scrollHeight <= view.list.clientHeight + 4) t.problem('warning', 'at 390x844 all eight cards fit without scrolling');
+      // A swipe on the list (touch drag), then the cards must still be reachable.
+      const lr = list.getBoundingClientRect();
+      const pid = 81;
+      const ev = (type: string, y: number, buttons: number) => list.dispatchEvent(new PointerEvent(type, { pointerType: phone ? 'touch' : 'mouse', pointerId: pid, isPrimary: true, bubbles: true, cancelable: true, clientX: lr.left + lr.width / 2, clientY: y, buttons }));
+      ev('pointerdown', lr.top + lr.height * 0.8, 1);
+      for (let i = 1; i <= 8; i += 1) { await sleep(30); ev('pointermove', lr.top + lr.height * (0.8 - i * 0.07), 1); }
+      ev('pointerup', lr.top + lr.height * 0.2, 0);
+      list.scrollTop = list.scrollHeight;
+      await sleep(300);
+      t.event('swiped', `scrollTop ${Math.round(list.scrollTop)} of ${list.scrollHeight - list.clientHeight}`);
+      list.scrollTop = 0;
+      // The cue: focus the first unlocked card.
+      const cards = [...list.querySelectorAll<HTMLButtonElement>('.chapter-card')];
+      const first = cards.find((c) => !c.disabled);
+      const before = probe.chapterSelect().cue.plays;
+      first?.focus();
+      await sleep(500);
+      const cue = probe.chapterSelect().cue;
+      t.event('cue', `chapter music cue plays ${before} -> ${cue.plays} (chapter ${cue.last})`);
+      if (cue.plays <= before) t.problem('bug', 'focusing a chapter card plays no music cue');
+      // Start chapter 1 by tap.
+      t.scene('Start chapter 1');
+      const t0 = performance.now();
+      if (first) {
+        first.scrollIntoView({ block: 'center' });
+        await tapAt(first, 'chapter 1 card');
+        await sleep(400);
+        if (!probe.running()) first.click();
+      }
+      const until = performance.now() + 30000;
+      while (!(probe.running() && probe.level().id === 1 && !probe.menu().open) && performance.now() < until) await sleep(100);
+      const took = (performance.now() - t0) / 1000;
+      t.metric('chapterStartSeconds', Math.round(took * 10) / 10);
+      t.event('chapter-start', `chapter 1 running ${took.toFixed(1)} s after the tap`);
+      if (took > 10) t.problem('bug', `chapter 1 took ${took.toFixed(1)} s to start from its card (limit 10)`);
+      if (!probe.running()) { t.finish('done'); return; }
+      // Hidden lore pages: walk onto each with real input.
+      t.scene('Hidden lore pages');
+      await waitControl('control in chapter 1');
+      const total = probe.loreSpots().all.length;
+      if (total < 2) t.problem('bug', `chapter 1 hides ${total} lore pages, under 2`);
+      let found = 0;
+      for (const spot of probe.loreSpots().all) {
+        const stillThere = () => probe.loreSpots().remaining.some((r) => r.id === spot.id);
+        const limit = performance.now() + 40000;
+        while (stillThere() && performance.now() < limit) {
+          await walkTo({ x: spot.x, z: spot.z }, `lore page ${spot.id}`, 0.9);
+          await tick();
+        }
+        releaseAll();
+        if (!stillThere()) { found += 1; t.event('lore-page', `found ${spot.id} (${found}/${total}); toast: ${document.getElementById('loreToast')?.textContent ?? ''}`); }
+        else t.problem('warning', `could not reach lore page ${spot.id} at (${spot.x}, ${spot.z})`);
+        await sleep(300);
+      }
+      t.metric('lorePagesFound', found);
+      const saved = probe.chapterSelect().save.found['1'] ?? [];
+      if (saved.length !== found) t.problem('bug', `found ${found} pages but the save holds ${saved.length}`);
+      const rows = probe.levelRows();
+      const card1 = probe.chapterSelect().cards.find((c) => c.n === 1);
+      t.event('card-after', card1?.text ?? 'none');
+      if (!new RegExp(`Lore\\s+${found}\\s+of\\s+${total}`).test(card1?.text ?? '')) t.problem('bug', `card 1 does not show Lore ${found} of ${total} after finding them: ${card1?.text}`);
+      void rows;
       t.finish('done');
       return;
     }

@@ -255,6 +255,10 @@ Touch (`body[data-device]` mobile/tablet) controls never overlap and are 44 px o
 
 `src/game/rewards.ts` + `reward.N.*` lines in `locales/en.json`. The Missions panel's first row (`#missionGoal`, "On finish") names the level's rank and unlocked tool; the Level Complete card (`#rewardEntry`, `showReward` in `main.ts`) shows rank, unlocked tool, "Full marks" when every side mission is done, and a hook into the next level. Probe `showLevelComplete()` is a test shortcut; playtest `living-places` (`rewardGoalCheck`) checks the panel row, the card, no sideways scroll and 44 px card buttons.
 
+## Chapter Select
+
+Title button **Chapter Select** (was Load Level; `#loadModelBtn`): eight cards from the save, see `src/game/chapterSelect.ts` and `docs/story/lore.md` (best time, Lore n of m, three hidden floor pages per chapter, hover cue, a tap starts the chapter). Card art `assets/textures/chapters/NN.webp` is still to be painted (Gen credits ran out); cards draw a gradient until the file exists. Playtest `chapter-select` (option `phone`).
+
 ## Lore entries
 
 Level Complete unlocks that chapter's lore entry (`src/game/lore.ts`, `lore: number[]` on `ph-origins-save`): the card shows it with a **Read more** link to `lore/<slug>.html`. Each lore page has **Play this level** (`play/game.html?level=N`; `main.ts` opens the title card on that level). Pages are built by `node tools/buildLore.mjs` from `site/lore.json` + `locales/en.json` (`lore.N.*`). See `docs/story/lore.md`. Playtest: `lore-link`.

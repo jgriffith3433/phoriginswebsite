@@ -3222,6 +3222,40 @@
         color: var(--hb-gold);
       }
       .message .level-item.locked > span { border-color: var(--hb-line); color: var(--hb-dim); }
+
+      /* Chapter Select: eight painted cards, locked ones dimmed. Art is assets/textures/chapters/NN.webp; the gradient stands in until it loads. */
+      .message .level-list.chapters, .level-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: min(52vh, 420px); overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+      .chapter-card {
+        position: relative; display: flex; flex-direction: column; gap: 0; padding: 0; min-height: 96px; text-align: left;
+        border: 1px solid var(--hb-line); border-radius: 0; background: rgba(4, 8, 12, 0.85); color: inherit; overflow: hidden; cursor: pointer;
+        transition: border-color 0.15s, transform 0.15s;
+      }
+      .chapter-card:hover:not(:disabled), .chapter-card:focus-visible { border-color: var(--hb-gold); outline: none; transform: translateY(-1px); }
+      .chapter-card.locked { opacity: 0.5; filter: saturate(0.15) brightness(0.7); cursor: default; }
+      .chapter-art {
+        display: block; aspect-ratio: 16 / 9; width: 100%; background-size: cover; background-position: center;
+        background: linear-gradient(160deg, hsl(var(--ch-h, 215) 45% 16%), hsl(calc(var(--ch-h, 215) + 30) 40% 7%) 70%), radial-gradient(circle at 70% 30%, rgba(196, 160, 90, 0.35), transparent 55%);
+      }
+      .chapter-art.painted { background-size: cover; background-position: center; }
+      .chapter-art[data-art="1"] { --ch-h: 215; } .chapter-art[data-art="2"] { --ch-h: 150; } .chapter-art[data-art="3"] { --ch-h: 170; }
+      .chapter-art[data-art="4"] { --ch-h: 35; } .chapter-art[data-art="5"] { --ch-h: 235; } .chapter-art[data-art="6"] { --ch-h: 190; }
+      .chapter-art[data-art="7"] { --ch-h: 205; } .chapter-art[data-art="8"] { --ch-h: 28; }
+      .chapter-body { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px 10px; min-height: 44px; }
+      .chapter-kicker { font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--hb-gold); }
+      .chapter-title { font-family: var(--hb-serif, Georgia, serif); font-size: 15px; font-weight: 600; }
+      .chapter-stats { display: flex; justify-content: space-between; gap: 8px; font-family: var(--hb-mono); font-size: 11px; color: rgba(196, 208, 220, 0.85); }
+      .chapter-outcome { font-size: 11px; color: rgba(141, 152, 163, 0.9); line-height: 1.3; }
+      @media (max-width: 700px) {
+        .message .level-list, .level-list { grid-template-columns: 1fr; max-height: 56vh; }
+        .chapter-card { flex-direction: row; min-height: 88px; }
+        .chapter-art { width: 42%; aspect-ratio: 16 / 9; flex: none; }
+        .chapter-body { flex: 1; justify-content: center; }
+      }
+      .lore-toast {
+        position: fixed; left: 50%; bottom: calc(96px + var(--safe-bottom, 0px)); transform: translateX(-50%); z-index: 40; max-width: min(520px, 90vw);
+        padding: 10px 16px; border: 1px solid var(--hb-gold); background: rgba(4, 8, 12, 0.88); color: #e9d9b0; font-size: 13px; line-height: 1.4; text-align: center; pointer-events: none;
+      }
+      .lore-toast[hidden] { display: none; }
       .message .level-select-header .secondary {
         border-radius: 0;
         padding: 8px 14px;
@@ -3888,7 +3922,7 @@
 
           <div id="levelSelect" class="level-select hidden" aria-live="polite">
             <div class="level-select-header">
-              <h2>Mission Select</h2>
+              <h2>Chapter Select</h2>
               <button type="button" class="secondary" id="closeLevelSelect">Back</button>
             </div>
             <div id="levelList" class="level-list"></div>
@@ -3898,7 +3932,7 @@
             <button class="primary" id="startBtn" disabled aria-busy="true">Start</button>
             <button class="secondary" id="newGameBtn" type="button" style="display:none">New Game</button>
             <button class="secondary" id="resetBtn" style="display:none">Main Menu</button>
-            <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
+            <button class="secondary" id="loadModelBtn" type="button">Chapter Select</button>
             <button class="secondary" id="settingsBtn" type="button">Settings</button>
           </div>
           <p class="load-line" id="loadLine" role="status" aria-live="polite">Loading…</p>
@@ -3907,6 +3941,8 @@
           <input id="modelInput" type="file" accept=".glb,.gltf,.obj,.fbx" hidden />
         </div>
       </div>
+
+      <div class="lore-toast" id="loreToast" role="status" aria-live="polite" hidden></div>
 
       <div class="recovering" id="recovering" hidden role="status" aria-live="polite"><div>Recovering&hellip;</div></div>
 
