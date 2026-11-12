@@ -10,7 +10,7 @@
       "type": "audio",
       "clip": "/assets/audio/sfx/creature/shriek.wav",
       "bus": "sfx",
-      "volume": 0.42
+      "volume": 0.3
     },
     {
       "at": 0.9,
@@ -29,7 +29,7 @@
       "type": "audio",
       "clip": "/assets/audio/sfx/creature/shriek.wav",
       "bus": "sfx",
-      "volume": 0.58
+      "volume": 0.4
     },
     {
       "at": 4.2,
@@ -56,14 +56,14 @@
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-vat-break/vat-glass.wav",
       "bus": "sfx",
-      "volume": 0.86
+      "volume": 0.5
     },
     {
       "at": 4.35,
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-vat-break/vat-splash.wav",
       "bus": "sfx",
-      "volume": 0.78
+      "volume": 0.45
     },
     {
       "at": 5.0,

@@ -278,6 +278,8 @@ export type PhProbe = {
     steps?: { surface: string; variant: number; rate: number; foot: string }[];
     /** Music director (docs/music.md): state, state log, duck depth, events. */
     /** Every voice clip: start, end, whether a stop cut it short, whether another voice sounded under it. */
+    sceneMix?: { maxSfx: number; minVoice: number; sfxToVoiceDb: number | null; capped: number; entries: { url: string; kind: string; asked: number; gain: number; capped: boolean }[] };
+    sceneMixReset?: () => void;
     voice?: { url: string; start: number; end: number; waited: number; duration: number; state: string; cut: boolean; overlapped: boolean }[];
     /** Spatial audio: reverb zone, occlusion, panning, loudness, dropouts (src/game/acoustics.ts). */
     acoustics?: AcousticsProbe;
@@ -3537,6 +3539,16 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (cs.whiteSpace !== 'nowrap' && (line.textContent ?? '').trim()) {
             t.problem('bug', `${where}: caption is not one line (white-space ${cs.whiteSpace})`);
           } else if ((line.textContent ?? '').trim()) t.event('caption-one-line', where);
+        }
+        {
+          // Voice is the loudest thing in a scene: no one-shot sfx gain above the scene ceiling or a voice gain.
+          const mix = probe.sound().sceneMix;
+          if (mix && mix.entries.length) {
+            t.metric('sceneSfxMaxGain', Number(mix.maxSfx.toFixed(3)));
+            if (mix.sfxToVoiceDb != null) t.metric('sceneSfxToVoiceDb', Number(mix.sfxToVoiceDb.toFixed(1)));
+            t.event('scene-mix', `${where}: sfx max ${mix.maxSfx.toFixed(2)}, voice min ${mix.minVoice.toFixed(2)}, ${mix.sfxToVoiceDb == null ? 'no voice yet' : `${mix.sfxToVoiceDb.toFixed(1)} dB`}, capped ${mix.capped}`);
+            if (mix.minVoice > 0 && mix.maxSfx > mix.minVoice) t.problem('bug', `${where}: a scene sfx (${mix.maxSfx.toFixed(2)}) is louder than the voice (${mix.minVoice.toFixed(2)})`);
+          }
         }
         t.scene(`Cinematic ${where}`);
       };

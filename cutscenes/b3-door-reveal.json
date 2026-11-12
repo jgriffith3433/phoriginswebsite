@@ -35,7 +35,7 @@
       "type": "audio",
       "clip": "/assets/audio/cutscenes/elevator-b3/doors.wav",
       "bus": "sfx",
-      "volume": 0.62
+      "volume": 0.4
     },
     {
       "at": 2.4,
@@ -113,7 +113,7 @@
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-door-reveal/creature-breath.wav",
       "bus": "sfx",
-      "volume": 0.38
+      "volume": 0.28
     },
     {
       "at": 9.1,
@@ -140,7 +140,7 @@
       "type": "audio",
       "clip": "/assets/audio/sfx/creature/shriek.wav",
       "bus": "sfx",
-      "volume": 0.78
+      "volume": 0.5
     },
     {
       "at": 9.3,
@@ -167,7 +167,7 @@
       "type": "audio",
       "clip": "/assets/audio/cutscenes/b3-door-reveal/creature-run.wav",
       "bus": "sfx",
-      "volume": 0.55
+      "volume": 0.38
     },
     {
       "at": 13.8,
