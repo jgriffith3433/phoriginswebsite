@@ -146,7 +146,8 @@ shows the tower, far, lit, in the same position as the lobby clock tower, so lev
 ## Who lives here
 
 Characters keep their names, voices (Hawkes Gen / ElevenLabs voices in `locales/voices.json`) and rules. Pierce is
-Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the receptionist is Liz.
+Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the receptionist is Liz. Full want / arc /
+moment / personality / voice / animations for the named board live under Characters below.
 
 ### Named cast
 - **Pierce Hawkes.** Chairman and founder. Two bodies: the **old body** (`asset-ch33-hero`, the tower's coat) and the
@@ -162,44 +163,8 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
   as a ward ("patients, not prototypes"). Loyal to the charter. Same face talk at the board.
 - **Lang (man).** The calendar; wants a date for Zurich. Mentioned, seated at the board, never on the street. Same face
   talk when he speaks in `room-for-grace`.
-
-## Characters
-
-### Pierce Hawkes
-- Want: keep the charter and the building's secret intact while he still looks like a man who belongs on the 58th floor.
-- Arc: late chairman → vat → refuses the stare → walks home as the thing the street cannot name.
-- Moment: Room for Grace — he speaks from the head chair and the board looks at him; after B3, the mirror look.
-- Personality: terse, tired, polite.
-- Voice: Jackson (`ZthjuvLPty3kTMaNKVKb` in `locales/voices.json`).
-- Animations: Idle / Walk / SitIdle / SitTalk; faceTalk (lip flap, blinks, look-at, explain/lean/cross/nod/shake/point).
-
-### Director Hale
-- Want: a clean reschedule and no leak to the street.
-- Arc: furious in the board → walkout call → contained update on the train → still watching.
-- Moment: Room for Grace — she turns on Pierce from chair-n-2; heads around the table follow her voice.
-- Personality: steel, measured, furious.
-- Voice: Annie / Hale (`XW70ikSsadUbinwLMZ5w`).
-- Animations: SitIdle / SitTalk; faceTalk gaze + gestures while she speaks.
-
-### Voss
-- Want: the truth of what Pierce is carrying, without breaking the charter in public.
-- Arc: late call → board seat → Morning call that still asks.
-- Moment: Room for Grace and every Voss phone call; on-screen he talks with a face at the south seat.
-- Personality: loyal, probing, warm-on-record.
-- Voice: Voss (`XjLkpWUlnhS8i7gGz3lZ`).
-- Animations: SitIdle / SitTalk; faceTalk.
-
-### Lang
-- Want: a firm date for Zurich on the calendar.
-- Arc: seated pressure at the board → never returns to the street story.
-- Moment: his spoken lines in Room for Grace; the table looks to him when he has the floor.
-- Personality: calendar, clipped, impatient.
-- Voice: Lang (`2UMI2FME0FFUFMlUoRER`).
-- Animations: SitIdle / SitTalk; faceTalk.
-
-### Named cast (continued)
 - **The old body.** Holds the pole like he owns the train. Always one car ahead. Gets off at a stop with no name.
-  Never explained, never addressed by any third party.
+  Never explained, never addressed by any third party. Not a separate Characters entry (same voice and face as Pierce).
 - **The commuter** (`asset-ch28-npc`). The man the old body talks to. Says "Night." Does not look back either.
 - **The creature** (`asset-parasite-starkie`). In B3, hunts in bursts, runs to the vat glass. Never seen in public.
 
@@ -235,6 +200,40 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
 - **Riders:** keep their eyes off him; a possessed rider walks inside the car only.
 - **The old body and the commuter are never targets and never turn around.**
 - **Voss** is the only person who sounds as if he suspects: "You don't sound like yourself." "Whose voice is that?"
+
+## Characters
+
+### Pierce Hawkes
+- Want: keep the charter and the building's secret intact while he still looks like a man who belongs on the 58th floor.
+- Arc: late chairman → vat → refuses the stare → walks home as the thing the street cannot name.
+- Moment: Room for Grace — he speaks from the head chair and the board looks at him; after B3, the mirror look.
+- Personality: terse, tired, polite.
+- Voice: Jackson (`ZthjuvLPty3kTMaNKVKb` in `locales/voices.json`).
+- Animations: idle, walk, talk; Idle / Walk / SitIdle / SitTalk; faceTalk (lip flap, blinks, look-at, explain/lean/cross/nod/shake/point).
+
+### Director Hale
+- Want: a clean reschedule and no leak to the street.
+- Arc: furious in the board → walkout call → contained update on the train → still watching.
+- Moment: Room for Grace — she turns on Pierce from chair-n-2; heads around the table follow her voice.
+- Personality: steel, measured, furious.
+- Voice: Annie / Hale (`XW70ikSsadUbinwLMZ5w`).
+- Animations: idle, walk, talk; SitIdle / SitTalk / Idle / Walk; faceTalk gaze + gestures while she speaks.
+
+### Voss
+- Want: the truth of what Pierce is carrying, without breaking the charter in public.
+- Arc: late call → board seat → Morning call that still asks.
+- Moment: Room for Grace and every Voss phone call; on-screen he talks with a face at the south seat.
+- Personality: loyal, probing, warm-on-record.
+- Voice: Voss (`XjLkpWUlnhS8i7gGz3lZ`).
+- Animations: idle, walk, talk; SitIdle / SitTalk / Idle / Walk; faceTalk.
+
+### Lang
+- Want: a firm date for Zurich on the calendar.
+- Arc: seated pressure at the board → never returns to the street story.
+- Moment: his spoken lines in Room for Grace; the table looks to him when he has the floor.
+- Personality: calendar, clipped, impatient.
+- Voice: Lang (`2UMI2FME0FFUFMlUoRER`).
+- Animations: idle, walk, talk; SitIdle / SitTalk / Idle / Walk; faceTalk.
 
 ---
 
