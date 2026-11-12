@@ -306,15 +306,28 @@ export const createRainNight = (scene: BABYLON.Scene, opts: RainNightOptions) =>
   const rain = mkRain(rainCap(tier0, opts.mobile));
   const splash = mkSplash(Math.max(80, Math.floor(rainCap(tier0, opts.mobile) / 6)));
 
-  // Rain bed (stand-in: street room-tone until Gen rain-hiss lands). Music bus via createUnlockedAudio.
-  const rainBed = createUnlockedAudio('/assets/audio/room-tone.mp3', 'music');
-  rainBed.loop = true;
-  rainBed.volume = 0.1;
-  void rainBed.play().catch(() => { /* gesture may not be ready yet */ });
+  // Rain bed: HEAD for Gen rain-hiss, else room-tone (never mutate a pooled element's .src).
+  const RAIN_HISS = '/assets/audio/sfx/street/rain-hiss.ogg';
+  const RAIN_FALLBACK = '/assets/audio/room-tone.mp3';
+  let rainBed: HTMLAudioElement | null = null;
+  void (async () => {
+    let exists = false;
+    try {
+      exists = (await fetch(RAIN_HISS, { method: 'HEAD', cache: 'no-store' })).ok;
+    } catch {
+      /* offline / missing */
+    }
+    rainBed = createUnlockedAudio(exists ? RAIN_HISS : RAIN_FALLBACK, 'music');
+    rainBed.loop = true;
+    rainBed.volume = exists ? 0.14 : 0.1;
+    void rainBed.play().catch(() => { /* gesture may not be ready yet */ });
+  })();
   owned.push({
     dispose: () => {
+      if (!rainBed) return;
       rainBed.pause();
       releaseUnlockedAudio(rainBed);
+      rainBed = null;
     },
   });
 

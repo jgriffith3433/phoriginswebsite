@@ -61,6 +61,11 @@ uniform vec4 lights[${MAX_LIGHTS}];
 uniform vec3 lightColor;
 uniform float time;
 uniform sampler2D atlas;
+/** Gen seamless albedos (subway-tile / platform-concrete / platform-edge); stSurf.xyz = 1 when each loaded. */
+uniform sampler2D tTile;
+uniform sampler2D tFloor;
+uniform sampler2D tEdge;
+uniform vec3 stSurf;
 ${KEY_SHADOW_GLSL}
 
 float h21(vec2 p) {
@@ -158,6 +163,11 @@ void main(void) {
     float streak = smoothstep(0.7, 0.95, vnoise(vec2(p.x * 3.0, p.y * 0.15))) * 0.25;
     albedo = tileC * (1.0 - grout * 0.45) * (1.0 - grime - streak);
     gloss = 0.35 * (1.0 - grout);
+    if (stSurf.x > 0.5) {
+      vec3 painted = texture2D(tTile, p * 0.55).rgb;
+      albedo = mix(albedo, painted * (0.92 + 0.08 * h21(cell)) * (1.0 - grime * 0.5), 0.85);
+      gloss = 0.32;
+    }
   } else if (surf == ${SURF.FLOOR}.0) {
     float n1 = vnoise(p * 0.6);
     float n2 = vnoise(p * 4.0);
@@ -176,11 +186,20 @@ void main(void) {
     float wet = smoothstep(0.55, 0.85, vnoise(p * 0.2 + 3.0));
     gloss = 0.18 + wet * 0.45;
     albedo = mix(albedo, albedo * 0.55, wet * 0.35);
+    if (stSurf.y > 0.5) {
+      vec3 painted = texture2D(tFloor, p * 0.35).rgb;
+      albedo = mix(albedo, painted * (1.0 - path) * (1.0 - gum * 0.4), 0.8);
+      albedo = mix(albedo, albedo * 0.55, wet * 0.35);
+    }
   } else if (surf == ${SURF.TACTILE}.0) {
     vec2 d = fract(p / 0.06) - 0.5;
     float dome = smoothstep(0.32, 0.18, length(d));
     albedo = vec3(0.75, 0.55, 0.06) * (0.8 + 0.2 * dome) * (0.85 + 0.15 * vnoise(p * 2.0));
     if (p.y > 2.2) albedo = vec3(0.85, 0.85, 0.82);
+    if (stSurf.z > 0.5) {
+      vec3 painted = texture2D(tEdge, p * 2.2).rgb;
+      albedo = mix(albedo, painted, 0.85);
+    }
   } else if (surf == ${SURF.BALLAST}.0) {
     float stone = h21(floor(p * 18.0));
     albedo = vec3(0.1, 0.095, 0.09) * (0.6 + 0.8 * stone);
@@ -353,14 +372,60 @@ export const createStationDress = (scene: BABYLON.Scene) => {
   const keyShadow = keyShadowShaderOptions(scene);
   const material = new BABYLON.ShaderMaterial('station-dress', scene, { vertexSource: VERT, fragmentSource: FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
-    uniforms: ['worldViewProjection', 'cameraPos', 'fogColor', 'fogRange', 'ambient', 'lights', 'lightColor', 'time', ...keyShadow.uniforms],
-    samplers: ['atlas', ...keyShadow.samplers],
+    uniforms: ['worldViewProjection', 'cameraPos', 'fogColor', 'fogRange', 'ambient', 'lights', 'lightColor', 'time', 'stSurf', ...keyShadow.uniforms],
+    samplers: ['atlas', 'tTile', 'tFloor', 'tEdge', ...keyShadow.samplers],
     defines: keyShadow.defines,
   });
   attachKeyShadow(scene, material);
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas);
+  // Gen seamless surfaces under assets/textures/station/; procedural stand-in until each WebP loads.
+  const stSurf = new BABYLON.Vector3(0, 0, 0);
+  material.setVector3('stSurf', stSurf);
+  const stub = new BABYLON.DynamicTexture('station-surf-stub', { width: 4, height: 4 }, scene, false);
+  {
+    const sctx = stub.getContext() as CanvasRenderingContext2D;
+    sctx.fillStyle = '#6a6860';
+    sctx.fillRect(0, 0, 4, 4);
+    stub.update();
+  }
+  stub.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  stub.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  owned.push(stub);
+  material.setTexture('tTile', stub);
+  material.setTexture('tFloor', stub);
+  material.setTexture('tEdge', stub);
+  const lowMem = document.body.dataset.memory === 'low';
+  const STATION_SURF: { sampler: 'tTile' | 'tFloor' | 'tEdge'; file: string; axis: 'x' | 'y' | 'z' }[] = [
+    { sampler: 'tTile', file: 'subway-tile', axis: 'x' },
+    { sampler: 'tFloor', file: 'platform-concrete', axis: 'y' },
+    { sampler: 'tEdge', file: 'platform-edge', axis: 'z' },
+  ];
+  for (const entry of STATION_SURF) {
+    const path = `/assets/textures/station/${entry.file}${lowMem ? '-512' : ''}.webp`;
+    const t = new BABYLON.Texture(
+      path,
+      scene,
+      false,
+      true,
+      BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+      () => {
+        t.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+        t.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+        t.anisotropicFilteringLevel = lowMem ? 2 : 8;
+        material.setTexture(entry.sampler, t);
+        if (entry.axis === 'x') stSurf.x = 1;
+        else if (entry.axis === 'y') stSurf.y = 1;
+        else stSurf.z = 1;
+        material.setVector3('stSurf', stSurf);
+      },
+      () => {
+        // Missing Gen file: keep procedural tile/floor/edge (stSurf channel stays 0).
+      },
+    );
+    owned.push(t);
+  }
   owned.push(material);
 
   const g = new Geo();
@@ -625,6 +690,9 @@ export const createStationDress = (scene: BABYLON.Scene) => {
       sodium: sodium.length,
       boardEmissive: 2.05,
       openEndRain: true,
+      genTile: stSurf.x > 0.5,
+      genFloor: stSurf.y > 0.5,
+      genEdge: stSurf.z > 0.5,
     }),
     dispose: () => {
       for (const o of owned) o.dispose();
