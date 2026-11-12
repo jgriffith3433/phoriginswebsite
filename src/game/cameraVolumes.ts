@@ -260,6 +260,18 @@ const isOccluderMesh = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.Abstract
   return false;
 };
 
+/**
+ * Architecture: authored walls, floors, ceilings and doors. The lens must never end up inside or behind these, so they
+ * never fade and the boom always collides with them (a faded wall used to count as see-through, which let the lens
+ * pass through it: the wall-clip regression).
+ */
+export const isStructureMesh = (mesh: BABYLON.AbstractMesh) => {
+  const meta = mesh.metadata as { assetKind?: string; sceneAssetId?: string; modelPath?: string } | undefined;
+  if (meta?.assetKind === 'wall' || meta?.assetKind === 'ground') return true;
+  const name = `${mesh.name || ''} ${meta?.sceneAssetId ?? ''} ${meta?.modelPath ?? ''}`.toLowerCase();
+  return /(^|[^a-z])(wall|door|glass|jamb|frame|casing|partition|pillar|column)/.test(name) || /^interior-(dress|col)/.test(name);
+};
+
 /** Discrete props / door GLBs only — never the merged `interior-dress` kit (one mesh = whole floor). */
 export const isFadeCandidate = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.AbstractMesh>) => {
   if (!isOccluderMesh(mesh, ignore)) return false;
@@ -268,6 +280,7 @@ export const isFadeCandidate = (mesh: BABYLON.AbstractMesh, ignore: Set<BABYLON.
   // A skinned mesh is a person (NPC, cleaner, guard): fading one draws half a body see-through (a ghost with
   // translucent legs). People block the boom through the collision pass, never through the fade.
   if (mesh.skeleton) return false;
+  if (isStructureMesh(mesh)) return false;
   const name = (mesh.name || '').toLowerCase();
   if (/(^|-)(floor|ground|ceil|ceiling|sky)/.test(name)) return false;
   if (/^interior-(dress|col)/.test(name)) return false;

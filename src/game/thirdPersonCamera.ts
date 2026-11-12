@@ -3,6 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import {
   createOcclusionFader,
   createVolumeBlend,
+  isStructureMesh,
   parseCameraVolumes,
   stepVolumeBlend,
   type CameraVolume,
@@ -214,10 +215,10 @@ export const createThirdPersonCamera = (
     if (!mesh || !mesh.isEnabled() || mesh.visibility <= 0) return false;
     if (ignore.has(mesh)) return false;
     // Occlusion fade owns these; do not shorten the boom into Pierce because of them.
-    if (fader.isFaded(mesh)) return false;
+    if (fader.isFaded(mesh) && !isStructureMesh(mesh)) return false;
     const meta = mesh.metadata as { sceneTriggerId?: string; cameraClip?: boolean; trainCollider?: boolean; cameraFade?: number } | undefined;
     if (meta?.sceneTriggerId || meta?.trainCollider) return false;
-    if ((meta?.cameraFade ?? 0) > 0.35) return false;
+    if ((meta?.cameraFade ?? 0) > 0.35 && !isStructureMesh(mesh)) return false;
     if (meta?.cameraClip || mesh.checkCollisions) return true;
     return mesh.isVisible && mesh.isPickable;
   };
@@ -379,7 +380,7 @@ export const createThirdPersonCamera = (
       recenterIdle += clampedDt;
       const heading = moveHeading ?? lastMoveHeading;
       const delay = moving ? cfg.recenterDelay : cfg.idleRecenterDelay;
-      if (heading !== null && squeeze > 0.35 && moving) {
+      if (heading !== null && squeeze > 0.2 && moving) {
         // Corner escape: swing behind him when the last-resort boom is hard into a wall.
         yaw = dampAngle(yaw, heading + pose.openYaw, cfg.recenterStiffness + squeeze * 9, clampedDt);
       } else if (heading !== null && recenterIdle >= delay) {
@@ -524,6 +525,8 @@ export const createThirdPersonCamera = (
         const stop = Math.max(0.3, eyeHit.distance - cfg.collisionRadius);
         smoothedPos.copyFrom(probeOrigin).addInPlace(offsetDir.scale(Math.min(stop, eyeSpan)));
         currentDistance = Math.min(currentDistance, Math.max(cfg.minDistance, stop));
+        // The pivot lagged into a corner and the eye ray still stopped the lens: swing behind his heading next frame.
+        squeeze = Math.max(squeeze, clampValue(1 - stop / Math.max(0.5, aimDistance), 0.4, 1));
       }
     }
 
