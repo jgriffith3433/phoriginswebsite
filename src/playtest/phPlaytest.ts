@@ -196,7 +196,7 @@ export type PhProbe = {
     voice?: { url: string; start: number; end: number; waited: number; duration: number; state: string; cut: boolean; overlapped: boolean }[];
     /** Spatial audio: reverb zone, occlusion, panning, loudness, dropouts (src/game/acoustics.ts). */
     acoustics?: AcousticsProbe;
-    music?: { chapter: number; state: string; stems: number; streaming: boolean; duckDb: number; duckDepthDb: number; voices: number; changes: number; stateLog: { t: number; state: string; reason: string }[]; events: { t: number; kind: string; detail: string }[]; silenceSeconds: number };
+    music?: { chapter: number; state: string; stems: number; streaming: boolean; duckDb: number; duckDepthDb: number; voices: number; changes: number; stateLog: { t: number; state: string; reason: string }[]; events: { t: number; kind: string; detail: string }[]; silenceSeconds: number; theme?: { variant: string; rot: number; playing: boolean; cutoffHz: number; detuneCents: number }; voss?: { on: boolean; playing: boolean } };
   };
   /** A noise burst 3 m to the listener's side, read back from the master's left and right channels. */
   acousticPing?: (side: 'left' | 'right' | 'front') => Promise<{ left: number; right: number; side: string }>;
@@ -5568,6 +5568,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           await sleep(3000);
           const m = probe.sound().music!;
           t.event('music-state', `L${n}: ${m.state}, ${m.changes} change(s), stems ${m.stems}${m.streaming ? ' (streamed)' : ''}, duck depth ${m.duckDepthDb} dB`);
+          if (m.theme) t.event('theme', `L${n}: ${m.theme.variant}, rot ${m.theme.rot}, cutoff ${m.theme.cutoffHz} Hz, detune ${m.theme.detuneCents} c`);
+          if (n === 1 && m.theme?.variant !== 'human') t.problem('bug', 'Level 1 does not carry the human theme');
+          if (n >= 3 && m.theme?.variant !== 'corrupt') t.problem('bug', `Level ${n} does not carry the corrupted theme`);
           for (const e of m.events.filter((x) => x.kind === 'stinger')) t.event('stinger', `L${n}: ${e.detail} at ${e.t}s`);
           if (m.changes < 1 && n !== 8) t.problem('bug', `Level ${n}: the music never changed state`);
         } catch { t.problem('bug', `Level ${n}: the music director never started`); }

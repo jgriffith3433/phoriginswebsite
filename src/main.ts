@@ -444,8 +444,12 @@ const phone = createPhone(scene, {
   onConnected: (contactId) => {
     const quest = missionCallId(contactId);
     if (quest) markMission(quest);
+    if (contactId === 'voss') music.voss(true);
   },
-  onCallEnded: (callId, how, heard, of) => analytics?.dialogue('call', callId, how, heard, of),
+  onCallEnded: (callId, how, heard, of) => {
+    analytics?.dialogue('call', callId, how, heard, of);
+    if (callId.startsWith('voss')) music.voss(false);
+  },
   getStat: (stat) => (stat === 'ledgerBand' ? ledgerBand(ledger.get()) : clampStat(save[stat])),
   onLedgerLine: () => { ledger.add('reported'); },
   addStat: (stat, delta) => saveGame({ [stat]: clampStat((save[stat] ?? 0) + delta) })[stat] ?? 0,
