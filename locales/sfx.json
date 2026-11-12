@@ -894,6 +894,17 @@
       "note": "Apex Peak: hall 2 troffer flicker."
     },
     {
+      "id": "sfx.b3.fluorescent-buzz",
+      "group": "b3",
+      "text": "Looping basement fluorescent tube electrical buzz and soft hum, wet concrete room, occasional faint flicker crackle, seamless loop, no voices, no music.",
+      "audio": "/assets/audio/sfx/b3/fluorescent-buzz.ogg",
+      "loop": true,
+      "duration": 4,
+      "influence": 0.7,
+      "volume": 0.16,
+      "note": "B3 horror: buzz under flickering hall practicals. Stand-in: apex troffer flicker."
+    },
+    {
       "id": "sfx.apex.door-locked",
       "group": "apex",
       "text": "One-shot locked office door handle rattle then a short metal latch click that refuses to open, close foley, dry, no voices, no music.",

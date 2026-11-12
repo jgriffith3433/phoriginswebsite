@@ -429,7 +429,10 @@ let officeSwap = false;
 let playerHeroId = PLAYER_ASSET_ID;
 const objectiveMarker = createObjectiveMarker(scene);
 const minimap = createMinimap(root);
-const dressing = createLevelDressing(scene, camera);
+const dressing = createLevelDressing(scene, camera, {
+  graphicsTier: () => render.tier(),
+  playerAt: () => (state.running ? { x: state.player.x, z: state.player.z } : null),
+});
 const titleScene = createTitleScene({
   scene,
   camera: menuCamera,
@@ -6006,6 +6009,7 @@ installPhPlaytest({
   waypoint: () => objectiveWaypoint.view(),
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
   render: () => render.stats(),
+  b3Horror: () => dressing.b3Horror(),
   // Mean colour of the next finished frame (after the grade): read in the same frame, so it works without a
   // preserved drawing buffer. A coarse 32x18 grid is plenty for a chapter's colour fingerprint.
   frameColor: () => new Promise((resolve) => {

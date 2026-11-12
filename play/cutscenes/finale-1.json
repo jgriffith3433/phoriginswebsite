@@ -1,0 +1,101 @@
+{
+  "id": "finale-1",
+  "name": "The board hush",
+  "duration": 7.4,
+  "reequip": false,
+  "notes": "In the cab at B3: the boardroom still open on the intercom. Lang needs a date, Hale wants B3 sealed, then the room goes silent and the cab light drops. Pierce: nobody looked down.",
+  "events": [
+    {
+      "at": 0,
+      "type": "camera",
+      "position": {
+        "x": 0.6,
+        "y": 1.7,
+        "z": -0.7
+      },
+      "lookAt": {
+        "x": 0,
+        "y": 1.6,
+        "z": 1.6
+      },
+      "rel": true
+    },
+    {
+      "at": 0,
+      "type": "anim",
+      "actor": "pierce",
+      "clip": "idle",
+      "loop": true
+    },
+    {
+      "at": 0.3,
+      "type": "audio",
+      "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 0.7,
+      "type": "line",
+      "duration": 2.4,
+      "volume": 0.92,
+      "line": "dialogue.finale-1.01"
+    },
+    {
+      "at": 3.2,
+      "type": "line",
+      "duration": 2,
+      "volume": 0.92,
+      "line": "dialogue.finale-1.02"
+    },
+    {
+      "at": 5.2,
+      "type": "light",
+      "target": "light-lift",
+      "on": false
+    },
+    {
+      "at": 5.2,
+      "type": "audio",
+      "clip": "/assets/audio/sfx/apex/troffer-flicker.ogg",
+      "bus": "sfx",
+      "loop": false,
+      "volume": 0.5
+    },
+    {
+      "at": 5.3,
+      "type": "camera",
+      "position": {
+        "x": 0.3,
+        "y": 1.55,
+        "z": -0.6
+      },
+      "lookAt": {
+        "x": 0,
+        "y": 2.7,
+        "z": 1.6
+      },
+      "rel": true
+    },
+    {
+      "at": 5.5,
+      "type": "line",
+      "duration": 1.7,
+      "volume": 0.92,
+      "line": "dialogue.finale-1.03",
+      "actor": "pierce",
+      "anim": "idle"
+    },
+    {
+      "at": 6.4,
+      "type": "light",
+      "target": "light-lift",
+      "on": true
+    },
+    {
+      "at": 7.4,
+      "type": "end"
+    }
+  ]
+}
