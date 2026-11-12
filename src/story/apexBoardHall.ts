@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { faceSpeak, registerFace, unregisterFace } from '../game/faceTalk';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { lineAudio, lineText, storyLine } from '../game/locale';
@@ -136,6 +137,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     });
     deskMesh = mesh;
     deskAvatar = avatar;
+    registerFace('apex-desk', avatar);
     lifeStats.person('apex-desk', 'apex', 'at-desk');
     lifeStats.mark();
   };
@@ -202,7 +204,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     return Math.hypot(here.x - x, here.z - z) <= r;
   };
 
-  const say = (id: string, volume: number, fallback?: string, at?: { x: number; y: number; z: number }) => {
+  const say = (id: string, volume: number, fallback?: string, at?: { x: number; y: number; z: number }, faceId?: string) => {
     const candidates = [id, fallback].filter((x): x is string => Boolean(x && voiced(x) && barkFresh(x)));
     const pick = candidates[0];
     if (!pick) return false;
@@ -210,6 +212,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     if (!said) return false;
     barkSpoken(pick);
     host.showLine(said.speaker, said.text);
+    if (faceId) faceSpeak(faceId, said.url);
     host.playFile(said.url, volume, at);
     lineLeft = 3.4;
     lifeStats.bark('apex', pick, pick);
@@ -281,6 +284,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     active = false;
     if (deskAvatar) {
       lifeStats.forget('apex-desk');
+      unregisterFace('apex-desk');
       deskAvatar.dispose();
       deskAvatar = null;
     }
@@ -376,7 +380,7 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
           host.playFile(SFX.paper, 0.28);
           lifeStats.glance('apex', 'desk');
           lifeStats.mark();
-          const said = say(DESK_LINE, 0.85, DESK_FALLBACK, { x: DESK.x, y: 1.5, z: DESK.z });
+          const said = say(DESK_LINE, 0.85, DESK_FALLBACK, { x: DESK.x, y: 1.5, z: DESK.z }, 'apex-desk');
           emit('board-desk', JSON.stringify({ x: DESK.x, z: DESK.z, said, line: voiced(DESK_LINE) ? DESK_LINE : DESK_FALLBACK }));
         }
         if (deskGlance > 0) {

@@ -153,12 +153,51 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
   **new body** (`asset-ch44-hero`, the player). Terse, tired, polite to doormen. Reacts to being seen with flinches and
   refusal; never explains himself. On foot he starts, stops and turns in place with planted feet (clips `StartWalk`,
   `Stop`, `Turn90` mirrored for the other side, `Turn180`, `StairsUp`; stairs down is the walk with foot IK). The same
-  IK and speed-matched stride cover the Shadow form on levels 5–7.
+  IK and speed-matched stride cover the Shadow form on levels 5–7. On-screen lines drive a face: lip flap, blinks,
+  look-at and upper-body dialogue gestures (`src/game/faceTalk.ts`).
 - **Director Hale (woman, Annie).** The board's steel. Furious, measured, always on a phone or leaving a room. Her fear is
-  a leak to the street. She calls Pierce at three points (levels 3, 6, 7) and each call is at a threshold.
+  a leak to the street. She calls Pierce at three points (levels 3, 6, 7) and each call is at a threshold. At the board
+  table her mouth, eyes and hands move with her lines.
 - **Voss (man).** Pierce's friend-on-the-record, the one who calls first and asks questions the others don't. Treats B3
-  as a ward ("patients, not prototypes"). Loyal to the charter.
-- **Lang (man).** The calendar; wants a date for Zurich. Mentioned, seated at the board, never on the street.
+  as a ward ("patients, not prototypes"). Loyal to the charter. Same face talk at the board.
+- **Lang (man).** The calendar; wants a date for Zurich. Mentioned, seated at the board, never on the street. Same face
+  talk when he speaks in `room-for-grace`.
+
+## Characters
+
+### Pierce Hawkes
+- Want: keep the charter and the building's secret intact while he still looks like a man who belongs on the 58th floor.
+- Arc: late chairman → vat → refuses the stare → walks home as the thing the street cannot name.
+- Moment: Room for Grace — he speaks from the head chair and the board looks at him; after B3, the mirror look.
+- Personality: terse, tired, polite.
+- Voice: Jackson (`ZthjuvLPty3kTMaNKVKb` in `locales/voices.json`).
+- Animations: Idle / Walk / SitIdle / SitTalk; faceTalk (lip flap, blinks, look-at, explain/lean/cross/nod/shake/point).
+
+### Director Hale
+- Want: a clean reschedule and no leak to the street.
+- Arc: furious in the board → walkout call → contained update on the train → still watching.
+- Moment: Room for Grace — she turns on Pierce from chair-n-2; heads around the table follow her voice.
+- Personality: steel, measured, furious.
+- Voice: Annie / Hale (`XW70ikSsadUbinwLMZ5w`).
+- Animations: SitIdle / SitTalk; faceTalk gaze + gestures while she speaks.
+
+### Voss
+- Want: the truth of what Pierce is carrying, without breaking the charter in public.
+- Arc: late call → board seat → Morning call that still asks.
+- Moment: Room for Grace and every Voss phone call; on-screen he talks with a face at the south seat.
+- Personality: loyal, probing, warm-on-record.
+- Voice: Voss (`XjLkpWUlnhS8i7gGz3lZ`).
+- Animations: SitIdle / SitTalk; faceTalk.
+
+### Lang
+- Want: a firm date for Zurich on the calendar.
+- Arc: seated pressure at the board → never returns to the street story.
+- Moment: his spoken lines in Room for Grace; the table looks to him when he has the floor.
+- Personality: calendar, clipped, impatient.
+- Voice: Lang (`2UMI2FME0FFUFMlUoRER`).
+- Animations: SitIdle / SitTalk; faceTalk.
+
+### Named cast (continued)
 - **The old body.** Holds the pole like he owns the train. Always one car ahead. Gets off at a stop with no name.
   Never explained, never addressed by any third party.
 - **The commuter** (`asset-ch28-npc`). The man the old body talks to. Says "Night." Does not look back either.
@@ -330,6 +369,10 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 | 28 | **Leave.** | Door | "Somebody is going to have to tell them which one of us walks in." End Level | line, ending-6, credits |
 
 ### Built this pass
+- **37. Faces that talk.** *Exists* (`src/game/faceTalk.ts`, playtest `board-faces`): every on-screen speaker (Pierce,
+  the board seats, the night cleaner, the desk associate, Apex life barks) drives a mouth from the live voice
+  AnalyserNode, blinks every 2–6 s, looks at the current speaker or Pierce (head yaw capped 60°), and plays upper-body
+  dialogue gestures (explain, lean, cross, nod, shake, point). The Level 1 board meeting is the showcase.
 - **36. The street teaches one power at a time.** *Exists* (`src/story/streetTutorial.ts`, `goingHome.ts`, playtest
   `street-powers`): Going Home, level 5 — each power in four steps (safe use, harder use, a twist, a payoff), never two
   at once and never closer than 30 s. Shadow in the crowd (people lose him; one startled walker runs and loses him);

@@ -65,6 +65,16 @@ import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext
 import { music } from './game/musicDirector';
 import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcousticsStats, setAcousticsPaused, setListener, setOcclusionRay, setZones, startTestSource, testPing, updateAcoustics, type AcousticZone, type ReverbType, type WorldOptions } from './game/acoustics';
 import { clipLog, holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import {
+  applyFaces,
+  clearFaces,
+  faceSilence,
+  faceSpeak,
+  facesSnapshot,
+  registerFace,
+  resetFaceStats,
+  updateFaces,
+} from './game/faceTalk';
 import { warmLevelFirstUse, stopLevelWarm } from './game/levelWarm';
 import { soundFallback } from './game/soundFallback';
 import { createMuzzleFlash } from './game/muzzleFlash';
@@ -341,6 +351,8 @@ if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) (window as
 const shadowVeil = createShadowVeil(scene);
 scene.collisionsEnabled = true;
 scene.gravity = BABYLON.Vector3.Zero();
+// Mouth / look / gesture after Mixamo sit-talk, or the clip would wipe the jaw.
+scene.onAfterAnimationsObservable.add(() => { applyFaces(); });
 
 const followCamera = createThirdPersonCamera(scene);
 const camera = followCamera.camera;
@@ -855,6 +867,12 @@ const resetCutsceneState = () => {
 
 const PLAYER_HEAD_CHAIR_ID = 'chair-head';
 
+/** Board seats + Pierce: lip sync, gaze and gestures during room-for-grace (and any seat line). */
+const syncBoardFaces = () => {
+  registerFace(PLAYER_HEAD_CHAIR_ID, playerAvatar);
+  for (const npc of npcs) registerFace(npc.seatId, npc.avatar);
+};
+
 const seatPlayerAtHeadChair = () => {
   const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
   if (!pose) return;
@@ -983,6 +1001,7 @@ const endCutscene = () => {
   const reequip = finished ? finished.timeline.reequip !== false : true;
   if (finished) music.cutsceneEnd(finished.id);
   act.releaseSeat();
+  faceSilence();
   resetCutsceneState();
   phone.aimBeam(null);
   const restoreLight = reequip && !!gear?.light && !isReturnLevel() && !isHomeLevel() && !isDeskLevel() && !isStationLevel() && !isTrainLevel() && !isMorningLevel();
@@ -1031,6 +1050,10 @@ const beginNamedCutscene = (id: string) => {
     onWorld: (target, to, seconds) => runFinaleWorld(target, to, seconds),
     onHud: (title, text) => showCineHud(title, text),
     onAnim: (actor, clip, loop) => applyNpcAnim(npcs, actor, clip, loop, playerAvatar),
+    onSpeak: (actor, url, hold) => {
+      syncBoardFaces();
+      faceSpeak(actor, url, hold);
+    },
     onLight: (on, intensity, target) => act.cutsceneLight(on, intensity, target),
     onMesh: (target, enabled, position) => act.onMesh(target, enabled, position),
     onObjective: (title, text) => act.onObjective(title, text),
@@ -1165,6 +1188,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
   } catch { /* playtest not installed */ }
   try {
     clearNpcs(npcs);
+    clearFaces();
     clearEnemies(enemies);
     home.dispose();
     desk.dispose();
@@ -1188,7 +1212,10 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
     applyLoadedScene(loaded);
     triggerRunner.bind(loaded?.data.triggers ?? []);
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
-    if (mode === 'boot' && loaded?.data && !isDeskLevel()) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+    if (mode === 'boot' && loaded?.data && !isDeskLevel()) {
+      npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+      syncBoardFaces();
+    }
     if (mode !== 'credits') await act.dressLevel();
     freezeStaticScene();
     mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
@@ -2916,6 +2943,10 @@ act = createAct1({
     syncEquippedCamera();
   },
   showLine: (title, text) => showCineHud(title, text),
+  faceSpeak: (actor, url, hold) => {
+    syncBoardFaces();
+    faceSpeak(actor, url, hold ?? 3.6);
+  },
   holdScene: (held) => {
     state.inCutscene = held;
     if (held) audio.setWalk(false);
@@ -5451,6 +5482,12 @@ const renderLoop = () => {
       else stepFinaleWorld(delta);
       const playing = stepCutscene(activeCutscene, delta);
       if (!playing) endCutscene();
+      syncBoardFaces();
+      updateFaces(delta, {
+        pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
+        boardMeeting: activeCutscene?.id === 'room-for-grace',
+        lowTier: lowPowerGraphics || render.tier() === 'low',
+      });
       act.alarmTick(delta);
       objectiveMarker.update(delta);
       updateCamera(delta, false, null);
@@ -5514,6 +5551,11 @@ const renderLoop = () => {
     apex.step(delta);
     boardHall.step(delta);
     if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
+    updateFaces(delta, {
+      pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
+      boardMeeting: false,
+      lowTier: lowPowerGraphics || render.tier() === 'low',
+    });
     home.step(delta);
     station.step(delta);
     train.step(delta);
@@ -6038,6 +6080,9 @@ installPhPlaytest({
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
     : null),
+  /** Lip sync, blinks, look-at and dialogue gestures on every registered on-screen speaker. */
+  faces: () => facesSnapshot(),
+  resetFaces: () => resetFaceStats(),
   /** Board plot through the Apex hall (desk, locked door, Hale threat) — no call required. */
   boardHall: () => (isApexPeakLevel() ? boardHall.snapshot() : null),
   pickups: () => pickups
