@@ -1,4 +1,5 @@
 import { busInput, getSharedAudioContext } from './audioUnlock';
+import { playClip, preloadClips } from './sfxMix';
 
 /**
  * Title card input and feedback: arrow / W S keys and a gamepad (d-pad, left stick, A, B) move focus between the card's
@@ -24,6 +25,54 @@ const tick = (freq: number, length: number, level: number) => {
   osc.stop(now + length + 0.02);
 };
 
+
+/**
+ * Menu sounds (Hawkes Gen takes in assets/audio/sfx/ui): hover, three selects that rotate (never the same one twice in
+ * a row), back. A file that will not play falls back to the old synthesized tick.
+ */
+const UI = '/assets/audio/sfx/ui/';
+const SELECTS = [`${UI}select-1.mp3`, `${UI}select-2.mp3`, `${UI}select-3.mp3`];
+const BACK_IDS = new Set(['closeLevelSelect', 'settingsDoneBtn', 'resumeBtn']);
+let lastSelect = -1;
+let uiPlays = 0;
+let lastKind = '';
+
+/** Probe: how many menu sounds have started, and the last kind (hover / select / back). */
+export const menuSoundLog = () => ({ plays: uiPlays, last: lastKind });
+
+export const playUi = (kind: 'hover' | 'select' | 'back') => {
+  let url = `${UI}hover.mp3`;
+  let volume = 0.4;
+  if (kind === 'select') {
+    lastSelect = (lastSelect + 1 + Math.floor(Math.random() * (SELECTS.length - 1))) % SELECTS.length;
+    url = SELECTS[lastSelect];
+    volume = 0.7;
+  } else if (kind === 'back') {
+    url = `${UI}back.mp3`;
+    volume = 0.6;
+  }
+  uiPlays += 1;
+  lastKind = kind;
+  const fallback = () => (kind === 'hover' ? tick(1500, 0.05, 0.03) : tick(kind === 'back' ? 420 : 620, 0.12, 0.07));
+  if (!playClip(url, volume, { rate: kind === 'hover' ? 1 : 0.97 + Math.random() * 0.06, onError: fallback })) fallback();
+};
+
+export const installMenuSounds = (card: HTMLElement) => {
+  preloadClips([`${UI}hover.mp3`, `${UI}back.mp3`, ...SELECTS]);
+  card.addEventListener('pointerenter', (event) => {
+    const el = (event.target as HTMLElement).closest?.('button:not(:disabled)');
+    if (el && event.pointerType === 'mouse') playUi('hover');
+  }, true);
+  card.addEventListener('focusin', (event) => {
+    if ((event.target as HTMLElement).matches?.(':focus-visible')) playUi('hover');
+  });
+  card.addEventListener('click', (event) => {
+    const el = (event.target as HTMLElement).closest?.<HTMLElement>('button:not(:disabled)');
+    if (!el) return;
+    playUi(BACK_IDS.has(el.id) || el.dataset.ui === 'back' ? 'back' : 'select');
+  }, true);
+};
+
 export const installMenuNav = (card: HTMLElement) => {
   const visible = (el: HTMLElement) => el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden';
   const items = () => [...card.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(visible);
@@ -47,16 +96,7 @@ export const installMenuNav = (card: HTMLElement) => {
     move(down ? 1 : -1);
   });
 
-  card.addEventListener('pointerenter', (event) => {
-    const el = (event.target as HTMLElement).closest?.('button:not(:disabled)');
-    if (el && event.pointerType === 'mouse') tick(1500, 0.05, 0.03);
-  }, true);
-  card.addEventListener('focusin', (event) => {
-    if ((event.target as HTMLElement).matches?.(':focus-visible')) tick(1500, 0.05, 0.03);
-  });
-  card.addEventListener('click', (event) => {
-    if ((event.target as HTMLElement).closest?.('button:not(:disabled)')) tick(620, 0.12, 0.07);
-  }, true);
+  installMenuSounds(card);
 
   // Gamepad: edge-triggered, polled only while the card is up.
   let held = false;

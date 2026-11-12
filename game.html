@@ -2685,6 +2685,35 @@
         border-color: transparent;
       }
 
+      /* Title scene: the lightning wash over the live office, and the menu items coming in one by one. */
+      #titleFlash {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        pointer-events: none;
+        opacity: 0;
+        background: radial-gradient(ellipse at 55% 38%, rgba(190, 205, 255, 0.95) 0%, rgba(120, 140, 220, 0.6) 55%, rgba(60, 70, 130, 0.3) 100%);
+      }
+      @keyframes titleItemIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: none; }
+      }
+      .message:not(.hidden):not(.leaving) .button-row > button:not([style*='display: none']) {
+        animation: titleItemIn 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .message:not(.hidden) .button-row > button:nth-child(1) { animation-delay: 0.15s; }
+      .message:not(.hidden) .button-row > button:nth-child(2) { animation-delay: 0.25s; }
+      .message:not(.hidden) .button-row > button:nth-child(3) { animation-delay: 0.35s; }
+      .message:not(.hidden) .button-row > button:nth-child(4) { animation-delay: 0.45s; }
+      .message:not(.hidden) .button-row > button:nth-child(5) { animation-delay: 0.55s; }
+      .message:not(.hidden) h1, .message:not(.hidden) .eyebrow { animation: titleItemIn 0.8s ease both; }
+      .message .button-row > button { min-height: 44px; }
+      @media (prefers-reduced-motion: reduce) {
+        .message .button-row > button, .message h1, .message .eyebrow { animation: none !important; }
+      }
+      .reset-progress, #resetConfirm button { min-height: 44px; min-width: 96px; }
+      #resetConfirm { gap: 8px; }
+      #resetConfirm[hidden], #progressSection[hidden], #resetRow[hidden] { display: none; }
       .settings-privacy { margin: 14px 0 0; font-size: 11px; line-height: 1.4; opacity: 0.6; }
 
       /* Graphics Low / Medium / High: three equal 44 px switches under the label. */
@@ -2738,8 +2767,8 @@
 
       .message {
         background:
-          radial-gradient(ellipse at 50% 42%, rgba(8, 14, 20, 0.2) 0%, rgba(3, 6, 10, 0.86) 80%),
-          linear-gradient(180deg, rgba(3, 6, 10, 0.55) 0%, rgba(3, 6, 10, 0.15) 40%, rgba(3, 6, 10, 0.7) 100%);
+          radial-gradient(ellipse at 50% 42%, rgba(8, 14, 20, 0.12) 0%, rgba(3, 6, 10, 0.5) 85%),
+          linear-gradient(180deg, rgba(3, 6, 10, 0.3) 0%, rgba(3, 6, 10, 0.05) 40%, rgba(3, 6, 10, 0.55) 100%);
         padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 16px);
         overflow-x: hidden;
         overflow-y: auto;
@@ -3849,7 +3878,7 @@
           <div class="button-row">
             <button class="primary" id="startBtn" disabled aria-busy="true">Start</button>
             <button class="secondary" id="newGameBtn" type="button" style="display:none">New Game</button>
-            <button class="secondary" id="resetBtn">Reset</button>
+            <button class="secondary" id="resetBtn" style="display:none">Main Menu</button>
             <button class="secondary" id="loadModelBtn" type="button">Load Level</button>
             <button class="secondary" id="settingsBtn" type="button">Settings</button>
           </div>
@@ -3929,6 +3958,18 @@
             <div class="settings-row volume">
               <label for="sfxVolume">Effects &amp; voice <output id="sfxVolumeOut" for="sfxVolume">100%</output></label>
               <input type="range" id="sfxVolume" min="0" max="100" step="5" value="100" />
+            </div>
+            <div class="settings-section" id="progressSection">Progress</div>
+            <div class="settings-row inline" id="resetRow">
+              <span class="settings-label" id="resetLabel">Saved progress</span>
+              <button type="button" class="secondary reset-progress" id="resetProgressBtn">Reset</button>
+            </div>
+            <div class="settings-row reset-confirm" id="resetConfirm" hidden role="alertdialog" aria-labelledby="resetConfirmText">
+              <span class="settings-label" id="resetConfirmText">Erase all progress and start over?</span>
+              <div class="button-row">
+                <button type="button" class="secondary" id="resetCancelBtn" data-ui="back">Keep it</button>
+                <button type="button" class="primary" id="resetConfirmBtn">Erase</button>
+              </div>
             </div>
           </div>
           <p class="settings-privacy">The game sends anonymous play statistics to improve it: no cookies, no personal data, no IP address stored.</p>

@@ -101,6 +101,8 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
       train?.step(dt);
       interior?.step(dt);
     },
+    /** The office city (apex-peak) is drawn: the title scene looks out at it. */
+    cityMounted: () => !!cityView?.mounted(),
     /** The car's camera roll this frame (0 off the train). */
     roll: () => train?.roll() ?? 0,
     /** Level 6's ending: the departure board flips to his stop. */

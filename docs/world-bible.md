@@ -88,6 +88,10 @@ floor to his own bed.
 
 ---
 
+### The title scene (the menu's own place, not a level)
+
+After the cold open the Hawkes terminal title card sits over the level 1 office at night: Pierce stands at the window with his back to us, rain running down the pane, the generated city glowing 205 m below, his theme playing. About every 20 s lightning shows his reflection in the glass as the Shadow form for 0.3 s (broad, hunched, too tall, two red eyes) with a low sting. It tells the premise before a word is read: the man at the glass is already not alone in it. `src/game/titleScene.ts`.
+
 ## Landmarks
 
 One per area, visible from far off. The player steers by it; the objective waypoint backs it up.

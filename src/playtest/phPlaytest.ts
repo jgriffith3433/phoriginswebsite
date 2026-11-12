@@ -68,6 +68,12 @@ export type PhProbe = {
   chapterLayout: () => { titled: boolean; text: { x: number; y: number; w: number; h: number } | null; skip: { x: number; y: number; w: number; h: number } | null; viewport: { w: number; h: number }; scale: number };
   /** The in-engine opening shot (src/game/chapterOpening.ts). */
   opening: () => { phase: 'idle' | 'shot' | 'handover' | 'glide'; level: number; place: string; seconds: number; elapsed: number; moved: number; turned: number; scale: number; framesInside: number; framesNear: number; cuts: number; skipped: boolean; skipToGlideMs: number; stingPlayed: number; pos: [number, number, number]; starts: number };
+  /** The live title scene (rain, Shadow reflection flash, theme) and the menu sounds that have started. */
+  title?: () => {
+    active: boolean; secondsActive: number; rain: boolean; rainTimeAdvancing: boolean; flashes: number; reflectionShown: boolean;
+    reflectionMs: number; nextFlashIn: number; lastFlashAt: number; musicPlaying: boolean; stings: number;
+    camera: { x: number; y: number; z: number }; avatarVisible: boolean; menuSounds: { plays: number; last: string };
+  };
   menu: () => { open: boolean; title: string; text: string; start: string | null; startEnabled: boolean; newGame: boolean };
   subtitle: () => { speaker: string; text: string };
   /** Letterbox + HUD-hidden presentation during cutscenes / scripted scenes. */
@@ -691,6 +697,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Visits the title card, Settings, the level 1 HUD, Pause, Pause Settings and the Defeat card (test shortcut), once at the real viewport and once laid out as a 390x844 phone. On each screen it lists the fonts and the accent colour in use, reports any visible text in a font outside the house set (Barlow Condensed, Cormorant Garamond, the mono face) and any text that is clipped or leaves the screen. On the phone layout it then lays the page out at 390x844, 844x390 and 667x375, shows every conditional touch control (Interact, ability, shadow, lost, reload), and fails if any two touch controls overlap, any is under 44 px, or any leaves the safe area.',
         seconds: 170,
         tags: ['menus'],
+      },
+      {
+        id: 'title-scene',
+        title: 'The title menu sits over a live rain-soaked office with Pierce at the window; a Shadow reflection flash within 30 s; menu sounds; Reset lives in Settings (options.phone: 390x844 touch)',
+        description: 'Opens on the title (after Tap to play). Checks the title scene is live (camera inside the office, rain on the glass with its clock advancing, Pierce at the window, the theme playing), waits for the lightning flash and the Shadow-form reflection (within 30 s, with its sting), checks Reset is not on the main menu, every menu button is at least 44 px tall and inside the viewport, then hovers and presses buttons and checks a menu sound starts each time (select plays, back plays), and finds Reset in Settings behind a confirm (Keep it, never Erase). With options {"phone":true} it lays the page out as a 390x844 touch phone and plays it by tap only. Metrics: titleFlashSeconds, titleReflectionMs, titleMenuSounds, titleMinButtonPx.',
+        seconds: 90,
+        tags: ['menus', 'ui', 'title'],
       },
       {
         id: 'screen-mode',
@@ -2986,6 +2999,84 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     };
 
     // ---- screen-mode: the portrait prompt, fullscreen on Start, the Pause switch
+    const titleSceneRun = async () => {
+      levelsTotal = 1;
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      const phone = !!options.phone;
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(500); }
+      await t.until(() => probe.ready(), 90000, 'game ready');
+      t.scene('Title');
+      const title = () => probe.title!();
+      await t.until(() => title().active, 15000, 'title scene live');
+      const t0 = performance.now();
+      const first = title();
+      t.event('title-scene', `camera ${first.camera.x.toFixed(1)},${first.camera.y.toFixed(1)},${first.camera.z.toFixed(1)}`);
+      if (first.camera.z < 38 || first.camera.z > 47.5) t.problem('bug', 'the title camera is not inside the 58th-floor office');
+      if (!first.rain) t.problem('bug', 'no rain on the window glass behind the title');
+      if (!first.avatarVisible) t.problem('bug', 'Pierce is not standing at the window behind the title');
+      await sleep(700);
+      if (!title().rainTimeAdvancing) t.problem('bug', 'the rain is not moving behind the title');
+      t.metric('titleCameraZ', Number(first.camera.z.toFixed(2)));
+
+      // Main menu: Reset is gone, buttons are big and on screen.
+      const shownBtn = (el: HTMLElement | null) => !!el && el.offsetParent !== null && getComputedStyle(el).display !== 'none';
+      if (shownBtn(byId('resetBtn'))) t.problem('bug', 'Reset still shows on the main menu');
+      else t.event('reset-gone', 'no Reset on the main menu');
+      const buttons = [...document.querySelectorAll<HTMLElement>('#messageBox .button-row button')].filter(shownBtn);
+      let minPx = 999;
+      for (const b of buttons) {
+        const r = b.getBoundingClientRect();
+        minPx = Math.min(minPx, r.height);
+        if (r.height < 43.5) t.problem('bug', `title button "${b.textContent?.trim()}" is ${r.height.toFixed(0)} px tall (44 needed)`);
+        if (r.left < 0 || r.right > innerWidth || r.top < 0 || r.bottom > innerHeight) t.problem('bug', `title button "${b.textContent?.trim()}" runs off the screen`);
+      }
+      t.metric('titleMinButtonPx', Math.round(minPx));
+      t.event('title-buttons', `${buttons.length} buttons, smallest ${Math.round(minPx)} px`);
+
+      // The lightning: a flash and the Shadow reflection within 30 s of the title.
+      let sawReflection = false;
+      await t.until(() => { if (title().reflectionShown) sawReflection = true; return title().flashes >= 1; }, 30000, 'lightning flash');
+      const flashAt = (performance.now() - t0) / 1000;
+      await sleep(900);
+      if (title().reflectionShown) sawReflection = true;
+      t.metric('titleFlashSeconds', Number(flashAt.toFixed(1)));
+      t.metric('titleReflectionMs', Math.round(title().reflectionMs));
+      if (!sawReflection && title().reflectionMs <= 0) t.problem('bug', 'the flash never showed the Shadow reflection');
+      else t.event('reflection', `Shadow-form reflection shown ${Math.round(title().reflectionMs)} ms, ${flashAt.toFixed(1)} s after the title; stings ${title().stings}`);
+      if (!title().musicPlaying) t.problem('bug', 'the title theme is not playing');
+
+      // Menu sounds: hover (pointer), select, back.
+      const before = title().menuSounds.plays;
+      const settingsBtn = byId('settingsBtn');
+      if (!phone && settingsBtn) {
+        settingsBtn.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse', bubbles: false }));
+        await sleep(200);
+        if (title().menuSounds.last !== 'hover') t.problem('bug', 'hovering a menu button played no sound');
+      }
+      await tapAt(settingsBtn, 'Settings');
+      await sleep(400);
+      if (title().menuSounds.plays <= before) t.problem('bug', 'pressing Settings played no menu sound');
+      else t.event('menu-sound', `select played (${title().menuSounds.plays - before} sounds)`);
+
+      // Reset is in Settings, behind a confirm.
+      const rp = byId('resetProgressBtn');
+      if (!shownBtn(rp)) t.problem('bug', 'Settings has no Reset');
+      else {
+        const rr = rp!.getBoundingClientRect();
+        if (rr.height < 43.5) t.problem('bug', `Settings Reset is ${rr.height.toFixed(0)} px tall`);
+        await tapAt(rp, 'Reset');
+        await sleep(300);
+        if (!shownBtn(byId('resetConfirmBtn'))) t.problem('bug', 'Reset did not ask for a confirm');
+        else t.event('reset-confirm', 'Settings > Reset asks "Erase all progress?"');
+        await tapAt(byId('resetCancelBtn'), 'Keep it');
+        await sleep(300);
+      }
+      const plays = title().menuSounds.plays;
+      await tapAt(byId('settingsDoneBtn'), 'Done');
+      await sleep(300);
+      if (title().menuSounds.plays <= plays || title().menuSounds.last !== 'back') t.problem('bug', 'Done / back played no back sound');
+      t.metric('titleMenuSounds', title().menuSounds.plays);
+    };
     const screenModeRun = async () => {
       levelsTotal = 1;
       const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
@@ -5150,6 +5241,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
     if (id === 'cutscene-ui') {
       await cutsceneUiRun();
+      return;
+    }
+    if (id === 'title-scene') {
+      await titleSceneRun();
       return;
     }
     if (id === 'screen-mode') {
