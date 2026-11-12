@@ -5472,6 +5472,17 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let lastAction = '';
       let stepsDone = 0;
       let scenesSeen: number[] = [];
+      const bedPhases: string[] = [];
+      let bedMinOver = 99;
+      let bedWalked = 0;
+      let bedMaxPitch = 0;
+      let bedMaxRoll = 0;
+      const tvHashes = new Set<number>();
+      let tvBound = false;
+      let tvVisible = false;
+      let tvCoveredSamples = 0;
+      let tvNewsSamples = 0;
+      let lastLines: { id: string; heard: boolean; audio: boolean }[] = [];
       for (;;) {
         await tick();
         if (performance.now() - t0 > 300000) return 'stuck';
@@ -5486,6 +5497,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             t.event('scene', `level 8 ${names[scenesSeen[scenesSeen.length - 1]]} (${scenesSeen.length}/7)`);
           }
           tvText = s.tvText || tvText;
+          lastLines = s.lines;
+          if (s.pose.phase !== 'none' && bedPhases[bedPhases.length - 1] !== s.pose.phase) bedPhases.push(s.pose.phase);
+          if (s.pose.phase === 'asleep' || s.pose.phase === 'wake') {
+            bedMinOver = Math.min(bedMinOver, s.pose.minOverMattress);
+            bedMaxPitch = Math.max(bedMaxPitch, s.pose.pitch);
+            bedMaxRoll = Math.max(bedMaxRoll, Math.abs(s.pose.roll));
+          }
+          bedWalked = Math.max(bedWalked, s.pose.walked);
+          if (s.tv.on && s.beat === 'news') {
+            tvHashes.add(s.tv.hash);
+            tvBound = tvBound || s.tv.bound;
+            tvVisible = tvVisible || s.tv.visible;
+            tvNewsSamples += 1;
+            if (s.tv.covered) tvCoveredSamples += 1;
+          }
           if (s.beat !== lastBeat) {
             lastBeat = s.beat;
             t.event('beat', `level 8 beat: ${s.beat}`);
@@ -5547,6 +5573,33 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       const slept = heard.indexOf(textOf('dialogue.morning.slept'));
       t.event('check', `wake: scene ${sawSleepScene ? 'played' : 'NOT seen'}, lying in bed ${sawLying}, woke ${sawWake}, "I slept." ${slept >= 0 ? 'heard' : 'missing'}`);
       if (!sawSleepScene || !sawLying || !sawWake || slept < 0) t.problem('bug', 'Pierce did not wake in bed after sleeping');
+      // 1b: the bed sequence ran its states in order, the body lay on (not in) the mattress, and he walked to the TV.
+      {
+        const want = ['stand', 'turn', 'sitdown', 'sit', 'recline', 'asleep', 'wake', 'situp', 'standup', 'walk', 'face'];
+        const inSeq = want.every((p, i) => bedPhases[i] === p);
+        t.event('check', `bed: phases ${bedPhases.join('>') || 'none'}, flat ${bedMaxPitch.toFixed(2)} rad, shift ${bedMaxRoll.toFixed(2)}, lowest body over mattress ${bedMinOver.toFixed(2)} m, walked ${bedWalked.toFixed(1)} m`);
+        if (!inSeq) t.problem('bug', `the bed scene did not run lie down, sleep, wake, sit up, stand, walk in order (${bedPhases.join('>') || 'none'})`);
+        if (bedMaxPitch < 1.4) t.problem('bug', 'Pierce never lay flat in the bed');
+        if (bedMinOver < 0.05) t.problem('bug', `Pierce sank into the mattress (${bedMinOver.toFixed(2)} m over it)`);
+        if (bedMaxRoll < 0.02) t.problem('bug', 'Pierce never shifted while asleep');
+        if (bedWalked < 2) t.problem('bug', `Pierce did not walk from the bed to the TV (${bedWalked.toFixed(1)} m)`);
+        t.metric('bedWalkedMeters', Math.round(bedWalked * 10) / 10);
+      }
+      // 1c: every voiced line the room asked for played to its end (the scene waited for the voice).
+      {
+        const spoken = lastLines.filter((l) => l.audio);
+        const unheard = spoken.filter((l) => !l.heard).map((l) => l.id);
+        t.event('check', `room lines: ${spoken.length} voiced, ${unheard.length} not played out ${unheard.join(', ')}`);
+        if (spoken.length < 3) t.problem('bug', `the bed and news scenes asked for only ${spoken.length} voiced lines`);
+        if (unheard.length) t.problem('bug', `voiced lines cut off or not finished before the scene moved on: ${unheard.join(', ')}`);
+      }
+      // 1d: the TV texture is bound to the screen mesh, not covered, and changing (two samples differ).
+      {
+        t.event('check', `tv texture: bound ${tvBound}, visible ${tvVisible}, ${tvHashes.size} distinct frames in ${tvNewsSamples} samples, covered in ${tvCoveredSamples}`);
+        if (!tvBound || !tvVisible) t.problem('bug', 'the TV screen has no picture texture bound or is hidden');
+        if (tvHashes.size < 2) t.problem('bug', 'the TV picture did not change between samples (frame hash stayed the same)');
+        if (tvNewsSamples > 0 && tvCoveredSamples / tvNewsSamples > 0.5) t.problem('bug', 'something covers the TV screen from the camera during the news');
+      }
       // 2: the TV names the tower and Pierce.
       t.event('check', `tv: ${tvText}`);
       if (!/HAWKES TOWER/.test(tvText) || !/PIERCE HAWKES/.test(tvText) || !sawTv) t.problem('bug', `the TV did not name Hawkes Tower and Pierce Hawkes (${tvText || 'nothing shown'})`);
