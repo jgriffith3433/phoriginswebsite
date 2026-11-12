@@ -237,6 +237,11 @@ export type PhProbe = {
     settings: { on: boolean; music: number; sfx: number };
     /** Id of the music trigger bed that is active now, and whether it is audibly playing. */
     bed: string | null; bedPlaying: boolean;
+    /** Layered chapter ambience spots (chapterAmbience.ts). */
+    ambience?: {
+      level: number; live: number; maxLive: number; spotsPlayed: string[]; distinctSpots: number;
+      lastSpotId: string | null; lastSpotAtMs: number; silenceMs: number; startedAtMs: number; fired: number;
+    } | null;
     /** The walk (footstep) loop is playing. */
     footsteps: boolean;
     stepCount?: number;
@@ -718,6 +723,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts levels 1 to 8 directly (setup) and logs the music bed each one plays. On level 6 it walks and checks the footstep loop starts and stops, clicks (Punch) and checks the action pulse fired, then opens Pause > Settings, slides Music and Effects and checks hawkes.sound saved both.',
         seconds: 200,
         tags: ['sound'],
+      },
+      {
+        id: 'layered-ambience',
+        title: 'Each chapter plays a base bed plus 6+ positioned spot one-shots; Station and Train PA each hit 4+ lines; bed within 1 s on phone',
+        description: 'Starts levels 1-8 directly (setup). On each chapter it waits for the music bed within 1 s, walks for up to 120 s through real input, and requires at least 6 distinct layered ambience spots (probe.sound().ambience) with no silence over 10 s outside scripted cutscenes. On levels 6 and 7 it also counts distinct Platform PA / Conductor lines (subtitle speaker) and requires 4+. With options.phone it lays out 390x844 touch and drives the left stick only; low-tier maxLive must stay at most 4. Metrics: ambienceSpotsL<n>, ambienceBedMsL<n>, ambienceSilenceMaxL<n>, stationPaDistinct, trainPaDistinct, ambienceMaxLive.',
+        seconds: 1200,
+        tags: ['sound', 'phone'],
       },
       {
         id: 'music-director',
@@ -6802,6 +6814,119 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       if (end.loudness.blocks > 30 && (end.loudness.integrated > -10 || end.loudness.integrated < -23)) t.problem('bug', `spatial-audio: master loudness ${end.loudness.integrated} LUFS is far from -16`);
       touchWalk = false;
       stickLift();
+      t.progress(1);
+      t.finish('done');
+      return;
+    }
+
+    if (id === 'layered-ambience') {
+      levelsTotal = 8;
+      const phone = Boolean(options.phone);
+      if (phone) {
+        probe.phoneFrame(true);
+        t.event('setup', 'phone layout 390x844 (touch)');
+        await sleep(600);
+      }
+      const bedNames = ['The Apex Peak', 'B3', 'The Return', 'The Desk', 'Going Home', 'The Station', 'The Train', 'The Morning'];
+      const paSeen = { station: new Set<string>(), train: new Set<string>() };
+      let maxLiveSeen = 0;
+      const walkChapter = async (n: number, seconds: number) => {
+        const lname = `Level ${n}: ${bedNames[n - 1]}`;
+        t.scene(lname);
+        await enterLevel(n);
+        t.event('level-start', lname);
+        // Bed within 1 s of chapter start (phone criterion).
+        const bedT0 = performance.now();
+        try {
+          await t.until(() => Boolean(probe.sound().bedPlaying), 1500, 'ambience bed within 1 s');
+          const bedMs = Math.round(performance.now() - bedT0);
+          t.metric(`ambienceBedMsL${n}`, bedMs);
+          t.event('bed', `${lname} bed in ${bedMs} ms: ${probe.sound().bed}`);
+          if (bedMs > 1000) t.problem('bug', `${lname}: ambience bed took ${bedMs} ms (limit 1000)`);
+        } catch {
+          t.problem('bug', `${lname} has no audible ambience bed within 1 s`);
+          t.metric(`ambienceBedMsL${n}`, -1);
+        }
+        try {
+          await t.until(() => controllable(), 60000, `control on ${lname}`);
+        } catch {
+          t.problem('bug', `${lname} never gave control`);
+          return;
+        }
+        // Skip openings / scripted scenes so the walk can hear the bed.
+        const skipUntil = performance.now() + 8000;
+        while (performance.now() < skipUntil) {
+          const skip = probe.skipButton;
+          if (skip && !skip.hidden && !skip.disabled) {
+            if (phone) await tapAt(skip, 'Skip');
+            else press(skip, 'Skip');
+            await sleep(400);
+          }
+          if (controllable() && !probe.cutscene()) break;
+          await tick();
+        }
+        const walkFor = seconds * 1000;
+        const walkStart = performance.now();
+        let silenceMax = 0;
+        if (!phone) setHeld('w');
+        while (performance.now() - walkStart < walkFor) {
+          if (phone) {
+            // Left stick forward drag (touch).
+            const stick = document.getElementById('moveStick');
+            if (stick) {
+              const r = stick.getBoundingClientRect();
+              const cx = r.left + r.width / 2;
+              const cy = r.top + r.height / 2;
+              stick.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: cx, clientY: cy, pointerId: 1, pointerType: 'touch' }));
+              stick.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: cx, clientY: cy - 40, pointerId: 1, pointerType: 'touch' }));
+            }
+          }
+          const amb = probe.sound().ambience;
+          if (amb) {
+            silenceMax = Math.max(silenceMax, amb.silenceMs);
+            maxLiveSeen = Math.max(maxLiveSeen, amb.live);
+            if (phone && amb.maxLive > 4) t.problem('bug', `phone ambience maxLive is ${amb.maxLive} (cap 4)`);
+          }
+          try {
+            for (const b of probe.life?.().barks ?? []) {
+              if (b.place === 'station' && b.line.startsWith('pa.station')) paSeen.station.add(b.line);
+              if (b.place === 'train' && b.line.startsWith('pa.train')) paSeen.train.add(b.line);
+            }
+          } catch { /* optional */ }
+          t.progress(((n - 1) + (performance.now() - walkStart) / walkFor) / 8);
+          await sleep(phone ? 350 : 250);
+        }
+        if (!phone) releaseAll();
+        else {
+          const stick = document.getElementById('moveStick');
+          if (stick) stick.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, pointerType: 'touch' }));
+        }
+        const ambEnd = probe.sound().ambience;
+        const distinct = ambEnd?.distinctSpots ?? ambEnd?.spotsPlayed.length ?? 0;
+        t.metric(`ambienceSpotsL${n}`, distinct);
+        t.metric(`ambienceSilenceMaxL${n}`, Math.round(silenceMax));
+        t.event('ambience', `${lname}: ${distinct} spots [${(ambEnd?.spotsPlayed ?? []).join(', ')}], silenceMax ${Math.round(silenceMax)} ms`);
+        if (distinct < 6) t.problem('bug', `${lname}: only ${distinct} distinct ambience spots in a walk (need 6)`);
+        if (silenceMax > 10000) t.problem('bug', `${lname}: ambience silence reached ${Math.round(silenceMax)} ms (limit 10000)`);
+        if (n === 6) {
+          t.metric('stationPaDistinct', paSeen.station.size);
+          t.event('pa', `Station PA distinct: ${paSeen.station.size} (${[...paSeen.station].join(' | ')})`);
+          if (paSeen.station.size < 4) t.problem('bug', `Station PA only played ${paSeen.station.size} distinct lines (need 4)`);
+        }
+        if (n === 7) {
+          t.metric('trainPaDistinct', paSeen.train.size);
+          t.event('pa', `Train PA distinct: ${paSeen.train.size} (${[...paSeen.train].join(' | ')})`);
+          if (paSeen.train.size < 4) t.problem('bug', `Train PA only played ${paSeen.train.size} distinct lines (need 4)`);
+        }
+      };
+      // Station/train get longer walks so PA can rotate; others ~70 s is enough for 6 spots.
+      for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        const secs = n === 6 || n === 7 ? 100 : 70;
+        await walkChapter(n, secs);
+      }
+      t.metric('ambienceMaxLive', maxLiveSeen);
+      if (phone && maxLiveSeen > 4) t.problem('bug', `phone low tier played ${maxLiveSeen} concurrent spots (max 4)`);
+      if (phone) probe.phoneFrame(false);
       t.progress(1);
       t.finish('done');
       return;

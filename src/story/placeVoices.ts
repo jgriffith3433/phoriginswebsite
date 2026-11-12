@@ -9,11 +9,11 @@ const ids = (prefix: string, count: number, pad = 2) =>
 /** Commuters on The Station's platform. */
 export const STATION_BARKS = ids('bark.station.', 8);
 /** The Station's platform announcements (each after the PA chime). */
-export const STATION_PA = ids('pa.station.', 3);
+export const STATION_PA = ids('pa.station.', 8);
 /** Riders on The Train. */
 export const TRAIN_BARKS = ids('bark.train.r', 8);
 /** The conductor over The Train's car speakers. */
-export const TRAIN_PA = ids('pa.train.', 2);
+export const TRAIN_PA = ids('pa.train.', 6);
 /** Apex Peak's board, talking while it waits for Pierce to sit. */
 export const APEX_BOARD = ids('bark.apex.', 6);
 /** Late staff and the guard on the 58th floor, who say something when Pierce passes. */

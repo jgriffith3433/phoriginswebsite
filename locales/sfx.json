@@ -1521,6 +1521,174 @@
       "influence": 0.7,
       "volume": 0.55,
       "note": "Ledger: sirens once 2 or more bystanders are dead (Going Home street, The Station gate)."
+    },
+    {
+      "id": "sfx.ambience.apex-hvac",
+      "group": "ambience",
+      "text": "Seamless soft HVAC vent hum in a late-night corporate office hallway, low air whoosh, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-hvac.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "loop": true,
+      "duration": 10
+    },
+    {
+      "id": "sfx.ambience.apex-phone",
+      "group": "ambience",
+      "text": "Distant office desk phone ringing twice through a closed door, muffled, then stops, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-phone.ogg",
+      "influence": 0.6,
+      "volume": 0.18,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.apex-printer",
+      "group": "ambience",
+      "text": "Laser printer spit paper once in a quiet office, short mechanical whirr and paper slide, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-printer.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.apex-walla",
+      "group": "ambience",
+      "text": "Very distant soft office walla murmur through glass, unintelligible, late night, no clear words, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-walla.ogg",
+      "influence": 0.6,
+      "volume": 0.16,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.b3-drip",
+      "group": "ambience",
+      "text": "Single water drip into a metal basement puddle with a short echo, wet concrete, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/b3-drip.ogg",
+      "influence": 0.6,
+      "volume": 0.28,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.b3-pipe-groan",
+      "group": "ambience",
+      "text": "Long metal pipe groan in a dark basement corridor, slow stress creak, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/b3-pipe-groan.ogg",
+      "influence": 0.6,
+      "volume": 0.26,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.b3-machinery",
+      "group": "ambience",
+      "text": "Distant basement machinery rumble thud through concrete walls, low and brief, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/b3-machinery.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.return-door",
+      "group": "ambience",
+      "text": "Heavy office door closing far down an empty fluorescent hall, latch click and boom, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/return-door.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.desk-clock",
+      "group": "ambience",
+      "text": "Soft mechanical wall clock tick once in a quiet dark office, close, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/desk-clock.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.street-neon",
+      "group": "ambience",
+      "text": "Neon sign electrical buzz and soft flicker on a rainy city street at night, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/street-neon.ogg",
+      "influence": 0.6,
+      "volume": 0.18,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.street-walla",
+      "group": "ambience",
+      "text": "Distant rain-soaked street crowd walla, unintelligible, wet city night, no clear words, no music.",
+      "audio": "/assets/audio/sfx/ambience/street-walla.ogg",
+      "influence": 0.6,
+      "volume": 0.16,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.street-awning",
+      "group": "ambience",
+      "text": "Rain hitting a shop awning and car roof, short dense patter, wet night, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/street-awning.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.station-brakes",
+      "group": "ambience",
+      "text": "Subway train brake squeal arriving at a tiled station platform, metallic and echoing, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/station-brakes.ogg",
+      "influence": 0.6,
+      "volume": 0.26,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.station-walla",
+      "group": "ambience",
+      "text": "Crowd walla on a subway platform, footsteps and murmur, tiled reverb, unintelligible, no music.",
+      "audio": "/assets/audio/sfx/ambience/station-walla.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.train-clatter",
+      "group": "ambience",
+      "text": "Train wheel clatter on rail joints in a tunnel, rhythmic metallic knock, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/train-clatter.ogg",
+      "influence": 0.6,
+      "volume": 0.28,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.morning-birds",
+      "group": "ambience",
+      "text": "Soft morning birds outside a city apartment window, brief chirps, grey dawn, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/morning-birds.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.morning-traffic",
+      "group": "ambience",
+      "text": "Distant morning traffic wash through a closed apartment window, soft and far, no horns, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/morning-traffic.ogg",
+      "influence": 0.6,
+      "volume": 0.18,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.morning-fridge",
+      "group": "ambience",
+      "text": "Apartment refrigerator compressor hum click, soft start then steady, close kitchen, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/morning-fridge.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
     }
   ]
 }
