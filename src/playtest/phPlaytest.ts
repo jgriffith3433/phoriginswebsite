@@ -140,6 +140,8 @@ export type PhProbe = {
   /** The train car kit while level 7 is dressed, else null. */
   train: () => {
     seats: number; poles: number; ads: number; windows: number; lampsPassed: number; speed: number; roll: number;
+    /** Tunnel lamp period at current speed (s). Must be ≤ 3 while moving. */
+    lampPeriodSec?: number; lampGap?: number; flicker?: number;
     /** The stop: how far the platform shows in the north windows and the side door is open (0..1). */
     platform: number; door: number;
     /** 3D Gaussian Splatting scene readiness and total splat count. */
@@ -183,6 +185,16 @@ export type PhProbe = {
   quietLight?: () => {
     mode: string; deskLamp: boolean; deskShadowLong: boolean; mirrorTextOk: boolean; sunShafts: boolean;
     volumetric: boolean; tvSpill: boolean; buzzTube: boolean; dust: boolean; fpsHint: number;
+  } | null;
+  /** Rain-slick city night (Going Home) or station open-end rain. Probe `rainNight()`. */
+  rainNight?: () => {
+    rain?: number; splashes?: number; steam?: number; neon?: number; neonIds?: string[];
+    puddles?: number; reflection?: string; flares?: number; fpsHint?: number; tier?: string;
+    sodium?: number; boardEmissive?: number; openEndRain?: boolean;
+  } | null;
+  /** Station rain / sodium dress only. */
+  stationRain?: () => {
+    rain: number; splashes: number; sodium: number; boardEmissive: number; openEndRain: boolean;
   } | null;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
@@ -785,6 +797,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 2 (test shortcut) and the hunt from the lab door. Pierce is downed (test shortcut, as a bite would): there must be no Defeat card, chapter card or reload, a red fade of about 0.6 s, control back inside 3 s (metrics huntRetries, retrySeconds), health full, and the creature out of sight. Then the vat break shot plays (it must end within 5.5 s, no camera hold over 5 s) and control returns in the acid. Laid out as a 390x844 phone, the bot plays the acid with the left stick only (pointer drags, no keys): it logs the input lag, heading drift, stagger and the falls, the flashlight failing, checks the touch controls stay visible and 44 px, that there is at least 15 s of movement input, that the avatar swaps during a fall, and that it ends as Pierce reaches the door and End Level is offered. Metrics: acidSeconds, acidInputSeconds, huntRetries, retrySeconds.',
         seconds: 300,
         tags: ['level', 'phone'],
+      },
+      {
+        id: 'rain-city',
+        title: 'Rain-slick city night: Going Home neon + wet puddles + rain splashes, Station open-end rain, Train tunnel lamps ≤3 s (options.phone: 390x844 Low ≥30 fps)',
+        description: 'Starts Going Home at the street (test shortcut, skips lobby). Walks east along the sidewalk through real input (~25 s), checks rainNight(): ≥8 lit neon signs, rain + ground splashes, planar/probe/SSR wet reflections, steam vents, headlight flares. Then The Station: open-end rain and sodium platform lights. Then The Train: tunnel lampPeriodSec ≤ 3 while moving, fluorescent flicker. Options.phone: 390x844 touch, Low graphics on the street, reports phone.fpsP5 ≥ 30. Metrics: neonSigns, rainParticles, puddles, reflectionMode, stationRain, lampPeriodSec, streetFps. Probe: rainNight(), train().',
+        seconds: 240,
+        tags: ['level', 'feel', 'phone', 'quality'],
       },
       {
         id: 'b3-horror-light',
@@ -3775,6 +3794,156 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.event('quiet-return', `buzz tube ${retQ?.buzzTube ? 'on' : 'OFF'}, mode ${retQ?.mode}`);
       t.metric('returnBuzz', retQ?.buzzTube ? 1 : 0);
       if (!retQ?.buzzTube) t.problem('bug', 'The Return has no buzzing fluorescent tube');
+      t.progress(1);
+      return 'done';
+    };
+
+    // ---- rain-city: Going Home wet neon + rain, Station open-end rain, Train tunnel lamps ≤3 s
+    const rainCityRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const phone = !!(options as { phone?: boolean }).phone;
+      if (phone) {
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+        await sleep(400);
+        t.event('setup', 'phone 390x844 touch');
+      }
+
+      const forceLowGraphics = async () => {
+        const pause = document.getElementById('pauseBtn') as HTMLButtonElement | null;
+        if (pause && !pause.hidden) {
+          await tapAt(pause, 'Pause');
+          await sleep(350);
+        }
+        await tapAt(document.getElementById('pauseSettingsBtn') ?? document.getElementById('settingsBtn'), 'Settings');
+        await sleep(400);
+        const lowBtn = document.querySelector<HTMLButtonElement>('#graphicsTiers .graphics-tier[data-tier="low"]');
+        if (lowBtn) {
+          await tapAt(lowBtn, 'Graphics Low');
+          await sleep(350);
+          t.event('graphics-tier', `Low (pipeline ${probe.render?.()?.tier ?? '?'})`);
+        }
+        const back = document.getElementById('settingsBack') as HTMLButtonElement | null;
+        if (back && !back.hidden) await tapAt(back, 'Back');
+        await sleep(200);
+        const resume = document.getElementById('resumeBtn') as HTMLButtonElement | null;
+        if (resume && !resume.hidden) await tapAt(resume, 'Resume');
+        await sleep(300);
+      };
+
+      const fpsSamples: number[] = [];
+      t.scene('Going Home: rain street');
+      await enterLevel(5);
+      await waitControl('Going Home');
+      // Skip lobby into the street.
+      for (let i = 0; i < 40 && probe.scripted(); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(300);
+      }
+      await t.until(() => probe.running() && !probe.scripted() && !probe.menu().open, 45000, 'control on the street');
+      if (phone) await forceLowGraphics();
+      t.progress(0.15);
+
+      // Walk east along the south sidewalk (~25 s) so neon, rain and traffic are in frame.
+      // Phone: left-stick drags only (no keyboard). Desktop: hold W.
+      const start = performance.now();
+      if (!phone) setHeld('w');
+      let peakNeon = 0;
+      let peakRain = 0;
+      let peakPuddles = 0;
+      let reflection = '';
+      let lampsAt0 = -1;
+      while (performance.now() - start < 25000) {
+        const p = probe.player();
+        if (p.x < 140) {
+          if (phone) {
+            const zone = document.getElementById('leftStickZone') as HTMLElement | null;
+            if (zone) {
+              const zr = zone.getBoundingClientRect();
+              const heading = Math.atan2(1, 0); // +x
+              const rel = Math.atan2(Math.sin(heading - probe.cameraYaw()), Math.cos(heading - probe.cameraYaw()));
+              const init = { pointerId: 81, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + Math.sin(rel) * zr.width * 0.38, clientY: zr.top + zr.height / 2 - Math.cos(rel) * zr.height * 0.38 };
+              zone.dispatchEvent(new PointerEvent('pointerdown', init));
+              zone.dispatchEvent(new PointerEvent('pointermove', init));
+              await sleep(180);
+              zone.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0 }));
+            } else await sleep(180);
+          } else {
+            await sleep(180);
+          }
+        } else await sleep(180);
+        const rn = probe.rainNight?.();
+        if (rn) {
+          peakNeon = Math.max(peakNeon, rn.neon ?? 0);
+          peakRain = Math.max(peakRain, rn.rain ?? 0);
+          peakPuddles = Math.max(peakPuddles, rn.puddles ?? 0);
+          if (rn.reflection) reflection = rn.reflection;
+        }
+        // Sample engine fps via the rainNight probe (headless ~1 fps; still reports phone.fpsP5).
+        if (typeof rn?.fpsHint === 'number' && rn.fpsHint > 0) fpsSamples.push(rn.fpsHint);
+      }
+      if (!phone) setHeld('');
+      releaseAll();
+      const street = probe.rainNight?.();
+      t.event('rain-street', `neon ${peakNeon}, rain ${peakRain}, puddles ${peakPuddles}, reflection ${reflection || street?.reflection || '?'}, flares ${street?.flares ?? 0}, steam ${street?.steam ?? 0}`);
+      t.metric('neonSigns', peakNeon);
+      t.metric('rainParticles', peakRain);
+      t.metric('puddles', peakPuddles);
+      t.metric('reflectionMode', reflection === 'ssr' ? 3 : reflection === 'planar' ? 2 : reflection === 'probe' ? 1 : 0);
+      if (peakNeon < 8) t.problem('bug', `only ${peakNeon} lit neon signs along Going Home (need ≥ 8)`);
+      if (peakRain < 200) t.problem('bug', `rain particle cap ${peakRain} looks missing`);
+      if (peakPuddles < 3) t.problem('bug', `only ${peakPuddles} wet puddle mirrors (need ≥ 3)`);
+      if (!street?.splashes) t.problem('bug', 'ground rain splashes are missing on Going Home');
+      t.progress(0.45);
+
+      // Station open-end rain + sodium.
+      t.scene('The Station: open-end rain');
+      await enterLevel(6);
+      await waitControl('The Station');
+      for (let i = 0; i < 30 && probe.scripted(); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(300);
+      }
+      await sleep(1200);
+      const st = probe.stationRain?.() ?? probe.rainNight?.();
+      t.event('rain-station', `rain ${st?.rain ?? 0}, splashes ${st?.splashes ?? 0}, sodium ${st?.sodium ?? 0}, board ${st?.boardEmissive ?? 0}`);
+      t.metric('stationRain', st?.rain ?? 0);
+      t.metric('stationSodium', st?.sodium ?? 0);
+      if (!(st?.openEndRain || (st?.rain ?? 0) > 0)) t.problem('bug', 'Station open-end rain is missing');
+      if ((st?.sodium ?? 0) < 4) t.problem('bug', `Station sodium cans ${st?.sodium ?? 0} (need ≥ 4)`);
+      t.progress(0.7);
+
+      // Train tunnel lamps ≤ 3 s.
+      t.scene('The Train: tunnel lamps');
+      await probe.setupHidden('the-train');
+      await waitControl('The Train');
+      for (let i = 0; i < 40 && probe.scripted(); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(300);
+      }
+      // Measure lamp period from lampsPassed over a few seconds while the car moves.
+      const sample0 = probe.train();
+      const lamps0 = sample0?.lampsPassed ?? 0;
+      const t0 = performance.now();
+      await sleep(3500);
+      const car = probe.train();
+      const lamps1 = car?.lampsPassed ?? 0;
+      const elapsed = Math.max(0.1, (performance.now() - t0) / 1000);
+      const measured = lamps1 > lamps0 ? elapsed / (lamps1 - lamps0) : (car?.lampPeriodSec ?? 99);
+      t.event('rain-train', `lampPeriodSec ${measured.toFixed(2)} (reported ${car?.lampPeriodSec ?? '?'}), speed ${car?.speed ?? 0}, flicker ${car?.flicker ?? '?'}, lamps ${lamps0}→${lamps1}`);
+      t.metric('lampPeriodSec', Math.round(measured * 100) / 100);
+      if (!car) t.problem('bug', 'train() returned null on The Train');
+      else if ((car.speed ?? 0) > 1 && measured > 3) t.problem('bug', `tunnel lamps every ${measured.toFixed(2)}s while moving (need ≤ 3)`);
+      else if (lamps1 <= lamps0 && (car.speed ?? 0) > 5) t.problem('bug', 'no tunnel lamps passed while the train is moving');
+      t.progress(0.9);
+
+      const fpsSorted = [...fpsSamples].sort((a, b) => a - b);
+      const fpsP5 = fpsSorted.length ? fpsSorted[Math.max(0, Math.floor(fpsSorted.length * 0.05))] : 0;
+      t.metric('streetFps', fpsP5);
+      if (phone) {
+        t.metric('phone.fpsP5', fpsP5);
+        if (fpsP5 < 30) t.problem('bug', `phone fps p5 ${fpsP5} under 30 with rain and reflections on Low`);
+        probe.phoneFrame(false);
+      }
       t.progress(1);
       return 'done';
     };
@@ -7201,6 +7370,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     if (id === 'vat-acid') {
       const outcome = await vatAcidRun();
       t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'rain-city') {
+      const outcome = await rainCityRun();
       t.finish(outcome);
       return;
     }

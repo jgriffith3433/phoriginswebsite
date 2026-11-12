@@ -165,6 +165,8 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     setBoardStop: (on: boolean) => station?.setBoardStop(on),
     /** The mounted train kit, for level 7's script and the playtest. */
     train: () => train,
+    /** Station rain / sodium / board dress (null off that level). */
+    station: () => station?.stats?.() ?? null,
     /** B3 horror lighting (flashlight shadows, vat, flicker); null off that level. */
     b3Horror: () => horror?.stats() ?? null,
     /** Quiet chapters (Return / Desk / Morning); null off those levels. */
