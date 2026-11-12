@@ -3041,6 +3041,7 @@ const home: GoingHome = createGoingHome({
     log.push({ power, step, setup, t: seconds });
     analytics?.feature('lesson', `${power}.${step}`);
   },
+  graphicsTier: () => render.tier(),
 });
 
 const desk: TheDesk = createTheDesk({
@@ -5951,6 +5952,8 @@ installPhPlaytest({
   desk: () => desk.stats(),
   /** What the city did about the street ledger (Going Home's siren and car, the Station gate's officer). */
   heat: () => home.heat(),
+  rainNight: () => (isHomeLevel() ? home.rainNight() : dressing.station()),
+  stationRain: () => dressing.station(),
   /** Playtest setup shortcut (named): Going Home hands over Shock without its lesson. */
   grantShock: () => { if (isHomeLevel()) home.grantShock(); },
   life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),

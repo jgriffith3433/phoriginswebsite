@@ -172,7 +172,10 @@ void main(void) {
     albedo *= 1.0 - gum * 0.4;
     float path = smoothstep(2.2, 0.0, abs(p.y + 2.2)) * 0.12;
     albedo *= 1.0 - path;
-    gloss = 0.12;
+    // Wet platform sheen under sodium (open end still rains; covered platform stays glossy).
+    float wet = smoothstep(0.55, 0.85, vnoise(p * 0.2 + 3.0));
+    gloss = 0.18 + wet * 0.45;
+    albedo = mix(albedo, albedo * 0.55, wet * 0.35);
   } else if (surf == ${SURF.TACTILE}.0) {
     vec2 d = fract(p / 0.06) - 0.5;
     float dome = smoothstep(0.32, 0.18, length(d));
@@ -470,8 +473,9 @@ export const createStationDress = (scene: BABYLON.Scene) => {
   col(0.05, 0.05, 0.055);
   g.box(36, 2.62, -1.6, 0.08, 0.6, 1.35, { x: 1, z: 0 }, 0b111111);
   for (const dz of [-0.9, 0.9]) g.box(36, 3.22, -1.6 + dz, 0.02, 0.2, 0.02, { x: 1, z: 0 }, 0b111111);
-  panel(35.91, -1.6, 2.66, 2.5, 0.5, [-1, 0, 0], ATLAS.board, 1.6);
-  panel(36.09, -1.6, 2.66, 2.5, 0.5, [1, 0, 0], ATLAS.board, 1.6);
+  // Departure board: brighter emissive so the amber matrix blooms and reflects on wet tile.
+  panel(35.91, -1.6, 2.66, 2.5, 0.5, [-1, 0, 0], ATLAS.board, 2.05);
+  panel(36.09, -1.6, 2.66, 2.5, 0.5, [1, 0, 0], ATLAS.board, 2.05);
   // Line bullets by the turnstiles.
   panel(22.2, -7.09, 1.6, 0.5, 0.5, south, ATLAS.bullet, 0.3);
 
@@ -487,7 +491,85 @@ export const createStationDress = (scene: BABYLON.Scene) => {
   const camPos = new BABYLON.Vector3();
   let clock = 0;
   let lastBoard = -1;
-  const lightColor = new BABYLON.Color3(0.92, 1.0, 0.9);
+  // Sodium platform wash (warm amber) over the cool tube practicals.
+  const lightColor = new BABYLON.Color3(1.0, 0.72, 0.38);
+  // Extra sodium cans along the platform edge (open end toward the stairs stays rainy).
+  const sodium: { x: number; z: number; y: number }[] = [];
+  for (let x = 14; x <= 78; x += 10) sodium.push({ x, z: 1.85, y: 3.05 });
+
+  // Rain at the open stair end (west concourse / street mouth), capped on Low.
+  const rainTex = new BABYLON.DynamicTexture('station-rain-tex', { width: 16, height: 48 }, scene, false);
+  {
+    const ctx = rainTex.getContext() as CanvasRenderingContext2D;
+    ctx.clearRect(0, 0, 16, 48);
+    const g = ctx.createLinearGradient(8, 0, 8, 48);
+    g.addColorStop(0, 'rgba(200,220,255,0)');
+    g.addColorStop(0.4, 'rgba(210,230,255,0.8)');
+    g.addColorStop(1, 'rgba(180,200,230,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(7, 0, 2, 48);
+    rainTex.hasAlpha = true;
+    rainTex.update(false);
+  }
+  owned.push(rainTex);
+  const splashTex = new BABYLON.DynamicTexture('station-splash-tex', { width: 32, height: 32 }, scene, false);
+  {
+    const ctx = splashTex.getContext() as CanvasRenderingContext2D;
+    const g = ctx.createRadialGradient(16, 16, 1, 16, 16, 14);
+    g.addColorStop(0, 'rgba(220,235,255,0.85)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 32, 32);
+    splashTex.hasAlpha = true;
+    splashTex.update(false);
+  }
+  owned.push(splashTex);
+  const mobile = typeof document !== 'undefined' && document.body.dataset.device !== 'desktop';
+  const rainCap = mobile ? 220 : 640;
+  const rain = new BABYLON.ParticleSystem('station-open-rain', rainCap, scene);
+  rain.particleTexture = rainTex;
+  rain.emitter = new BABYLON.Vector3(2.5, 6.5, -2.5);
+  rain.minEmitBox = new BABYLON.Vector3(-3.5, 0, -4);
+  rain.maxEmitBox = new BABYLON.Vector3(4.5, 1.5, 4);
+  rain.color1 = new BABYLON.Color4(0.7, 0.8, 0.95, 0.5);
+  rain.color2 = new BABYLON.Color4(0.5, 0.6, 0.8, 0.2);
+  rain.colorDead = new BABYLON.Color4(0.35, 0.45, 0.6, 0);
+  rain.minSize = 0.04;
+  rain.maxSize = 0.1;
+  rain.minLifeTime = 0.3;
+  rain.maxLifeTime = 0.65;
+  rain.emitRate = rainCap * 1.5;
+  rain.blendMode = BABYLON.ParticleSystem.BLENDMODE_STANDARD;
+  rain.gravity = new BABYLON.Vector3(0, -36, 0);
+  rain.direction1 = new BABYLON.Vector3(-0.3, -1, 0.1);
+  rain.direction2 = new BABYLON.Vector3(0.3, -1, -0.1);
+  rain.minEmitPower = 9;
+  rain.maxEmitPower = 14;
+  rain.updateSpeed = 0.016;
+  rain.start();
+  owned.push(rain);
+  const splash = new BABYLON.ParticleSystem('station-open-splash', Math.max(40, Math.floor(rainCap / 5)), scene);
+  splash.particleTexture = splashTex;
+  splash.emitter = new BABYLON.Vector3(2.5, 0.03, -2.5);
+  splash.minEmitBox = new BABYLON.Vector3(-3, 0, -3.5);
+  splash.maxEmitBox = new BABYLON.Vector3(4, 0, 3.5);
+  splash.color1 = new BABYLON.Color4(0.65, 0.75, 0.9, 0.4);
+  splash.color2 = new BABYLON.Color4(0.45, 0.55, 0.7, 0.15);
+  splash.colorDead = new BABYLON.Color4(0.3, 0.35, 0.45, 0);
+  splash.minSize = 0.06;
+  splash.maxSize = 0.22;
+  splash.minLifeTime = 0.1;
+  splash.maxLifeTime = 0.25;
+  splash.emitRate = rainCap * 0.4;
+  splash.blendMode = BABYLON.ParticleSystem.BLENDMODE_ADD;
+  splash.gravity = new BABYLON.Vector3(0, -1.5, 0);
+  splash.direction1 = new BABYLON.Vector3(-0.2, 0.5, -0.2);
+  splash.direction2 = new BABYLON.Vector3(0.2, 1.1, 0.2);
+  splash.minEmitPower = 0.3;
+  splash.maxEmitPower = 1.1;
+  splash.updateSpeed = 0.016;
+  splash.start();
+  owned.push(splash);
 
   return {
     step: (dt: number) => {
@@ -495,27 +577,30 @@ export const createStationDress = (scene: BABYLON.Scene) => {
       const camera = scene.activeCamera;
       if (!camera) return;
       camPos.copyFrom(camera.globalPosition);
-      // Nearest tubes to the camera.
-      const near = TUBES.map((t, i) => ({ t, i, d: Math.hypot(t.x - camPos.x, t.z - camPos.z) }))
+      // Nearest tubes + sodium cans to the camera.
+      const lamps = [
+        ...TUBES.map((t, i) => ({ x: t.x, y: 3.1, z: t.z, i, sodium: false, d: Math.hypot(t.x - camPos.x, t.z - camPos.z) })),
+        ...sodium.map((t, i) => ({ x: t.x, y: t.y, z: t.z, i: 100 + i, sodium: true, d: Math.hypot(t.x - camPos.x, t.z - camPos.z) })),
+      ]
         .sort((a, b) => a.d - b.d)
         .slice(0, MAX_LIGHTS);
       for (let k = 0; k < MAX_LIGHTS; k += 1) {
-        const item = near[k];
+        const item = lamps[k];
         if (!item) {
           lightArr.splice(k * 4, 4, 0, -50, 0, 0);
           continue;
         }
-        let power = 0.55;
-        if (item.i === flickerIndex) {
+        let power = item.sodium ? 0.72 : 0.5;
+        if (!item.sodium && item.i === flickerIndex) {
           const f = Math.sin(clock * 23) * Math.sin(clock * 7.3) + Math.sin(clock * 1.7);
           power *= f > 0.6 ? 0.15 : 1;
         }
-        lightArr.splice(k * 4, 4, item.t.x, 3.1, item.t.z, power);
+        lightArr.splice(k * 4, 4, item.x, item.y, item.z, power);
       }
       material.setVector3('cameraPos', camPos);
-      material.setColor3('fogColor', scene.fogColor ?? new BABYLON.Color3(0.09, 0.1, 0.09));
+      material.setColor3('fogColor', scene.fogColor ?? new BABYLON.Color3(0.09, 0.08, 0.06));
       material.setVector2('fogRange', new BABYLON.Vector2(scene.fogStart || 12, Math.max(scene.fogEnd || 46, 60)));
-      material.setColor3('ambient', new BABYLON.Color3(0.16, 0.17, 0.16));
+      material.setColor3('ambient', new BABYLON.Color3(0.14, 0.12, 0.1));
       material.setColor3('lightColor', lightColor);
       material.setArray4('lights', lightArr);
       material.setFloat('time', clock);
@@ -533,6 +618,14 @@ export const createStationDress = (scene: BABYLON.Scene) => {
     },
     /** Tube positions, for other systems (dust, shafts). */
     tubes: TUBES,
+    /** Rain / sodium dress for the playtest probe. */
+    stats: () => ({
+      rain: rainCap,
+      splashes: Math.max(40, Math.floor(rainCap / 5)),
+      sodium: sodium.length,
+      boardEmissive: 2.05,
+      openEndRain: true,
+    }),
     dispose: () => {
       for (const o of owned) o.dispose();
       owned.length = 0;

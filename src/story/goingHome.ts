@@ -6,9 +6,11 @@ import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import type { Store, WalkPath } from './city/layout';
 import { pointAt } from './city/math2';
+import type { GraphicsTier } from '../render/pipeline';
 import { createTraffic, type Traffic } from './city/traffic';
 import { createCityWorld, type CityWorld } from './city/world';
 import { CITY_NEAR } from './city/cityView';
+import { createRainNight, type RainNight } from './city/rainNight';
 import { deathScream, SHOP_LINE, STREET_BARKS, STREET_SFX, STREET_TALKS, streetCopy as resolveStreet, type StreetLine } from './streetAudio';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
 import { createPoliceCar, type PoliceCar } from './policeCar';
@@ -59,6 +61,8 @@ export type GoingHomeHost = {
   unlock: (power: Power) => void;
   /** The tutorial logs a step (probe and analytics read it). */
   stepLogged: (power: Power, step: Step, setup: string, seconds: number) => void;
+  /** Live graphics tier (Low caps rain; High enables SSR when available). */
+  graphicsTier?: () => GraphicsTier;
 };
 
 const HOME = { x: 163.5, z: 21.2 };
@@ -235,6 +239,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
   const WALKERS = mobile ? 9 : 16;
   let world: CityWorld | null = null;
   let traffic: Traffic | null = null;
+  let rainDress: RainNight | null = null;
   let stores: Store[] = [];
   let savedMaxZ = 0;
   let savedMinZ = 0;
@@ -1084,6 +1089,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
       witnesses: witnessed.size,
       withinSeconds: SIREN_WITHIN,
     }),
+    /** Rain-slick night dress (probe `rainNight()`): neon, rain, puddles, steam, flares. */
+    rainNight: () => (active && rainDress ? rainDress.stats() : null),
     skip: () => {
       if (active && playing && !finished) handoff();
     },
@@ -1144,6 +1151,13 @@ export const createGoingHome = (host: GoingHomeHost) => {
       makeGate('station', 'asset-ch23-npc');
       traffic = createTraffic(host.scene, world, mobile ? 9 : 16);
       traffic.mount(bootX, STREET.z);
+      rainDress?.dispose();
+      rainDress = createRainNight(host.scene, {
+        tier: () => host.graphicsTier?.() ?? 'high',
+        playerAt: () => (active ? host.player() : null),
+        parent: world.root(),
+        mobile,
+      });
       for (const person of people) {
         const dist = Math.hypot(person.mesh.position.x - bootX, person.mesh.position.z - STREET.z);
         person.shown = !shouldShow(person, dist);
@@ -1182,6 +1196,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
       policeCar = null;
       traffic?.dispose();
       traffic = null;
+      rainDress?.dispose();
+      rainDress = null;
       world?.dispose();
       world = null;
       stores = [];
@@ -1522,6 +1538,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       linkTime += dt;
       const here = host.player();
       world?.step(here.x, here.z, dt);
+      rainDress?.step(dt);
       recycleWait -= dt;
       if (recycleWait <= 0 && !playing) {
         recycleWait = 0.5;

@@ -198,9 +198,11 @@ void main(void) {
       if (mh > 0.25 && md < 0.42) {
         albedo = vec3(0.07, 0.068, 0.065) * (0.75 + 0.25 * step(0.5, fract(md * 9.0)));
       }
-      wet = smoothstep(0.58, 0.72, vnoise(wp * 0.09 + 4.0) + n2 * 0.18) + smoothstep(halfW - 1.6, halfW - 0.2, al) * 0.35;
+      // Puddle mask: broader wet bowls + gutter sheen so neon and headlights smear.
+      wet = smoothstep(0.48, 0.78, vnoise(wp * 0.08 + 4.0) + n2 * 0.22) * 1.15
+        + smoothstep(halfW - 1.8, halfW - 0.15, al) * 0.45;
     } else {
-      wet = smoothstep(0.6, 0.75, vnoise(wp * 0.09 + 4.0) + n2 * 0.15);
+      wet = smoothstep(0.52, 0.8, vnoise(wp * 0.08 + 4.0) + n2 * 0.18) * 1.05;
     }
     paint *= 0.72 + 0.28 * n3;
     albedo = mix(albedo, paintColor * 0.62, paint);
@@ -296,14 +298,21 @@ void main(void) {
   vec3 light = ambient * (0.9 + 0.1 * n1) + L;
   // Key-light contact shadow (src/render/keyShadow.ts) under Pierce, people, cars and street furniture.
   vec3 color = albedo * light * lit * keyShadow(vWorld + vec3(0.0, 0.02, 0.0)) + emis;
-  // Wet sheen: streaks of the light map toward the camera, plus a sky tint.
+  // Wet sheen / puddle mask: neon and headlights smear across the asphalt (Kabuki-in-the-rain).
+  // Puddle bowls are the darkest wet spots; MirrorTexture planes sit 1.8 cm above them (no z-fight).
   if (wet > 0.01) {
+    float puddle = smoothstep(0.62, 0.88, wet);
     vec2 toCam = normalize(V.xz + vec2(1e-4));
-    vec3 streak = lmSample(wp + toCam * 1.6) * 0.5 + lmSample(wp + toCam * 4.5) * 0.32 + lmSample(wp + toCam * 9.0) * 0.18;
-    float fres = 0.04 + 0.96 * pow(1.0 - max(V.y, 0.0), 5.0);
+    vec3 streak = lmSample(wp + toCam * 1.2) * 0.42
+      + lmSample(wp + toCam * 3.5) * 0.34
+      + lmSample(wp + toCam * 8.0) * 0.24
+      + lmSample(wp + toCam * 14.0) * 0.16;
+    float fres = 0.05 + 0.95 * pow(1.0 - max(V.y, 0.0), 4.2);
     vec3 R = reflect(-V, vec3(0.0, 1.0, 0.0));
-    color = mix(color, color * 0.55, wet * 0.5);
-    color += (streak * 0.55 + skyColor(R) * 0.25) * fres * wet;
+    color = mix(color, color * 0.42, wet * 0.62);
+    color += (streak * 0.85 + skyColor(R) * 0.32) * fres * wet;
+    // Neon bloom caught in the puddle bowl.
+    color += streak * vec3(0.55, 0.75, 1.0) * puddle * fres * 0.35;
   }
   gl_FragColor = vec4(finish(color, vWorld, 0.0), 1.0);
 }
