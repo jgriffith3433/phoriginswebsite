@@ -68,7 +68,7 @@ import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/s
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { music } from './game/musicDirector';
 import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcousticsStats, setAcousticsPaused, setListener, setOcclusionRay, setZones, startTestSource, testPing, updateAcoustics, type AcousticZone, type ReverbType, type WorldOptions } from './game/acoustics';
-import { clipLog, holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import { clearSceneMix, clipLog, holdClips, sceneMix, setSceneMixProbe, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import {
   applyFaces,
   clearFaces,
@@ -2512,6 +2512,7 @@ const scenePlaying = () =>
   || train.playing()
   || morning.playing()
   || morningEnding.active();
+setSceneMixProbe(scenePlaying);
 
 const acidSkippable = () => state.running && act.acidActive() && act.vatSeen() && act.acidTime() > 1;
 const performSkip = () => {
@@ -6610,6 +6611,8 @@ installPhPlaytest({
     title: () => ({ ...titleScene.probe(), menuSounds: menuSoundLog() }),
     titleStrike: () => titleScene.strikeNow(),
     voice: clipLog().filter((c) => c.voice),
+    sceneMix: sceneMix(),
+    sceneMixReset: clearSceneMix,
     acoustics: { ...acousticsProbe(getSharedAudioContext()), door: { closed: boardDoorClosed } },
   }),
   acousticPing: (side: 'left' | 'right' | 'front') => {

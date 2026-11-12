@@ -32,7 +32,7 @@
       "clip": "/assets/audio/sfx/home/tv-static.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.5
+      "volume": 0.3
     },
     {
       "at": 0.6,
@@ -47,7 +47,7 @@
       "clip": "/assets/audio/sfx/home/news-sting.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.5
+      "volume": 0.3
     },
     {
       "at": 1.2,
