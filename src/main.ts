@@ -28,6 +28,7 @@ import { chapterCopy, createChapterCard } from './game/chapterCard';
 import { createChapterOpening } from './game/chapterOpening';
 import { playChapterSting } from './game/chapterSting';
 import { loreEntry, withLore } from './game/lore';
+import { CHAPTER_COUNT, createLoreObjects, formatBest, loreFoundCount, loreFoundLine, loreTotal, LORE_SPOTS, renderChapterCards, chapterCueLog, stopChapterCue } from './game/chapterSelect';
 import { goalLine, levelReward } from './game/rewards';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
@@ -1227,6 +1228,7 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
     boardHall.dispose();
     apexLife.dispose();
     touch.dispose();
+    loreObjects.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
     if (mode === 'arrive' || mode === 'credits') state.inCutscene = true;
@@ -1273,6 +1275,8 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'cred
       },
     });
     if (mode !== 'credits') touch.mount(getLevelDefinition(state.level).libraryId);
+    // Hidden lore pages (Chapter Select). The Return's office swap has none of the basement's floor.
+    if (mode === 'boot' && !coldOpen) loreObjects.mount(state.level, save.found?.[String(state.level)] ?? []);
     preloadClips(TOUCH_SOUNDS);
     await Promise.all([
       waitAvatarReady(playerAvatar),
@@ -1342,6 +1346,10 @@ type SaveData = {
   missions?: Record<string, string[]>;
   /** Lore entries unlocked by finishing a level (chapter numbers). */
   lore?: number[];
+  /** Best finish time in seconds per library id (Chapter Select). */
+  best?: Record<string, number>;
+  /** Hidden lore pages found, per chapter number. */
+  found?: Record<string, string[]>;
   /** How far Voss trusts Pierce (-2..+2), moved by what he says on Voss's calls. */
   vossTrust?: number;
   /** How hot Hale runs against Pierce (-2..+2), moved by what he says on Hale's calls. */
@@ -1382,6 +1390,17 @@ const clearSave = () => {
   }
 };
 
+const cleanBest = (raw: unknown) => {
+  const out: Record<string, number> = {};
+  if (raw && typeof raw === 'object') for (const [k, v] of Object.entries(raw)) if (Number.isFinite(v) && (v as number) > 0) out[k] = Math.round(v as number);
+  return out;
+};
+const cleanFound = (raw: unknown) => {
+  const out: Record<string, string[]> = {};
+  if (raw && typeof raw === 'object') for (const [k, v] of Object.entries(raw)) if (Array.isArray(v)) out[k] = [...new Set(v.filter((x) => typeof x === 'string'))];
+  return out;
+};
+
 const parseSave = (raw: string): SaveData => {
   const parsed = JSON.parse(raw) as Partial<SaveData>;
   const unlocked = Math.max(1, Number(parsed.unlocked) || 1);
@@ -1404,6 +1423,8 @@ const parseSave = (raw: string): SaveData => {
     medkits: Number.isFinite(medkits) ? Math.max(0, Math.min(3, medkits)) : undefined,
     missions,
     lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
+    best: cleanBest(parsed.best),
+    found: cleanFound(parsed.found),
     vossTrust: clampStat(parsed.vossTrust),
     haleTemper: clampStat(parsed.haleTemper),
     ledger: clampLedger(parsed.ledger),
@@ -1471,6 +1492,8 @@ const saveGame = (next: Partial<SaveData>) => {
     medkits: next.medkits ?? save.medkits,
     missions: next.missions ?? save.missions,
     lore: next.lore ?? save.lore,
+    best: next.best ?? save.best,
+    found: next.found ?? save.found,
     vossTrust: clampStat(next.vossTrust ?? save.vossTrust),
     haleTemper: clampStat(next.haleTemper ?? save.haleTemper),
     ledger: clampLedger(next.ledger ?? save.ledger),
@@ -2252,9 +2275,9 @@ const syncStartButtonLabel = () => {
   resetBtn.style.display = messageTitle.textContent === 'Defeat' ? '' : 'none';
   resetBtn.textContent = 'Main Menu';
   const hideLoad = messageTitle.textContent === 'Defeat' || messageTitle.textContent === 'Mission Clear';
-  loadModelBtn.textContent = 'Load Level';
+  loadModelBtn.textContent = 'Chapter Select';
   loadModelBtn.style.display = hideLoad ? 'none' : '';
-  loadModelBtn.disabled = !hasProgress();
+  loadModelBtn.disabled = false;
 };
 
 const unlockPointer = () => {
@@ -3138,6 +3161,32 @@ const touch = createTouchables({
   scene,
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
+});
+
+const loreToast = document.getElementById('loreToast') as HTMLDivElement | null;
+let loreToastTimer = 0;
+const loreObjects = createLoreObjects({
+  scene,
+  playerXZ: () => ({ x: state.player.x, z: state.player.z }),
+  active: () => state.running && !state.inCutscene && messageBox.classList.contains('hidden'),
+  onFound: (chapter, id) => {
+    const list = [...new Set([...(save.found?.[String(chapter)] ?? []), id])];
+    const found = { ...(save.found ?? {}), [String(chapter)]: list };
+    saveGame({ found });
+    const total = loreTotal(chapter);
+    const count = loreFoundCount({ found }, chapter);
+    // Every page of a chapter also unlocks that chapter's lore entry on the site.
+    if (count >= total && !(save.lore ?? []).includes(chapter)) saveGame({ lore: withLore(save.lore, chapter) });
+    actionPulse('pickup');
+    audio.play('/assets/audio/sfx/pickup.ogg', 0.5);
+    analytics?.feature('lore-page', `${chapter}.${id}`);
+    if (loreToast) {
+      loreToast.textContent = `${lineText('ui.chapters.found', 'Page found')} · ${count}/${total} — ${loreFoundLine(chapter, id)}`;
+      loreToast.hidden = false;
+      window.clearTimeout(loreToastTimer);
+      loreToastTimer = window.setTimeout(() => { loreToast.hidden = true; }, 5200);
+    }
+  },
 });
 
 const home: GoingHome = createGoingHome({
@@ -4525,6 +4574,9 @@ const presentLevelEnd = () => {
   audio.win();
   screenFade.to(1, 1.15);
   markMission('main');
+  const libraryId = getLevelDefinition(state.level).libraryId;
+  const took = beginGameAt > 0 ? Math.round((performance.now() - beginGameAt) / 1000) : 0;
+  if (took > 0 && (!save.best?.[libraryId] || took < save.best[libraryId])) saveGame({ best: { ...(save.best ?? {}), [libraryId]: took } });
   updateHud();
   showMessage(card.title, card.text);
   analytics?.levelCompleted();
@@ -5790,6 +5842,7 @@ const renderLoop = () => {
     apex.step(delta);
     boardHall.step(delta);
     if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
+    loreObjects.step(delta);
     updateFaces(delta, {
       pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
       boardMeeting: false,
@@ -5956,56 +6009,42 @@ const hasDebugQuery = () => new URLSearchParams(location.search).has('debug');
 // The FPS / MEM readout shows only when ?debug is in the URL or the dev panel is toggled open.
 if (hasDebugQuery()) document.body.dataset.debug = 'true';
 
+/** What the save recorded in a chapter: the calls made, then the street's ledger or how Voss was left. */
+const chapterOutcome = (n: number, libraryId: string) => {
+  const done = doneMissionIds(libraryId);
+  const parts = [missionLabel(libraryId, done)];
+  const ledger = clampLedger(save.ledger);
+  if (n === 5 || n === 6) parts.push(ledger.kills > 0 ? `${ledger.kills} lost on the street` : 'Nobody died');
+  if (n === 8) parts.push(`Voss ${(save.vossTrust ?? 0) > 0 ? 'trusts him' : (save.vossTrust ?? 0) < 0 ? 'doubts him' : 'is waiting'}`);
+  if (n <= 4 || n === 7) parts.push(`Hale ${(save.haleTemper ?? 0) > 0 ? 'calmer' : (save.haleTemper ?? 0) < 0 ? 'furious' : 'cold'}`);
+  return parts.filter(Boolean).join(' · ');
+};
+
 const renderLevelSelect = () => {
-  levelList.innerHTML = '';
-  // Hidden slots (`comingSoon`) are not listed at all. Level 7 is listed.
-  const levels = getLevels().filter((level) => !level.comingSoon);
-
-  levels.forEach((level) => {
-    const comingSoon = level.comingSoon;
-    const unlocked = !comingSoon && level.id <= state.progression.highestUnlocked;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `level-item${comingSoon ? ' coming-soon' : unlocked ? '' : ' locked'}`;
-    button.disabled = comingSoon || !unlocked;
-    button.setAttribute('aria-disabled', comingSoon || !unlocked ? 'true' : 'false');
-    button.innerHTML = comingSoon
-      ? `
-      <div>
-        <strong>Level ${level.id}</strong>
-        <small>Coming soon</small>
-      </div>
-      <span>Coming soon</span>
-    `
-      : `
-      <div>
-        <strong>Level ${level.id}: ${level.name}</strong>
-        <small>${level.reward} · ${missionLabel(level.libraryId, doneMissionIds(level.libraryId))}</small>
-      </div>
-      <span>${unlocked ? 'Play' : 'Locked'}</span>
-    `;
-
-    button.addEventListener('click', () => {
-      if (comingSoon) {
-        messageText.textContent = 'Coming soon.';
-        return;
-      }
-      if (!unlocked) return;
-      analytics?.feature('level-select', level.id);
-      levelPicked = true;
-      state.level = level.id;
-      state.progression.currentLevel = level.id;
-      applyLevelConfig(level);
-      void withLoadTimeout(loadMissionScene(level.path)).catch((error) => showLoadError('level', error));
-      levelSelect.classList.add('hidden');
-      messageTitle.textContent = 'PH Origins';
-      messageText.textContent = levelStartLine(level);
-      syncStartButtonLabel();
-      updateCrosshairVisibility();
-    });
-
-    levelList.appendChild(button);
-  });
+  // Hidden slots (`comingSoon`) are not listed at all. Eight chapters, locked ones dimmed.
+  const levels = getLevels().filter((level) => !level.comingSoon).slice(0, CHAPTER_COUNT);
+  renderChapterCards(levelList, levels.map((level) => {
+    const unlocked = level.id <= state.progression.highestUnlocked;
+    return {
+      n: level.id,
+      title: level.name,
+      reward: level.reward,
+      unlocked,
+      best: save.best?.[level.libraryId],
+      found: loreFoundCount(save, level.id),
+      total: loreTotal(level.id),
+      outcome: chapterOutcome(level.id, level.libraryId),
+      onPick: () => {
+        if (!unlocked) return;
+        analytics?.feature('level-select', level.id);
+        levelPicked = true;
+        levelSelect.classList.add('hidden');
+        messageTitle.textContent = 'PH Origins';
+        // Straight into the chapter: the save (choices, missions, ledger) is kept, no chapter card in between.
+        void startAtLevel(level.id, false, true, false, false);
+      },
+    };
+  }));
 };
 
 const showLevelSelect = () => {
@@ -6024,7 +6063,6 @@ loadModelBtn.addEventListener('click', () => {
     window.location.assign('/');
     return;
   }
-  if (!hasProgress()) return;
   showLevelSelect();
 });
 closeLevelSelectBtn.addEventListener('click', () => {
@@ -6393,9 +6431,21 @@ installPhPlaytest({
     const level = getLevels().find((entry) => entry.libraryId === libraryId);
     return level ? startAtLevel(level.id, true, true, true) : Promise.resolve();
   },
+  chapterSelect: () => ({
+    cards: [...levelList.querySelectorAll<HTMLElement>('.chapter-card')].map((c) => ({
+      n: Number(c.dataset.chapter), unlocked: c.dataset.unlocked === 'true', text: c.innerText.replace(/\s+/g, ' ').trim(),
+      box: (() => { const r = c.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; })(),
+    })),
+    cue: chapterCueLog(),
+    list: (() => { const r = levelList.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height, scrollTop: levelList.scrollTop, scrollHeight: levelList.scrollHeight, clientHeight: levelList.clientHeight }; })(),
+    save: { found: save.found ?? {}, best: save.best ?? {} },
+  }),
+  loreSpots: () => ({ remaining: loreObjects.remaining(), chapter: state.level, all: LORE_SPOTS[state.level] ?? [] }),
   levelRows: () => {
     renderLevelSelect();
-    return [...levelList.querySelectorAll('.level-item strong')].map((row) => row.textContent?.trim() ?? '');
+    return [...levelList.querySelectorAll<HTMLElement>('.chapter-card')].map(
+      (row) => `Level ${row.dataset.chapter}: ${row.querySelector('.chapter-title')?.textContent?.trim() ?? ''} · ${row.dataset.unlocked === 'true' ? 'Play' : 'Locked'}`,
+    );
   },
   train: () => dressing.train()?.stats() ?? null,
   morning: () => (isMorningLevel() ? morning.story() : null),
