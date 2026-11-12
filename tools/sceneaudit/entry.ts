@@ -385,6 +385,30 @@ const LEVELS: Record<string, { file: string; dress?: (scene: BABYLON.Scene) => v
   'the-morning': { file: '/levels/the-morning.json' },
 };
 
+/** Chapter openings (src/game/chapterOpening.ts): the lens path of each chapter that plays on this level file stays clear of geometry. */
+const OPENING_CHAPTERS: Record<string, number[]> = { 'apex-peak': [1, 4], 'b3-basement': [2, 3], 'going-home': [5], 'the-station': [6], 'the-train': [7], 'the-morning': [8] };
+const openingAudit = async (id: string, scene: BABYLON.Scene): Promise<Finding[]> => {
+  const out: Finding[] = [];
+  const { createChapterOpening } = await import('../../src/game/chapterOpening');
+  const { createThirdPersonCamera } = await import('../../src/game/thirdPersonCamera');
+  const { PLAYER_STAND_Y } = await import('../../src/game/player');
+  const follow = createThirdPersonCamera(scene);
+  const opening = createChapterOpening({
+    scene,
+    camera: follow.camera,
+    snapToSpawn: (sp) => follow.snapTo({ x: sp.x, y: PLAYER_STAND_Y, z: sp.z }, [], sp.yaw),
+    isSolid: (m) => !/skybox|trigger|label|flash|beam/i.test(m.name),
+    dip: () => undefined,
+  });
+  for (const n of OPENING_CHAPTERS[id] ?? []) {
+    const info = opening.prepare(n);
+    const r = opening.pathReport();
+    console.log(`opening ${n} ${id} scale ${info.scale} clearance ${r.min.toFixed(2)} m (${r.samples} samples)`);
+    if (r.min < 0.3) out.push({ rule: 'opening', what: `chapter ${n} opening`, detail: `the lens passes ${r.min.toFixed(2)} m from geometry at sample ${r.at}`, amount: r.min });
+  }
+  return out;
+};
+
 const pick = (process.argv[2] ?? Object.keys(LEVELS).join(',')).split(',');
 for (const id of pick) {
   const level = LEVELS[id];
@@ -397,7 +421,7 @@ for (const id of pick) {
   level.dress?.(scene);
   await settle(scene);
   for (const m of scene.meshes) { m.computeWorldMatrix(true); m.refreshBoundingInfo?.({}); }
-  const findings = [...groundAudit(scene), ...coplanarAudit(scene), ...mirrorAudit(scene), ...textAudit(scene), ...geometryAudit(scene)];
+  const findings = [...groundAudit(scene), ...coplanarAudit(scene), ...mirrorAudit(scene), ...textAudit(scene), ...geometryAudit(scene), ...await openingAudit(id, scene)];
   console.log(`audit ${id} ${JSON.stringify(findings)}`);
   scene.dispose();
 }
