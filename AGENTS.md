@@ -154,7 +154,7 @@ tools/                      Blender convert, bake anims, texture pipeline
 
 ### Front page is a terminal (`index.html`)
 
-`index.html` is a full-screen fake terminal, not the old landing page (spec `docs/terminal-console.md`). Its code is plain ES modules in `site/terminal/` (no build: Pages serves the repo root as is; Vite only builds `game.html`), tests `npm run test:terminal`, playtests `terminal` and `terminal-phone` (page in an overlay, real key and tap events). Keep on it: the Hawkes Analytics tags, the `p.hawkes-credit` / `p.site-privacy` footer, the front-page playtest hand-off script (add new scenario ids to its list), no network, no `eval`, no polling, no root cheat. Other pages still link `./index.html` as Home.
+`index.html` is a full-screen fake terminal, not the old landing page (spec `docs/terminal-console.md`). Its code is plain ES modules in `site/terminal/` (no build: Pages serves the repo root as is; Vite only builds `game.html`), tests `npm run test:terminal`, playtests `terminal` and `terminal-phone` (page in an overlay, real key and tap events). Keep on it: the Hawkes Analytics tags, the `p.hawkes-credit` / `p.site-privacy` footer, the front-page playtest hand-off script (add new scenario ids to its list), no network, no `eval`, no polling, no root cheat. Other pages still link `./index.html` as Home. A full `/build` is a three-act show (log flood, `/song.mp3` at the repo root, a text flipbook of two silhouettes; `site/terminal/show.js`, `flipbook.js`, `docs/terminal-console.md`): `song.mp3` is a 240 s placeholder until J uploads the real one, and `?songlen=8` / `?demo=show` are the playtest hooks.
 
 ### Marketing site
 

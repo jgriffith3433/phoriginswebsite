@@ -72,3 +72,23 @@ body { font-family: var(--font); color: var(--fg); -webkit-text-size-adjust: 100
 
 .line.art { white-space: pre; overflow: hidden; }
 @media (max-width: 700px) { .line.art { display: none; } }
+
+/* /build spectacle: the log flood and the text flipbook (site/terminal/show.js). One overlay over the whole console. */
+.show { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; background: var(--bg); --show-px: 10px; }
+.show[hidden] { display: none; }
+.show-stage { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.show pre { margin: 0; font-family: var(--font); font-size: var(--show-px); line-height: 1.2; white-space: pre; overflow: hidden; text-shadow: 0 0 5px var(--glow); }
+.show-bg { position: absolute; left: 0; bottom: 0; right: 0; top: 0; color: var(--fg); display: flex; flex-direction: column; justify-content: flex-end; }
+.show-bg.dim { color: var(--dim); opacity: 0.2; justify-content: flex-start; text-shadow: none; }
+.show-figs { position: absolute; inset: 0; display: flex; pointer-events: none; }
+.show-fig { flex: 1 1 50%; min-width: 0; }
+.show-left { color: var(--bright); text-shadow: 0 0 8px var(--glow); }
+.show-right { color: var(--warn); text-shadow: 0 0 8px rgba(255, 209, 102, 0.45); }
+.show-probe { position: absolute; visibility: hidden; font-family: var(--font); font-size: var(--show-px); white-space: pre; }
+.show-hud { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px calc(env(safe-area-inset-bottom) + 0px); padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); border-top: 1px solid var(--line); background: rgba(0, 0, 0, 0.6); font-size: 12px; color: var(--dim); text-shadow: none; position: relative; z-index: 6; }
+.show-stat { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--bright); }
+.show-note { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.show-mute { flex: 0 0 auto; min-width: 44px; min-height: 44px; padding: 0 12px; font: inherit; font-size: 13px; color: var(--bright); background: var(--btn); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; touch-action: manipulation; }
+.show-mute:active { background: var(--fg); color: var(--bg); }
+@media (max-width: 480px) { .show-note { display: none; } .show-hud { font-size: 11px; } }
+.line.flip-static { white-space: pre; overflow: hidden; font-size: 10px; line-height: 1.15; max-width: 100%; }
