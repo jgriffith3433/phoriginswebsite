@@ -433,8 +433,12 @@ const phone = createPhone(scene, {
   onConnected: (contactId) => {
     const quest = missionCallId(contactId);
     if (quest) markMission(quest);
+    if (contactId === 'voss') music.voss(true);
   },
-  onCallEnded: (callId, how, heard, of) => analytics?.dialogue('call', callId, how, heard, of),
+  onCallEnded: (callId, how, heard, of) => {
+    analytics?.dialogue('call', callId, how, heard, of);
+    if (callId.startsWith('voss')) music.voss(false);
+  },
   getStat: (stat) => clampStat(save[stat]),
   addStat: (stat, delta) => saveGame({ [stat]: clampStat((save[stat] ?? 0) + delta) })[stat] ?? 0,
   onHand: (raised) => {

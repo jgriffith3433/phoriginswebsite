@@ -44,7 +44,35 @@ The train's old-body lead uses the same bands at 3 m and 8 m, driving the Statio
 
 Every chapter ends with `chapterEnd`: the score falls away for the ending song. The title card and Defeat stop it.
 
-## The five stingers
+## Leitmotifs (theme layer)
+
+Two looping layers sit beside the stems, through the same `mix` -> duck -> music bus, so Settings and voice ducking govern them.
+All files are Hawkes Gen `audio.music` takes, looped with `audio.music-loop` and levelled with `audio.process` (music target).
+
+| Layer | File | When |
+|---|---|---|
+| Pierce, human | `pierce-theme.ogg` (low solo piano and cello, 4-bar motif, ~90 s) | Chapter 1 whole, including the window monologue |
+| Pierce, corrupted | `pierce-corrupt.ogg` (same motif, detuned piano, bowed metal, sub drone) | From the end of `b3-vat-break` in chapter 2, and every chapter 3-8 |
+| Voss | `voss-motif.ogg` (muted strings) | In when a Voss call connects, out when it ends (`music.voss`, `phone.ts` `onConnected` / `onCallEnded`) |
+
+The theme level follows the state (calm .7, tension .5, peak .3, silence 0). **Rot per chapter** (`ROT`): ch2 0, ch3 .15, ch4 .3,
+ch5 .5, ch6 .7, ch7 .9, ch8 1. Rot lowers a low-pass from 7 kHz to 600 Hz, detunes the loop up to -120 cents and takes up to 45 % off its level,
+so the instrumentation thins and darkens each chapter. On the low memory tier the layers stream and are not detuned.
+Probe `sound().music.theme` / `.voss`. Playtest `music-director` checks variant per level.
+
+**Deliberate silences (theme):** the B3 cold open and the vat break (no theme until the glass has gone), chapter 8 until the door objective, every chapter end for the ending song.
+
+## The stingers (8, 4-8 s)
+
+| Id | Fires | Where |
+|---|---|---|
+| `desk-papers` | first paper or the terminal leaves the desk | `theDesk.ts` |
+| `lobby-scream` | the receptionist's scream clip starts | voice line `going-home/01-receptionist-scream` |
+| `voss-last` | Voss's last line, `voss-morning-07` (and its alt takes) | voice line |
+
+Stingers 1-5 below, plus the three above, are the eight.
+
+## The first five stingers
 
 | Id | Fires | Where |
 |---|---|---|
@@ -58,5 +86,5 @@ Each is logged as an `events` entry of kind `stinger`, and ducks under voice lik
 
 ## Open
 
-Stems and stingers are not generated (no GPU budget was approved); see the change summary for the Gen estimate.
+Stems are still not generated. Theme, corrupted theme, Voss motif and the 8 stingers are queued in Hawkes Gen (`.hawkes/waiting-jobs.txt`) and land in `assets/audio/music/` when the jobs finish; until then the director logs and stays silent on them.
 Beat checks the director cannot make itself: playtest B3 hunt rise within 1 s needs a hunt run.

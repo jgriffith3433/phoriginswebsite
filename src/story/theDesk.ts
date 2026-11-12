@@ -1,4 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
+import { music } from '../game/musicDirector';
 
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { TRANSFORM_HERO_ASSET_ID } from '../game/modelLoader';
@@ -170,6 +171,7 @@ export const createTheDesk = (host: DeskHost) => {
   let desk = { ...DESK_TOP_FALLBACK };
   let arriveT = 0;
   let sweepT = 0;
+  let deskHit = false;
   let idleSince = 0;
   let sweptAt = -1;
   let goingAt = -1;
@@ -552,6 +554,7 @@ export const createTheDesk = (host: DeskHost) => {
           const url = prop.sound === 'crash' ? DESK_SFX.crash : prop.sound === 'impact' ? DESK_SFX.impact : DESK_SFX.land;
           heard(prop.sound === 'land' ? 'paper-land' : prop.sound === 'impact' ? 'desk-impact' : 'terminal-crash', url, prop.sound === 'land' ? 0.45 : 0.7, nextRate());
           deskStats.off = countOff();
+          if (!deskHit && deskStats.off > 0) { deskHit = true; music.stinger('desk-papers'); }
           if (prop.id === 'terminal') deskStats.terminalOff = true;
         }
       }
@@ -965,6 +968,7 @@ export const createTheDesk = (host: DeskHost) => {
           host.fade(0, 0.6);
           say(lineSpeaker('dialogue.desk.still', 'Pierce Hawkes'), lineText('dialogue.desk.still'), lineAudio('dialogue.desk.still', STILL), 0.92, 4.8);
           phase = 'sweep';
+          deskHit = false;
           sweepT = 0;
           idleSince = clock;
         }

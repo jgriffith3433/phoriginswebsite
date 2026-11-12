@@ -17,7 +17,8 @@ import { decodeClip, forgetClip, setVoiceHook } from './sfxMix';
 import { SPOKEN_TYPES, storyLines } from './locale';
 
 export type MusicState = 'silence' | 'calm' | 'tension' | 'peak';
-export type StingerId = 'vat-break' | 'mirror' | 'is-that-me' | 'no-stop' | 'tv-news';
+export type StingerId = 'vat-break' | 'mirror' | 'desk-papers' | 'lobby-scream' | 'is-that-me' | 'no-stop' | 'tv-news' | 'voss-last';
+export type ThemeVariant = 'none' | 'human' | 'corrupt';
 export type MusicBand = 'far' | 'near' | 'close';
 
 export const MUSIC_BPM = 72;
@@ -40,10 +41,20 @@ const FADE_UP = 1.4;
 const FADE_DOWN = 2.2;
 
 export const stemUrl = (chapter: number, stem: string) => `/assets/audio/music/ch${chapter}-${stem}.ogg`;
+export const THEME_URL: Record<'human' | 'corrupt', string> = {
+  human: '/assets/audio/music/pierce-theme.ogg',
+  corrupt: '/assets/audio/music/pierce-corrupt.ogg',
+};
+export const VOSS_URL = '/assets/audio/music/voss-motif.ogg';
+/** How far gone the theme is per chapter, 0 (the vat's first take) to 1 (the Morning). Drives a low-pass, a detune and the level. */
+export const ROT: Record<number, number> = { 2: 0, 3: 0.15, 4: 0.3, 5: 0.5, 6: 0.7, 7: 0.9, 8: 1 };
+const THEME_LEVEL: Record<MusicState, number> = { silence: 0, calm: 0.7, tension: 0.5, peak: 0.3 };
 export const stingerUrl = (id: StingerId) => `/assets/audio/music/stinger-${id}.ogg`;
 /** Beats that fire a stinger when their voice line starts (the line is the beat). */
 const LINE_STINGERS: [RegExp, StingerId][] = [
   [/return-mirror\/01-pierce-thats-me/, 'mirror'],
+  [/going-home\/01-receptionist-scream/, 'lobby-scream'],
+  [/phone\/voss-morning-07/, 'voss-last'],
   [/station-shadow\/01-pierce-is-that-me/, 'is-that-me'],
   [/cutscenes\/train\/06-/, 'no-stop'],
 ];
@@ -63,6 +74,8 @@ export type MusicProbe = {
   stateLog: { t: number; state: MusicState; reason: string }[];
   events: MusicEvent[];
   silenceSeconds: number;
+  theme: { variant: ThemeVariant; rot: number; playing: boolean; cutoffHz: number; detuneCents: number };
+  voss: { on: boolean; playing: boolean };
 };
 
 export const createMusicDirector = () => {
@@ -92,6 +105,133 @@ export const createMusicDirector = () => {
   let state: MusicState = 'silence';
   let silentSince = now();
   const decoded = new Set<string>();
+
+  // ---- leitmotifs: Pierce's theme (human, then corrupted and rotting by chapter) and Voss's motif
+  type Loop = { gain: GainNode; filter: BiquadFilterNode; source: AudioBufferSourceNode | null; stop: () => void };
+  let variant: ThemeVariant = 'none';
+  let themeLoop: Loop | null = null;
+  let themeToken = 0;
+  let vossLoop: Loop | null = null;
+  let vossToken = 0;
+  let vossOn = false;
+  const rotOf = () => (variant === 'corrupt' ? ROT[chapter] ?? 0.5 : 0);
+  const cutoffOf = (rot: number) => Math.round(7000 * Math.pow(600 / 7000, rot));
+  const detuneOf = (rot: number) => -Math.round(rot * 120);
+
+  const makeLoop = async (url: string, token: () => number, mine: number): Promise<Loop | null> => {
+    if (!ensure() || !ctx || !mix) return null;
+    const c = ctx;
+    const gain = c.createGain();
+    gain.gain.value = 0;
+    const filter = c.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 18000;
+    filter.connect(gain);
+    gain.connect(mix);
+    const tidy = () => { try { gain.disconnect(); filter.disconnect(); } catch { /* gone */ } };
+    if (lowTier()) {
+      // Phone memory tier: a 90 s buffer is tens of MB of PCM, so it streams.
+      const element = new Audio();
+      element.preload = 'auto'; element.loop = true; element.crossOrigin = 'anonymous';
+      element.setAttribute('playsinline', 'true');
+      element.src = url;
+      const ok = await new Promise<boolean>((resolve) => {
+        element.addEventListener('error', () => resolve(false), { once: true });
+        element.addEventListener('canplay', () => resolve(true), { once: true });
+      });
+      if (!ok || token() !== mine) { element.removeAttribute('src'); tidy(); return null; }
+      const node = c.createMediaElementSource(element);
+      node.connect(filter);
+      void element.play().catch(() => {});
+      return { gain, filter, source: null, stop: () => { element.pause(); element.removeAttribute('src'); try { node.disconnect(); } catch { /* gone */ } tidy(); } };
+    }
+    try {
+      const buffer = await decodeClip(url);
+      if (token() !== mine) { forgetClip(url); tidy(); return null; }
+      const source = c.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(filter);
+      source.start();
+      return { gain, filter, source, stop: () => { try { source.stop(); } catch { /* not started */ } tidy(); forgetClip(url); } };
+    } catch {
+      tidy();
+      log('missing', url);
+      return null;
+    }
+  };
+
+  const themeAim = () => (variant === 'none' || held ? 0 : THEME_LEVEL[state]);
+  const applyTheme = (span = 1.6) => {
+    if (!ctx || !themeLoop) return;
+    const rot = rotOf();
+    const t = ctx.currentTime;
+    themeLoop.gain.gain.cancelScheduledValues(t);
+    themeLoop.gain.gain.setValueAtTime(themeLoop.gain.gain.value, t);
+    themeLoop.gain.gain.linearRampToValueAtTime(themeAim() * (1 - 0.45 * rot), t + span);
+    themeLoop.filter.frequency.setTargetAtTime(variant === 'corrupt' ? cutoffOf(rot) : 18000, t, 0.5);
+    themeLoop.source?.detune.setTargetAtTime(detuneOf(rot), t, 0.5);
+  };
+
+  const loadTheme = async () => {
+    const mine = ++themeToken;
+    const old = themeLoop;
+    themeLoop = null;
+    if (old && ctx) {
+      old.gain.gain.cancelScheduledValues(ctx.currentTime);
+      old.gain.gain.setValueAtTime(old.gain.gain.value, ctx.currentTime);
+      old.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.2);
+      setTimeout(() => old.stop(), 1400);
+    }
+    if (variant === 'none') return;
+    const loop = await makeLoop(THEME_URL[variant], () => themeToken, mine);
+    if (!loop) return;
+    themeLoop = loop;
+    log('theme', `${variant} rot ${rotOf().toFixed(2)}`);
+    applyTheme();
+  };
+
+  const setVariant = (next: ThemeVariant) => {
+    if (next === variant) return;
+    variant = next;
+    void loadTheme();
+  };
+
+  const stopTheme = () => {
+    themeToken += 1;
+    variant = 'none';
+    themeLoop?.stop();
+    themeLoop = null;
+  };
+
+  const vossAim = () => (vossOn && !held ? 0.55 : 0);
+  const applyVoss = (span: number) => {
+    if (!ctx || !vossLoop) return;
+    const t = ctx.currentTime;
+    vossLoop.gain.gain.cancelScheduledValues(t);
+    vossLoop.gain.gain.setValueAtTime(vossLoop.gain.gain.value, t);
+    vossLoop.gain.gain.linearRampToValueAtTime(vossAim(), t + span);
+  };
+  const setVoss = async (on: boolean) => {
+    if (on === vossOn) return;
+    vossOn = on;
+    log('voss', on ? 'motif in' : 'motif out');
+    if (on) {
+      if (vossLoop) { applyVoss(1.0); return; }
+      const mine = ++vossToken;
+      const loop = await makeLoop(VOSS_URL, () => vossToken, mine);
+      if (!loop) return;
+      if (!vossOn) { loop.stop(); return; }
+      vossLoop = loop;
+      applyVoss(1.0);
+    } else if (vossLoop) {
+      applyVoss(2.0);
+      const old = vossLoop;
+      vossLoop = null;
+      vossToken += 1;
+      setTimeout(() => { if (!vossOn) old.stop(); else vossLoop = old; }, 2200);
+    }
+  };
 
   const log = (kind: string, detail: string) => {
     events.push({ t: Math.round(now() * 100) / 100, kind, detail });
@@ -163,6 +303,7 @@ export const createMusicDirector = () => {
     if (stateLog.length > 200) stateLog.shift();
     log('state', `${state} (${reason})`);
     applyGains(next, rising);
+    applyTheme(rising ? 0.6 : 1.6);
   };
 
   const unload = () => {
@@ -287,6 +428,14 @@ export const createMusicDirector = () => {
       band = null; chase = null; powerOn = false; inCutscene = false; sceneThin = null;
       state = 'silence';
       log('chapter', `start ${n}`);
+      vossOn = false; vossLoop?.stop(); vossLoop = null; vossToken += 1;
+      // Pierce's theme: human in Apex Peak (and the window monologue); the vat takes it, so B3 is silent of it until
+      // `b3-vat-break` ends, and every chapter from The Return on carries the corrupted take, rotting further each time.
+      const next: ThemeVariant = n === 1 ? 'human' : n >= 3 ? 'corrupt' : 'none';
+      variant = 'none';
+      themeToken += 1;
+      themeLoop?.stop(); themeLoop = null;
+      setVariant(next);
       void load(n);
     },
     /** The chapter ends (End Level): the score falls away for the ending song. */
@@ -298,6 +447,8 @@ export const createMusicDirector = () => {
     /** Back to the title or a card: nothing plays. */
     stop() {
       chapter = 0;
+      stopTheme();
+      vossOn = false; vossLoop?.stop(); vossLoop = null; vossToken += 1;
       base = 'silence';
       reconcile('stop');
       unload();
@@ -317,6 +468,7 @@ export const createMusicDirector = () => {
       inCutscene = false;
       sceneThin = null;
       log('cutscene', `end ${id}`);
+      if (id === 'b3-vat-break') setVariant('corrupt');
       reconcile(`cutscene-end ${id}`);
     },
     /** The creature's distance in metres (null: no hunt). Acts only when a band is crossed. */
@@ -367,6 +519,8 @@ export const createMusicDirector = () => {
         source.start(c.currentTime + Math.max(0, delay));
       }).catch(() => { log('missing', url); });
     },
+    /** A Voss call is connected (true) or over (false): his muted-strings motif runs under it. */
+    voss(on: boolean) { void setVoss(on); },
     /** Pause holds the score; resume brings it back. */
     hold(on: boolean) {
       if (held === on) return;
@@ -376,6 +530,8 @@ export const createMusicDirector = () => {
         mix.gain.setValueAtTime(mix.gain.value, ctx.currentTime);
         mix.gain.linearRampToValueAtTime(on ? 0 : MASTER, ctx.currentTime + 0.25);
       }
+      applyTheme(0.25);
+      applyVoss(0.25);
       log('hold', on ? 'pause' : 'resume');
     },
     state: () => state,
@@ -391,6 +547,8 @@ export const createMusicDirector = () => {
       stateLog: [...stateLog],
       events: [...events],
       silenceSeconds: state === 'silence' ? now() - silentSince : 0,
+      theme: { variant, rot: rotOf(), playing: !!themeLoop && themeAim() > 0, cutoffHz: variant === 'corrupt' ? cutoffOf(rotOf()) : 18000, detuneCents: detuneOf(rotOf()) },
+      voss: { on: vossOn, playing: !!vossLoop && vossOn },
     }),
   };
   void inCutscene;
