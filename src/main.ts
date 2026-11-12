@@ -29,6 +29,7 @@ import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
 import { createShadowVeil } from './game/shadowVeil';
+import { createPowerFx } from './game/powerFx';
 import { createPhone, STAT_MAX, STAT_MIN } from './game/phone';
 import { mountPipeDrips } from './game/drips';
 import { createLevelDressing } from './game/levelDressing';
@@ -2363,6 +2364,7 @@ shadowHint?.addEventListener('click', (event) => {
       markMission('power-shadow');
       analytics?.used('shadow-mode');
     }
+    powerFx.toggleShadow(shadowPlay().shadowMode());
     music.power(shadowPlay().shadowMode());
     if (!shadowPlay().shadowMode()) {
       playerAvatar.setArmed(false);
@@ -2939,6 +2941,7 @@ const home: GoingHome = createGoingHome({
   refreshHud: () => updateHud(),
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   hand: () => {
     const joint = playerAvatar.findJoint('RightHand');
     if (!joint) return null;
@@ -3031,6 +3034,7 @@ const station: TheStation = createTheStation({
   },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   showLine: (title, text) => showCineHud(title, text),
@@ -3120,6 +3124,7 @@ const train: TheTrain = createTheTrain({
   },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   showLine: (title, text) => showCineHud(title, text),
@@ -3150,6 +3155,27 @@ storyObjectiveId = () => {
   if (isMorningLevel()) return morning.objectiveKey();
   return act.objectiveKey();
 };
+
+
+// Signature power effects (powerFx.ts): GPU particles, bolt, tendril, hit-stop. Hosts call `power`; the clicks below do the rest.
+const powerFxHand = new BABYLON.Vector3();
+const powerFxChest = new BABYLON.Vector3();
+const powerFx = createPowerFx(scene, {
+  low: lowPowerGraphics,
+  play: (url, volume, rate, at) => audio.play(url, volume, rate, at ? { at, cls: 'effect' } : undefined),
+  hand: () => {
+    const joint = playerAvatar.findJoint('RightHand');
+    if (joint) return powerFxHand.copyFrom(joint.getAbsolutePosition());
+    return powerFxHand.set(state.player.x + Math.sin(state.characterYaw) * 0.42, 1.2, state.player.z + Math.cos(state.characterYaw) * 0.42);
+  },
+  chest: () => powerFxChest.set(state.player.x, 1.3 + playerLift, state.player.z),
+});
+const onPowerHit = (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => {
+  const at = new BABYLON.Vector3(e.x, e.y, e.z);
+  if (e.kind === 'shock') powerFx.shock(at);
+  else powerFx.melee(e.kind, at, e.hit);
+};
+(window as unknown as { __phPowerFx?: unknown }).__phPowerFx = powerFx;
 
 // Level 7 keeps the station's Shadow mode (its riders are the targets).
 const shadowPlay = () => (isStationLevel() ? station : isTrainLevel() ? train : home);
@@ -4147,7 +4173,11 @@ const possessAimed = () => {
   const took = (spot && shadowPlay().possessAt(spot.x, spot.y, spot.z)) || shadowPlay().possessLook();
   if (!took) return false;
   markMission('power-possess');
-  audio.tone(78, 0.1, 'sine', 0.06);
+  const focus = shadowPlay().linkFocus();
+  if (focus) {
+    powerFx.possess(new BABYLON.Vector3(focus.x, 1.55, focus.z));
+    powerFx.setPossessing(true, new BABYLON.Vector3(focus.x, 1.6, focus.z));
+  }
   updateHud();
   return true;
 };
@@ -4157,7 +4187,10 @@ const useShadowClick = () => {
   analytics?.used(shadowPick === 'possess' ? (shadowPlay().linked() ? 'consume' : 'possess') : 'shadow-shock');
   if (shadowPick === 'possess') {
     if (shadowPlay().linked()) {
+      const victim = shadowPlay().linkFocus();
       if (shadowPlay().consume()) {
+        if (victim) powerFx.consume(new BABYLON.Vector3(victim.x, 1.2, victim.z));
+        powerFx.setPossessing(false);
         markMission('power-consume');
         audio.tone(64, 0.14, 'sine', 0.07);
       }
@@ -4371,6 +4404,7 @@ window.addEventListener('keydown', (event) => {
         markMission('power-shadow');
         analytics?.used('shadow-mode');
       }
+      powerFx.toggleShadow(shadowPlay().shadowMode());
       music.power(shadowPlay().shadowMode());
       if (!shadowPlay().shadowMode()) {
         playerAvatar.setArmed(false);
@@ -5080,7 +5114,18 @@ const renderLoop = () => {
     scene.render();
     return;
   }
-  const delta = engine.getDeltaTime() / 1000;
+  const rawDelta = engine.getDeltaTime() / 1000;
+  // Hit-stop: a real-time hold (50-100 ms) with the action frozen; Babylon animation stops too.
+  const stopped = powerFx.hitStopLeft() > 0;
+  scene.animationTimeScale = stopped ? 0 : 1;
+  const delta = stopped ? 0.0001 : rawDelta;
+  powerFx.update(rawDelta, camera);
+  {
+    const linked = shadowPlay().controls() && shadowPlay().linked();
+    const focus = linked ? shadowPlay().linkFocus() : null;
+    powerFx.setPossessing(linked, focus ? new BABYLON.Vector3(focus.x, 1.6, focus.z) : undefined);
+    powerFx.setRunning(shadowPlay().controls() && shadowRunActive(), new BABYLON.Vector3(state.player.x, 0.9 + playerLift, state.player.z));
+  }
   screenFade.update(delta);
   syncActionHint();
   stepHuntRetry(delta);
@@ -5171,7 +5216,7 @@ const renderLoop = () => {
     train.step(delta);
     morning.step(delta);
     if (isDeskLevel()) desk.step(delta);
-    const streetShake = Math.max(home.shake(), desk.shake());
+    const streetShake = Math.max(home.shake(), desk.shake(), powerFx.shake());
     if (streetShake > 0) {
       camera.position.x += (Math.random() - 0.5) * streetShake;
       camera.position.y += (Math.random() - 0.5) * streetShake * 0.65;
