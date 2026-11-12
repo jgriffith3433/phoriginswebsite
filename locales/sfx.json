@@ -525,6 +525,17 @@
       "note": "Walking into a shop."
     },
     {
+      "id": "sfx.street.rain-hiss",
+      "group": "street",
+      "text": "Seamless loop of steady rain hiss on wet asphalt city street at night, soft continuous drizzle and distant drip, no thunder, no traffic, no voices, no music.",
+      "audio": "/assets/audio/sfx/street/rain-hiss.ogg",
+      "loop": true,
+      "duration": 8,
+      "influence": 0.6,
+      "volume": 0.14,
+      "note": "Going Home rain bed (rainNight.ts). Falls back to room-tone until Gen lands the take."
+    },
+    {
       "id": "sfx.train.rumble",
       "group": "train",
       "text": "Seamless loop of the inside of a moving subway car in a tunnel, steady low wheel rumble, rhythmic rail joints clicking, a faint electric motor whine and car body rattle, no voices, no announcements, no music.",
