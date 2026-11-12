@@ -3054,7 +3054,7 @@ act = createAct1({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
-    if (sceneId === 'voss-morning-call') {
+    if ((sceneId as string) === 'voss-morning-call') {
       const pv = phone.view();
       cinecam.stepScene(sceneId, atSeconds, dt, {
         ...opts,
@@ -3201,7 +3201,7 @@ const home: GoingHome = createGoingHome({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
-    if (sceneId === 'voss-morning-call') {
+    if ((sceneId as string) === 'voss-morning-call') {
       const pv = phone.view();
       cinecam.stepScene(sceneId, atSeconds, dt, {
         ...opts,
@@ -3274,7 +3274,7 @@ const desk: TheDesk = createTheDesk({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
-    if (sceneId === 'voss-morning-call') {
+    if ((sceneId as string) === 'voss-morning-call') {
       const pv = phone.view();
       cinecam.stepScene(sceneId, atSeconds, dt, {
         ...opts,
@@ -3353,7 +3353,7 @@ const station: TheStation = createTheStation({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
-    if (sceneId === 'voss-morning-call') {
+    if ((sceneId as string) === 'voss-morning-call') {
       const pv = phone.view();
       cinecam.stepScene(sceneId, atSeconds, dt, {
         ...opts,
@@ -3399,7 +3399,7 @@ const morning: TheMorning = createTheMorning({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
-    if (sceneId === 'voss-morning-call') {
+    if ((sceneId as string) === 'voss-morning-call') {
       const pv = phone.view();
       cinecam.stepScene(sceneId, atSeconds, dt, {
         ...opts,
@@ -3515,7 +3515,7 @@ const train: TheTrain = createTheTrain({
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
-    if (sceneId === 'voss-morning-call') {
+    if ((sceneId as string) === 'voss-morning-call') {
       const pv = phone.view();
       cinecam.stepScene(sceneId, atSeconds, dt, {
         ...opts,
