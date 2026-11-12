@@ -359,27 +359,45 @@ const resolveHost = (h) => {
   return host;
 };
 
+
+/** `help all`: every registered command, grouped. Secret ones stay out. */
+function helpAll(sh, row) {
+  const group = (title, names) => [title, ...names.filter((n) => COMMANDS[n]).map(row), ''];
+  const listed = new Set();
+  const g = (title, names) => { names.forEach((n) => listed.add(n)); return group(title, names); };
+  const lines = [
+    ...guideLines(sh),
+    'ALL COMMANDS (with or without a leading slash; man <cmd> for details)',
+    '',
+    ...g('Look around', ['ls', 'cd', 'pwd', 'cat', 'less', 'tree', 'grep', 'head', 'tail', 'wc', 'sort', 'echo']),
+    ...g('System', ['whoami', 'id', 'uname', 'hostname', 'date', 'ps', 'top', 'history', 'clear', 'exit', 'su', 'sudo', 'login']),
+    ...g('Network tools', ['ping', 'nmap', 'curl', 'ssh', 'strings', 'rev', 'john']),
+    ...g('Console', ['hint', 'progress', 'man', 'help', 'theme', 'sound', 'song', 'about', 'credits', 'reset']),
+    ...g('Site', ['game', 'open']),
+    `Root only ${sh.isRoot ? '(unlocked)' : '(locked: earn root)'}`,
+    ...['build', 'status', 'services', 'logs', 'deploy', 'rollback'].map((n) => { listed.add(n); return row(n); }),
+    '',
+  ];
+  const rest = Object.keys(COMMANDS).filter((n) => !listed.has(n) && !COMMANDS[n].secret);
+  if (rest.length) lines.push(...group('Extras', rest));
+  lines.push('Tips: Tab completes, up/down is history, Ctrl+L clears, Ctrl+C cancels. Stuck? type  hint.');
+  return lines;
+}
+
 const COMMANDS = {
   help: {
-    desc: 'list commands (or: help <command>)', usage: 'help [command]',
+    desc: 'short list of commands (help all: every command)', usage: 'help [all|command]',
     run(sh, args) {
-      if (args[0]) return COMMANDS.man.run(sh, args);
-      const group = (title, names) => [`${title}`, ...names.filter((n) => COMMANDS[n]).map((n) => `  ${pad(n, 11)}${COMMANDS[n].desc}`), ''];
-      const lines = [
-        ...guideLines(sh),
-        'PH Origins gateway console. Commands work with or without a leading slash (/help = help).',
-        '',
-        ...group('Look around', ['ls', 'cd', 'pwd', 'cat', 'less', 'tree', 'grep', 'head', 'tail', 'wc', 'sort', 'echo']),
-        ...group('System', ['whoami', 'id', 'uname', 'hostname', 'date', 'ps', 'top', 'history', 'clear', 'exit']),
-        ...group('Network tools', ['ping', 'nmap', 'curl', 'ssh', 'strings', 'rev', 'john']),
-        ...group('Console', ['hint', 'progress', 'man', 'theme', 'sound', 'song', 'about', 'credits', 'reset']),
-        ...group('Site', ['game', 'open']),
-        `Root only ${sh.isRoot ? '(unlocked)' : '(locked: earn root)'}`,
-        ...['build', 'status', 'services', 'logs', 'deploy', 'rollback'].map((n) => `  /${pad(n, 10)}${COMMANDS[n].desc}`),
-        '',
-        'Tips: Tab completes, up/down is history, Ctrl+L clears, Ctrl+C cancels. Stuck? type  hint  (it prints the next login command).',
-        'Also: sl cowsay fortune matrix ... and a few phrases that are worth trying.',
-      ];
+      if (args[0] && args[0].replace(/^\//, '').toLowerCase() !== 'all') return COMMANDS.man.run(sh, args);
+      const row = (n) => `  ${pad(COMMANDS[n].root ? '/' + n : n, 11)}${COMMANDS[n].desc}`;
+      if (args[0]) return [P(helpAll(sh, row).join('\n'))];
+      const short = {
+        build: 'build the backend', hint: 'the next login command', ls: 'list files (ls -a: hidden)', cat: 'read a file', cd: 'change directory',
+        clear: 'clear the screen', game: 'play PH Origins', man: 'manual for a command',
+      };
+      const line = (n) => `  ${pad(COMMANDS[n].root ? '/' + n : n, 11)}${short[n]}`;
+      const names = sh.isRoot ? ['build', 'hint', 'ls', 'cat', 'cd', 'game', 'clear'] : ['hint', 'ls', 'cat', 'cd', 'game', 'clear', 'man'];
+      const lines = [...guideLines(sh), 'COMMANDS', ...names.map(line), sh.isRoot ? '  more: help all' : `  ${pad('help all', 11)}every command`];
       return [P(lines.join('\n'))];
     },
   },
