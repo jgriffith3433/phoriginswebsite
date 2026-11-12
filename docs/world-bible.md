@@ -52,7 +52,10 @@ floor to his own bed.
 - *Exists (horror lighting):* `src/game/b3Horror.ts` on `b3-basement` (skipped fear for The Return's powers look).
   Playtest `b3-horror-light`.
 - *Gap:* The Return runs the same rooms bright and empty (creature hidden): the biggest "demo" risk in the game.
-  Gen wet-surface albedos (concrete, grating, lab tile, algae wall) replace procedural stand-ins when credits allow.
+  Gen wet-surface albedos land under `assets/textures/b3/` (`wet-concrete`, `rust-grating`, `lab-tile`,
+  `algae-wall`, plus `-n`/`-r` maps and `-512` low-tier copies). The interior shader mixes them into EPOXY /
+  DIAMOND / LAB_FLOOR / LAB_TILE when each WebP loads (`b3Surf`); procedural stand-ins stay until then.
+  Authored `mat-b3-floor` points at the wet-concrete set once Gen imports.
 
 ### 3. The Return and The Desk (levels 3-4) - B3 hall, cab, Apex office, restroom mirror
 - **Mood:** too bright, too clean; powers grade over-lit. A man learning his own hands.

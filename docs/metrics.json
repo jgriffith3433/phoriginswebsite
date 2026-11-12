@@ -1,0 +1,20 @@
+{
+  "unit": "m",
+  "jumpHeight": 1.11,
+  "jumpDistance": 1.94,
+  "runSpeed": 3.05,
+  "corridorWidths": {
+    "min": 2.0,
+    "comfortable": 3.5,
+    "combat": 6.0,
+    "b3HallB": 4.85
+  },
+  "feel": {
+    "coyoteMs": 120,
+    "jumpBufferMs": 100,
+    "hitStopMs": 60,
+    "shakeMs": 120,
+    "shakeAmplitude": 0.15
+  },
+  "notes": "jumpHeight = JUMP_SPEED^2 / (2*22); jumpDistance at story walk speed 3.05 (sprint 1.75x ≈ 3.4 m). Coyote from JUMP_COYOTE 0.12 s."
+}
