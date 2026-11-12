@@ -99,6 +99,8 @@ export type ActHost = {
   fade: (to: number, seconds?: number) => void;
   raiseLight: () => void;
   showLine: (title: string, text: string) => void;
+  /** Bind an on-screen speaker's mouth / gaze (board murmurs while Pierce walks to the seat). */
+  faceSpeak?: (actor: string, url: string, holdSeconds?: number) => void;
   holdScene: (held: boolean) => void;
   arriveOffice: () => void;
   /** Hand input impairment to the player controller (null clears it). Used by the acid in the vat break. */
@@ -1127,6 +1129,10 @@ export const createAct1 = (host: ActHost) => {
     boardTalkIn = hall ? 6 + Math.random() * 2 : 11 + Math.random() * 7;
     if (!said) return;
     host.showLine(said.speaker, said.text);
+    // Face the murmur from a board seat so heads turn while Pierce walks in.
+    const seats = ['chair-s-1', 'chair-n-2', 'chair-s-3', 'chair-n-1', 'chair-s-2', 'chair-n-3'];
+    const seat = seats[Math.floor(Math.random() * seats.length)]!;
+    host.faceSpeak?.(seat, said.url, 3.6);
     host.playFile(said.url, 0.8, { x: BOARD_TABLE.x, y: 1.5, z: BOARD_TABLE.z });
     boardLineLeft = 3.6;
   };

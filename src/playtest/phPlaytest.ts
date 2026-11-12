@@ -136,6 +136,20 @@ export type PhProbe = {
   };
   life?: () => { people: { id: string; place: string; routine: string }[]; glanceCount: number; glances: { place: string; who: string }[]; touchCount: number; touchIds: string[]; touches: { place: string; id: string; motion: string; sound: string }[]; barks: { place: string; line: string }[]; maxQuietSeconds: number; touchables: { id: string; label: string; x: number; z: number; r: number }[]; interactShown: boolean; interactLabel: string };
   apexSlice?: () => { maxQuietSeconds: number; textOnlyBeats: number; events: number } | null;
+  /** Lip sync / blinks / look-at / gestures on registered speakers (`src/game/faceTalk.ts`). */
+  faces?: () => {
+    speaker: string | null;
+    speakers: {
+      id: string; speaking: boolean; mouth: number; shape: string; blinks: number;
+      lookYaw: number; lookPitch: number; gesture: string | null; gestures: string[];
+    }[];
+    gestures: string[];
+    blinks: number;
+    mouthEvents: number;
+    lookTurns: number;
+    updateMs: number;
+  };
+  resetFaces?: () => void;
   /** Board plot through the Apex hall: desk person, locked door, visible threat (null off that level). */
   boardHall?: () => { deskSeen: boolean; doorTried: boolean; threatSeen: boolean; deskAt: { x: number; z: number }; doorAt: { x: number; z: number; r: number }; threatAt: { x: number; z: number; r: number } } | null;
   pickups: () => { x: number; z: number; item: string }[];
@@ -1003,6 +1017,14 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 1 with Start (chapter card up while first-use warm runs and awaits audio decode), logs the warm event, resets the frame trace once Pierce can walk, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, resets the trace after control, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
         seconds: 240,
         tags: ['smoke', 'perf', 'level'],
+      },
+      {
+        id: 'board-faces',
+        title: 'Board meeting faces: lip sync, blinks, head look-at and three dialogue gestures',
+        description: 'Starts level 1 (test shortcut), answers Voss, walks to the head chair and presses Join meeting through real input. During room-for-grace it samples faces(): speaking mouths open with the voice, each seat blinks at least once every 6 s, heads turn toward the current speaker, and at least three different gesture ids play. Option phone: 390x844 touch layout; face updateMs must stay ≤ 2. Metrics: faceMouthEvents, faceBlinks, faceGestures, faceLookTurns, faceUpdateMs. Events: face-mouth, face-blink, face-look, face-gesture.',
+        seconds: 180,
+        tags: ['level', 'quality', 'characters'],
+        starts: ['board'],
       },
       {
         id: 'pierce-loco',
@@ -5950,6 +5972,129 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     t.scene('Title');
     t.event('title', probe.menu().title);
     await sleep(600);
+
+    if (id === 'board-faces') {
+      levelsTotal = 1;
+      const phone = Boolean(options.phone);
+      if (phone) {
+        probe.phoneFrame(true, true, { w: 390, h: 844 });
+        touchWalk = true;
+        t.event('setup', 'phone layout 390x844 (touch)');
+        await sleep(500);
+      }
+      t.scene('Level 1 board faces');
+      await enterLevel(1);
+      await waitControl('control on level 1');
+      probe.resetFaces?.();
+      t.event('play', 'walk to Join meeting');
+      const until = performance.now() + 90000;
+      let sceneSeen = 0;
+      while (performance.now() < until) {
+        await tick();
+        if (probe.cutscene()?.id === 'room-for-grace' || (probe.cutscene() && !sceneSeen)) {
+          if (!sceneSeen) {
+            sceneSeen = performance.now();
+            t.event('cutscene-start', probe.cutscene()?.id || 'board');
+            probe.resetFaces?.();
+          }
+          // Sample faces through the meeting; do not Skip until criteria are visible.
+          const face = probe.faces?.();
+          if (face) {
+            if (face.mouthEvents > 0) t.event('face-mouth', `mouthEvents ${face.mouthEvents}; speaker ${face.speaker ?? '—'}`);
+            if (face.blinks > 0) t.event('face-blink', `blinks ${face.blinks}`);
+            if (face.lookTurns > 0) t.event('face-look', `lookTurns ${face.lookTurns}`);
+            if (face.gestures.length) t.event('face-gesture', face.gestures.join(','));
+            t.metric('faceMouthEvents', face.mouthEvents);
+            t.metric('faceBlinks', face.blinks);
+            t.metric('faceGestures', face.gestures.length);
+            t.metric('faceLookTurns', face.lookTurns);
+            t.metric('faceUpdateMs', face.updateMs);
+            const elapsed = (performance.now() - sceneSeen) / 1000;
+            const mouthOk = face.speakers.some((s) => s.speaking && s.mouth > 0.08) || face.mouthEvents > 0;
+            const blinkOk = face.speakers.every((s) => s.blinks >= 1) || (elapsed >= 6 && face.blinks >= face.speakers.length);
+            const lookOk = face.lookTurns >= 1 || face.speakers.some((s) => Math.abs(s.lookYaw) > 0.05);
+            const gestOk = face.gestures.length >= 3;
+            if (mouthOk && blinkOk && lookOk && gestOk && elapsed >= 6) {
+              t.progress(0.9);
+              break;
+            }
+            // After ~45 s of the meeting, accept what we have and Skip.
+            if (elapsed > 45) break;
+          }
+          continue;
+        }
+        if (!probe.running() || probe.menu().open) continue;
+        const ph = probe.phone();
+        if (ph.incoming) {
+          releaseAll();
+          if (phone) {
+            const ans = document.getElementById('answerBtn');
+            if (ans) await tapAt(ans, 'Answer');
+            else await once('f', 1500, 'answer call');
+          } else await once('f', 1500, 'answer call');
+          t.event('call', ph.speaker || 'incoming');
+          continue;
+        }
+        if (ph.busy) { releaseAll(); continue; }
+        const label = probe.action();
+        if (label) {
+          releaseAll();
+          if (phone) {
+            const use = document.getElementById('interactBtn');
+            if (use && !use.hidden) await tapAt(use, label);
+            else if (await once('e', 1500, label)) t.event('action', label);
+          } else if (await once('e', 1500, label)) t.event('action', label);
+          continue;
+        }
+        const goal = probe.objective().target;
+        if (goal) await walkTo(goal, 'seat');
+      }
+      releaseAll();
+      const face = probe.faces?.();
+      if (!sceneSeen) t.problem('bug', 'board-faces: the board scene did not start');
+      if (!face) t.problem('bug', 'board-faces: faces() probe missing');
+      else {
+        t.metric('faceMouthEvents', face.mouthEvents);
+        t.metric('faceBlinks', face.blinks);
+        t.metric('faceGestures', face.gestures.length);
+        t.metric('faceLookTurns', face.lookTurns);
+        t.metric('faceUpdateMs', face.updateMs);
+        t.event('faces', JSON.stringify({
+          speaker: face.speaker,
+          gestures: face.gestures,
+          blinks: face.blinks,
+          mouthEvents: face.mouthEvents,
+          lookTurns: face.lookTurns,
+          updateMs: face.updateMs,
+          speakers: face.speakers.map((s) => ({ id: s.id, mouth: s.mouth, blinks: s.blinks, lookYaw: s.lookYaw, gestures: s.gestures })),
+        }));
+        if (face.mouthEvents < 1 && !face.speakers.some((s) => s.mouth > 0.08)) {
+          t.problem('bug', 'board-faces: no speaking mouth opened during the meeting');
+        }
+        if (face.blinks < 1) t.problem('bug', 'board-faces: no blinks recorded during the meeting');
+        if (face.gestures.length < 3) {
+          t.problem('bug', `board-faces: only ${face.gestures.length} gesture(s) played (need 3+)`);
+        }
+        if (face.lookTurns < 1 && !face.speakers.some((s) => Math.abs(s.lookYaw) > 0.05)) {
+          t.problem('bug', 'board-faces: no head look-at toward a speaker');
+        }
+        if (phone && face.updateMs > 2.05) {
+          t.problem('bug', `board-faces: face update cost ${face.updateMs} ms on phone (limit 2)`);
+        }
+      }
+      const skip = probe.skipButton;
+      if (skip && !skip.disabled && skip.offsetParent) press(skip, 'Skip');
+      await sleep(800);
+      if (phone) probe.phoneFrame(false);
+      t.progress(1);
+      const lookOk = !!face && (face.lookTurns >= 1 || face.speakers.some((s) => Math.abs(s.lookYaw) > 0.05));
+      const ok = !!sceneSeen && !!face && face.gestures.length >= 3 && face.blinks >= 1
+        && (face.mouthEvents >= 1 || face.speakers.some((s) => s.mouth > 0.08))
+        && lookOk
+        && (!phone || face.updateMs <= 2.05);
+      t.finish(ok ? 'won' : 'lost');
+      return;
+    }
 
     if (id === 'hitch-board') {
       levelsTotal = 4; // L1 desktop board walk + phone L1/4/8
