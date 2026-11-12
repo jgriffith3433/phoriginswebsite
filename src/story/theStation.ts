@@ -50,6 +50,18 @@ export type TheStationHost = {
   power?: (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'station-platform',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
   ringCall: (id: string) => void;
@@ -362,7 +374,43 @@ export const createTheStation = (host: TheStationHost) => {
     lineUntil = sceneTime + hold;
   };
 
-  const frameShot = () => {
+  const frameShot = (dt = 0.016) => {
+    if (host.stepCineScene) {
+      const man = figures.find((figure) => figure.role === 'man');
+      const doubleFig = figures.find((figure) => figure.role === 'double');
+      const spk = sceneTime >= T_LEFT
+        ? 'Passerby'
+        : sceneTime >= T_SEAT
+          ? 'Pierce'
+          : sceneTime >= T_MINE
+            ? 'Passerby'
+            : 'Pierce';
+      const lineKey = sceneTime >= T_LEFT
+        ? LINE_LEFT.id
+        : sceneTime >= T_SEAT
+          ? LINE_SEAT.id
+          : sceneTime >= T_MINE
+            ? LINE_MINE.id
+            : sceneTime >= T_UPTOWN
+              ? LINE_UPTOWN.id
+              : sceneTime >= T_HERE
+                ? LINE_HERE.id
+                : sceneTime >= T_ME
+                  ? LINE_ME.id
+                  : 'station.open';
+      const spkPos = sceneTime >= 21.2 && man && !man.gone
+        ? { x: man.mesh.position.x, y: 1.38, z: man.mesh.position.z }
+        : sceneTime >= 12.9 && doubleFig && !doubleFig.gone
+          ? { x: doubleFig.mesh.position.x, y: 1.38, z: doubleFig.mesh.position.z }
+          : { x: SPAWN.x, y: 1.42, z: SPAWN.z };
+      host.stepCineScene('station-platform', sceneTime, dt, {
+        applyCamera: true,
+        speaker: spk,
+        lineKey,
+        speakerPosOverride: spkPos,
+      });
+      return;
+    }
     if (sceneTime < T_UPTOWN) {
       host.frameCamera({ x: 3.6, y: 2.35, z: -0.15 }, { x: 30, y: 1.15, z: -0.9 });
       return;
@@ -407,6 +455,7 @@ export const createTheStation = (host: TheStationHost) => {
     clearFigures();
     host.showLine('', '');
     host.setWalk(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     host.holdScene(false);
     host.placePierce(SPAWN.x, SPAWN.z, SPAWN.yaw);
@@ -534,7 +583,7 @@ export const createTheStation = (host: TheStationHost) => {
         return;
       }
     }
-    frameShot();
+    frameShot(dt);
     if (!saidMe && sceneTime >= T_ME) {
       saidMe = true;
       say(lineSpeaker(LINE_ME.id, 'Pierce'), lineText(LINE_ME.id), lineAudio(LINE_ME.id), LINE_ME.hold);

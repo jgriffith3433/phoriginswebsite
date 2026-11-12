@@ -28,6 +28,18 @@ export type DeskHost = {
   playClip: (clip: string, loop: boolean, speed?: number) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'mirror',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   /** Keep the follow camera's heading fixed (the stick walks relative to it). */
   faceCamera: (yaw: number) => void;
   fade: (to: number, seconds?: number) => void;
@@ -720,6 +732,12 @@ export const createTheDesk = (host: DeskHost) => {
     host.faceCamera(MIRROR.yaw);
     if (!doubleShown && doubleReady) showDouble(true);
     mirrorCamera(here.x, here.z);
+    host.stepCineScene?.('mirror', beatT, dt, {
+      applyCamera: false,
+      speaker: 'Pierce',
+      lineKey: thatsMeAt >= 0 ? 'dialogue.return.mirror' : turnT >= 0 ? 'desk.mirror.turn' : 'desk.mirror.breath',
+      speakerPosOverride: { x: here.x, y: 1.46, z: here.z },
+    });
     const ramp = smooth((beatT - LAG_RAMP_FROM) / LAG_RAMP_FOR);
     lag = turnedAt >= 0 && beatT > turnedAt + 2.4
       ? Math.max(0, lag - dt * 0.6)
@@ -765,6 +783,7 @@ export const createTheDesk = (host: DeskHost) => {
       quiet(false);
       headAngle = 0;
       showDouble(false);
+      host.endCineScene?.(false);
       host.releaseCamera();
       phase = 'walk';
       clock = 0;
