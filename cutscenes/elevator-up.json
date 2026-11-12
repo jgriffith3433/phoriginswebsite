@@ -3,7 +3,7 @@
   "name": "Up",
   "duration": 69,
   "reequip": false,
-  "notes": "The return ride. Same cab timing as elevator-b3, floors run B3 → 58 in code. Pierce questions what happened on the way up. Anim stays rebornidle.",
+  "notes": "The return ride. Same cab timing as elevator-b3, floors run B3 \u2192 58 in code. Pierce questions what happened on the way up. Anim stays rebornidle.",
   "events": [
     {
       "at": 0,
@@ -40,7 +40,7 @@
       "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.7
+      "volume": 0.4
     },
     {
       "at": 4,
@@ -62,7 +62,7 @@
       "clip": "/assets/audio/cutscenes/elevator-b3/doors.wav",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.65
+      "volume": 0.4
     },
     {
       "at": 7,
@@ -174,7 +174,7 @@
       "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.82
+      "volume": 0.45
     },
     {
       "at": 69,

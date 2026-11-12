@@ -447,8 +447,9 @@ export const playClip = (
   const ctx = getSharedAudioContext();
   if (!ctx) return null;
   const gain = ctx.createGain();
-  gain.gain.value = clamp(volume);
   const isVoice = !options.loop && options.bus !== 'music' && !options.destination && isVoiceUrl(url);
+  volume = sceneGain(url, volume, options.loop === true, options.bus, isVoice);
+  gain.gain.value = clamp(volume);
   let graph: SourceHandle | null = null;
   if (options.destination) {
     gain.connect(options.destination);
@@ -532,6 +533,47 @@ export const playClip = (
     },
     done: () => clip.finished,
   };
+};
+
+/**
+ * Cutscene mix (one shared rule). While a cutscene or scripted scene is up (`setSceneMixProbe`), a one-shot that
+ * is not a voice line is held under SCENE_SFX_CEILING, 4.5 dB or more below the quietest scene voice gain (0.85),
+ * so a voice line is always the loudest thing; the voice bus already ducks effects while a line sounds
+ * (`setVoiceActive`). Loops and beds (hum, rumble, room tone) keep their own level. Gameplay outside a scene is
+ * untouched. Every capped or passed clip is logged for the probe's `mix`.
+ */
+export const SCENE_SFX_CEILING = 0.5;
+export const SCENE_VOICE_FLOOR = 0.85;
+let sceneProbe: (() => boolean) | null = null;
+export const setSceneMixProbe = (probe: (() => boolean) | null) => { sceneProbe = probe; };
+export type SceneMixEntry = { url: string; kind: 'voice' | 'sfx'; asked: number; gain: number; capped: boolean; t: number };
+const sceneMixLog: SceneMixEntry[] = [];
+export const sceneMix = () => {
+  const sfx = sceneMixLog.filter((e) => e.kind === 'sfx');
+  const voice = sceneMixLog.filter((e) => e.kind === 'voice');
+  const maxSfx = sfx.reduce((m, e) => Math.max(m, e.gain), 0);
+  const minVoice = voice.reduce((m, e) => Math.min(m, e.gain), Infinity);
+  return {
+    entries: sceneMixLog.slice(),
+    maxSfx,
+    minVoice: Number.isFinite(minVoice) ? minVoice : 0,
+    sfxToVoiceDb: voice.length && maxSfx > 0 ? 20 * Math.log10(maxSfx / minVoice) : null,
+    capped: sfx.filter((e) => e.capped).length,
+  };
+};
+export const clearSceneMix = () => { sceneMixLog.length = 0; };
+const sceneGain = (url: string, volume: number, loop: boolean, bus: SoundBus | undefined, voice: boolean): number => {
+  if (!sceneProbe || !sceneProbe()) return volume;
+  if (voice) {
+    sceneMixLog.push({ url: clean(url), kind: 'voice', asked: volume, gain: volume, capped: false, t: performance.now() / 1000 });
+  } else if (!loop && bus !== 'music' && !isPhoneUrl(url)) {
+    const gain = Math.min(volume, SCENE_SFX_CEILING);
+    sceneMixLog.push({ url: clean(url), kind: 'sfx', asked: volume, gain, capped: gain < volume, t: performance.now() / 1000 });
+    if (sceneMixLog.length > 300) sceneMixLog.shift();
+    return gain;
+  }
+  if (sceneMixLog.length > 300) sceneMixLog.shift();
+  return volume;
 };
 
 /** Pause holds every Web Audio clip where it is; release picks each one up from there. */

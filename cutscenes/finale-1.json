@@ -33,7 +33,7 @@
       "clip": "/assets/audio/cutscenes/elevator-b3/beep.wav",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.5
+      "volume": 0.35
     },
     {
       "at": 0.7,
@@ -61,7 +61,7 @@
       "clip": "/assets/audio/sfx/apex/troffer-flicker.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.5
+      "volume": 0.35
     },
     {
       "at": 5.3,

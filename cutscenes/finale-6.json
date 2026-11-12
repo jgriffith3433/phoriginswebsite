@@ -32,7 +32,7 @@
       "clip": "/assets/audio/sfx/station/pa-chime.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.7
+      "volume": 0.45
     },
     {
       "at": 0.9,
@@ -47,7 +47,7 @@
       "clip": "/assets/audio/sfx/apex/screen-tap.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.5
+      "volume": 0.3
     },
     {
       "at": 1.05,
@@ -55,7 +55,7 @@
       "clip": "/assets/audio/sfx/apex/screen-tap.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.5
+      "volume": 0.3
     },
     {
       "at": 1.2,
@@ -63,7 +63,7 @@
       "clip": "/assets/audio/sfx/apex/screen-tap.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.5
+      "volume": 0.3
     },
     {
       "at": 1.5,
@@ -78,7 +78,7 @@
       "clip": "/assets/audio/sfx/phone/hangup.wav",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.4
+      "volume": 0.3
     },
     {
       "at": 5.2,
