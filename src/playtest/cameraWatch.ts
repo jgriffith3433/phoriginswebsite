@@ -6,6 +6,7 @@
  * and the lens (occluder), the fraction of the frame within 0.5 m of a surface (near-wall coverage),
  * yaw/pitch snaps over 30 degrees, and back-and-forth jitter. The worst frames keep a screenshot.
  */
+import { isStructureMesh } from '../game/cameraVolumes';
 import { Ray, Vector3, type AbstractMesh, type Scene } from '@babylonjs/core';
 
 export type CamKind = 'inside' | 'near' | 'blocked' | 'nearwall' | 'snap' | 'jitter';
@@ -25,6 +26,8 @@ export type CamSummary = {
   inside: number;
   near: number;
   blocked: number;
+  /** Frames with the lens inside, or behind, a wall / door / glass mesh (the hard criterion: must be 0). */
+  behindWall: number;
   nearWall: number;
   snaps: number;
   jitter: number;
@@ -62,7 +65,7 @@ export const installCameraWatch = (o: CamWatchOptions) => {
   let started = t0();
 
   function fresh(): CamSummary {
-    return { frames: 0, inside: 0, near: 0, blocked: 0, nearWall: 0, snaps: 0, jitter: 0, maxCoverage: 0, meanCoverage: 0, worst: [] };
+    return { frames: 0, inside: 0, near: 0, blocked: 0, behindWall: 0, nearWall: 0, snaps: 0, jitter: 0, maxCoverage: 0, meanCoverage: 0, worst: [] };
   }
 
   const hit = (scene: Scene, from: Vector3, dir: Vector3, len: number) => {
@@ -125,12 +128,16 @@ export const installCameraWatch = (o: CamWatchOptions) => {
     const axes = [Vector3.Right(), Vector3.Left(), Vector3.Up(), Vector3.Down(), Vector3.Forward(), Vector3.Backward()];
     let nearest = Infinity;
     let inside = false;
+    let wallFrame = false;
     for (const a of axes) {
       const h = hit(scene, lens, a, NEAR);
       if (!h) continue;
       nearest = Math.min(nearest, h.distance);
       const n = h.getNormal(true, true);
-      if (h.distance < INSIDE || (n && Vector3.Dot(n, a) > 0.2)) inside = true;
+      if (h.distance < INSIDE || (n && Vector3.Dot(n, a) > 0.2)) {
+        inside = true;
+        if (h.pickedMesh && isStructureMesh(h.pickedMesh)) wallFrame = true;
+      }
     }
     if (inside) { sum.inside += 1; flag(scene, 'inside', 3, 'lens inside geometry', lens); }
     else if (nearest < NEAR) { sum.near += 1; flag(scene, 'near', 1 + (NEAR - nearest) / NEAR, `lens ${nearest.toFixed(2)} m from geometry`, lens); }
@@ -139,8 +146,13 @@ export const installCameraWatch = (o: CamWatchOptions) => {
     const gap = toLens.length();
     if (gap > 0.4) {
       const h = hit(scene, eye, toLens.normalize(), gap - 0.1);
-      if (h) { sum.blocked += 1; flag(scene, 'blocked', 2 + (1 - h.distance / gap), `${h.pickedMesh?.name ?? '?'} between eye and lens`, lens); }
+      if (h) {
+        if (h.pickedMesh && isStructureMesh(h.pickedMesh)) wallFrame = true;
+        sum.blocked += 1; flag(scene, 'blocked', 2 + (1 - h.distance / gap), `${h.pickedMesh?.name ?? '?'} between eye and lens`, lens);
+      }
     }
+
+    if (wallFrame) { sum.behindWall += 1; o.emit('camera-behindwall', `${o.label()} lens inside or behind a wall/door at ${lens.x.toFixed(1)},${lens.z.toFixed(1)}`); }
 
     // Near-wall coverage: a 5x5 fan of rays across the view, counted when it stops within 0.5 m.
     const right = cam.getDirection(Vector3.Right());

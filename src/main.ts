@@ -21,6 +21,7 @@ import { callQuestOpen, missionCallId, missionLabel, missionsFor } from './game/
 import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, flyPlayer, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
+import { isStructureMesh } from './game/cameraVolumes';
 import { createTitleScene } from './game/titleScene';
 import { installMenuNav, installMenuSounds, menuSoundLog } from './game/menuNav';
 import { lineText } from './game/locale';
@@ -6450,7 +6451,8 @@ installPhPlaytest({
       const meta = mesh.metadata as { pickup?: unknown; cameraFade?: number } | undefined;
       if (meta?.pickup) return false;
       // Intentionally see-through for the follow camera: do not count as camera-blocked.
-      if (followCamera.isOcclusionFaded(mesh) || (meta?.cameraFade ?? 0) > 0.35) return false;
+      // Architecture never counts as see-through: a lens behind a wall or door is a failure.
+      if (!isStructureMesh(mesh) && (followCamera.isOcclusionFaded(mesh) || (meta?.cameraFade ?? 0) > 0.35)) return false;
       return !FEEL_SKIP.test(mesh.name);
     },
   },

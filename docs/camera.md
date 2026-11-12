@@ -16,7 +16,7 @@ Idle look settles back behind Pierce after about **2 s** (`idleRecenterDelay`). 
 
 **Occlusion fade:** discrete door GLBs and props on the eye→lens line fade to about **25%** via **mesh visibility**
 (never shared `material.alpha`). The merged `interior-dress` kit is one mesh for a whole floor — it is not faded
-(hallway boom framing owns plaster walls). The boom treats a faded mesh as see-through. **Boom collision and a light
+(hallway boom framing owns plaster walls). The boom treats a faded mesh as see-through. **Walls, floors, doors and glass never fade** (`isStructureMesh` in `cameraVolumes.ts`) and the boom always collides with them: a faded wall used to count as see-through, which let the lens pass through it (the wall-clip regression). **Boom collision and a light
 near-plane shove are last resort only** — do not grow `clearancePush` reach again (that was the forbidden shortcut).
 
 Volumes are authored from room bounds (Apex, B3, Station, Train, Morning). Doorway slabs sit on thresholds and win on
@@ -63,3 +63,5 @@ pre-volume builds are gone.
 | 6 The Station | 80 | 140 | 180 | 100 | 6 | 3 |
 | 7 The Train | 60 | 100 | 120 | 80 | 6 | 3 |
 | 8 The Morning | 50 | 90 | 100 | 70 | 4 | 2 |
+
+`cameraBehindWall` (explore-cam-lN, option `phone` for 390x844 touch): frames with the lens inside or behind a wall/door/glass mesh. Must be 0; the detector no longer treats faded architecture as see-through. A hard eye-to-lens stop now also feeds `squeeze`, so the yaw swings behind Pierce's heading at a corner on the next frame.
