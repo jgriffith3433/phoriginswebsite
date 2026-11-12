@@ -6335,6 +6335,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     if (exploreN > 0) {
       levelsTotal = 1;
       const feel = probe.feel;
+      const camPhone = Boolean(options.phone);
+      if (camPhone) { probe.phoneFrame(true); await sleep(600); }
       let fadedPeak = 0;
       let hallwayFrames = 0;
       const cw = installCameraWatch({
@@ -6434,12 +6436,15 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.metric('cameraInside', sum.inside);
       t.metric('cameraNear', sum.near);
       t.metric('cameraBlocked', sum.blocked);
+      t.metric('cameraBehindWall', sum.behindWall);
       t.metric('cameraNearWall', sum.nearWall);
       t.metric('cameraSnaps', sum.snaps);
       t.metric('cameraJitter', sum.jitter);
       t.metric('cameraMaxCoverage', Math.round(sum.maxCoverage * 100) / 100);
       t.metric('cameraFadedPeak', fadedPeak);
       t.metric('cameraHallwayFrames', hallwayFrames);
+      if (camPhone) probe.phoneFrame(false);
+      if (sum.behindWall > 0) t.problem('bug', `camera inside or behind a wall/door on ${LEVEL_NAMES[exploreN - 1]}: ${sum.behindWall} frames`);
       t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })), fadedPeak, hallwayFrames }));
       sum.worst.forEach((w, i) => { if (w.shot) t.event('camera-screenshot', JSON.stringify({ rank: i + 1, kind: w.kind, detail: w.detail, image: w.shot })); });
       if (sum.inside > 0) t.problem('bug', `camera inside geometry on ${LEVEL_NAMES[exploreN - 1]}: ${sum.inside} frames`);
@@ -6453,7 +6458,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         t.problem('bug', `cameraBlocked ${sum.blocked} on L${exploreN} exceeds 10% of baseline ${base.blocked} (cap ${blockedCap})`);
       }
       t.progress(1);
-      t.finish(sum.inside <= insideCap && sum.blocked <= blockedCap ? 'done' : 'lost');
+      t.finish(sum.inside <= insideCap && sum.blocked <= blockedCap && sum.behindWall === 0 ? 'done' : 'lost');
       return;
     }
 
