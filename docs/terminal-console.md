@@ -156,3 +156,8 @@ Tab, up, down, ^C, each 44 px, 8 px gap), no horizontal scroll (ASCII art hidden
 without earlier steps, the whole documented chain, throttle, root commands, build determinism and timing, the flood, the rasteriser (a left and a right blob in every pose on 40x20, 80x24, 40x60, left centre left of right centre, frames differ in small steps), eggs).
 Playtest `terminal` and `terminal-phone` (see `src/playtest/phPlaytest.ts`); Studio runs them, nobody starts a browser
 by hand.
+
+## Root-only login and the /build show (current)
+
+- `root` is the only account that can be logged into. `su`/`login`/`ssh` to any other user (guest, admin, kali...) fail in-world; root is reached only through the five GUIDE steps (hat, scan, loot, crack, root). Root commands (`/build /status /deploy /logs /services /rollback`) refuse in one line that names the guide's next step.
+- `/build`: log flood (1,600+ lines/s) -> `song.mp3` -> flipbook at 16 fps: Michael Jackson silhouette (fedora, glove, moonwalk/lean/spin) on the left, Michael Jordan (Jumpman leap, dunk at a hoop, crossover) on the right, dense glyph fill, tight crop on a portrait phone. Screenshots: `docs/terminal-shots/`.

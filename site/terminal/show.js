@@ -68,7 +68,7 @@ export function createShow({ root, doc, muted = false }) {
     // Text size: at least 10 px (phones), up to 14 px on a wide screen. The cell is measured, not assumed.
     const w = Math.max(1, b.stage.clientWidth || root.clientWidth || 390);
     const h = Math.max(1, b.stage.clientHeight || 600);
-    const px = Math.max(10, Math.min(14, Math.floor(w / 80)));
+    const px = Math.max(8, Math.min(14, Math.floor(w / 80)));
     b.wrap.style.setProperty('--show-px', `${px}px`);
     const probe = el(doc, 'span', { className: 'show-probe', textContent: 'M'.repeat(40) });
     b.stage.append(probe);

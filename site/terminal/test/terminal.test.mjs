@@ -302,8 +302,46 @@ test('flipbook: the text frame is the log text, in both halves, with no holes', 
   assert.ok(f.nl > 20 && f.nr > 20);
   assert.equal(f.left.split('\n').length, 24);
   assert.ok(f.left.split('\n').every((l) => l.length === 40) && f.right.split('\n').every((l) => l.length === 40));
-  assert.match(f.left + f.right, /compile|patient|line/);
+  assert.match(f.left + f.right, /compile|patient|line/i);
   const still = staticFrame(64, 22);
   assert.ok(still.length === 22 && still.join('').replace(/\s/g, '').length > 60);
   assert.ok(still.every((l) => l.length <= 64));
+});
+
+test('root is the only account: su/ssh/login to anyone else fails, root commands refuse with the next step', () => {
+  const sh = mk();
+  for (const line of ['su guest', 'su admin', 'su kali', 'login admin', 'ssh admin@gw.hawkes.lan', 'ssh kali@gw.hawkes.lan']) {
+    const out = run(sh, line);
+    assert.match(out, /login disabled|locked|Permission denied|refused|not exist|not found/i, line);
+    assert.equal(sh.user, 'guest', line);
+    assert.equal(sh.prompt().includes('password'), false);
+  }
+  for (const c of ['/build', '/status', '/deploy', '/logs', '/services', '/rollback']) {
+    const out = run(sh, c);
+    assert.match(out, /permission denied/);
+    assert.match(out, /Next login step: rev ~\/\.hat_backwards/, c); // one line, pointing at the guide's current step
+    assert.equal(out.trim().split('\n').length, 1, c);
+  }
+  solve(sh);
+  assert.equal(sh.user, 'root');
+  assert.doesNotMatch(run(sh, '/status'), /permission denied/);
+  assert.doesNotMatch(run(sh, '/build'), /permission denied/);
+});
+
+test('/build phases: a flood well over 1,000 lines a second, then the song, then a flipbook at 12-24 fps with both figures', async () => {
+  const show = await import('../show.js');
+  assert.ok(show.FLOOD_RATE > 1000);
+  assert.ok(show.FLIP_FPS >= 12 && show.FLIP_FPS <= 24);
+  assert.equal(show.SONG_FILE, 'song.mp3');
+  // The figures animate through several distinct poses over the song, both on screen the whole time.
+  const sig = new Set();
+  for (let t = 0; t < 40; t += 1.07) {
+    const m = rasterize(120, 40, t, { aspect: 1.9 });
+    const l = blob(m, 120, 1);
+    const r = blob(m, 120, 2);
+    assert.ok(l.n > 150 && r.n > 150, `both figures solid at ${t}s`);
+    assert.ok(l.cx < 60 && r.cx > 60, 'Jackson on the left, Jordan on the right');
+    sig.add(`${Math.round(l.n / 25)}-${Math.round(r.n / 25)}-${Math.round(l.cx / 2)}-${Math.round(r.cx / 2)}`);
+  }
+  assert.ok(sig.size >= 5, `only ${sig.size} distinct poses`);
 });

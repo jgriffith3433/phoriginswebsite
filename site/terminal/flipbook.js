@@ -32,18 +32,18 @@ export const POSES_MJ = [
 
 export const POSES_JORDAN = [
   P({ t: 18, h: 5, a1: [25, 5], a2: [80, 100], l1: [55, -5], l2: [-20, -45], ball: [0, 0.02, -0.14] }), // dribble crouch
-  P({ t: 15, h: 0, a1: [40, 30], a2: [100, 60], l1: [85, 10], l2: [-5, -5], ball: [0, 0.05, -0.1] }), // drive, knee up
-  P({ t: -8, h: 10, a1: [150, 175], a2: [-105, -105], l1: [75, 15], l2: [-70, -80], lift: 0.5, ball: [0, 0, 0.12] }), // the Jumpman leap
-  P({ t: 6, h: 10, a1: [155, 172], a2: [145, 170], l1: [55, -10], l2: [-25, -60], lift: 0.6, ball: [0.5, 0.02, 0.13] }), // the dunk
-  P({ t: -22, h: -15, a1: [165, 185], a2: [100, 60], l1: [40, 15], l2: [-5, -20], lift: 0.45, ball: [0, 0, 0.12] }), // fadeaway jumper
-  P({ t: 12, h: 5, a1: [140, 160], a2: [120, 140], l1: [60, -5], l2: [40, -10], ball: [0, 0.3, 0.6] }), // landing, the ball is up and away
-  P({ t: 5, h: 0, a1: [40, 100], a2: [50, 105], l1: [30, 10], l2: [-20, -10], ball: [0.5, 0.08, 0] }), // triple threat
+  P({ t: 15, h: 0, a1: [30, 20], a2: [100, 70], l1: [85, 10], l2: [-5, -5], ball: [1, 0.02, -0.12] }), // crossover drive, knee up
+  P({ t: -8, h: -4, a1: [125, 160], a2: [-70, -100], l1: [75, -10], l2: [-60, -85], lift: 0.5, ball: [0, 0.02, 0.14] }), // the Jumpman leap
+  P({ t: 2, h: 0, a1: [110, 150], a2: [-40, -60], l1: [25, -5], l2: [-30, -30], lift: 0.3, x: 0.3, ball: [0, 0, 0.14] }), // the dunk, ball over the rim
+  P({ t: -25, h: -15, a1: [150, 170], a2: [100, 70], l1: [45, 10], l2: [-5, -25], lift: 0.4, ball: [0, 0.02, 0.14] }), // fadeaway jumper
+  P({ t: 8, h: 5, a1: [100, 70], a2: [-80, -60], l1: [20, -5], l2: [-20, -10], ball: [0, 0.35, 0.55] }), // landing, the ball bounces away
+  P({ t: 8, h: 0, a1: [40, 100], a2: [50, 105], l1: [30, 10], l2: [-20, -10], ball: [0.5, 0.08, 0] }), // triple threat
   P({ t: -5, h: 0, a1: [60, 80], a2: [40, 70], l1: [40, 5], l2: [-40, -5], ball: [0, 0.05, -0.05] }), // pivot
 ];
 
 export const FIGURES = {
   mj: { poses: POSES_MJ, hat: true, ball: false, torso: [0.13, 0.15], thigh: [0.11, 0.09], shin: [0.08, 0.06], arm: [0.065, 0.055] },
-  mjd: { poses: POSES_JORDAN, hat: false, ball: true, torso: [0.17, 0.2], thigh: [0.14, 0.11], shin: [0.085, 0.065], arm: [0.07, 0.06] },
+  mjd: { poses: POSES_JORDAN, hat: false, ball: true, torso: [0.14, 0.17], thigh: [0.12, 0.095], shin: [0.08, 0.06], arm: [0.065, 0.055] },
 };
 
 const rad = (d) => (d * Math.PI) / 180;
@@ -84,14 +84,14 @@ export function skeleton(pose, fig) {
   const pel = [pose.x, -low + pose.lift];
   const j = rel(pel);
   const caps = [];
-  const cap = (a, b, [ra, rb]) => caps.push([a[0], a[1], b[0], b[1], ra, rb]);
+  const cap = (a, b, [ra, rb], k = FAT) => caps.push([a[0], a[1], b[0], b[1], ra * k, rb * k]);
   cap(pel, j.sh, fig.torso);
   cap(j.sh, j.headC, [0.045, 0.05]);
-  cap(j.headC, j.headC, [L.head, L.head]);
+  cap(j.headC, j.headC, [L.head, L.head], 1.15);
   for (const [el, hand] of j.arms) {
     cap(j.sh, el, fig.arm);
     cap(el, hand, [fig.arm[1], fig.arm[1] - 0.005]);
-    cap(hand, hand, [0.05, 0.05]);
+    cap(hand, hand, [0.075, 0.075], 1.1); // the raised glove / the hand on the ball
   }
   for (const [kn, an, toe] of j.legs) {
     cap(pel, kn, fig.thigh);
@@ -101,22 +101,28 @@ export function skeleton(pose, fig) {
   if (fig.hat) {
     const d = pose.h + pose.hat; // a tilted fedora
     const base = add(j.headC, up(d), 0.085);
-    cap(base, add(base, up(d), 0.09), [0.095, 0.085]); // crown
+    cap(base, add(base, up(d), 0.15), [0.1, 0.09], 1.25); // crown
     const side = [Math.cos(rad(d)), -Math.sin(rad(d))];
-    cap(add(base, side, -0.22), add(base, side, 0.22), [0.03, 0.03]); // brim
+    cap(add(base, side, -0.34), add(base, side, 0.34), [0.05, 0.05], 1); // brim
   }
   if (fig.ball) {
     const [w, dx, dy] = pose.ball;
     const h1 = j.arms[0][1];
     const h2 = j.arms[1][1];
     const c = [lerp(h1[0], h2[0], w) + dx, lerp(h1[1], h2[1], w) + dy];
-    cap(c, c, [0.125, 0.125]);
+    cap(c, c, [0.125, 0.125], 1.1);
+    // the hoop: backboard, rim and a net, in front of him (the right-hand figure is mirrored to face left)
+    cap([1.0, 2.0], [1.0, 2.65], [0.035, 0.035], 1);
+    cap([0.62, 2.2], [0.97, 2.2], [0.035, 0.035], 1);
+    cap([0.64, 2.18], [0.75, 1.9], [0.018, 0.018], 1);
+    cap([0.95, 2.18], [0.84, 1.9], [0.018, 0.018], 1);
   }
   return caps;
 }
 
 // World box each figure is fitted into (the same for both, so they read at the same scale).
-const VIEW = { w: 2.5, yMin: -0.05, yMax: 2.65 };
+const VIEW = { w: 2.5, yMin: -0.05, yMax: 2.7 };
+const FAT = 1.12; // limbs and torso are drawn thick: a silhouette is a solid shape, not a stick figure
 
 /**
  * Rasterise both figures into a cols x rows grid. 0 = empty, 1 = left figure (dancer), 2 = right figure (player).
@@ -126,11 +132,13 @@ export function rasterize(cols, rows, time, { aspect = 2 } = {}) {
   const mask = new Uint8Array(cols * rows);
   const half = Math.floor(cols / 2);
   const physH = rows * aspect;
-  const scaleFor = (w) => Math.min(w / VIEW.w, physH / (VIEW.yMax - VIEW.yMin));
+  // A tall, narrow screen (a phone held upright) is width-limited: crop the empty margin so the figures still fill it.
+  const vw = physH > cols * 1.5 ? 1.75 : VIEW.w;
+  const scaleFor = (w) => Math.min(w / vw, physH / (VIEW.yMax - VIEW.yMin));
   const beat = time / BEAT_SEC;
-  const draw = (fig, beatShift, x0, w, mirror, id) => {
+  const draw = (fig, beatShift, x0, w, mirror, id, shift = 0) => {
     const s = scaleFor(w);
-    const cx = x0 + w / 2;
+    const cx = x0 + w / 2 + shift * s;
     const top = (physH - (VIEW.yMax - VIEW.yMin) * s) / 2;
     const b = beat + beatShift;
     const pose = poseAt(fig.poses, b);
@@ -160,8 +168,8 @@ export function rasterize(cols, rows, time, { aspect = 2 } = {}) {
       }
     }
   };
-  draw(FIGURES.mj, 0, 0, half, false, 1);
-  draw(FIGURES.mjd, 1, half, cols - half, true, 2);
+  draw(FIGURES.mj, 0, 0, half, false, 1, -0.05);
+  draw(FIGURES.mjd, 1, half, cols - half, true, 2, 0.45);
   return mask;
 }
 
@@ -199,7 +207,7 @@ export function composeFrame(mask, cols, rows, src) {
     const row = rowsText[r];
     for (let c = 0; c < cols; c += 1) {
       const id = mask[r * cols + c];
-      const ch = id ? (row[c] === ' ' ? '.' : row[c]) : ' ';
+      const ch = id ? (/[a-z0-9]/i.test(row[c]) ? row[c].toUpperCase() : '#') : ' '; // upper case reads denser; gaps are solid
       if (c < half) { l += ch; if (id) nl += 1; } else { rr += ch; if (id) nr += 1; }
     }
     left.push(l);

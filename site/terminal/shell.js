@@ -128,7 +128,8 @@ export class Shell {
       return [P(`${c.cmd}: command not found${tip}`, 'err')];
     }
     if (def.root && !this.isRoot) {
-      return [P(`${c.cmd}: permission denied (${this.user}). The backend only answers to root.`, 'err'), P('hint: type  /help  - the LOGIN GUIDE gives the exact next command.', 'dim')];
+      const cur = this.puzzle.current;
+      return [P(`${c.cmd}: permission denied (${this.user}). Only root can run this. ${cur ? `Next login step: ${GUIDE[cur].cmd}` : 'Log in as root first.'}`, 'err')];
     }
     const res = def.run(this, c.args, stdin);
     return typeof res === 'string' ? [P(res)] : (res || []);
@@ -772,6 +773,7 @@ const COMMANDS = {
       if (host !== TARGET_HOST) return [P(`ssh: Could not resolve hostname ${host}: Name or service not known`, 'err')];
       if (!sh.puzzle.has('scan')) return [P(`ssh: connect to host ${host} port 22: Connection refused`, 'err'), P('(you have not knocked yet. scan first.)', 'dim'), nextPointer(sh)];
       if (sh.user === 'ops') return [P('already logged in as ops. (inception is not supported.)', 'dim')];
+      if (user && user !== 'ops') return [P(`${user}@${host}: Permission denied (publickey). Only the staging admin account may log in here.`, 'err'), nextPointer(sh)];
       const wait = sh.throttle();
       if (wait > 0) return [P(`ssh: too many attempts. the gateway rolls its eyes. try again in ${wait}s.`, 'err')];
       sh.ask(`${user || sh.user}@${host}'s password:`, (pw, s) => {
@@ -791,7 +793,7 @@ const COMMANDS = {
     run(sh, args) {
       const who = args[0] || 'root';
       if (sh.isRoot) return [P('su: you are already root. what more do you want?', 'dim')];
-      if (!USERS[who]) return [P(`su: user ${who} does not exist`, 'err')];
+      if (who !== 'root') return [P(`su: user ${who}: login disabled. root is the only account that can be logged into.`, 'err'), nextPointer(sh)];
       sh.ask('Password:', (pw, s) => {
         s.suFails += 1;
         const out = s.failAuth('su');
@@ -800,6 +802,15 @@ const COMMANDS = {
         return out;
       }, { mask: true });
       return [];
+    },
+  },
+  login: {
+    desc: 'log in as a user (root only)', usage: 'login [user]', hidden: true,
+    run(sh, args) {
+      const who = args.find((a) => !a.startsWith('-')) || 'root';
+      if (sh.isRoot) return [P('login: you are already root.', 'dim')];
+      if (who !== 'root') return [P(`login: ${who}: account locked. root is the only account that can be logged into.`, 'err'), nextPointer(sh)];
+      return [P('login: root logins are only accepted over the gateway.', 'err'), nextPointer(sh)];
     },
   },
   sudo: {
