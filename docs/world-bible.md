@@ -387,3 +387,9 @@ Every scripted Voss and Hale call (`voss-late`, `voss-meeting`, `hale-walkout`, 
 - **The Morning**: Voss's last call is two-way. Its first and last line have three variants on vossTrust (<= -1 cold, 0 neutral, >= 1 warm), and two moments (the vote; the tape) let Pierce answer.
 - Voice stays terse. Replies never name B3 in public, and nobody explains the two Pierces: Pierce asks "Who else knows about last night?", never "why are there two of me".
 - Voices are the existing cast (Voss Adam-line voice, Pierce Jackson, Hale Annie), `assets/audio/phone/*-r1a|b|c(-ans|s-ans).mp3`, ids `phone.<call>.r1a`, `.r1a.ans`, `.r1s.ans`.
+
+## The ledger (added with the street ledger task)
+
+- **Landmarks**: The City Ledger newspaper on Pierce's coffee table in The Morning; the police car on the Going Home avenue; three wanted posters and an officer at the Station gate (kills 2 or more).
+- **Who lives here**: the Morning News anchor (calm, practised, public-safe), the gate officer (Police voice, tired and careful).
+- **What happens**: two bystander deaths bring the siren and a car within 20 s; the morning after, the TV, the paper and Voss all say what the night cost. Bands and lines: `docs/story/ledger.md`.

@@ -30,6 +30,7 @@ import { createQuestState, getGoalText, updateQuestProgress } from './game/progr
 import { createSceneGrade } from './game/grade';
 import { createShadowVeil } from './game/shadowVeil';
 import { createPhone, STAT_MAX, STAT_MIN } from './game/phone';
+import { clampLedger, emptyLedger, ledgerBand, type Ledger, type LedgerApi } from './game/ledger';
 import { mountPipeDrips } from './game/drips';
 import { createLevelDressing } from './game/levelDressing';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
@@ -435,7 +436,8 @@ const phone = createPhone(scene, {
     if (quest) markMission(quest);
   },
   onCallEnded: (callId, how, heard, of) => analytics?.dialogue('call', callId, how, heard, of),
-  getStat: (stat) => clampStat(save[stat]),
+  getStat: (stat) => (stat === 'ledgerBand' ? ledgerBand(ledger.get()) : clampStat(save[stat])),
+  onLedgerLine: () => { ledger.add('reported'); },
   addStat: (stat, delta) => saveGame({ [stat]: clampStat((save[stat] ?? 0) + delta) })[stat] ?? 0,
   onHand: (raised) => {
     if (!raised || phone.locksBody()) {
@@ -1231,6 +1233,8 @@ type SaveData = {
   vossTrust?: number;
   /** How hot Hale runs against Pierce (-2..+2), moved by what he says on Hale's calls. */
   haleTemper?: number;
+  /** What the Shadow did on the street (kills, possessions, consumes, witnesses, things reported). See docs/story/ledger.md. */
+  ledger?: Ledger;
 };
 const clampStat = (value: unknown) => Math.max(STAT_MIN, Math.min(STAT_MAX, Math.round(Number(value) || 0)));
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
@@ -1289,6 +1293,7 @@ const parseSave = (raw: string): SaveData => {
     lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
     vossTrust: clampStat(parsed.vossTrust),
     haleTemper: clampStat(parsed.haleTemper),
+    ledger: clampLedger(parsed.ledger),
   };
 };
 
@@ -1355,9 +1360,21 @@ const saveGame = (next: Partial<SaveData>) => {
     lore: next.lore ?? save.lore,
     vossTrust: clampStat(next.vossTrust ?? save.vossTrust),
     haleTemper: clampStat(next.haleTemper ?? save.haleTemper),
+    ledger: clampLedger(next.ledger ?? save.ledger),
   };
   writeSaveCookie(save);
   return save;
+};
+
+/** The street ledger as the stories see it: read, add, reset. Every change is written to the save cookie. */
+const ledger: LedgerApi = {
+  get: () => clampLedger(save.ledger),
+  add: (kind, amount = 1) => {
+    const now = clampLedger(save.ledger);
+    now[kind] += amount;
+    return saveGame({ ledger: now }).ledger ?? now;
+  },
+  reset: () => saveGame({ ledger: emptyLedger() }).ledger ?? emptyLedger(),
 };
 
 const hasProgress = () => save.unlocked > 1 || save.level > 1;
@@ -2666,7 +2683,7 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
   if (fresh) {
-    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0 });
+    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0, ledger: emptyLedger() });
   } else if (typeof save.health === 'number') {
     state.health = save.health;
     state.inventory.items.ammo = save.ammo ?? 0;
@@ -2908,6 +2925,7 @@ const touch = createTouchables({
 });
 
 const home: GoingHome = createGoingHome({
+  ledger,
   scene,
   camera,
   running: () => state.running,
@@ -3002,6 +3020,7 @@ const desk: TheDesk = createTheDesk({
 });
 
 const station: TheStation = createTheStation({
+  ledger,
   scene,
   camera,
   running: () => state.running,
@@ -3049,6 +3068,7 @@ const station: TheStation = createTheStation({
 });
 
 const morning: TheMorning = createTheMorning({
+  ledger,
   scene,
   placePierce,
   lie: (on, x, y, z, yaw) => {
@@ -5574,9 +5594,16 @@ installPhPlaytest({
       log: phone.replyLog(),
       caption: phonePanel && !phonePanel.hidden ? box(phonePanel) : null,
       stats: { vossTrust: clampStat(save.vossTrust), haleTemper: clampStat(save.haleTemper), min: STAT_MIN, max: STAT_MAX },
+      ledger: ledger.get(),
     };
   },
   /** Test shortcut: ring a scripted call (as the story does) and set the saved trust values. */
+  /** Test shortcut: the street ledger (counts, band) so two playtests can be compared, or set it before The Morning. */
+  ledger: (seed?: Partial<Ledger>) => {
+    if (seed) saveGame({ ledger: { ...ledger.get(), ...seed } });
+    const now = ledger.get();
+    return { ...now, band: ledgerBand(now) };
+  },
   callTest: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => {
     if (seed) saveGame({ vossTrust: seed.vossTrust ?? save.vossTrust, haleTemper: seed.haleTemper ?? save.haleTemper });
     phone.ring(id);
@@ -5650,6 +5677,10 @@ installPhPlaytest({
   ],
   /** Apex Peak vertical-slice quality readings for the playtest. */
   desk: () => desk.stats(),
+  /** What the city did about the street ledger (Going Home's siren and car, the Station gate's officer). */
+  heat: () => home.heat(),
+  /** Playtest setup shortcut (named): Going Home hands over Shock without its lesson. */
+  grantShock: () => { if (isHomeLevel()) home.grantShock(); },
   life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
