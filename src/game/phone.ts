@@ -16,8 +16,7 @@ type StatKey = TrustStat | 'ledgerBand';
 type StatWhen = Partial<Record<StatKey, { min?: number; max?: number }>>;
 type RawLine = { line?: string; speaker?: string; text?: string; audio?: string; duration: number; alt?: { when: StatWhen; line?: string; duration?: number }[] };
 type RawMoment = {
-  id: string; after: number; resume?: number; window?: number;
-  options: { id: string; text: string; line: string; duration: number; answer: string; answerDuration: number; delta?: number }[];
+  id: string; after: number; resume?: number; options: { id: string; text: string; line: string; duration: number; answer: string; answerDuration: number; delta?: number }[];
   silence: { answer: string; duration: number; delta?: number };
 };
 type RawScript = { contact: string; dial?: boolean; lines: RawLine[]; replies?: RawMoment[] };
@@ -25,7 +24,15 @@ type RawScript = { contact: string; dial?: boolean; lines: RawLine[]; replies?: 
 export type TrustStat = 'vossTrust' | 'haleTemper';
 export const STAT_MIN = -2;
 export const STAT_MAX = 2;
-export const REPLY_WINDOW_SECONDS = 5;
+/** Answer window, shared by every call: starts when the caller's voice ends; 6 s + 0.35 s per visible option word, never under 8 s. */
+export const REPLY_WINDOW_BASE = 6;
+export const REPLY_WINDOW_PER_WORD = 0.35;
+export const REPLY_WINDOW_MIN = 8;
+export const replyWords = (texts: string[]) => texts.reduce((n, t) => n + t.trim().split(/\s+/).filter(Boolean).length, 0);
+export const replyWindowSeconds = (texts: string[]) =>
+  Math.max(REPLY_WINDOW_MIN, REPLY_WINDOW_BASE + REPLY_WINDOW_PER_WORD * replyWords(texts));
+/** One answer window as it really ran (ms on performance.now): opened with the line, the clock started at the voice's end, closed. */
+export type ReplyWindowLog = { call: string; moment: string; words: number; window: number; openedAt: number; voiceEndAt: number; closedAt: number; how: string };
 const statOf = (contact: string): TrustStat => (contact === 'hale' ? 'haleTemper' : 'vossTrust');
 type TextDef = { contact: string; line?: string; text?: string };
 
@@ -58,13 +65,13 @@ const resolveScript = (raw: RawScript): CallScript => ({
     id: m.id,
     after: m.after,
     resume: m.resume ?? m.after + 1,
-    window: m.window ?? REPLY_WINDOW_SECONDS,
+    window: 0,
     options: m.options.map((o) => {
       const line = resolveLine({ line: o.line, duration: o.duration });
       return { id: o.id, text: o.text || line.text, line, answer: resolveLine({ line: o.answer, duration: o.answerDuration }), delta: o.delta ?? 0 };
     }),
     silence: { answer: resolveLine({ line: m.silence.answer, duration: m.silence.duration }), delta: m.silence.delta ?? 0 },
-  })),
+  })).map((m) => ({ ...m, window: replyWindowSeconds(m.options.map((o) => o.text)) })),
 });
 
 const inRange = (value: number, range?: { min?: number; max?: number }) =>
@@ -150,6 +157,8 @@ export type Phone = {
   /** Picks reply `index` (0-based) of the open moment. False when none is open. */
   chooseReply: (index: number) => boolean;
   /** Every reply moment this session answered, in order: which option (or `silence`), and whether it cut the caller off. */
+  /** Every answer window this session: size, when it opened, when the voice ended, when it closed. */
+  replyWindows: () => ReplyWindowLog[];
   replyLog: () => { call: string; moment: string; choice: string; cutOff: boolean; delta: number; stat: TrustStat; value: number }[];
   update: (dt: number, camera: BABYLON.Camera, feet: { x: number; y: number; z: number }) => void;
   view: () => PhoneView;
@@ -516,7 +525,14 @@ export const createPhone = (
   let lineToken = 0;
   let voice: ClipHandle | null = null;
   /** Reply moment being offered: its seconds left, and the ones already answered on this call. */
-  let moment: { def: ReplyMoment; left: number } | null = null;
+  let moment: { def: ReplyMoment; left: number; log: ReplyWindowLog } | null = null;
+  const windowLogged: ReplyWindowLog[] = [];
+  const closeMoment = (how: string) => {
+    if (!moment) return;
+    moment.log.closedAt = performance.now();
+    moment.log.how = how;
+    moment = null;
+  };
   const momentsDone = new Set<string>();
   let queue: CallLine[] = [];
   let resumeAt = -1;
@@ -764,7 +780,9 @@ export const createPhone = (
     const def = script.moments.find((m) => m.after === lineIndex && !momentsDone.has(m.id));
     if (def) {
       momentsDone.add(def.id);
-      moment = { def, left: def.window };
+      const log: ReplyWindowLog = { call: scriptId, moment: def.id, words: replyWords(def.options.map((o) => o.text)), window: def.window, openedAt: performance.now(), voiceEndAt: 0, closedAt: 0, how: '' };
+      windowLogged.push(log);
+      moment = { def, left: def.window, log };
     }
     playLineNow(pickLine(line));
   };
@@ -795,7 +813,7 @@ export const createPhone = (
     const tag = choice ? choice.id : 'silence';
     replyLogged.push({ call: scriptId, moment: def.id, choice: tag, cutOff, delta, stat, value });
     options.onReply?.({ call: scriptId, moment: def.id, choice: tag, cutOff });
-    moment = null;
+    closeMoment(choice ? 'chose' : 'timeout');
     stopVoice();
     queue = choice ? [choice.line, choice.answer] : [def.silence.answer];
     resumeAt = def.resume;
@@ -808,7 +826,7 @@ export const createPhone = (
       options.onCallEnded?.(scriptId, lineIndex >= of ? 'read' : 'skipped', Math.min(lineIndex, of), of);
     }
     rememberCall('Answered');
-    moment = null;
+    closeMoment('ended');
     queue = [];
     resumeAt = -1;
     stopVoice();
@@ -1073,9 +1091,10 @@ export const createPhone = (
       settle(choice);
       return true;
     },
+    replyWindows: () => windowLogged.map((w) => ({ ...w })),
     replyLog: () => replyLogged.map((entry) => ({ ...entry })),
     silence: () => {
-      moment = null;
+      closeMoment('hangup');
       queue = [];
       resumeAt = -1;
       stopVoice();
@@ -1123,10 +1142,11 @@ export const createPhone = (
       }
       if (mode === 'active') {
         elapsed += dt;
-        if (moment) {
+        if (moment && gap > 0) {
+          // The clock runs only once the caller's voice has ended (gap > 0), never while it plays.
+          if (!moment.log.voiceEndAt) moment.log.voiceEndAt = performance.now();
           moment.left -= dt;
-          // The window is up: stay silent once the caller has finished the line (never cut them off for nothing).
-          if (moment.left <= 0 && gap > 0) settle(null);
+          if (moment.left <= 0) settle(null);
         }
         if (mode === 'active' && gap > 0 && !(moment && moment.left > 0)) {
           gap -= dt;
