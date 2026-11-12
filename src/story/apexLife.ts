@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { faceSpeak, registerFace, unregisterFace } from '../game/faceTalk';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { SIT_LIFT } from '../game/npcs';
@@ -81,6 +82,7 @@ export const createApexLife = (host: ApexLifeHost) => {
       if (seated) avatar.playClip(routine === 'on-the-phone' ? 'talk' : 'sit', true);
       else avatar.setLocomotion(routine === 'rounds', true);
     });
+    registerFace(`apex-life-${id}`, avatar);
     lifeStats.person(`apex-${id}`, 'apex', routine);
     people.push(person);
     return person;
@@ -113,6 +115,7 @@ export const createApexLife = (host: ApexLifeHost) => {
   const dispose = () => {
     for (const p of people) {
       lifeStats.forget(`apex-${p.id}`);
+      unregisterFace(`apex-life-${p.id}`);
       p.avatar.dispose();
       if (!p.mesh.isDisposed()) p.mesh.dispose();
     }
@@ -196,6 +199,7 @@ export const createApexLife = (host: ApexLifeHost) => {
       barkIn = 12 + Math.random() * 8;
       if (line) {
         host.showLine(line.speaker, line.text);
+        faceSpeak(`apex-life-${closeOnes[0].id}`, line.url);
         host.playFile(line.url, 0.8, { x: closeOnes[0].mesh.position.x, y: 1.5, z: closeOnes[0].mesh.position.z });
         lineLeft = 3.2;
         lifeStats.bark('apex', closeOnes[0].id, line.id);

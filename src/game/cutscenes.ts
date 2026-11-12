@@ -55,6 +55,8 @@ export type CutsceneHooks = {
   onWorld?: (target: string, to: number, seconds: number) => void;
   onHud: (title?: string, text?: string) => void;
   onAnim: (actor: string, clip: string, loop: boolean) => void;
+  /** A spoken line started on this actor (faceTalk binds the mouth / gaze / gesture). */
+  onSpeak?: (actor: string, url: string, holdSeconds: number) => void;
   onLight?: (on: boolean, intensity?: number, target?: string) => void;
   onMesh?: (target: string, enabled: boolean, position?: CutsceneVec3) => void;
   onObjective?: (title?: string, text?: string) => void;
@@ -303,6 +305,7 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
         actor: event.actor,
         restClip: seatedTalk ? 'sit' : clip,
       };
+      cutscene.hooks.onSpeak?.(event.actor, event.audio ?? '', hold);
     }
     if (event.audio) {
       playFile(cutscene, event.audio, event.volume ?? 0.85, false, hold);

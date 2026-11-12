@@ -212,6 +212,8 @@ type LiveClip = {
   loop: boolean;
   gain: GainNode;
   source: AudioBufferSourceNode | null;
+  /** Live amplitude / spectral tap for faceTalk (voice lines only). */
+  analyser: AnalyserNode | null;
   startedAt: number;
   offset: number;
   held: boolean;
@@ -230,6 +232,36 @@ type LiveClip = {
   /** Seconds of the file played when it was stopped, for the cut check. */
   cutAt: number;
   graph: SourceHandle | null;
+};
+
+/** Face talk reads this every frame: amplitude 0..1 and a 0..1 spectral centroid. */
+export type VoiceMeter = { speaking: boolean; url: string; amp: number; centroid: number };
+const voiceTimeBuf = new Uint8Array(512);
+const voiceFreqBuf = new Uint8Array(256);
+let voiceAnalyser: AnalyserNode | null = null;
+let voiceMeterUrl = '';
+
+export const sampleVoiceMeter = (): VoiceMeter => {
+  if (!voiceAnalyser || !voiceActive || voiceActive.finished || !voiceActive.active) {
+    return { speaking: false, url: '', amp: 0, centroid: 0 };
+  }
+  voiceAnalyser.getByteTimeDomainData(voiceTimeBuf);
+  let sum = 0;
+  for (let i = 0; i < voiceTimeBuf.length; i += 1) {
+    const v = (voiceTimeBuf[i]! - 128) / 128;
+    sum += v * v;
+  }
+  const amp = Math.min(1, Math.sqrt(sum / voiceTimeBuf.length) * 3.2);
+  voiceAnalyser.getByteFrequencyData(voiceFreqBuf);
+  let weighted = 0;
+  let total = 0;
+  for (let i = 0; i < voiceFreqBuf.length; i += 1) {
+    const m = voiceFreqBuf[i]!;
+    weighted += i * m;
+    total += m;
+  }
+  const centroid = total > 0 ? weighted / (total * (voiceFreqBuf.length - 1)) : 0;
+  return { speaking: true, url: voiceMeterUrl, amp, centroid };
 };
 
 /** What the playtest's audio probe reads: every voice clip's start, end and whether a stop cut it short. */
@@ -259,8 +291,10 @@ export const clearClipLog = () => { clipEvents.length = 0; };
 export const isVoiceUrl = (url: string) => {
   const u = url.split('?')[0]!;
   if (/\/sfx\//.test(u)) return false;
+  // Cutscene VO, phone lines, and place barks (`/audio/vo/`) all drive faceTalk.
   return /\/audio\/cutscenes\/(?:[^/]+\/)*[^/]+\.(?:ogg|wav|mp3)$/.test(u) && !/(?:hum|rumble|alarm|beep|door|loop|bed)[^/]*\.(?:ogg|wav|mp3)$/.test(u)
-    || /\/audio\/phone\/[^/]+-[^/]+\.(?:ogg|wav|mp3)$/.test(u);
+    || /\/audio\/phone\/[^/]+-[^/]+\.(?:ogg|wav|mp3)$/.test(u)
+    || /\/audio\/vo\/[^/]+\.(?:ogg|wav|mp3)$/.test(u);
 };
 const voiceQueue: LiveClip[] = [];
 let voiceActive: LiveClip | null = null;
@@ -318,11 +352,17 @@ const finish = (clip: LiveClip, ended: boolean) => {
   clip.voiceEnd?.();
   clip.voiceEnd = undefined;
   liveClips.delete(clip);
+  if (clip.voice && (voiceAnalyser === clip.analyser || voiceMeterUrl === clip.url)) {
+    voiceAnalyser = null;
+    voiceMeterUrl = '';
+  }
   disconnect(clip.source);
+  disconnect(clip.analyser);
   disconnect(clip.gain);
   clip.graph?.dispose();
   clip.graph = null;
   clip.source = null;
+  clip.analyser = null;
   clip.buffer = null;
   if (clip.voice) {
     const at = voiceQueue.indexOf(clip);
@@ -358,7 +398,19 @@ const startSource = (clip: LiveClip) => {
   source.buffer = clip.buffer;
   source.loop = clip.loop;
   source.playbackRate.value = clip.rate;
-  source.connect(clip.gain);
+  // Voice lines get an AnalyserNode so faceTalk can drive the jaw from amplitude.
+  if (clip.voice) {
+    const analyser = clip.analyser ?? clip.ctx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.35;
+    clip.analyser = analyser;
+    source.connect(analyser);
+    analyser.connect(clip.gain);
+    voiceAnalyser = analyser;
+    voiceMeterUrl = clip.url;
+  } else {
+    source.connect(clip.gain);
+  }
   const offset = clip.loop ? clip.offset % clip.buffer.duration : clip.offset;
   if (!clip.loop && offset >= clip.buffer.duration) {
     finish(clip, true);
@@ -413,6 +465,7 @@ export const playClip = (
     loop: options.loop === true,
     gain,
     source: null,
+    analyser: null,
     startedAt: 0,
     offset: 0,
     held: clipsHeld,

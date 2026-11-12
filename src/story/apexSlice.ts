@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { faceSpeak, registerFace, unregisterFace } from '../game/faceTalk';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
 import { lineAudio, lineText, storyLine } from '../game/locale';
@@ -181,11 +182,13 @@ export const createApexSlice = (host: ApexSliceHost) => {
     mesh.rotation.y = Math.PI / 2 + Math.PI;
     cleaner = { mesh, avatar, cart };
     cleanerX = HALL2.x0;
+    registerFace('apex-cleaner', avatar);
     mark('see', 'cleaner');
   };
 
   const disposeCleaner = () => {
     if (!cleaner) return;
+    unregisterFace('apex-cleaner');
     cleaner.avatar.dispose();
     if (!cleaner.mesh.isDisposed()) cleaner.mesh.dispose();
     cleaner = null;
@@ -366,6 +369,7 @@ export const createApexSlice = (host: ApexSliceHost) => {
         const said = placeLine(CLEANER_LINE);
         if (said) {
           host.showLine(said.speaker, said.text);
+          faceSpeak('apex-cleaner', said.url);
           host.playFile(said.url, 0.88);
           lineLeft = 3.2;
           cleanerVoiced = true;
