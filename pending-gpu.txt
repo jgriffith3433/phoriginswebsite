@@ -1,0 +1,7 @@
+Pending Hawkes Gen work for The Morning (level 8). Gen refused project phorigins; stand-ins ship in code (src/story/morningSound.ts).
+- sfx.morning.tv-news-bed (ElevenLabs sound, loop, 20 s): needs clip, stand-in synthesized from the TV position.
+- sfx.morning.room-exit (sound): soft door + carpet steps; stand-in synthesized.
+- bark.morning.photo (voice, Jackson): "I left it face down. I know whose it is." caption only until made.
+- news.morning.* anchor takes (voice): the anchor murmur stand-in plays while a news line has no clip.
+- Ambience takes already listed in soundFallback.ts: morning-birds, morning-traffic, morning-fridge, desk-clock.
+GPU: none needed (voice/sound are ElevenLabs cents). hawkesgen_estimate not run: no GPU work in this change.

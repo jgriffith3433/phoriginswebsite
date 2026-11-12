@@ -823,6 +823,26 @@
       "note": "The Morning: the news programme opens."
     },
     {
+      "id": "sfx.morning.tv-news-bed",
+      "group": "home",
+      "text": "Loop of a morning TV news studio bed heard through a small television speaker: soft warm synth chords, a light pulse, a muffled anchor murmuring behind it, no intelligible words.",
+      "audio": "/assets/audio/sfx/home/tv-news-bed.ogg",
+      "loop": true,
+      "duration": 20,
+      "influence": 0.6,
+      "volume": 0.1,
+      "note": "The Morning: the news scene. Needs clip: morningSound.ts synthesizes a stand-in from the TV's position until this exists."
+    },
+    {
+      "id": "sfx.morning.room-exit",
+      "group": "home",
+      "text": "One-shot soft interior bedroom door opening, a latch click and a quiet wood swing, then slow footsteps on carpet, close foley, no voices, no music.",
+      "audio": "/assets/audio/sfx/home/room-exit.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "The Morning: leaving the bed for the room. Needs clip: morningSound.ts synthesizes a soft door; the steps use step/carpet-N."
+    },
+    {
       "id": "sfx.ui.interact",
       "group": "ui",
       "text": "One-shot soft tactile click of pressing a physical button, subtle and short, no music.",

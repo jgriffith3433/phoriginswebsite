@@ -3465,7 +3465,7 @@ const morning: TheMorning = createTheMorning({
   clearMarker: () => objectiveMarker.setTarget(null),
   showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
   setObjective,
-  playFile: (url, volume) => { audio.play(url, volume); },
+  playFile: (url, volume, at) => { audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined); },
   setWalk: (moving) => audio.setWalk(moving),
   setCarry: (items) => { storyCarry = items; },
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),

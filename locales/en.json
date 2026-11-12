@@ -5382,6 +5382,22 @@
       "note": "Ledger (docs/story/ledger.md): newspaper name"
     },
     {
+      "id": "ui.action.morning.photo",
+      "type": "ui",
+      "speaker": "Turn the photo",
+      "text": "Turn the photo",
+      "audio": "",
+      "note": "Level 8: the face-down photo on the coffee table (Interact)"
+    },
+    {
+      "id": "bark.morning.photo",
+      "type": "bark",
+      "speaker": "Pierce",
+      "text": "I left it face down. I know whose it is.",
+      "audio": "",
+      "note": "Level 8: turning the photo over. Needs a Jackson take (pending-gpu.txt); caption only until then."
+    },
+    {
       "id": "ui.action.morning.paper",
       "type": "ui",
       "speaker": "Read the paper",
