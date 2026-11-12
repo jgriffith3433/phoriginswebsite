@@ -19,7 +19,8 @@ import { callQuestOpen, missionCallId, missionLabel, missionsFor } from './game/
 import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, flyPlayer, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
-import { installMenuNav } from './game/menuNav';
+import { createTitleScene } from './game/titleScene';
+import { installMenuNav, installMenuSounds, menuSoundLog } from './game/menuNav';
 import { lineText } from './game/locale';
 import { chapterCopy, createChapterCard } from './game/chapterCard';
 import { loreEntry, withLore } from './game/lore';
@@ -427,6 +428,15 @@ let playerHeroId = PLAYER_ASSET_ID;
 const objectiveMarker = createObjectiveMarker(scene);
 const minimap = createMinimap(root);
 const dressing = createLevelDressing(scene, camera);
+const titleScene = createTitleScene({
+  scene,
+  camera: menuCamera,
+  avatar: () => playerAvatar,
+  meshY: playerMeshY,
+  home: () => ({ x: state.player.x, y: state.player.y, z: state.player.z, yaw: state.characterYaw }),
+  officeLoaded: () => gameReady && isApexPeakLevel() && dressing.cityMounted(),
+  mobile: document.body.dataset.device !== 'desktop',
+});
 let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
 playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
@@ -2079,8 +2089,9 @@ const syncStartButtonLabel = () => {
     messageText.textContent = levelStartLine();
   }
   newGameBtn.style.display = resume ? '' : 'none';
-  resetBtn.style.display = '';
-  resetBtn.textContent = messageTitle.textContent === 'Defeat' ? 'Main Menu' : 'Reset';
+  // Reset lives in Settings now (behind a confirm); this button is only the Defeat card's Main Menu.
+  resetBtn.style.display = messageTitle.textContent === 'Defeat' ? '' : 'none';
+  resetBtn.textContent = 'Main Menu';
   const hideLoad = messageTitle.textContent === 'Defeat' || messageTitle.textContent === 'Mission Clear';
   loadModelBtn.textContent = 'Load Level';
   loadModelBtn.style.display = hideLoad ? 'none' : '';
@@ -4831,6 +4842,7 @@ const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
 const pauseMenu = document.getElementById('pauseMenu') as HTMLDivElement;
 const resumeBtn = document.getElementById('resumeBtn') as HTMLButtonElement;
 const settingsMenu = document.getElementById('settingsMenu') as HTMLDivElement;
+installMenuSounds(settingsMenu);
 const settingsRows = document.getElementById('settingsRows') as HTMLDivElement;
 const soundSwitch = document.getElementById('soundSwitch') as HTMLButtonElement;
 const musicVolume = document.getElementById('musicVolume') as HTMLInputElement;
@@ -4948,9 +4960,21 @@ for (const button of graphicsTierButtons) {
 }
 
 const settingsOpen = () => !settingsMenu.hidden;
+const resetRowEl = document.getElementById('resetRow') as HTMLElement;
+const resetSectionEl = document.getElementById('progressSection') as HTMLElement;
+const resetConfirmEl = document.getElementById('resetConfirm') as HTMLElement;
+const resetProgressBtn = document.getElementById('resetProgressBtn') as HTMLButtonElement;
+/** Progress can only be erased from the title, never mid-level. */
+const syncResetRow = () => {
+  const onTitle = !state.running;
+  resetRowEl.hidden = !onTitle;
+  resetSectionEl.hidden = !onTitle;
+  resetConfirmEl.hidden = true;
+};
 const openSettings = () => {
   analytics?.screen(state.running ? 'settings-pause' : 'settings-title');
   renderSettings();
+  syncResetRow();
   settingsMenu.hidden = false;
   unlockPointer();
   invertYSwitch.focus({ preventScroll: true });
@@ -5133,17 +5157,7 @@ window.addEventListener('click', (event) => {
   event.stopImmediatePropagation();
   event.preventDefault();
 }, true);
-resetBtn.addEventListener('click', () => {
-  if (messageTitle.textContent === 'Defeat') {
-    analytics?.toTitle();
-    defeatLeft = 0;
-    levelPicked = false;
-    state.running = false;
-    menuCameraActive = true;
-    activateMenuCamera(scene, menuCamera);
-    showMessage('PH Origins', levelStartLine());
-    return;
-  }
+const resetProgress = () => {
   analytics?.feature('reset-progress');
   stopEndingSong();
   clearSave();
@@ -5161,6 +5175,37 @@ resetBtn.addEventListener('click', () => {
   showMessage('PH Origins', levelStartLine());
   menuCameraActive = true;
   activateMenuCamera(scene, menuCamera);
+};
+
+resetProgressBtn.addEventListener('click', () => {
+  resetConfirmEl.hidden = false;
+  resetProgressBtn.hidden = true;
+  document.getElementById('resetCancelBtn')?.focus({ preventScroll: true });
+});
+document.getElementById('resetCancelBtn')?.addEventListener('click', () => {
+  resetConfirmEl.hidden = true;
+  resetProgressBtn.hidden = false;
+  resetProgressBtn.focus({ preventScroll: true });
+});
+document.getElementById('resetConfirmBtn')?.addEventListener('click', () => {
+  resetConfirmEl.hidden = true;
+  resetProgressBtn.hidden = false;
+  resetProgress();
+  closeSettings();
+});
+
+resetBtn.addEventListener('click', () => {
+  if (messageTitle.textContent === 'Defeat') {
+    analytics?.toTitle();
+    defeatLeft = 0;
+    levelPicked = false;
+    state.running = false;
+    menuCameraActive = true;
+    activateMenuCamera(scene, menuCamera);
+    showMessage('PH Origins', levelStartLine());
+    return;
+  }
+  resetProgress();
 });
 
 /** Screen box (CSS px) of the lab doorway at the end of the cold-open hall, or null when it is not in view. */
@@ -5410,6 +5455,10 @@ const renderLoop = () => {
     if (!menuCameraActive) updateCamera(delta);
   }
 
+  titleScene.step(
+    delta,
+    menuCameraActive && !state.running && !coldOpenRunning && !messageBox.classList.contains('hidden') && messageTitle.textContent === 'PH Origins',
+  );
   updateWorldAudio(delta);
   musicTriggerPlayer.update(
     camera.position,
@@ -5569,7 +5618,7 @@ modelInput.addEventListener('change', (event) => {
 
 const devActions: Record<string, () => void> = {
   reset: () => {
-    resetBtn.click();
+    resetProgress();
   },
   hp: () => {
     state.health = MAX_HEALTH;
@@ -5996,6 +6045,8 @@ installPhPlaytest({
     stepCount: footsteps.count(),
     steps: footsteps.events(),
     music: music.probe(),
+    title: () => ({ ...titleScene.probe(), menuSounds: menuSoundLog() }),
+    titleStrike: () => titleScene.strikeNow(),
     voice: clipLog().filter((c) => c.voice),
     acoustics: { ...acousticsProbe(getSharedAudioContext()), door: { closed: boardDoorClosed } },
   }),
