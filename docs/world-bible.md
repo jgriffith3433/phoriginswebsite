@@ -37,13 +37,22 @@ floor to his own bed.
   (`src/story/apexBoardHall.ts`, playtest `living-places`). Hall 2 still has the cleaner.
 
 ### 2. B3 (level 2, and level 3's first half) - `b3-basement.json`
-- **Mood:** sealed, wet, wrong. Near dark; practical lights make small colored pools; fog 5-32 m.
+- **Mood:** sealed, wet, wrong. A place the player is afraid to light. Near dark; practical lights make small colored
+  pools; exponential fog so corridor ends fall to black until the beam cuts them.
 - **Looks/sounds:** pipe hall, containment, chem stores, decon, control, transformation wing, utility, the ACID VAT
-  room. Riveted steel, stained tile, hazard-banded doorframes, dripping pipes, steam. Bed `b3-drone.ogg` 0.20, drips,
-  hum, creature skitter and breath inside 15 m.
+  room. Riveted steel, stained tile, wet epoxy and diamond plate with puddle decals, hazard-banded doorframes, dripping
+  pipes, steam. The phone flashlight (G) is a shadow-casting spot with a visible additive beam cone (scrolling dust
+  noise on every tier; volumetric scattering on High). Fluorescent practicals flicker on a script with a buzz on the
+  sfx bus. The vat is the hero green light (emissive liquid, projected caustics, rising bubbles). Green EXIT signs and
+  red beacons mark the route without raising ambient. Creature gets a cool rim when the beam hits it. Bed
+  `b3-drone.ogg` 0.20, drips, hum, fluorescent buzz, creature skitter and breath inside 15 m.
 - **Size:** about 45 x 45 m of rooms; roughly 2 minutes to walk once, longer under the hunt.
-- **In/out:** in by the cab; out through the vat room (transformation) and again as Ch44 up the cab to Apex.
+- **In/out:** in by the cab; out through the vat room (transformation) and again as Ch44 up the cab to Apex. Cold open
+  (first visit) boots here in the long hall with the flashlight already on.
+- *Exists (horror lighting):* `src/game/b3Horror.ts` on `b3-basement` (skipped fear for The Return's powers look).
+  Playtest `b3-horror-light`.
 - *Gap:* The Return runs the same rooms bright and empty (creature hidden): the biggest "demo" risk in the game.
+  Gen wet-surface albedos (concrete, grating, lab tile, algae wall) replace procedural stand-ins when credits allow.
 
 ### 3. The Return and The Desk (levels 3-4) - B3 hall, cab, Apex office, restroom mirror
 - **Mood:** too bright, too clean; powers grade over-lit. A man learning his own hands.
@@ -141,8 +150,9 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
   already in. Hale's on her feet.") and a darkened silhouette through the board doorway (procedural, never a second
   Hale mesh next to seated Hale) that Pierce flinches at (`bark.apex.threat01`). Level 4 does not remount the slice or
   the board-hall module, so only the empty floor remains.
-- **B3:** the creature loop (wait in decon, chase in bursts, roam 5-15 s, bite 22 at 1.8 m). **New:** a dead guard's
-  badge on a drum and a radio that crackles twice when Pierce passes (no voice, just a tone) so the hall has a beat.
+- **B3:** the creature loop (wait in decon, chase in bursts, roam 5-15 s, bite 22 at 1.8 m). *Exists:* a dead guard's
+  badge on the Hall B drum and a radio that crackles twice when Pierce passes (no voice, just a tone;
+  `src/game/b3Horror.ts`).
 - **Lobby:** the receptionist (Liz) works late; on seeing Pierce she screams and calls police (scripted).
 - **Street:** recycled pool of 16 pedestrians (9 mobile) on sidewalk paths; about one in twenty-five hostile, one in
   five runs; police arrive once, from behind, about 30 s after Voss's text; traffic on a lane graph; shopkeepers in

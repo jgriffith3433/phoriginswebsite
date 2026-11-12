@@ -894,6 +894,26 @@
       "note": "Apex Peak: hall 2 troffer flicker."
     },
     {
+      "id": "sfx.b3.fluorescent-buzz",
+      "group": "b3",
+      "text": "Looping basement fluorescent tube electrical buzz and soft hum, wet concrete room, occasional faint flicker crackle, seamless loop, no voices, no music.",
+      "audio": "/assets/audio/sfx/b3/fluorescent-buzz.ogg",
+      "loop": true,
+      "duration": 4,
+      "influence": 0.7,
+      "volume": 0.16,
+      "note": "B3 horror: buzz under flickering hall practicals. Gen take a_a83de8c66ca60e3c."
+    },
+    {
+      "id": "sfx.b3.radio-crackle",
+      "group": "b3",
+      "text": "One-shot short dead security radio crackle and static burst from a handheld walkie on a metal drum, distant muffled, no voices, no music.",
+      "audio": "/assets/audio/sfx/b3/radio-crackle.ogg",
+      "influence": 0.7,
+      "volume": 0.38,
+      "note": "B3 hall life: crackle when Pierce passes the drum badge. Gen take a_9a8081f88d47c226."
+    },
+    {
       "id": "sfx.apex.door-locked",
       "group": "apex",
       "text": "One-shot locked office door handle rattle then a short metal latch click that refuses to open, close foley, dry, no voices, no music.",

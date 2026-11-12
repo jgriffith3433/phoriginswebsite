@@ -99,6 +99,8 @@ export const createSceneGrade = (scene: BABYLON.Scene, render: RenderPipeline): 
       image.colorCurvesEnabled = true;
       liftFill(1.15, 0.32);
       paintHemiGround(0.78, 0.82, 0.76);
+      // The Return: bright halls, linear fog (horror B3 uses exp2; do not keep that density here).
+      scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
       scene.fogColor = new BABYLON.Color3(0.05, 0.07, 0.055);
       scene.fogStart = 22;
       scene.fogEnd = 86;

@@ -80,7 +80,7 @@
       "name": "Office Floor",
       "x": 48,
       "y": 0.001,
-      "z": 43.38,
+      "z": 43.36,
       "rotation": {
         "x": 0,
         "y": 0,
@@ -89,7 +89,7 @@
       "scale": {
         "x": 9.5,
         "y": 1,
-        "z": 6.68
+        "z": 6.72
       },
       "components": [
         "Transform"
@@ -98,7 +98,7 @@
       "position": {
         "x": 48,
         "y": 0.001,
-        "z": 43.38
+        "z": 43.36
       }
     },
     {
@@ -134,7 +134,7 @@
       "kind": "wall",
       "name": "Hall 1 Ceiling",
       "x": 0,
-      "y": 3.25,
+      "y": 3.26,
       "z": 17.54827880859375,
       "scale": {
         "x": 5.199999809265137,
@@ -198,11 +198,11 @@
       "name": "Office Ceiling",
       "x": 48,
       "y": 3.26,
-      "z": 43.38,
+      "z": 43.36,
       "scale": {
         "x": 9.5,
         "y": 0.12,
-        "z": 6.68
+        "z": 6.72
       },
       "components": [
         "Transform"
@@ -1438,7 +1438,7 @@
       "name": "Player",
       "x": 0,
       "y": 0,
-      "z": 4.087249279022217,
+      "z": 13.5,
       "components": [
         "Transform",
         "Collider"
@@ -1482,11 +1482,11 @@
       "kind": "model",
       "name": "Hall 1 Light A Fixture",
       "x": 0,
-      "y": 3.099,
+      "y": 3.1125,
       "z": 6,
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": 1.5707963267948966,
         "z": 0
       },
       "scale": {
@@ -1504,11 +1504,11 @@
       "kind": "model",
       "name": "Hall 1 Light B Fixture",
       "x": 0,
-      "y": 3.099,
-      "z": 16,
+      "y": 3.1125,
+      "z": 15,
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": 1.5707963267948966,
         "z": 0
       },
       "scale": {
@@ -1526,11 +1526,11 @@
       "kind": "model",
       "name": "Hall 1 Light C Fixture",
       "x": 0,
-      "y": 3.099,
-      "z": 26,
+      "y": 3.1125,
+      "z": 24,
       "rotation": {
         "x": 0,
-        "y": 0,
+        "y": 1.5707963267948966,
         "z": 0
       },
       "scale": {
@@ -3462,18 +3462,18 @@
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Bathroom Door",
-      "x": 17.34,
+      "x": 16.62,
       "y": 1.05,
-      "z": 29.02,
+      "z": 29.45,
       "rotation": {
         "x": 0,
         "y": 0,
         "z": 0
       },
       "scale": {
-        "x": 0.045,
+        "x": 0.88,
         "y": 2.1,
-        "z": 0.88
+        "z": 0.045
       },
       "components": [
         "Transform"
@@ -3543,18 +3543,18 @@
       "assetId": "structure-wall",
       "kind": "wall",
       "name": "Bathroom Door Handle",
-      "x": 17.39,
+      "x": 16.4,
       "y": 1.02,
-      "z": 29.32,
+      "z": 29.4125,
       "rotation": {
         "x": 0,
         "y": 0,
         "z": 0
       },
       "scale": {
-        "x": 0.04,
+        "x": 0.03,
         "y": 0.12,
-        "z": 0.03
+        "z": 0.04
       },
       "components": [
         "Transform"
@@ -3727,7 +3727,7 @@
       "kind": "model",
       "name": "Bathroom Light Fixture",
       "x": 18,
-      "y": 3.02,
+      "y": 3.0525,
       "z": 27.35,
       "rotation": {
         "x": 0,
@@ -3882,5 +3882,126 @@
         "volume": 0.14
       }
     }
+  ],
+  "cameraVolumes": [
+      {
+        "id": "vol-hall1",
+        "profile": "hallway",
+        "minX": -2.2,
+        "maxX": 2.2,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": -1.0,
+        "maxZ": 34.25,
+        "priority": 1
+      },
+      {
+        "id": "vol-hall2",
+        "profile": "hallway",
+        "minX": 2.2,
+        "maxX": 35.3,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 29.8,
+        "maxZ": 34.26,
+        "priority": 1
+      },
+      {
+        "id": "vol-board",
+        "profile": "open",
+        "minX": 35.2,
+        "maxX": 53.0,
+        "minY": 0,
+        "maxY": 3.5,
+        "minZ": 24.0,
+        "maxZ": 40.0,
+        "priority": 1
+      },
+      {
+        "id": "vol-office",
+        "profile": "open",
+        "minX": 43.2,
+        "maxX": 52.7,
+        "minY": 0,
+        "maxY": 3.5,
+        "minZ": 40.0,
+        "maxZ": 46.72,
+        "priority": 1
+      },
+      {
+        "id": "vol-bath",
+        "profile": "open",
+        "minX": 15.6,
+        "maxX": 20.4,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 25.5,
+        "maxZ": 29.56,
+        "priority": 1
+      },
+      {
+        "id": "vol-door-h1-h2",
+        "profile": "doorway",
+        "minX": 0.4,
+        "maxX": 3.6,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 30.4,
+        "maxZ": 33.8,
+        "priority": 3
+      },
+      {
+        "id": "vol-door-h2-board",
+        "profile": "doorway",
+        "minX": 34.0,
+        "maxX": 36.6,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 30.2,
+        "maxZ": 33.8,
+        "priority": 3
+      },
+      {
+        "id": "vol-door-board-office",
+        "profile": "doorway",
+        "minX": 46.2,
+        "maxX": 50.0,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 39.2,
+        "maxZ": 40.9,
+        "priority": 3
+      },
+      {
+        "id": "vol-door-h2-bath",
+        "profile": "doorway",
+        "minX": 16.7,
+        "maxX": 19.2,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 28.9,
+        "maxZ": 30.3,
+        "priority": 3
+      },
+      {
+        "id": "vol-door-elevator",
+        "profile": "doorway",
+        "minX": 42.4,
+        "maxX": 45.6,
+        "minY": 0,
+        "maxY": 3.4,
+        "minZ": 20.4,
+        "maxZ": 23.2,
+        "priority": 3
+      }
+    ],
+  "acousticDefault": "hall",
+  "acousticZones": [
+    {"id": "apex-hall-1", "type": "hall", "minX": -2.2, "maxX": 2.2, "minZ": -1, "maxZ": 34.25, "priority": 1},
+    {"id": "apex-hall-2", "type": "hall", "minX": 2.2, "maxX": 35.3, "minZ": 29.8, "maxZ": 34.26, "priority": 1},
+    {"id": "apex-board", "type": "boardroom", "minX": 35.2, "maxX": 53.0, "minZ": 24.0, "maxZ": 40.0, "priority": 2},
+    {"id": "apex-office", "type": "hall", "minX": 43.2, "maxX": 52.7, "minZ": 40.0, "maxZ": 46.72, "priority": 2},
+    {"id": "apex-restroom", "type": "hall", "minX": 15.6, "maxX": 20.4, "minZ": 25.5, "maxZ": 29.56, "priority": 2},
+    {"id": "apex-lift", "type": "elevator", "minX": 42.2, "maxX": 45.8, "minZ": 19.0, "maxZ": 24.0, "priority": 5}
   ]
 }

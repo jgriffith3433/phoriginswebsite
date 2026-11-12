@@ -105,7 +105,23 @@ uniform sampler2D tBrass;
 uniform sampler2D tConcrete;
 uniform sampler2D tDrywall;
 uniform float toGamma;
+/** Flashlight spot shadow (B3): x = strength (0 off), sampler + matrix bound from dress. */
+uniform float flashShadowStrength;
+uniform mat4 flashLightMatrix;
+uniform sampler2D flashShadowMap;
 ${KEY_SHADOW_GLSL}
+
+float flashShadow(vec3 world) {
+  if (flashShadowStrength <= 0.0) return 1.0;
+  vec4 p = flashLightMatrix * vec4(world, 1.0);
+  if (p.w <= 0.0) return 1.0;
+  vec3 uvd = p.xyz / p.w;
+  uvd = uvd * 0.5 + 0.5;
+  if (uvd.x < 0.01 || uvd.x > 0.99 || uvd.y < 0.01 || uvd.y > 0.99 || uvd.z < 0.0 || uvd.z > 1.0) return 1.0;
+  float closest = texture2D(flashShadowMap, uvd.xy).r;
+  float lit = step(uvd.z - 0.004, closest);
+  return 1.0 - flashShadowStrength * (1.0 - lit);
+}
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -239,9 +255,12 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     albedo = mix(tile, vec3(0.2, 0.22, 0.2), grout);
     float stain = smoothstep(0.5, 0.85, fbm(p * vec2(0.5, 0.35) + variant * 9.0));
     float drip = smoothstep(0.75, 0.97, vnoise(vec2(p.x * 3.0, 1.7))) * smoothstep(3.0, 0.8, y);
+    // Algae streaks: wet green trails down the tile from the ceiling.
+    float algae = smoothstep(0.7, 0.95, vnoise(vec2(p.x * 2.4, 4.0))) * smoothstep(3.2, 0.4, y);
     albedo *= 1.0 - stain * 0.45 - smoothstep(0.6, 0.0, y) * 0.3;
     albedo = mix(albedo, vec3(0.25, 0.3, 0.12), drip * 0.4);
-    gloss = 0.5 * (1.0 - grout) * (1.0 - stain);
+    albedo = mix(albedo, vec3(0.12, 0.28, 0.14), algae * 0.55);
+    gloss = 0.5 * (1.0 - grout) * (1.0 - stain) + algae * 0.25;
     bump = grout;
     return;
   }
@@ -317,7 +336,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     return;
   }
   if (style < 24.5) {
-    // Basement epoxy over concrete: worn, cracked, stained, joints.
+    // Basement epoxy over concrete: worn, cracked, wet-stained, joints.
     vec3 epoxy = mix(vec3(0.24, 0.27, 0.26), vec3(0.3, 0.28, 0.24), variant);
     float wear = smoothstep(0.35, 0.8, fbm(p * 0.35));
     albedo = mix(epoxy, vec3(0.32, 0.31, 0.29), wear * 0.6) * (0.88 + vnoise(p * 9.0) * 0.18);
@@ -329,11 +348,14 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     vec2 dr = fract(p / 9.0) - 0.5;
     float drain = step(length(dr * 9.0), 0.22) * (0.5 + 0.5 * step(0.5, fract(dr.x * 9.0 * 8.0)));
     albedo = mix(albedo, vec3(0.05), drain * 0.85);
-    gloss = 0.35 * (1.0 - wear) + stain * 0.3;
+    // Wet sheen: puddle patches catch the flashlight.
+    float wet = smoothstep(0.55, 0.88, fbm(p * 0.22 + 3.0));
+    albedo = mix(albedo, albedo * vec3(0.85, 0.92, 0.9), wet * 0.35);
+    gloss = 0.35 * (1.0 - wear) + stain * 0.3 + wet * 0.55;
     return;
   }
   if (style < 25.5) {
-    // Diamond plate.
+    // Diamond plate / rusted floor grating, wet.
     vec2 q = p / 0.06;
     vec2 f = fract(q) - 0.5;
     float a = step(0.5, fract((floor(q.x) + floor(q.y)) * 0.5));
@@ -342,18 +364,21 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     vec3 steel = vec3(0.3, 0.31, 0.32) * (0.8 + fbm(p * 0.7) * 0.35);
     float rust = smoothstep(0.65, 0.9, fbm(p * 0.5 + 2.0));
     albedo = mix(steel, vec3(0.25, 0.13, 0.06), rust * 0.7) + bar * 0.08;
-    gloss = 0.5 * (1.0 - rust) + bar * 0.3;
+    float wet = smoothstep(0.6, 0.9, fbm(p * 0.3 + 7.0));
+    gloss = 0.5 * (1.0 - rust) + bar * 0.3 + wet * 0.45;
     bump = bar;
     return;
   }
   if (style < 26.5) {
+    // Cracked white lab tile, wet and stained.
     vec2 q = p / 0.3;
     vec2 f = fract(q);
     float grout = 1.0 - smoothstep(0.0, 0.04, min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)));
     vec3 tile = mix(vec3(0.6, 0.64, 0.62), vec3(0.5, 0.56, 0.58), h21(floor(q)) * 0.5 + variant * 0.5);
     float stain = smoothstep(0.5, 0.85, fbm(p * 0.3 + 5.0));
     albedo = mix(tile, vec3(0.15), grout) * (1.0 - stain * 0.5);
-    gloss = 0.4 * (1.0 - grout) * (1.0 - stain);
+    float wet = smoothstep(0.58, 0.9, fbm(p * 0.28 + 2.0));
+    gloss = 0.4 * (1.0 - grout) * (1.0 - stain) + wet * 0.5;
     return;
   }
   // ---------- Ceilings ----------
@@ -464,7 +489,7 @@ void main(void) {
     vec3 H = normalize(L + V);
     spec += lCol[i] * pow(max(dot(n, H), 0.0), 60.0) * att * ndl;
   }
-  // Phone flashlight.
+  // Phone flashlight (with optional moving shadows from the B3 horror pass).
   if (spotInfo.z > 0.0) {
     vec3 L = spotPos - vWorld;
     float d = length(L);
@@ -473,7 +498,8 @@ void main(void) {
     float cone = cosA > spotInfo.x ? pow(max(cosA, 0.0), spotInfo.y) : 0.0;
     float att = clamp(1.0 - d / spotInfo.w, 0.0, 1.0);
     float ndl = max(dot(n, L), 0.0);
-    vec3 beam = vec3(1.0, 0.96, 0.88) * spotInfo.z * cone * att * att;
+    float fs = flashShadow(vWorld + n * 0.03);
+    vec3 beam = vec3(1.0, 0.96, 0.88) * spotInfo.z * cone * att * att * fs;
     diffuse += beam * ndl;
     vec3 H = normalize(L + V);
     spec += beam * pow(max(dot(n, H), 0.0), 50.0) * ndl;
@@ -485,7 +511,15 @@ void main(void) {
   // Contact shadow from the key light (src/render/keyShadow.ts): furniture and Pierce shade the floor under them.
   float ks = keyShadow(vWorld + n * 0.02);
   vec3 color = (albedo * diffuse * lightGain + spec * gloss * 0.5 * lightGain) * ks + emis;
-  float fogF = clamp((length(vWorld - cameraPos) - fogInfo.x) / max(fogInfo.y - fogInfo.x, 0.01), 0.0, 1.0) * fogInfo.z;
+  // fogInfo: linear = (start, end, 1); exp2 = (density, unused, 2); off = (*,*,0).
+  float dist = length(vWorld - cameraPos);
+  float fogF = 0.0;
+  if (fogInfo.z > 1.5) {
+    float dens = max(fogInfo.x, 0.0);
+    fogF = 1.0 - exp2(-dens * dens * dist * dist);
+  } else if (fogInfo.z > 0.5) {
+    fogF = clamp((dist - fogInfo.x) / max(fogInfo.y - fogInfo.x, 0.01), 0.0, 1.0);
+  }
   color = mix(color, pow(fogColor, vec3(2.2)), fogF);
   // No post pipeline (Dev Tools): go to display space here.
   color = mix(color, pow(max(color, vec3(0.0)), vec3(1.0 / 2.2)), toGamma);

@@ -173,6 +173,12 @@ export type PhProbe = {
   setupBeat: (kind: 'hunt' | 'vat') => void;
   hunt: () => { huntRetries: number; retrySeconds: number[]; lastRetrySeconds: number; retrying: boolean; health: number; fade: number };
   acid: () => { active: boolean; t: number; falls: number; swapped: boolean; lag: number; drift: number; speed: number; locked: boolean; flashlight: boolean; skipShown: boolean; x: number; z: number; yaw: number };
+  /** B3 horror lighting (src/game/b3Horror.ts): flashlight shadows, vat glow, fog, landmarks. Null off that level. */
+  b3Horror?: () => {
+    active: boolean; flashlightShadows: boolean; shadowCasters: number; beamVisible: boolean; volumetric: boolean;
+    fogMode: string; landmarks: { id: string; lit: boolean }[]; vatWallsLit: number; flickerOn: boolean;
+    creatureRim: boolean; fpsHint: number;
+  } | null;
   /** Test shortcut (`b3-retry`): Pierce's health drops to zero, as a bite would. False while he cannot be hurt. */
   forceDefeat: () => boolean;
   /** Test shortcut (`living-places`): show the running level's Level Complete card now. */
@@ -774,6 +780,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 2 (test shortcut) and the hunt from the lab door. Pierce is downed (test shortcut, as a bite would): there must be no Defeat card, chapter card or reload, a red fade of about 0.6 s, control back inside 3 s (metrics huntRetries, retrySeconds), health full, and the creature out of sight. Then the vat break shot plays (it must end within 5.5 s, no camera hold over 5 s) and control returns in the acid. Laid out as a 390x844 phone, the bot plays the acid with the left stick only (pointer drags, no keys): it logs the input lag, heading drift, stagger and the falls, the flashlight failing, checks the touch controls stay visible and 44 px, that there is at least 15 s of movement input, that the avatar swaps during a fall, and that it ends as Pierce reaches the door and End Level is offered. Metrics: acidSeconds, acidInputSeconds, huntRetries, retrySeconds.',
         seconds: 300,
         tags: ['level', 'phone'],
+      },
+      {
+        id: 'b3-horror-light',
+        title: 'B3 horror lighting: flashlight beam and moving shadows, vat green on walls, dark corridors, landmarks (options.phone: 390x844 Low tier ≥30 fps)',
+        description: 'Starts level 2 (test shortcut). Turns the flashlight on with G (or the Flashlight touch button on phone), walks the long hall toward the lab for about 30 s through real input, and checks: the beam cone is on, flashlight shadows cast from at least 3 objects, the vat lights at least 2 nearby walls, fog is exp2 so corridor ends stay dark, and at least 3 light landmarks (EXIT signs / practicals / vat) mark the route. Options.phone: 390x844 touch, Low graphics, reports fpsP5 ≥ 30 with beam and fog on. Metrics: b3ShadowCasters, b3VatWalls, b3Landmarks, b3Fps, b3FogMode. Probe: b3Horror().',
+        seconds: 120,
+        tags: ['level', 'feel', 'phone'],
       },
       {
         id: 'ledger-city',
@@ -3581,6 +3594,107 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.finish(boardSeen ? 'done' : 'stuck');
     };
 
+
+    // ---- b3-horror-light: flashlight beam + moving shadows, vat green, dark corridors, landmarks; phone fps
+    const b3HorrorLightRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const phone = !!(options as { phone?: boolean }).phone;
+      if (phone) {
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+        await sleep(400);
+      }
+      t.scene('B3 horror hall');
+      await enterLevel(2);
+      await waitControl('B3 horror');
+      releaseAll();
+      // Setup: stand in Hall B facing the lab so the beam sweeps crates and the vat glow is ahead.
+      probe.place?.(42.6, 38, Math.PI);
+      await sleep(400);
+      // Flashlight on through real input (G / Flashlight touch button).
+      if (phone) {
+        const flashBtn = document.getElementById('phoneFlash') as HTMLButtonElement | null;
+        if (flashBtn && !flashBtn.hidden) {
+          await tapAt(flashBtn, 'Flashlight');
+          t.event('flashlight', 'tapped Flashlight');
+        } else {
+          await tap('g', 'flashlight on');
+        }
+      } else {
+        await tap('g', 'flashlight on');
+      }
+      await sleep(600);
+      const first = probe.b3Horror?.();
+      if (!first?.active) t.problem('bug', 'b3Horror() is null on level 2 — horror dressing did not mount');
+      if (!first?.beamVisible) t.problem('bug', 'flashlight beam is not visible after G');
+      t.event('b3-horror', `beam ${first?.beamVisible ? 'on' : 'OFF'}, shadows ${first?.flashlightShadows ? 'on' : 'off'}, casters ${first?.shadowCasters ?? 0}, fog ${first?.fogMode ?? '?'}`);
+      t.progress(0.2);
+
+      // Walk west down the hall (~30 s), sampling shadows and fog. Real stick / key input.
+      const start = performance.now();
+      let peakCasters = first?.shadowCasters ?? 0;
+      let peakVat = first?.vatWallsLit ?? 0;
+      let landmarks = first?.landmarks?.filter((l) => l.lit).length ?? 0;
+      const fpsSamples: number[] = [];
+      let lookNudge = 0;
+      setHeld('w');
+      while (performance.now() - start < 30000) {
+        await frame();
+        lookNudge += 1;
+        if (lookNudge % 12 === 0) {
+          // Soft look so the beam sweeps props (mouse move or touch look stick).
+          if (!phone) {
+            probe.canvas.dispatchEvent(new MouseEvent('mousemove', { movementX: lookNudge % 24 === 0 ? 4 : -3, movementY: 0, bubbles: true }));
+          } else {
+            const zone = document.getElementById('rightStickZone') as HTMLElement | null;
+            if (zone) {
+              const r = zone.getBoundingClientRect();
+              const x = r.left + r.width * 0.55;
+              const y = r.top + r.height * 0.5;
+              const init = { pointerType: 'touch', pointerId: 61, isPrimary: true, button: 0, buttons: 1, bubbles: true, cancelable: true, composed: true, clientX: x, clientY: y };
+              zone.dispatchEvent(new PointerEvent('pointerdown', init));
+              zone.dispatchEvent(new PointerEvent('pointermove', { ...init, clientX: x + 18, clientY: y }));
+              zone.dispatchEvent(new PointerEvent('pointerup', { ...init, buttons: 0, clientX: x + 18, clientY: y }));
+            }
+          }
+        }
+        const h = probe.b3Horror?.();
+        if (h) {
+          peakCasters = Math.max(peakCasters, h.shadowCasters);
+          peakVat = Math.max(peakVat, h.vatWallsLit);
+          landmarks = Math.max(landmarks, h.landmarks.filter((l) => l.lit).length);
+          fpsSamples.push(h.fpsHint);
+        }
+        const elapsed = performance.now() - start;
+        if (elapsed > 5000 && elapsed < 5050) t.progress(0.35);
+        if (elapsed > 15000 && elapsed < 15050) t.progress(0.55);
+        if (elapsed > 25000 && elapsed < 25050) t.progress(0.75);
+      }
+      setHeld('');
+      releaseAll();
+
+      // Near the vat so green wash on the lab walls is measurable.
+      probe.place?.(11.5, 38, Math.PI);
+      await sleep(1500);
+      const nearVat = probe.b3Horror?.();
+      peakVat = Math.max(peakVat, nearVat?.vatWallsLit ?? 0);
+      t.metric('b3ShadowCasters', peakCasters);
+      t.metric('b3VatWalls', peakVat);
+      t.metric('b3Landmarks', landmarks);
+      t.metric('b3FogMode', nearVat?.fogMode === 'exp2' ? 2 : nearVat?.fogMode === 'linear' ? 1 : 0);
+      const fpsSorted = [...fpsSamples].sort((a, b) => a - b);
+      const fpsP5 = fpsSorted.length ? fpsSorted[Math.max(0, Math.floor(fpsSorted.length * 0.05))] : 0;
+      t.metric('b3Fps', fpsP5);
+      if (phone) t.metric('phone.fpsP5', fpsP5);
+      t.event('b3-horror-end', `casters ${peakCasters}, vat walls ${peakVat}, landmarks ${landmarks}, fog ${nearVat?.fogMode}, fpsP5 ${fpsP5}`);
+      if (peakCasters < 3) t.problem('bug', `flashlight moving shadows from only ${peakCasters} objects (need ≥ 3)`);
+      if (peakVat < 2) t.problem('bug', `vat lights only ${peakVat} nearby walls (need ≥ 2)`);
+      if (landmarks < 3) t.problem('bug', `only ${landmarks} light landmarks lit (need ≥ 3)`);
+      if (nearVat?.fogMode !== 'exp2') t.problem('bug', `B3 fog is ${nearVat?.fogMode ?? 'missing'}, expected exp2`);
+      if (phone && fpsP5 < 30) t.problem('bug', `phone fps p5 ${fpsP5} under 30 with beam and fog`);
+      if (phone) probe.phoneFrame(false);
+      t.progress(1);
+      return 'done';
+    };
 
     // ---- vat-acid: hunt retry (under 3 s, no card) and the vat break played with the left stick on a phone
     const vatAcidRun = async (): Promise<Outcome> => {
@@ -6903,6 +7017,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     if (id === 'vat-acid') {
       const outcome = await vatAcidRun();
       t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'b3-horror-light') {
+      const outcome = await b3HorrorLightRun();
       t.finish(outcome);
       return;
     }

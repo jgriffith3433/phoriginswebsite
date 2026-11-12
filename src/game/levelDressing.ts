@@ -3,7 +3,9 @@ import * as BABYLON from '@babylonjs/core';
 import { createCityView, type CityView } from '../story/city/cityView';
 import { createStationDress, type StationDress } from '../story/stationDress';
 import { createTrainDress, type TrainDress } from '../story/trainDress';
+import type { GraphicsTier } from '../render/pipeline';
 import { createAtmosphere, type Atmosphere } from './atmosphere';
+import { createB3Horror, type B3Horror } from './b3Horror';
 import { apexPlan } from './interior/apexPlan';
 import { b3Plan } from './interior/b3Plan';
 import { createInteriorDress, type InteriorDress } from './interior/dress';
@@ -13,7 +15,7 @@ import { createInteriorDress, type InteriorDress } from './interior/dress';
  * mount it from the level id, so the editor draws what the player sees.
  *
  * apex-peak:   the generated city 205 m below the office windows.
- * b3-basement: dust, light shafts, steam, a visible flashlight beam.
+ * b3-basement: dust, light shafts, steam, a visible flashlight beam, horror lighting.
  * the-station: tiles, tunnels, tubes, ads, departure board, plus dust.
  * the-train:   the subway car: seats, poles, ads, tunnel out the windows, sway.
  * (going-home mounts its own city: the level runs it.)
@@ -25,12 +27,20 @@ export type DressingContext = {
   powers?: boolean;
 };
 
-export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera) => {
+export type LevelDressingOptions = {
+  /** Live graphics tier (Low skips volumetric scattering; smaller flashlight shadow map). */
+  graphicsTier?: () => GraphicsTier;
+  /** Pierce's feet for B3 hall life (radio crackle). */
+  playerAt?: () => { x: number; z: number } | null;
+};
+
+export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera, options: LevelDressingOptions = {}) => {
   let cityView: CityView | null = null;
   let atmosphere: Atmosphere | null = null;
   let station: StationDress | null = null;
   let train: TrainDress | null = null;
   let interior: InteriorDress | null = null;
+  let horror: B3Horror | null = null;
   let current = '';
 
   const clear = () => {
@@ -44,10 +54,16 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     train = null;
     interior?.dispose();
     interior = null;
+    horror?.dispose();
+    horror = null;
+    if (scene.metadata && typeof scene.metadata === 'object') {
+      delete (scene.metadata as { b3Horror?: unknown }).b3Horror;
+    }
     current = '';
   };
 
   const mobile = () => typeof document !== 'undefined' && document.body.dataset.device !== 'desktop';
+  const tier = () => options.graphicsTier?.() ?? 'high';
 
   return {
     mount: (ctx: DressingContext) => {
@@ -78,8 +94,11 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
           shafts: { match: /^light-/, gain: powers ? 0.06 : 0.3, maxHeight: 4.2 },
           steam,
           steamColor: [0.62, 0.72, 0.66],
-          beam: powers ? 0.05 : 0.14,
+          // Stronger visible cone on horror B3 (soft additive + scrolling noise in atmosphere.ts).
+          beam: powers ? 0.05 : 0.28,
         });
+        horror = createB3Horror(scene, { powers, tier, playerAt: options.playerAt });
+        scene.metadata = { ...(scene.metadata ?? {}), b3Horror: horror };
       } else if (ctx.levelId === 'the-station') {
         station = createStationDress(scene);
         atmosphere = createAtmosphere(scene, {
@@ -97,6 +116,7 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     step: (dt: number) => {
       cityView?.step(dt);
       atmosphere?.step(dt);
+      horror?.step(dt);
       station?.step(dt);
       train?.step(dt);
       interior?.step(dt);
@@ -109,6 +129,8 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     setBoardStop: (on: boolean) => station?.setBoardStop(on),
     /** The mounted train kit, for level 7's script and the playtest. */
     train: () => train,
+    /** B3 horror lighting (flashlight shadows, vat, flicker); null off that level. */
+    b3Horror: () => horror?.stats() ?? null,
     dispose: clear,
   };
 };

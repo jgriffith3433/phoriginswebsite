@@ -436,12 +436,15 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
     uniforms: [
       'worldViewProjection', 'cameraPos', 'lPos', 'lCol', 'spotPos', 'spotDir', 'spotInfo', 'hemiSky', 'hemiGround',
-      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma', ...keyShadow.uniforms,
+      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma', 'flashShadowStrength', 'flashLightMatrix', ...keyShadow.uniforms,
     ],
-    samplers: ['atlas', ...Object.keys(APEX_MATERIALS), ...keyShadow.samplers],
+    samplers: ['atlas', ...Object.keys(APEX_MATERIALS), 'flashShadowMap', ...keyShadow.samplers],
     defines: keyShadow.defines,
   });
   attachKeyShadow(scene, material);
+  material.setFloat('flashShadowStrength', 0);
+  const flashMatIdentity = BABYLON.Matrix.Identity();
+  material.setMatrix('flashLightMatrix', flashMatIdentity);
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas.tex);
@@ -665,7 +668,13 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
         hemiGround.set(0.02, 0.02, 0.02);
       }
       fogColor.copyFrom(scene.fogColor ?? BABYLON.Color3.Black());
-      fogInfo.set(scene.fogStart, scene.fogEnd, scene.fogMode === BABYLON.Scene.FOGMODE_LINEAR ? 1 : 0);
+      if (scene.fogMode === BABYLON.Scene.FOGMODE_EXP2) {
+        fogInfo.set(scene.fogDensity || 0.05, 0, 2);
+      } else if (scene.fogMode === BABYLON.Scene.FOGMODE_LINEAR) {
+        fogInfo.set(scene.fogStart, scene.fogEnd, 1);
+      } else {
+        fogInfo.set(0, 0, 0);
+      }
       material.setVector3('cameraPos', cam);
       material.setArray4('lPos', lPos);
       material.setArray3('lCol', lCol);
@@ -679,6 +688,18 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
       material.setFloat('time', clock);
       material.setFloat('lightGain', plan.lightGain ?? 1);
       material.setFloat('toGamma', scene.imageProcessingConfiguration.applyByPostProcess ? 0 : 1);
+      // B3 flashlight shadows (bound by levelDressing when the horror pass is live).
+      const horror = (scene.metadata as { b3Horror?: { flashShadowBind: () => {
+        enabled: boolean; map: BABYLON.RenderTargetTexture | null; matrix: BABYLON.Matrix | null; strength: number;
+      } } } | null)?.b3Horror;
+      const bind = horror?.flashShadowBind();
+      if (bind?.enabled && bind.map && bind.matrix) {
+        material.setFloat('flashShadowStrength', bind.strength);
+        material.setMatrix('flashLightMatrix', bind.matrix);
+        material.setTexture('flashShadowMap', bind.map);
+      } else {
+        material.setFloat('flashShadowStrength', 0);
+      }
     },
     dispose: () => {
       for (const o of owned) o.dispose();
