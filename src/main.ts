@@ -2960,6 +2960,12 @@ act = createAct1({
   },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   impair: (next) => setImpair(next),
   flashlight: (on) => {
@@ -3065,6 +3071,12 @@ const home: GoingHome = createGoingHome({
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
@@ -3122,6 +3134,12 @@ const desk: TheDesk = createTheDesk({
   playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   faceCamera: (yaw) => followCamera.face(yaw),
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
@@ -3185,6 +3203,12 @@ const station: TheStation = createTheStation({
   power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
     state.inCutscene = held;
@@ -3215,6 +3239,12 @@ const morning: TheMorning = createTheMorning({
   playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
@@ -3315,6 +3345,12 @@ const train: TheTrain = createTheTrain({
   power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
     state.inCutscene = held;

@@ -96,6 +96,18 @@ export type ActHost = {
   beamAt: (at: { x: number; y: number; z: number } | null) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'window-monologue' | 'elevator-ride' | 'mirror',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   fade: (to: number, seconds?: number) => void;
   raiseLight: () => void;
   showLine: (title: string, text: string) => void;
@@ -984,6 +996,9 @@ export const createAct1 = (host: ActHost) => {
   /** The cab ride is played, not watched: he steps in, looks around, presses B3, the cab does the rest. */
   let cabPressed = false;
   let cabT = 0;
+  let windowT = 0;
+  let mirrorT = 0;
+  let currentAsideId = '';
   let cabAsided = false;
   let cabDinged = false;
   let cabHum: ClipHandle | null = null;
@@ -1051,6 +1066,13 @@ export const createAct1 = (host: ActHost) => {
       queueAside(CAB_ASIDE);
     }
     stepAside(delta);
+    const hereCab = host.playerXZ();
+    host.stepCineScene?.('elevator-ride', cabT, delta, {
+      applyCamera: false,
+      speaker: 'Pierce',
+      lineKey: currentAsideId || 'dialogue.elevator-b3.01',
+      speakerPosOverride: { x: hereCab.x, y: 1.48, z: hereCab.z },
+    });
     let rawFloor = 0;
     for (let i = 0; i < CAB_FLOOR_AT.length; i += 1) if (cabT >= CAB_FLOOR_AT[i]) rawFloor = i;
     const arrived = cabT >= CAB_ARRIVE_AT;
@@ -1069,6 +1091,7 @@ export const createAct1 = (host: ActHost) => {
     }
     if (cabT >= CAB_END_AT) {
       clearAside();
+      host.endCineScene?.(false);
       cabHum?.stop();
       cabHum = null;
       cabPressed = false;
@@ -1097,6 +1120,7 @@ export const createAct1 = (host: ActHost) => {
     asideQueue = [];
     asideLeft = 0;
     asideGap = 0;
+    currentAsideId = '';
     host.showLine('', '');
   };
 
@@ -1106,6 +1130,7 @@ export const createAct1 = (host: ActHost) => {
       clearAside();
       return;
     }
+    currentAsideId = line.id;
     asideLeft = line.duration;
     asideGap = 0;
     host.showLine('Pierce', lineText(line.id));
@@ -1224,17 +1249,20 @@ export const createAct1 = (host: ActHost) => {
   const beginMirrorLook = () => {
     if (!host.isReturn() || phase !== 'mirror') return;
     phase = 'mirror-look';
-    mirrorLeft = 5.4;
+    mirrorLeft = 5.6;
+    mirrorT = 0;
     host.holdScene(true);
     host.hideMarker();
     host.showObjective(false);
     host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
     host.holdLocomotion();
     host.playClip('rebornidle', true);
-    host.frameCamera(
-      { x: MIRROR_STAND.x - 0.72, y: 1.68, z: MIRROR_STAND.z + 0.88 },
-      { x: MIRROR_GLASS.x, y: 1.46, z: MIRROR_GLASS.z },
-    );
+    host.stepCineScene?.('mirror', 0, 0.016, {
+      applyCamera: true,
+      speaker: 'Pierce',
+      lineKey: 'dialogue.return.mirror',
+      speakerPosOverride: { x: MIRROR_STAND.x, y: 1.46, z: MIRROR_STAND.z },
+    });
     host.showLine('Pierce', lineText('dialogue.return.mirror', "That's me. I'm not seeing things."));
     host.playFile(lineAudio('dialogue.return.mirror', '/assets/audio/cutscenes/return-mirror/01-pierce-thats-me.wav'), 0.92);
   };
@@ -3747,9 +3775,17 @@ export const createAct1 = (host: ActHost) => {
       }
       if (host.isReturn() && phase === 'mirror-look') {
         host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
+        mirrorT += delta;
+        host.stepCineScene?.('mirror', mirrorT, delta, {
+          applyCamera: true,
+          speaker: 'Pierce',
+          lineKey: 'dialogue.return.mirror',
+          speakerPosOverride: { x: MIRROR_STAND.x, y: 1.46, z: MIRROR_STAND.z },
+        });
         mirrorLeft -= delta;
         if (mirrorLeft <= 0) {
           host.showLine('', '');
+          host.endCineScene?.();
           host.releaseCamera();
           host.holdScene(false);
           finishLevel('return');
@@ -3766,8 +3802,17 @@ export const createAct1 = (host: ActHost) => {
         if (elevatorDoorOpen >= 1) beginLab();
       }
       if (phase === 'to-window' && host.running() && !host.inCutscene()) {
+        windowT += delta;
         stepAside(delta);
+        const hereWin = host.playerXZ();
+        host.stepCineScene?.('window-monologue', windowT, delta, {
+          applyCamera: false,
+          speaker: 'Pierce',
+          lineKey: currentAsideId || 'dialogue.apex-window.01',
+          speakerPosOverride: { x: hereWin.x, y: 1.46, z: hereWin.z },
+        });
         if (!asideBusy() && inWalkup('trigger-office-window', 48, 46.2, 1.6)) {
+          host.endCineScene?.(false);
           void mountSecurityFeed();
           beginVossCall();
         }
