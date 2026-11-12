@@ -909,6 +909,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['level', 'quality'],
       },
       {
+        id: 'human-pierce',
+        title: 'The new human Pierce (Hawkes Gen suit model) in levels 1, 3, 4, 6 and 7: which body each level shows, feet on the floor, no folded or stretched skin in walk, run, sit and phone poses; phone: level 1 from the chapter card within 8 s',
+        description: 'Desktop: starts levels 1, 3, 4, 6 and 7 directly (test shortcut; level 1 with Start). Finds every character whose material is the new Pierce (pierce-suit) and logs pierce-body per level: the player in level 1, the old body on the Station platform (level 6, its opening scene) and in the train car (level 7, its opening), the transformed body by canon in levels 3 and 4. For each new-Pierce body it measures the floor gap under the feet (skinned bounds against the floor straight below; more than 2 cm floating or 5 cm sunk is a bug) and takes a pierce-shot screenshot. In level 1 it walks Pierce forward, raises the phone (G) and takes shots, then pauses the game and scrubs the Idle, Walk, Run, SitIdle, PistolIdle and phone (Idle with the hand up is the phone overlay) clips frame by frame at a quarter speed on the paused body: every skinned triangle is compared with its rest shape carried by its main bone, and a face turned inside out (folded) or an edge stretched past 2.5x counts. Over 1% folded or 0.5% stretched in a clip is a bug (metrics pierceFold<clip>, pierceStretch<clip>). Option phone: a 390x844 touch layout, Start tapped, the seconds from the level 1 chapter card to control (metric pierceL1CardToControl, 8 or less), the pierce.glb download size (metric pierceGlbMB, 4 or less) and the memory tier.',
+        seconds: 420,
+        tags: ['level', 'quality', 'characters'],
+      },
+      {
         id: 'hitch-board',
         title: 'Level 1 spawn to board table with named hitch causes; phone sample of levels 1, 4 and 8',
         description: 'Starts level 1 with Start (chapter card up while first-use warm runs and awaits audio decode), logs the warm event, resets the frame trace once Pierce can walk, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, resets the trace after control, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
@@ -5765,6 +5772,218 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       });
       t.progress(1);
       t.finish(failOver100 > 0 ? 'lost' : 'done');
+      return;
+    }
+
+    if (id === 'human-pierce') {
+      const phone = Boolean(options.phone);
+      levelsTotal = phone ? 1 : 5;
+      if (probe.sound().prompt) await tapToPlay();
+      const scene = probe.scene;
+      const isPierce = (m: BABYLON.AbstractMesh) => !!m.material && m.material.name.startsWith('pierce-') && !!m.skeleton;
+      const bodies = () => scene.meshes.filter((m) => isPierce(m) && m.isEnabled() && m.isVisible && m.visibility > 0.05);
+      const shot = (label: string) => {
+        try {
+          const c = probe.canvas;
+          const w = 640; const cv = document.createElement('canvas');
+          cv.width = w; cv.height = Math.round((c.height / c.width) * w);
+          cv.getContext('2d')!.drawImage(c, 0, 0, cv.width, cv.height);
+          t.event('pierce-shot', JSON.stringify({ label, image: cv.toDataURL('image/jpeg', 0.7) }));
+        } catch { /* no capture */ }
+      };
+      /** Floor gap under one body: skinned bounds bottom against the first surface straight below. */
+      const feet = (mesh: BABYLON.AbstractMesh, label: string) => {
+        mesh.refreshBoundingInfo({ applySkeleton: true, applyMorph: false });
+        const box = mesh.getBoundingInfo().boundingBox;
+        const bottom = box.minimumWorld.y;
+        const c = box.centerWorld;
+        // BABYLON is a type-only import here: take a Ray from the scene and aim it straight down under the feet.
+        const ray = scene.createPickingRay(0, 0, null, scene.activeCamera);
+        ray.origin.set(c.x, bottom + 0.6, c.z);
+        ray.direction.set(0, -1, 0);
+        ray.length = 2.5;
+        const hit = scene.pickWithRay(ray, (m) => m.isEnabled() && m.isVisible && m.visibility > 0.5 && m.getTotalVertices() > 0
+          && !(m.material?.metadata as { character?: boolean } | null)?.character && !m.skeleton);
+        if (!hit?.pickedPoint) { t.event('pierce-feet', `${label}: no floor found under the feet`); return null; }
+        const gap = bottom - hit.pickedPoint.y;
+        t.event('pierce-feet', `${label}: feet ${(gap * 100).toFixed(1)} cm ${gap >= 0 ? 'above' : 'into'} ${hit.pickedMesh?.name ?? 'the floor'}`);
+        if (gap > 0.02 || gap < -0.05) t.problem('bug', `${label}: Pierce's feet are ${(Math.abs(gap) * 100).toFixed(1)} cm ${gap > 0 ? 'above' : 'into'} the floor`);
+        return gap;
+      };
+      /** Skinned triangles against their rest shape: folded (inside-out) faces and stretched edges, in one pose. */
+      const skinFaults = (mesh: BABYLON.AbstractMesh) => {
+        const sk = mesh.skeleton!;
+        sk.prepare(true);
+        const rest = mesh.getVerticesData('position');
+        const live = mesh.getPositionData(true, false);
+        const mi = mesh.getVerticesData('matricesIndices');
+        const mw = mesh.getVerticesData('matricesWeights');
+        const idx = mesh.getIndices();
+        const bm = sk.getTransformMatrices(mesh);
+        if (!rest || !live || !mi || !mw || !idx) return { tris: 0, folded: 0, stretched: 0 };
+        const dom = (v: number) => {
+          let best = 0;
+          for (let k = 1; k < 4; k++) if (mw[v * 4 + k]! > mw[v * 4 + best]!) best = k;
+          return mi[v * 4 + best]! * 16;
+        };
+        const P = (a: Float32Array | number[], i: number) => [a[i * 3]!, a[i * 3 + 1]!, a[i * 3 + 2]!];
+        const nrm = (p: number[], q: number[], w: number[]) => {
+          const u = [q[0]! - p[0]!, q[1]! - p[1]!, q[2]! - p[2]!];
+          const x = [w[0]! - p[0]!, w[1]! - p[1]!, w[2]! - p[2]!];
+          const c = [u[1]! * x[2]! - u[2]! * x[1]!, u[2]! * x[0]! - u[0]! * x[2]!, u[0]! * x[1]! - u[1]! * x[0]!];
+          const l = Math.hypot(c[0]!, c[1]!, c[2]!);
+          return l > 1e-12 ? c.map((y) => y / l) : null;
+        };
+        const dist = (p: number[], q: number[]) => Math.hypot(p[0]! - q[0]!, p[1]! - q[1]!, p[2]! - q[2]!);
+        let folded = 0; let stretched = 0; let tris = 0;
+        for (let i = 0; i + 2 < idx.length; i += 3) {
+          const a = idx[i]!; const b = idx[i + 1]!; const c = idx[i + 2]!;
+          tris++;
+          const ra = P(rest, a); const rb = P(rest, b); const rc = P(rest, c);
+          const la = P(live, a); const lb = P(live, b); const lc = P(live, c);
+          const o = dom(a);
+          const s = Math.hypot(bm[o]!, bm[o + 1]!, bm[o + 2]!) || 1;
+          const r = [dist(ra, rb), dist(rb, rc), dist(rc, ra)];
+          const l = [dist(la, lb), dist(lb, lc), dist(lc, la)];
+          if (Math.max(...l.map((x, k) => (r[k]! > 1e-6 ? x / (r[k]! * s) : 1))) > 2.5) stretched++;
+          const n0 = nrm(ra, rb, rc); const n1 = nrm(la, lb, lc);
+          if (!n0 || !n1) continue;
+          const rn = [bm[o]! * n0[0]! + bm[o + 4]! * n0[1]! + bm[o + 8]! * n0[2]!, bm[o + 1]! * n0[0]! + bm[o + 5]! * n0[1]! + bm[o + 9]! * n0[2]!, bm[o + 2]! * n0[0]! + bm[o + 6]! * n0[1]! + bm[o + 10]! * n0[2]!];
+          const rl = Math.hypot(rn[0]!, rn[1]!, rn[2]!) || 1;
+          if ((rn[0]! * n1[0]! + rn[1]! * n1[1]! + rn[2]! * n1[2]!) / rl < -0.2) folded++;
+        }
+        return { tris, folded, stretched };
+      };
+      /** Paused: scrub each clip on the player body at a quarter speed (16 samples over its length). */
+      const poseAudit = async () => {
+        const body = bodies()[0];
+        if (!body) { t.problem('bug', 'level 1: no new-Pierce body to pose'); return; }
+        await tapAt(document.getElementById('pauseBtn'), 'Pause');
+        await t.until(() => probe.sound().paused, 3000, 'Pause');
+        const bones = new Set(body.skeleton!.bones.map((b) => b.getTransformNode()).filter(Boolean));
+        const groups = scene.animationGroups.filter((g) => g.targetedAnimations.some((ta) => bones.has(ta.target as BABYLON.TransformNode)));
+        const clipOf = (g: BABYLON.AnimationGroup) => g.name.split('_').pop() ?? g.name;
+        const was = groups.map((g) => ({ g, playing: g.isPlaying, weight: g.weight }));
+        for (const g of groups) g.stop();
+        for (const name of ['Idle', 'Walk', 'Run', 'SitIdle', 'SitTalk', 'PistolIdle', 'PistolWalk']) {
+          const g = groups.find((x) => clipOf(x) === name);
+          if (!g) { t.event('pierce-pose', `${name}: no such clip on the body`); continue; }
+          let worstFold = 0; let worstStretch = 0; let tris = 0;
+          g.start(false, 0.25, g.from, g.to);
+          g.pause();
+          g.setWeightForAllAnimatables(1);
+          for (let k = 0; k <= 15; k++) {
+            g.goToFrame(g.from + ((g.to - g.from) * k) / 15);
+            const f = skinFaults(body);
+            tris = f.tris;
+            worstFold = Math.max(worstFold, f.folded);
+            worstStretch = Math.max(worstStretch, f.stretched);
+            await sleep(30);
+          }
+          g.stop();
+          const fp = tris ? (100 * worstFold) / tris : 0;
+          const sp = tris ? (100 * worstStretch) / tris : 0;
+          t.metric(`pierceFold${name}`, Math.round(fp * 100) / 100);
+          t.metric(`pierceStretch${name}`, Math.round(sp * 100) / 100);
+          t.event('pierce-pose', `${name} (quarter speed, 16 frames): worst ${worstFold} folded (${fp.toFixed(2)}%), ${worstStretch} stretched (${sp.toFixed(2)}%) of ${tris} triangles`);
+          if (fp > 1) t.problem('bug', `${name}: ${fp.toFixed(2)}% of Pierce's faces turn inside out (skin or suit folding through itself)`);
+          if (sp > 0.5) t.problem('bug', `${name}: ${sp.toFixed(2)}% of Pierce's triangles stretch past 2.5x (suit tearing at a joint)`);
+        }
+        for (const w of was) if (w.playing) { w.g.play(true); w.g.setWeightForAllAnimatables(w.weight); }
+        await tapAt(document.getElementById('resumeBtn'), 'Resume');
+        await t.until(() => !probe.sound().paused, 3000, 'Resume');
+      };
+      const reportLevel = (n: number, expectHuman: boolean) => {
+        const list = bodies();
+        const roles = list.map((m) => (m.isDescendantOf(probe.feel?.collider ?? m) || m.name.includes('player') ? 'player' : m.name.split('_')[0]));
+        t.metric(`pierceBodiesL${n}`, list.length);
+        t.event('pierce-body', `Level ${n}: ${list.length ? `new Pierce shown (${[...new Set(roles)].join(', ')})` : expectHuman ? 'no new Pierce on screen' : 'the transformed body (canon: Pierce is the new body after the vat), no human Pierce in this level'}`);
+        if (expectHuman && !list.length) t.problem('bug', `Level ${n}: the new human Pierce is not on screen`);
+        list.forEach((m, i) => feet(m, `Level ${n} body ${i + 1}`));
+        shot(`Level ${n}`);
+      };
+      const waitBody = async (ms: number) => {
+        const until = performance.now() + ms;
+        while (performance.now() < until && !bodies().length) await tick();
+        return bodies().length > 0;
+      };
+
+      if (phone) {
+        probe.phoneFrame(true);
+        touchWalk = true;
+        t.event('setup', 'phone layout 390x844 (touch)');
+        await sleep(800);
+        const g = probe.graphics();
+        t.event('pierce-tier', `memory tier ${g.memoryTier}, texture cap ${g.textureCap ?? 'none'}, ${g.reason}`);
+        await t.until(() => probe.menu().open && !!probe.menu().start, 60000, 'the title card with Start');
+        await tapAt(probe.startButton, 'Start');
+        await t.until(() => probe.chapter().open, 60000, 'the level 1 chapter card');
+        const cardAt = performance.now();
+        t.scene('Level 1 chapter card');
+        await t.until(() => probe.running() && probe.level().id === 1 && !probe.chapter().open, 30000, 'control in level 1');
+        const secs = (performance.now() - cardAt) / 1000;
+        t.metric('pierceL1CardToControl', Math.round(secs * 10) / 10);
+        t.event('pierce-start', `level 1 in control ${secs.toFixed(1)} s after the chapter card`);
+        if (secs > 8) t.problem('bug', `phone: level 1 took ${secs.toFixed(1)} s from the chapter card to control (limit 8)`);
+        const res = performance.getEntriesByType('resource').filter((e) => /pierce\.glb/.test(e.name)) as PerformanceResourceTiming[];
+        const bytes = Math.max(0, ...res.map((e) => e.encodedBodySize || e.transferSize || 0));
+        t.metric('pierceGlbMB', Math.round((bytes / 1048576) * 100) / 100);
+        t.event('pierce-glb', res.length ? `pierce.glb ${(bytes / 1048576).toFixed(2)} MB` : 'pierce.glb not in the resource list');
+        if (!res.length) t.problem('bug', 'phone: level 1 did not load pierce.glb');
+        else if (bytes > 4 * 1048576) t.problem('bug', `phone: pierce.glb is ${(bytes / 1048576).toFixed(2)} MB (budget 4 MB)`);
+        await waitBody(5000);
+        reportLevel(1, true);
+        setHeld('w'); await sleep(2500); releaseAll();
+        await sleep(400);
+        shot('Level 1 phone walk');
+        t.progress(1);
+        t.finish('done');
+        return;
+      }
+
+      for (const [i, n] of [1, 3, 4, 6, 7].entries()) {
+        levelIndex = i;
+        if (n === 7) {
+          t.event('setup', 'start at level 7 directly (test shortcut)');
+          void probe.setupLevel(7);
+        } else if (n === 6) {
+          t.event('setup', 'start at level 6 directly (test shortcut)');
+          void probe.setupLevel(6);
+        } else {
+          await enterLevel(n);
+        }
+        t.scene(`Level ${n}`);
+        if (n === 6 || n === 7) {
+          // The old body is in each level's opening scene: catch it there.
+          const seen = await waitBody(90000);
+          await sleep(1500);
+          if (!seen) t.event("pierce-body", `Level ${n}: the old body did not show in 90 s`);
+          reportLevel(n, true);
+          await sleep(2500);
+          shot(`Level ${n} opening`);
+        } else {
+          const until = performance.now() + 90000;
+          while (!(probe.running() && probe.level().id === n)) {
+            if (performance.now() > until) throw new Error(`level ${n} never started`);
+            await tick();
+          }
+          await sleep(1500);
+          reportLevel(n, n === 1);
+          if (n === 1) {
+            setHeld('w'); await sleep(2200); releaseAll();
+            await sleep(500);
+            shot('Level 1 walk');
+            await tap('g', 'phone up, flashlight on');
+            await sleep(1500);
+            shot('Level 1 phone pose');
+            feet(bodies()[0]!, 'Level 1 phone pose');
+            await poseAudit();
+            await tap('g', 'flashlight off');
+          }
+        }
+        t.progress((i + 1) / 5);
+      }
+      t.finish('done');
       return;
     }
 

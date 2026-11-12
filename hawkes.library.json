@@ -6,12 +6,12 @@
   "mappings": [
     {
       "kind": "character",
-      "entities": ["ch*", "hero", "parasite-*"],
+      "entities": ["ch*", "hero", "pierce", "parasite-*"],
       "slots": [{ "slot": "model", "current": "{entity}.glb", "takes": "_takes/{entity}-*.glb" }]
     },
     {
       "kind": "prop",
-      "skip": ["_*", "ch*", "hero", "parasite-*"],
+      "skip": ["_*", "ch*", "hero", "pierce", "parasite-*"],
       "slots": [{ "slot": "model", "current": "{entity}.glb", "takes": "_takes/{entity}-*.glb" }]
     },
     {
