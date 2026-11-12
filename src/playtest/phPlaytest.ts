@@ -49,6 +49,13 @@ export type PhProbe = {
     caption: { x: number; y: number; w: number; h: number } | null;
     stats: { vossTrust: number; haleTemper: number; min: number; max: number };
   };
+  /** The street ledger on the save (kills, possessions, consumes, witnesses, reported, band). Pass a seed to set it. */
+  ledger?: (seed?: { kills?: number; possessions?: number; consumes?: number; witnesses?: number; reported?: number }) => {
+    kills: number; possessions: number; consumes: number; witnesses: number; reported: number; band: number;
+  };
+  grantShock?: () => void;
+  /** Going Home: siren time, police car spawn/arrival (street seconds), witnesses. */
+  heat?: () => { kills: number; sirenAt: number; carSpawnedAt: number; carArrivedAt: number; sirenToCarSeconds: number; carActive: boolean; witnesses: number; withinSeconds: number };
   /** Test shortcut: ring a scripted call and (optionally) seed the saved trust values. */
   callTest?: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => void;
   /** The chapter title card that opens each level (kicker, name, story line). */
@@ -738,6 +745,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 2 (test shortcut) and the hunt from the lab door. Pierce is downed (test shortcut, as a bite would): there must be no Defeat card, chapter card or reload, a red fade of about 0.6 s, control back inside 3 s (metrics huntRetries, retrySeconds), health full, and the creature out of sight. Then the vat break shot plays (it must end within 5.5 s, no camera hold over 5 s) and control returns in the acid. Laid out as a 390x844 phone, the bot plays the acid with the left stick only (pointer drags, no keys): it logs the input lag, heading drift, stagger and the falls, the flashlight failing, checks the touch controls stay visible and 44 px, that there is at least 15 s of movement input, that the avatar swaps during a fall, and that it ends as Pierce reaches the door and End Level is offered. Metrics: acidSeconds, acidInputSeconds, huntRetries, retrySeconds.',
         seconds: 300,
         tags: ['level', 'phone'],
+      },
+      {
+        id: 'ledger-city',
+        title: 'The ledger: kills on the street bring sirens and a police car, and change The Morning (TV report, newspaper headline, Voss call)',
+        description: 'Starts Going Home (skips the lobby), hands over Shadow Shock with the probe\'s grantShock setup shortcut, turns Shadow on and drops three bystanders by tapping the fire button (touch: stick drags and taps with options.phone). Checks the siren starts at the second kill and the police car stops beside him within 20 s. Then plays The Morning twice, once with the 3-kill ledger and once with none: it watches the TV, taps Read the paper at the coffee table and answers Voss by tap. The TV report, the newspaper headline and Voss\'s lines must differ; captions must be at least 13 px and on screen at 390x844. Metrics: ledgerKills, ledgerWitnesses, sirenToCarSeconds, vossLinesDiffering, captionMinPx. Options: phone.',
+        seconds: 900,
+        tags: ['level', 'phone', 'story'],
       },
       {
         id: 'street-powers',
@@ -6355,6 +6369,150 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       const outcome = await trainStoryRun();
       t.progress(1);
       t.finish(outcome);
+      return;
+    }
+
+    if (id === 'ledger-city') {
+      levelsTotal = 1;
+      const phone = Boolean(options.phone);
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(800); }
+      const byId = (name: string) => document.getElementById(name) as HTMLElement | null;
+      // ---- Part 1: Going Home. Three bystanders by Shadow Shock; the city must answer within 20 s of the second.
+      t.scene('Going Home: the ledger');
+      await enterLevel(5);
+      await waitControl('Going Home');
+      for (let i = 0; i < 120 && probe.scripted(); i += 1) {
+        if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        await sleep(400);
+      }
+      await t.until(() => probe.running() && !probe.scripted(), 30000, 'control on the street');
+      probe.ledger?.({ kills: 0, possessions: 0, consumes: 0, witnesses: 0, reported: 0 });
+      t.event('ledger', `start ${JSON.stringify(probe.ledger?.())}`);
+      probe.grantShock?.();
+      await sleep(500);
+      if (!probe.shadow().on) await tapAt(byId('shadowHint'), 'Shadow');
+      await sleep(500);
+      const zone = byId('leftStickZone');
+      let down = false;
+      const stick = (ux: number, uy: number) => {
+        if (!zone) return;
+        const zr = zone.getBoundingClientRect();
+        const type = down ? 'pointermove' : 'pointerdown';
+        down = true;
+        zone.dispatchEvent(new PointerEvent(type, { pointerId: 29, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38, clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38 }));
+      };
+      const lift = () => { if (down && zone) zone.dispatchEvent(new PointerEvent('pointerup', { pointerId: 29, pointerType: 'touch', bubbles: true })); down = false; };
+      const toward = (to: Point) => {
+        const from = probe.player();
+        const heading = Math.atan2(to.x - from.x, to.z - from.z);
+        if (phone) { const rel = wrap(heading - probe.cameraYaw()); stick(Math.sin(rel), -Math.cos(rel)); } else steer(to, true);
+      };
+      const halt = () => { if (phone) lift(); else releaseAll(); };
+      const killsNow = () => probe.ledger?.().kills ?? 0;
+      const started = performance.now();
+      let secondAt = -1;
+      let guard = 0;
+      while (killsNow() < 3 && performance.now() - started < 240000) {
+        await tick();
+        if (probe.menu().open) break;
+        const p = probe.player();
+        const mark = probe.people().filter((x) => x.kind === 'person').sort((a, b) => dist(p, a) - dist(p, b))[0];
+        if (!mark) { toward({ x: p.x + 12, z: 21.5 }); continue; }
+        if (dist(p, mark) > 4.2) { toward(mark); continue; }
+        halt();
+        face(Math.atan2(mark.x - p.x, mark.z - p.z));
+        await sleep(250);
+        await tapAt(byId('fireBtn'), 'Shadow Shock');
+        await sleep(900);
+        guard += 1;
+        if (secondAt < 0 && killsNow() >= 2) { secondAt = performance.now(); t.event('kills', `2 bystanders down after ${guard} shocks`); }
+      }
+      halt();
+      const after = probe.ledger?.();
+      t.event('ledger', `after the street ${JSON.stringify(after)}`);
+      t.metric('ledgerKills', after?.kills ?? 0);
+      t.metric('ledgerWitnesses', after?.witnesses ?? 0);
+      t.metric('ledgerPossessions', after?.possessions ?? 0);
+      if (killsNow() < 2) t.problem('bug', `could not drop 2 bystanders on the street (kills ${killsNow()})`);
+      // The siren starts at once; the car must stop beside him inside 20 s of the second kill.
+      await t.until(() => (probe.heat?.().carArrivedAt ?? -1) >= 0, 24000, 'the police car to arrive');
+      const heat = probe.heat?.();
+      t.event('police', `siren at ${heat?.sirenAt.toFixed(1)} s, car spawned ${heat?.carSpawnedAt.toFixed(1)} s, car arrived ${heat?.carArrivedAt.toFixed(1)} s (street clock), witnesses ${heat?.witnesses}`);
+      t.metric('sirenToCarSeconds', Math.round((heat?.sirenToCarSeconds ?? -1) * 10) / 10);
+      if (!heat || heat.sirenAt < 0) t.problem('bug', 'two kills did not start the siren');
+      else if (heat.sirenToCarSeconds < 0 || heat.sirenToCarSeconds > 20) t.problem('bug', `the police car came ${heat.sirenToCarSeconds.toFixed(1)} s after the siren (must be within 20 s)`);
+      // ---- Part 2: The Morning, once with the 3-kill ledger, once with none. Same bot, same inputs; what differs is what it hears and reads.
+      type Pass = { kills: number; band: number; report: string; paper: string; tv: string; vossLines: string[]; subtitleSizes: number[]; subtitleInView: boolean };
+      const morningPass = async (kills: number): Promise<Pass> => {
+        probe.ledger?.({ kills });
+        await probe.setupLevel(8);
+        await t.until(() => probe.running() && probe.level().libraryId === 'the-morning' && !probe.menu().open, 90000, 'level 8 to start');
+        const vossLines: string[] = [];
+        const sizes: number[] = [];
+        let inView = true;
+        let readPaper = false;
+        const t0 = performance.now();
+        let last = '';
+        for (;;) {
+          await tick();
+          if (performance.now() - t0 > 280000) break;
+          if (probe.menu().open) break;
+          const sub = probe.subtitle();
+          if (sub.text) {
+            const el = document.getElementById('cineText');
+            if (el) {
+              const r = el.getBoundingClientRect();
+              sizes.push(parseFloat(getComputedStyle(el).fontSize));
+              if (r.left < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) inView = false;
+            }
+          }
+          const s = probe.morning();
+          if (s && s.beat !== last) { last = s.beat; t.event('beat', `ledger pass kills=${kills}: ${s.beat}`); }
+          if (s && s.callDone && readPaper) break;
+          if (probe.scripted()) { releaseAll(); continue; }
+          if (!probe.running()) continue;
+          const phoneState = probe.phone();
+          if (phoneState.incoming) {
+            releaseAll();
+            if (phone) await tapAt(byId('phoneAnswer'), 'Answer'); else await once('f', 1500, 'answer call');
+            continue;
+          }
+          if (phoneState.busy) { releaseAll(); if (phoneState.line && vossLines[vossLines.length - 1] !== phoneState.line) vossLines.push(phoneState.line); continue; }
+          const label = probe.action();
+          if (label && label !== 'Leave') {
+            releaseAll();
+            if (label === 'Read the paper') readPaper = true;
+            if (phone) await tapAt(byId('interactBtn'), label); else await once('e', 1200, label);
+            continue;
+          }
+          if (s?.callDone && !readPaper) { const spot = { x: 3.2, z: -0.4 }; await walkTo(spot, 'paper', 0.5); continue; }
+          const obj = probe.objective();
+          if (!obj.target) { releaseAll(); continue; }
+          await walkTo(obj.target, `${obj.title || 'objective'}: ${obj.text.slice(0, 40)}`, 0.3);
+        }
+        releaseAll();
+        const s = probe.morning();
+        return { kills, band: s?.band ?? -1, report: s?.report ?? '', paper: s?.paper ?? '', tv: s?.tvText ?? '', vossLines, subtitleSizes: sizes, subtitleInView: inView };
+      };
+      const loud = await morningPass(3);
+      const quiet = await morningPass(0);
+      for (const pass of [loud, quiet]) {
+        t.event('morning', `kills ${pass.kills}: band ${pass.band}, TV report ${pass.report}, paper "${pass.paper.replace(/\n/g, ' / ')}", ticker/tv text "${pass.tv.slice(0, 120)}", ${pass.vossLines.length} Voss lines heard`);
+        t.metric(`morningBand_${pass.kills}kills`, pass.band);
+      }
+      if (loud.report === quiet.report) t.problem('bug', `the TV played the same report for 0 and 3 kills (${loud.report})`);
+      if (loud.paper === quiet.paper) t.problem('bug', 'the newspaper headline did not change between 0 and 3 kills');
+      const differing = loud.vossLines.filter((l) => !quiet.vossLines.includes(l)).length;
+      t.metric('vossLinesDiffering', differing);
+      if (differing < 1) t.problem('bug', 'Voss\'s morning call played no different line for 0 and 3 kills');
+      if (!loud.paper) t.problem('bug', 'the newspaper was never read (Read the paper did not show at the table)');
+      const small = Math.min(...loud.subtitleSizes, 99);
+      t.metric('captionMinPx', small === 99 ? 0 : Math.round(small));
+      if (phone && small < 13) t.problem('bug', `a caption is ${small}px at 390x844 (too small to read)`);
+      if (!loud.subtitleInView) t.problem('bug', 'a caption ran off the screen at this size');
+      t.progress(1);
+      t.finish('done');
       return;
     }
 

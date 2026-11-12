@@ -4719,6 +4719,275 @@
       "audioPerformance": "default",
       "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Call voss-morning: reply moment line (chosen reply or answer)"
+    },
+    {
+      "id": "news.morning.04.b1",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. One man was taken to hospital from the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.b1.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. One man was taken to hospital from the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (injuries)"
+    },
+    {
+      "id": "news.morning.04.d2",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Two people died on the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.d2.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Two people died on the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 2)"
+    },
+    {
+      "id": "news.morning.04.d3",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Three people died on the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.d3.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Three people died on the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 3)"
+    },
+    {
+      "id": "news.morning.04.d4",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Four people died on the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.d4.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Four people died on the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 4)"
+    },
+    {
+      "id": "news.morning.04.d5",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Five or more people died on the avenue. Police are asking who was there.",
+      "audio": "/assets/audio/vo/news.morning.04.d5.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Five or more people died on the avenue. Police are asking who was there.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 5)"
+    },
+    {
+      "id": "news.morning.tick.4.b1",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: ONE MAN TO HOSPITAL FROM TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d2",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: TWO DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d3",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: THREE DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d4",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: FOUR DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d5",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: FIVE OR MORE DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.paper.b0",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "A QUIET NIGHT\nON TOWER AVENUE\nHawkes chairman out. Police found no one hurt.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.b1",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "MAN TAKEN TO\nHOSPITAL ON AVENUE\nPolice ask who was on Tower Avenue last night.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d2",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "TWO DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d3",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "THREE DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d4",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "FOUR DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d5",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "FIVE OR MORE DEAD\nON TOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.title",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "The City Ledger",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper name"
+    },
+    {
+      "id": "ui.action.morning.paper",
+      "type": "ui",
+      "speaker": "Read the paper",
+      "text": "Read the paper",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): Level 8 coffee table"
+    },
+    {
+      "id": "dialogue.morning.paper.b0",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Nobody hurt. Maybe I can still walk back.",
+      "audio": "/assets/audio/cutscenes/morning/paper-b0.mp3",
+      "audioText": "Nobody hurt. Maybe I can still walk back.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Ledger (docs/story/ledger.md): Pierce reads the paper (Jackson, tired)"
+    },
+    {
+      "id": "dialogue.morning.paper.b1",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "One man in hospital. That was my hand.",
+      "audio": "/assets/audio/cutscenes/morning/paper-b1.mp3",
+      "audioText": "One man in hospital. That was my hand.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Ledger (docs/story/ledger.md): Pierce reads the paper (Jackson, tired)"
+    },
+    {
+      "id": "dialogue.morning.paper.b2",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "They're counting them. Every one of them mine.",
+      "audio": "/assets/audio/cutscenes/morning/paper-b2.mp3",
+      "audioText": "They're counting them. Every one of them mine.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Ledger (docs/story/ledger.md): Pierce reads the paper (Jackson, tired)"
+    },
+    {
+      "id": "phone.voss-morning.03b0",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "I watched the avenue last night. Nobody was hurt. That helps us both.",
+      "audio": "/assets/audio/phone/voss-morning-03-b0.mp3",
+      "audioText": "I watched the avenue last night. Nobody was hurt. That helps us both.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b0), line 03"
+    },
+    {
+      "id": "phone.voss-morning.03b1",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "I watched the avenue last night. One man in hospital. That will be a question.",
+      "audio": "/assets/audio/phone/voss-morning-03-b1.mp3",
+      "audioText": "I watched the avenue last night. One man in hospital. That will be a question.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b1), line 03"
+    },
+    {
+      "id": "phone.voss-morning.03b2",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Dead on the avenue, Pierce. The police are counting. So am I.",
+      "audio": "/assets/audio/phone/voss-morning-03-b2.mp3",
+      "audioText": "Dead on the avenue, Pierce. The police are counting. So am I.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b2), line 03"
+    },
+    {
+      "id": "phone.voss-morning.06b0",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You're not on the tape, Pierce. The man in the photograph is. And the street has nothing.",
+      "audio": "/assets/audio/phone/voss-morning-06-b0.mp3",
+      "audioText": "You're not on the tape, Pierce. The man in the photograph is. And the street has nothing.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b0), line 06"
+    },
+    {
+      "id": "phone.voss-morning.06b1",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You're not on the tape, Pierce. But a hospital bed is a witness. Stay away from windows.",
+      "audio": "/assets/audio/phone/voss-morning-06-b1.mp3",
+      "audioText": "You're not on the tape, Pierce. But a hospital bed is a witness. Stay away from windows.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b1), line 06"
+    },
+    {
+      "id": "phone.voss-morning.06b2",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You're on no tape, Pierce. But the dead have families, and families have lawyers. I can't seal that.",
+      "audio": "/assets/audio/phone/voss-morning-06-b2.mp3",
+      "audioText": "You're on no tape, Pierce. But the dead have families, and families have lawyers. I can't seal that.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b2), line 06"
+    },
+    {
+      "id": "bark.station.officer",
+      "type": "bark",
+      "speaker": "Police",
+      "text": "Slow down. Everyone through the gate, one at a time.",
+      "audio": "/assets/audio/sfx/station/officer-gate.mp3",
+      "audioText": "Slow down. Everyone through the gate, one at a time.",
+      "audioPerformance": "default",
+      "audioVoice": "IRHApOXLvnW57QJPQH2P",
+      "note": "Ledger (docs/story/ledger.md): The Station: officer at the gate once the ledger is at 2 kills or more"
     }
   ]
 }

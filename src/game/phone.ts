@@ -12,7 +12,8 @@ type CallLine = { speaker: string; text: string; audio?: string; duration: numbe
 type ReplyOption = { id: string; text: string; line: CallLine; answer: CallLine; delta: number };
 type ReplyMoment = { id: string; after: number; resume: number; window: number; options: ReplyOption[]; silence: { answer: CallLine; delta: number } };
 type CallScript = { contact: string; dial?: boolean; lines: CallLine[]; moments: ReplyMoment[] };
-type StatWhen = Partial<Record<TrustStat, { min?: number; max?: number }>>;
+type StatKey = TrustStat | 'ledgerBand';
+type StatWhen = Partial<Record<StatKey, { min?: number; max?: number }>>;
 type RawLine = { line?: string; speaker?: string; text?: string; audio?: string; duration: number; alt?: { when: StatWhen; line?: string; duration?: number }[] };
 type RawMoment = {
   id: string; after: number; resume?: number; window?: number;
@@ -187,7 +188,9 @@ export const createPhone = (
     /** Open Call Voss / Call Hale on this level. Those outbound calls connect. */
     callQuestOpen: (contactId: string) => boolean;
     /** Saved trust values (vossTrust, haleTemper). */
-    getStat?: (stat: TrustStat) => number;
+    getStat?: (stat: StatKey) => number;
+    /** A call line that knows the street ledger was chosen (counts as something reported). */
+    onLedgerLine?: () => void;
     /** Adds a reply's delta to a saved stat (clamped to -2..+2 by the saver) and returns the new value. */
     addStat?: (stat: TrustStat, delta: number) => number;
     /** A reply moment was answered (for analytics and the playtest). */
@@ -613,8 +616,11 @@ export const createPhone = (
 
   const pickLine = (line: CallLine): CallLine => {
     for (const alt of line.alt ?? []) {
-      const ok = (Object.keys(alt.when) as TrustStat[]).every((key) => inRange(options.getStat?.(key) ?? 0, alt.when[key]));
-      if (ok) return alt.line;
+      const ok = (Object.keys(alt.when) as StatKey[]).every((key) => inRange(options.getStat?.(key) ?? 0, alt.when[key]));
+      if (ok) {
+        if (alt.when.ledgerBand) options.onLedgerLine?.();
+        return alt.line;
+      }
     }
     return line;
   };
