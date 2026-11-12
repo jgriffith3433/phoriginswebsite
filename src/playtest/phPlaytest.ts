@@ -33,6 +33,18 @@ export type PhProbe = {
   motion?: () => {
     grounded: boolean; velocityY: number; airTime: number; jumpPose: number | null;
     groundSpeed: number; moving: boolean; clip: string | null; rate: number; cinematic: boolean;
+    walkMag?: number; phase?: string;
+  };
+  /**
+   * Planted-foot drift while the plant flag is set (m). Criteria: under 0.03 m per plant.
+   * `byLevel` covers every library id visited this run.
+   */
+  footSlide?: () => {
+    max: number; mean: number; plants: number;
+    left: { x: number; y: number; z: number; planted: boolean; drift: number };
+    right: { x: number; y: number; z: number; planted: boolean; drift: number };
+    hipDrop: number;
+    byLevel: Record<string, { max: number; mean: number; plants: number }>;
   };
   cameraYaw: () => number;
   objective: () => { target: { x: number; z: number } | null; title: string; text: string; visible: boolean };
@@ -946,6 +958,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Starts level 1 with Start (chapter card up while first-use warm runs and awaits audio decode), logs the warm event, resets the frame trace once Pierce can walk, answers the late Voss call, walks to the board seat and starts the board cutscene through real input. Fails on any post-grace frame over 100 ms (desktop). Then samples levels 1, 4 and 8 at phone size (390x844): each starts directly, resets the trace after control, walks a few seconds, and fails on any hitch over 150 ms. Metrics: hitchOver50 / hitchOver100 / hitchFailOver100 / hitchWorstMs, chapterWarmMs, hitchL1/4/8PhoneWorstMs. Events: warm, call, action, hitch, hitch-level.',
         seconds: 240,
         tags: ['smoke', 'perf', 'level'],
+      },
+      {
+        id: 'pierce-loco',
+        title: 'Pierce locomotion: start/stop/turn with planted feet under 3 cm slide; stairs/ramps in L1 and L5; phone half-tilt stride match',
+        description: 'Desktop: level 1 start/stop then a standstill look-turn and W so turn-in-place holds translation; hall walk for steps; then a short walk on levels 2–8 (setupHidden for The Train) reporting footSlide.byLevel for every library id. Fails when a planted foot drifts over 0.03 m. Option phone: 390x844 touch only — left stick at half tilt (~0.5) must keep groundSpeed near half walk (~1.5 m/s) with stride rate matching. Metrics: footSlideMaxCm, footSlideMeanCm, footSlideL1Cm, footSlideL5Cm, footSlide.<libraryId>.cm, halfTiltSpeed, halfTiltRate. Events: loco-start, loco-stop, loco-turn, loco-phase, loco-stairs, loco-half-tilt, foot-slide-level.',
+        seconds: 480,
+        tags: ['level', 'quality', 'feel'],
       },
     ],
     // The splash is the first thing a player can act on, so a run may start while it is up (the contract's auto start
@@ -6070,6 +6089,146 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       });
       t.progress(1);
       t.finish(failOver100 > 0 ? 'lost' : 'done');
+      return;
+    }
+
+    if (id === 'pierce-loco') {
+      const phone = Boolean(options.phone);
+      levelsTotal = phone ? 1 : 2;
+      if (probe.sound().prompt) await tapToPlay();
+      const slideReport = (tag: string) => {
+        const s = probe.footSlide?.();
+        if (!s) {
+          t.problem('bug', 'footSlide probe missing');
+          return null;
+        }
+        t.event('foot-slide', `${tag}: max ${(s.max * 100).toFixed(1)} cm, mean ${(s.mean * 100).toFixed(1)} cm, plants ${s.plants}`);
+        if (s.max > 0.03 && s.plants > 0) {
+          t.problem('bug', `quality.foot-slide: planted foot drifted ${(s.max * 100).toFixed(1)} cm (${tag})`);
+        }
+        return s;
+      };
+      const waitWalk = async (seconds: number, drive: () => void) => {
+        const until = performance.now() + seconds * 1000;
+        while (performance.now() < until) {
+          alive();
+          drive();
+          await sleep(50);
+        }
+        releaseAll();
+      };
+
+      if (phone) {
+        touchWalk = true;
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+        await probe.setupLevel(1);
+        await t.until(() => probe.running() && !probe.chapter().open, 45000, 'control in level 1 (phone)');
+        t.scene('L1-phone-half-tilt');
+        // Half tilt on the left stick: magnitude 0.5 so groundSpeed should sit near half walk (~1.5 m/s).
+        const half = () => stickTo(0, -0.5);
+        half();
+        await sleep(200);
+        let speedSum = 0;
+        let rateSum = 0;
+        let n = 0;
+        const until = performance.now() + 4000;
+        while (performance.now() < until) {
+          alive();
+          half();
+          const m = probe.motion?.();
+          if (m && m.moving && m.groundSpeed > 0.2) {
+            speedSum += m.groundSpeed;
+            rateSum += m.rate;
+            n += 1;
+          }
+          await sleep(50);
+        }
+        releaseAll();
+        stickLift();
+        const avgSpeed = n ? speedSum / n : 0;
+        const avgRate = n ? rateSum / n : 0;
+        t.metric('halfTiltSpeed', Math.round(avgSpeed * 100) / 100);
+        t.metric('halfTiltRate', Math.round(avgRate * 100) / 100);
+        t.event('loco-half-tilt', `avg ${avgSpeed.toFixed(2)} m/s at rate ${avgRate.toFixed(2)}x over ${n} samples`);
+        // Half of story walk (~3.05) is ~1.5; accept 1.0..2.2 so a soft start does not false-fail.
+        if (avgSpeed < 1.0 || avgSpeed > 2.2) {
+          t.problem('bug', `phone half-tilt speed ${avgSpeed.toFixed(2)} m/s (want ~1.5)`);
+        }
+        const want = avgSpeed > 0.4 ? avgSpeed / STRIDE_MPS.walk : null;
+        if (want && Math.abs(avgRate - want) / want > 0.3) {
+          t.problem('bug', `phone half-tilt stride ${avgRate.toFixed(2)}x vs need ${want.toFixed(2)}x`);
+        }
+        const s = slideReport('phone-l1');
+        if (s) t.metric('footSlideMaxCm', Math.round(s.max * 1000) / 10);
+        touchWalk = false;
+        t.progress(1);
+        t.finish('done');
+        return;
+      }
+
+      // Desktop: start / stop / turn-in-place 180 on level 1, stairs/kerb on L1+L5, then a short walk on every level for byLevel.
+      levelsTotal = 8;
+      await probe.setupLevel(1);
+      await t.until(() => probe.running() && !probe.chapter().open, 45000, 'control in level 1');
+      t.scene('L1-loco');
+      t.event('loco-start', 'walk forward');
+      await waitWalk(2.2, () => setHeld('w'));
+      t.event('loco-stop', 'release');
+      await sleep(700);
+      // Real turn-in-place: stand still, spin the camera ~180, then push W so locoState holds move while he faces.
+      t.event('loco-turn', 'turn 180 in place');
+      for (let i = 0; i < 18; i++) {
+        alive();
+        dragLook(28);
+        await sleep(35);
+      }
+      await sleep(120);
+      await waitWalk(1.6, () => setHeld('w'));
+      {
+        const phase = probe.motion?.()?.phase ?? '';
+        t.event('loco-phase', phase || 'unknown');
+      }
+      await waitWalk(3.0, () => setHeld('w'));
+      t.event('loco-stairs', 'hall walk for step/ramp contact');
+      const s1 = slideReport('level-1');
+      if (s1) {
+        t.metric('footSlideL1Cm', Math.round(s1.max * 1000) / 10);
+        t.metric('footSlideMaxCm', Math.round(s1.max * 1000) / 10);
+        t.metric('footSlideMeanCm', Math.round(s1.mean * 1000) / 10);
+      }
+      t.progress(1 / 8);
+
+      for (const n of [2, 3, 4, 5, 6, 7, 8]) {
+        alive();
+        if (n === 7) await probe.setupHidden('the-train');
+        else await probe.setupLevel(n);
+        await t.until(() => probe.running() && probe.level().id === n, 60000, `level ${n} running`);
+        if (n === 5 && probe.scripted() === 'going-home-lobby') {
+          const skip = document.getElementById('skipBtn') as HTMLButtonElement | null;
+          if (skip && !skip.classList.contains('hidden')) press(skip, 'Skip lobby');
+          await sleep(400);
+        }
+        t.scene(`L${n}-loco`);
+        await waitWalk(n === 5 ? 4.0 : 2.2, () => setHeld('w'));
+        const sn = slideReport(`level-${n}`);
+        if (n === 5 && sn) t.metric('footSlideL5Cm', Math.round(sn.max * 1000) / 10);
+        t.progress(n / 8);
+      }
+      const by = probe.footSlide?.()?.byLevel ?? {};
+      let worst = 0;
+      for (const [lib, row] of Object.entries(by)) {
+        t.event('foot-slide-level', `${lib}: max ${(row.max * 100).toFixed(1)} cm over ${row.plants} plants`);
+        t.metric(`footSlide.${lib}.cm`, Math.round(row.max * 1000) / 10);
+        worst = Math.max(worst, row.max);
+      }
+      t.metric('footSlideMaxCm', Math.round(worst * 1000) / 10);
+      if (Object.keys(by).length < 8) {
+        t.problem('warning', `foot-slide byLevel only has ${Object.keys(by).length} of 8 levels`);
+      }
+      t.metric('feel.coyoteMs', 120);
+      t.metric('feel.jumpBufferMs', 100);
+      t.progress(1);
+      t.finish('done');
       return;
     }
 

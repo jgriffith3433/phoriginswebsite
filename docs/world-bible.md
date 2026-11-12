@@ -139,7 +139,9 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
 ### Named cast
 - **Pierce Hawkes.** Chairman and founder. Two bodies: the **old body** (`asset-ch33-hero`, the tower's coat) and the
   **new body** (`asset-ch44-hero`, the player). Terse, tired, polite to doormen. Reacts to being seen with flinches and
-  refusal; never explains himself.
+  refusal; never explains himself. On foot he starts, stops and turns in place with planted feet (clips `StartWalk`,
+  `Stop`, `Turn90` mirrored for the other side, `Turn180`, `StairsUp`; stairs down is the walk with foot IK). The same
+  IK and speed-matched stride cover the Shadow form on levels 5–7.
 - **Director Hale (woman, Annie).** The board's steel. Furious, measured, always on a phone or leaving a room. Her fear is
   a leak to the street. She calls Pierce at three points (levels 3, 6, 7) and each call is at a threshold.
 - **Voss (man).** Pierce's friend-on-the-record, the one who calls first and asks questions the others don't. Treats B3
