@@ -3176,6 +3176,13 @@ const onPowerHit = (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: numb
   else powerFx.melee(e.kind, at, e.hit);
 };
 (window as unknown as { __phPowerFx?: unknown }).__phPowerFx = powerFx;
+// Gen-made particle textures replace the drawn stand-ins once each loads (a failed load keeps the stand-in).
+for (const [name, file] of [['wisp', 'smoke'], ['ink', 'ink'], ['ember', 'ember'], ['star', 'star']] as const) {
+  const t = new BABYLON.Texture(`/assets/textures/fx/${file}.webp`, scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, () => {
+    t.hasAlpha = false;
+    powerFx.setTexture(name, t);
+  });
+}
 
 // Level 7 keeps the station's Shadow mode (its riders are the targets).
 const shadowPlay = () => (isStationLevel() ? station : isTrainLevel() ? train : home);
