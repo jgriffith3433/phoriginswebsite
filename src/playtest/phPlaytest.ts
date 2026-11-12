@@ -4,6 +4,7 @@ import { missingClip, spokenLine, storyLines } from '../game/locale';
 import { STRIDE_MPS } from '../game/stride';
 import type { TrainStory } from '../story/trainDress';
 import type { MorningStory } from '../story/theMorning';
+import type { MorningEndingStatus } from '../story/morningEnding';
 import { installCameraWatch, type CamSummary } from './cameraWatch';
 import { installFrameTrace, type FrameTraceSummary } from './frameTrace';
 
@@ -138,6 +139,10 @@ export type PhProbe = {
   } | null;
   /** Level 8's script (theMorning.ts): its beat, whether he lies in bed, what the TV showed; null off level 8. */
   morning: () => MorningStory | null;
+  /** The end of level 8 (morningEnding.ts): phase, title, places flown over, names, the call and the card. */
+  endSuite: () => MorningEndingStatus;
+  /** Test setup (`level-8-ending`): skip to the walk to the coat ('out') or to the door with the coat taken. */
+  morningJump: (to: 'out' | 'door') => void;
   /** The ending song playing on the Level Complete card, or null. Level 7 reuses ending-6. */
   ending: () => string | null;
   /** Test setup (`load-error`): the next level load fails, as a missing level file ('error') or one that never ends ('hang'). */
@@ -808,6 +813,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Plays levels 1, 3, 5 and 6 as level-N does (laid out as a 390x844 touch phone unless options.phone is false), then level 8. When End Level is pressed the chapter\'s ending event (cutscenes/finale-N.json: the board hush in the cab, the practicals coming on, the tower going dark, the departure board flipping, the TV report) must start; the bot logs it (world-event), checks it is under 8 s, that body.cinematic hides the HUD and touch controls, that the caption is one line, presses Skip, and counts the lines the Level Complete card crawls (at most 3). Lines use silent placeholder clips until Hawkes Gen makes the voices.',
         seconds: 1500,
         tags: ['level', 'story'],
+      },
+      {
+        id: 'level-8-ending',
+        title: "Level 8's ending on a 390x844 phone: walk to the door by touch (camera push-in, Shadow form in the mirror), coat and closing line, white dawn, black, PH ORIGINS, credits over 6+ places, the voiced Act II call, the end card with a tappable link, Skip on a second run",
+        description: 'Starts level 8 (test shortcut) and jumps to the walk after Voss\'s call. With the touch stick only: walks to the coat (checks the camera pushes in and the hall mirror shows the Shadow form), taps Take coat (the closing line), walks to the door, taps Leave. Then checks the white-out, the cut to black, the PH ORIGINS title, the credits (names only, no text crawl, at least 6 distinct places, everything inside 390x844), the unknown caller\'s call, and the Act II is coming card (link to phorigins.com at least 44 px and hit-testable). A second run checks Skip shows after a first finish and goes to the card. Metrics: endingSeconds, creditPlaces.',
+        seconds: 420,
+        tags: ['level', 'story', 'phone'],
       },
       {
         id: 'level-8-release',
@@ -4616,12 +4628,12 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             if (label !== lastAction) t.event('action', label);
             lastAction = label;
             stepsDone += 1;
-            if (label === 'End Level') {
+            if (label === 'Leave') {
               endBeat = story()?.beat ?? '';
-              t.event('end-level', `offered on beat ${endBeat || 'unknown'}`);
-              if (endBeat !== 'done') t.problem('bug', `End Level showed before the story finished (beat ${endBeat || 'none'})`);
+              t.event('end-level', `the door opened on beat ${endBeat || 'unknown'}: the ending plays (no End Level press)`);
               endPressed = true;
-              await observeFinale(8);
+              await t.until(() => probe.endSuite().cardShown, 300000, 'the Act II end card');
+              break;
             }
           }
           continue;
@@ -4672,21 +4684,166 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (cut.length) t.problem('bug', `voice clip cut short: ${cut.map((c) => c.url.split('/').pop()).join(', ')}`);
         if (overlaps) t.problem('bug', `${overlaps} voice clip${overlaps === 1 ? '' : 's'} sounded over another`);
       }
-      // 4: ends at the door; the card offers Exit only.
+      // 4: the ending suite: title, credits over six places, the call, the Act II card (details: level-8-ending).
       await sleep(700);
-      const menu = probe.menu();
-      const exitBtn = document.getElementById('loadModelBtn');
-      const credits = document.getElementById('levelCredits');
-      const crawl = (credits?.textContent ?? '').replace(/\s+/g, ' ').trim();
-      const showing = !!credits && !credits.hidden && crawl.length > 40 && /Voted In The Dark/.test(crawl);
-      const exitOnly = menu.title === 'Level Complete' && menu.start == null && /exit/i.test(exitBtn?.textContent ?? '');
-      t.scene('Level 8 complete');
-      t.event('ending', `song ${probe.ending() ?? 'none'}; credits ${showing ? 'level 8' : 'wrong'}; continue ${menu.start ?? 'hidden'}`);
-      if (!endPressed) t.problem('bug', 'level 8 ended without End Level at the door');
-      if (!showing) t.problem('bug', `level 8 credits did not roll ("${crawl.slice(0, 120)}")`);
-      if (!exitOnly) t.problem('bug', `level 8's card should be Exit only (continue ${menu.start ?? 'hidden'}, title ${menu.title})`);
-      await sleep(3000);
+      const end = probe.endSuite();
+      const crawl = (document.getElementById('levelCredits')?.textContent ?? '').replace(/\s+/g, ' ').trim();
+      t.scene('Level 8 ending');
+      t.event('ending', `title ${end.titleShown}; places ${end.places}; call ${end.callHeard}; card ${end.cardShown}; crawl "${crawl.slice(0, 40)}"`);
+      if (!endPressed) t.problem('bug', 'level 8 ended without the front door');
+      if (!end.titleShown) t.problem('bug', 'the PH ORIGINS title never dropped');
+      if (end.places < 6) t.problem('bug', `the credits flew over ${end.places} places (need 6)`);
+      if (!end.callHeard || !end.cardShown) t.problem('bug', 'the Act II call or end card did not appear');
+      if (crawl) t.problem('bug', `a story text crawl showed: ${crawl.slice(0, 80)}`);
       return endPressed ? 'won' : 'stuck';
+    };
+
+
+    /**
+     * Level 8's ending on a 390x844 touch phone: the walk to the door by stick and taps (camera push-in, the Shadow
+     * form in the hall mirror), the coat and the closing line, the door onto white, black, PH ORIGINS, credits over
+     * six places with names only, the unknown caller, the Act II card with a tappable link; then the same ending
+     * skipped on a second run (Skip shows after a first finish).
+     */
+    const morningEndingRun = async (): Promise<Outcome> => {
+      levelsTotal = 1;
+      const t0 = performance.now();
+      const phone = options.phone !== false;
+      if (phone) { probe.phoneFrame(true); t.event('setup', 'phone layout 390x844 (touch)'); await sleep(400); }
+      const fits = (el: HTMLElement | null, label: string) => {
+        if (!el) { t.problem('bug', `${label} is not on the page`); return false; }
+        const r = el.getBoundingClientRect();
+        const ok = r.width > 0 && r.left >= -1 && r.top >= -1 && r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1;
+        if (!ok) t.problem('bug', `${label} does not fit the screen (${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)} in ${window.innerWidth}x${window.innerHeight})`);
+        return ok;
+      };
+      const left = document.getElementById('leftStickZone');
+      let stickDown = false;
+      const stick = (ux: number, uy: number) => {
+        if (!left) return;
+        const zr = left.getBoundingClientRect();
+        const type = stickDown ? 'pointermove' : 'pointerdown';
+        stickDown = true;
+        left.dispatchEvent(new PointerEvent(type, { pointerId: 31, pointerType: 'touch', isPrimary: true, bubbles: true, cancelable: true, clientX: zr.left + zr.width / 2 + ux * zr.width * 0.38, clientY: zr.top + zr.height / 2 + uy * zr.height * 0.38 }));
+      };
+      const lift = () => {
+        if (stickDown && left) left.dispatchEvent(new PointerEvent('pointerup', { pointerId: 31, pointerType: 'touch', bubbles: true }));
+        stickDown = false;
+      };
+      const touchWalk = async (to: Point, what: string, until: () => boolean, ms = 60000) => {
+        const start = performance.now();
+        const from = probe.player();
+        let moved = 0;
+        while (!until() && performance.now() - start < ms) {
+          await tick();
+          const p = probe.player();
+          moved = Math.max(moved, dist(p, from));
+          const heading = Math.atan2(to.x - p.x, to.z - p.z);
+          const rel = wrap(heading - probe.cameraYaw());
+          if (dist(p, to) > 0.35) stick(Math.sin(rel), -Math.cos(rel)); else lift();
+        }
+        lift();
+        t.event('walk', `${what}: moved ${moved.toFixed(1)} m by the touch stick`);
+        return until();
+      };
+      const sawNames = new Set<string>();
+
+      const enter = async () => {
+        await probe.setupLevel(8);
+        await t.until(() => probe.running() && probe.level().libraryId === 'the-morning' && !probe.menu().open, 90000, 'level 8 to start');
+        await sleep(600);
+      };
+      await enter();
+      t.scene('Level 8 ending: the walk to the door');
+      probe.morningJump('out');
+      await sleep(500);
+      let sawPush = 0;
+      let sawShadow = false;
+      const watch = async () => {
+        const s = probe.morning();
+        if (s) { sawPush = Math.max(sawPush, s.push); if (s.mirrorShadow) sawShadow = true; }
+      };
+      const tgt = () => probe.objective().target ?? { x: 3.45, z: 2.45 };
+      // 1: keeps control, walks to the coat by the stick; the camera creeps in.
+      const atCoat = await touchWalk(tgt(), 'the coat', () => { void watch(); return probe.action() === 'Take coat'; });
+      t.event('check', `control: reached the coat by touch ${atCoat}; camera push ${sawPush.toFixed(2)}; Shadow form in the mirror ${sawShadow}`);
+      if (!atCoat) t.problem('bug', 'could not walk to the coat with the touch stick');
+      if (sawPush <= 0.02) t.problem('bug', 'the camera did not push in during the walk to the door');
+      await sleep(1500);
+      await watch();
+      if (!sawShadow) t.problem('bug', 'the hall mirror never showed the Shadow form');
+      await tapAt(document.getElementById('interactBtn'), 'Take coat');
+      await t.until(() => probe.morning()?.coatTaken === true, 8000, 'the coat to be taken');
+      await t.until(() => probe.morning()?.beat === 'door', 20000, 'the coat scene to end');
+      const closing = probe.subtitle().text;
+      t.event('dialogue', `closing line: ${closing || '(heard during the scene)'}`);
+      // 2: the door.
+      const atDoor = await touchWalk(tgt(), 'the door', () => probe.action() === 'Leave');
+      if (!atDoor) t.problem('bug', 'could not walk to the door with the touch stick');
+      await tapAt(document.getElementById('interactBtn'), 'Leave');
+      t.scene('Level 8 ending: dawn, black, the title');
+      // 3: white, black, the title.
+      await t.until(() => probe.endSuite().phase === 'dawn', 8000, 'dawn');
+      const whiteEl = document.getElementById('endWhite');
+      await sleep(2800);
+      t.event('check', `white-out opacity ${whiteEl?.style.opacity ?? '?'}`);
+      await t.until(() => probe.endSuite().phase === 'black', 8000, 'the cut to black');
+      await t.until(() => probe.endSuite().titleShown, 12000, 'the title');
+      const title = document.getElementById('endTitle');
+      fits(title, 'the PH ORIGINS title');
+      t.event('title', `PH ORIGINS drops: "${title?.textContent ?? ''}"; music ${probe.ending() ?? 'tone chord fallback'}`);
+      if (!/PH ORIGINS/.test(title?.textContent ?? '')) t.problem('bug', 'the title text is not PH ORIGINS');
+      // 4: credits over places, names only.
+      t.scene('Level 8 ending: credits');
+      const until = performance.now() + 330000;
+      while (probe.endSuite().phase !== 'call' && probe.endSuite().phase !== 'card' && performance.now() < until) {
+        await tick();
+        const n = document.getElementById('endNames');
+        if (n?.classList.contains('on')) {
+          const name = document.getElementById('endName')?.textContent ?? '';
+          if (name && !sawNames.has(name)) { sawNames.add(name); fits(n, `credit "${name}"`); t.event('credit', `${name} (place ${probe.endSuite().places})`); }
+        }
+      }
+      const st = probe.endSuite();
+      t.event('check', `credits: ${st.places} places, ${st.shots} shots, names ${[...sawNames].join(', ')}`);
+      if (st.places < 6) t.problem('bug', `the credits flew over ${st.places} places (need at least 6)`);
+      const crawl = (document.getElementById('levelCredits')?.textContent ?? '').trim();
+      if (crawl) t.problem('bug', `a story text crawl showed during the credits: ${crawl.slice(0, 80)}`);
+      // 5: the call and the card.
+      t.scene('Level 8 ending: the call and the Act II card');
+      await t.until(() => probe.endSuite().callHeard, 30000, 'the unknown caller');
+      fits(document.getElementById('endCall'), 'the call card');
+      await t.until(() => probe.endSuite().cardShown, 40000, 'the Act II card');
+      await sleep(1500);
+      const link = document.getElementById('endCardLink') as HTMLAnchorElement | null;
+      const exit = document.getElementById('endCardExit');
+      fits(document.getElementById('endCardTitle'), 'the Act II title');
+      if (fits(link, 'the end card link')) {
+        const r = link!.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const tappable = !!link && (hit === link || link.contains(hit)) && r.width >= 44 && r.height >= 44 && /phorigins\.com/.test(link.href);
+        t.event('check', `end card "${document.getElementById('endCardTitle')?.textContent}" link ${link!.href} ${Math.round(r.width)}x${Math.round(r.height)} tappable ${tappable}`);
+        if (!tappable) t.problem('bug', 'the end card link is not tappable (hit test, size or address)');
+      }
+      fits(exit, 'the end card Exit');
+      // 6: after a first finish the ending can be skipped.
+      t.scene('Level 8 ending: skip after a first finish');
+      await enter();
+      probe.morningJump('door');
+      await sleep(500);
+      await touchWalk(tgt(), 'the door (second run)', () => probe.action() === 'Leave');
+      await tapAt(document.getElementById('interactBtn'), 'Leave');
+      await t.until(() => probe.endSuite().active && probe.endSuite().skipShown, 10000, 'Skip to show on the second run');
+      const skipEl = document.getElementById('endSkip');
+      fits(skipEl, 'Skip');
+      const sr = skipEl?.getBoundingClientRect();
+      if (sr && (sr.width < 44 || sr.height < 44)) t.problem('bug', `Skip is ${Math.round(sr.width)}x${Math.round(sr.height)} (needs 44)`);
+      await tapAt(skipEl, 'Skip');
+      await t.until(() => probe.endSuite().cardShown, 8000, 'the card after Skip');
+      t.metric('endingSeconds', Math.round((performance.now() - t0) / 1000));
+      t.metric('creditPlaces', st.places);
+      if (phone) probe.phoneFrame(false);
+      return 'won';
     };
 
     /** The Train through to its card, Continue into level 8, then The Morning. */
@@ -6537,6 +6694,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
 
     if (id === 'level-8') {
       const outcome = await morningRun();
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    if (id === 'level-8-ending') {
+      const outcome = await morningEndingRun();
       t.progress(1);
       t.finish(outcome);
       return;

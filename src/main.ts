@@ -51,6 +51,7 @@ import { lifeStats } from './game/lifeStats';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
+import { createMorningEnding, type MorningEnding } from './story/morningEnding';
 import { createTheMorning, ENDING_TRACK as MORNING_ENDING_TRACK, type TheMorning } from './story/theMorning';
 import { createTheTrain, ENDING_TRACK as TRAIN_ENDING_TRACK, TRAIN_CREDITS, type TheTrain } from './story/theTrain';
 import { renderLevelCredits } from './story/credits';
@@ -1123,13 +1124,13 @@ let forcedLoadFailure: 'error' | 'hang' | null = null;
  * left the first one's level, NPCs and story mounts in the scene for good.
  */
 let loadChain: Promise<void> = Promise.resolve();
-const loadMissionScene = (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+const loadMissionScene = (path: string, mode: 'boot' | 'arrive' | 'credits' = 'boot') => {
   const run = loadChain.then(() => loadMissionSceneNow(path, mode));
   loadChain = run.catch(() => undefined);
   return run;
 };
 
-const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'credits' = 'boot') => {
   dressedLevelId = 0;
   if (mode === 'boot') {
     gameReady = false;
@@ -1149,13 +1150,14 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     station.dispose();
     train.dispose();
     morning.dispose();
+    if (mode !== 'credits') morningEnding.dispose();
     apex.dispose();
     boardHall.dispose();
     apexLife.dispose();
     touch.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
-    if (mode === 'arrive') state.inCutscene = true;
+    if (mode === 'arrive' || mode === 'credits') state.inCutscene = true;
     const forced = forcedLoadFailure;
     forcedLoadFailure = null;
     if (forced === 'hang') await new Promise<never>(() => {});
@@ -1166,18 +1168,20 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     triggerRunner.bind(loaded?.data.triggers ?? []);
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
     if (mode === 'boot' && loaded?.data && !isDeskLevel()) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
-    await act.dressLevel();
+    if (mode !== 'credits') await act.dressLevel();
     freezeStaticScene();
     mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
     clearImpactMarks();
     bindScenePickups();
     ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel() || isMorningLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
-    if (isHomeLevel()) await home.mount();
-    if (isStationLevel()) await station.mount();
-    if (isTrainLevel()) await train.mount();
+    if (mode !== 'credits') {
+      if (isHomeLevel()) await home.mount();
+      if (isStationLevel()) await station.mount();
+      if (isTrainLevel()) await train.mount();
+    }
     // Runtime dressing that is not in the level file (city under the office, basement air, station kit, the train car).
     dressing.mount({ levelId: loaded?.data.id ?? '', powers: isReturnLevel() });
-    touch.mount(getLevelDefinition(state.level).libraryId);
+    if (mode !== 'credits') touch.mount(getLevelDefinition(state.level).libraryId);
     preloadClips(TOUCH_SOUNDS);
     await Promise.all([
       waitAvatarReady(playerAvatar),
@@ -1187,7 +1191,11 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     await waitFrames(3);
     // Compile every shader now, under the title card, so Start never opens on a world Babylon is still skipping
     // (a mesh whose effect is not ready is not drawn: pure black behind the HUD on a slow GPU).
-    if (mode === 'arrive') {
+    if (mode === 'credits') {
+      // The Morning's credits fly over other levels' empty rooms: no story, no mounts, just the shaders.
+      playerAvatar.group.setEnabled(false);
+      await whenShadersCompiled(performance.now() + SHADERS_READY_MAX_MS);
+    } else if (mode === 'arrive') {
       act.onOfficeArrived();
       dressedLevelId = 0;
     } else {
@@ -2308,7 +2316,8 @@ const scenePlaying = () =>
   || desk.playing()
   || station.playing()
   || train.playing()
-  || morning.playing();
+  || morning.playing()
+  || morningEnding.active();
 
 const acidSkippable = () => state.running && act.acidActive() && act.vatSeen() && act.acidTime() > 1;
 const performSkip = () => {
@@ -3118,7 +3127,9 @@ const morning: TheMorning = createTheMorning({
   setCarry: (items) => { storyCarry = items; },
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
-  offerEnd: (title, text) => offerLevelEnd(title, text),
+  beginEnding: () => { morningEnding.begin(); },
+  setPush: (k) => followCamera.setPush(k),
+  playerNode: () => playerAvatar.group,
   clearInput: () => clearInputState(),
   unlockNext: () => unlockProgress(),
   refreshHud: () => updateHud(),
@@ -3128,6 +3139,43 @@ const morning: TheMorning = createTheMorning({
     updateHud();
   },
   callBusy: () => phone.locksBody(),
+});
+
+/** The end of Level 8 and Act I: white dawn, the title, credits over empty places, the Act II call and card. */
+const morningEnding: MorningEnding = createMorningEnding({
+  loadShot: async (path) => {
+    await loadMissionScene(path, 'credits');
+    playerAvatar.group.setEnabled(false);
+  },
+  camera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  playFile: (url, volume) => { audio.play(url, volume); },
+  playMusic: async (url) => {
+    stopEndingSong();
+    if (!audio.enabled) return true;
+    let exists = false;
+    try { exists = (await fetch(url, { method: 'HEAD', cache: 'no-store' })).ok; } catch { /* offline */ }
+    if (!exists) return false;
+    audio.ensure();
+    const song = createUnlockedAudio(url, 'music');
+    endingSong = song;
+    song.loop = false;
+    song.volume = 0.8;
+    void song.play().catch(() => {});
+    return true;
+  },
+  stopMusic: () => stopEndingSong(),
+  tone: (frequency, seconds, type, volume) => audio.tone(frequency, seconds, type, volume),
+  showLine: (title, text) => showCineHud(title, text),
+  complete: () => {
+    clearInputState();
+    audio.setWalk(false);
+    unlockPointer();
+    unlockProgress();
+    markMission('main');
+    updateHud();
+    analytics?.levelCompleted();
+  },
+  exit: () => { window.location.assign('/'); },
 });
 
 const train: TheTrain = createTheTrain({
@@ -4381,6 +4429,11 @@ window.addEventListener('keydown', (event) => {
   // While paused or in Settings, keys belong to the menu.
   if (isPaused() || settingsOpen()) return;
   // Desktop skip key during a scene (touch holds the Skip button instead).
+  if (event.key === 'Enter' && morningEnding.active()) {
+    event.preventDefault();
+    morningEnding.skip();
+    return;
+  }
   if (event.key === 'Enter' && state.running && scenePlaying() && skipCutsceneBtn && !skipCutsceneBtn.hidden) {
     event.preventDefault();
     performSkip();
@@ -5148,7 +5201,7 @@ const applyCarSway = () => {
 /** Skip shows whenever a cutscene or a scripted scene runs. Also called when a scene starts, so it is there from the first frame. */
 const syncSkipButton = () => {
   if (!skipCutsceneBtn) return;
-  const canSkip = state.running && (scenePlaying() || acidSkippable());
+  const canSkip = state.running && !morningEnding.active() && (scenePlaying() || acidSkippable());
   skipCutsceneBtn.hidden = !canSkip;
   if (!canSkip) clearSkipHold();
 };
@@ -5234,6 +5287,10 @@ const renderLoop = () => {
       updateCamera(delta, false, null);
     } else if (train.playing()) {
       train.step(delta);
+      updateCamera(delta, false, null);
+    } else if (morningEnding.active()) {
+      morningEnding.step(delta);
+      morning.step(delta);
       updateCamera(delta, false, null);
     } else if (morning.playing()) {
       morning.step(delta);
@@ -5829,6 +5886,8 @@ installPhPlaytest({
   },
   train: () => dressing.train()?.stats() ?? null,
   morning: () => (isMorningLevel() ? morning.story() : null),
+  endSuite: () => morningEnding.status(),
+  morningJump: (to) => morning.jumpTo(to),
   ending: () => endingSong?.src || null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   waypoint: () => objectiveWaypoint.view(),

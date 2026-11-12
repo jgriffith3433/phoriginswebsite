@@ -3257,12 +3257,12 @@
       "type": "dialogue",
       "speaker": "Pierce",
       "text": "Somebody is going to have to tell them which one of us walks in.",
-      "audio": "/assets/audio/cutscenes/morning/walks.ogg",
-      "performance": "tired",
+      "audio": "/assets/audio/cutscenes/morning/walks.mp3",
+      "performance": "default",
       "audioText": "Somebody is going to have to tell them which one of us walks in.",
-      "audioPerformance": "tired",
+      "audioPerformance": "default",
       "audioVoice": "ZthjuvLPty3kTMaNKVKb",
-      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+      "note": "Level 8 closing line at the coat and the hall mirror (canon from docs/story/level-8-beat-sheet.md S6). Voiced with Hawkes Gen."
     },
     {
       "id": "phone.voss-morning.01",
@@ -4719,6 +4719,66 @@
       "audioPerformance": "default",
       "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Call voss-morning: reply moment line (chosen reply or answer)"
+    },
+    {
+      "id": "dialogue.morning.act2",
+      "type": "dialogue",
+      "speaker": "Unknown caller",
+      "text": "Pierce. The one who got off the train is looking for you. Find me first.",
+      "audio": "/assets/audio/cutscenes/morning/act2-call.mp3",
+      "note": "NEW CANON: the Act II hook after the Level 8 credits. A caller Pierce has never heard; she knows about the other body. Voiced with Hawkes Gen (Alexandra voice).",
+      "performance": "default",
+      "audioText": "Pierce. The one who got off the train is looking for you. Find me first.",
+      "audioPerformance": "default",
+      "audioVoice": "kdmDKE6EkgrWrrykO9Qt"
+    },
+    {
+      "id": "ui.end.act2",
+      "type": "ui",
+      "speaker": "Act II",
+      "text": "Act II is coming",
+      "audio": "",
+      "note": "Level 8 end card title"
+    },
+    {
+      "id": "ui.end.exit",
+      "type": "ui",
+      "speaker": "Exit",
+      "text": "Exit",
+      "audio": "",
+      "note": "Level 8 end card button"
+    },
+    {
+      "id": "ui.end.caller",
+      "type": "ui",
+      "speaker": "Unknown caller",
+      "text": "Unknown caller",
+      "audio": "",
+      "note": "Level 8 post-credits call"
+    },
+    {
+      "id": "ui.end.buzz",
+      "type": "ui",
+      "speaker": "Incoming",
+      "text": "Incoming",
+      "audio": "",
+      "note": "Level 8 post-credits call sub line"
+    },
+    {
+      "id": "ui.action.morning.coat",
+      "type": "ui",
+      "speaker": "Take coat",
+      "text": "Take coat",
+      "audio": "",
+      "note": "Level 8 coat by the door"
+    },
+    {
+      "id": "objective.morning.coat",
+      "type": "objective",
+      "speaker": "Out",
+      "text": "The coat. Then the door.",
+      "audio": "",
+      "note": "Level 8 after the call"
     },
     {
       "id": "news.morning.04.b1",

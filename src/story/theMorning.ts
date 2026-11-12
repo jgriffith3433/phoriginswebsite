@@ -1,6 +1,9 @@
 import * as BABYLON from '@babylonjs/core';
 
 import { PLACE_SFX } from './placeVoices';
+import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
+import { TRANSFORM_HERO_ASSET_ID } from '../game/modelLoader';
+import { DOUBLE_LAYER } from './bathroomMirror';
 import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import { voiceBusy } from '../game/sfxMix';
 import { deathsBucket, ledgerBand, type LedgerApi, type LedgerBand } from '../game/ledger';
@@ -16,7 +19,10 @@ import type { StoryCarry } from './act1';
  *   news    Action: Watch (the television). Scene: the morning programme on a canvas TV (stills, headline, ticker,
  *           anchor captions). It names Hawkes Tower and Pierce Hawkes. Public-safe: no B3, vat or creature.
  *   call    Voss rings (`voss-morning`, two-way: two reply moments, and the opening and closing lines branch on `vossTrust`). The player answers with F.
- *   out     The front door. Action: Leave. His last line, then End Level (Exit only; nothing follows).
+ *   out     Free walk to the front door while the camera slowly pushes in. The hall mirror shows him as the Shadow form.
+ *           Action at the coat: Take coat (his closing line, the canon one from the beat sheet).
+ *   door    Action: Leave. The door opens onto white and `host.beginEnding()` hands over to morningEnding.ts (title,
+ *           credits over empty places, the Act II call, the end card). There is no End Level press any more.
  *
  * The anchor is on-screen captions only for now (no voice). Stills are drawn on the canvas as placeholders.
  */
@@ -42,7 +48,12 @@ export type MorningHost = {
   setCarry: (items: StoryCarry[]) => void;
   playerXZ: () => { x: number; z: number };
   resumeLocomotion: () => void;
-  offerEnd: (title: string, text: string) => void;
+  /** The door is opening: black, the title, the credits and the Act II card follow (morningEnding.ts). */
+  beginEnding: () => void;
+  /** Slow camera push-in while he walks to the door: 0 none, 1 closest. */
+  setPush: (k: number) => void;
+  /** Pierce's avatar root, for the mirror's reflection. */
+  playerNode: () => BABYLON.TransformNode;
   clearInput: () => void;
   unlockNext: () => void;
   refreshHud: () => void;
@@ -52,7 +63,7 @@ export type MorningHost = {
 };
 
 export type MorningStory = {
-  beat: 'ride' | 'walk' | 'home' | 'sleep' | 'wake' | 'news' | 'call' | 'out' | 'leaving' | 'done';
+  beat: 'ride' | 'walk' | 'home' | 'sleep' | 'wake' | 'news' | 'call' | 'out' | 'coat' | 'door' | 'leaving' | 'done';
   lying: boolean;
   tvOn: boolean;
   /** Everything the TV has shown so far (headline and still captions), for the playtest. */
@@ -63,6 +74,10 @@ export type MorningStory = {
   scene: number;
   /** Every scene reached so far, in order (S0..S6), for the playtest. */
   scenes: number[];
+  /** The hall mirror shows the Shadow form (double ready and the glass drawing). */
+  mirrorShadow: boolean;
+  coatTaken: boolean;
+  push: number;
   /** The street ledger as this morning read it: band 0 no one hurt, 1 injuries, 2 deaths, and the kill count. */
   band: number;
   kills: number;
@@ -81,6 +96,8 @@ const BED_SIDE = { x: 5.9, z: -0.45, yaw: Math.PI };
 const TV = { x: 3.2, z: -2.95 };
 const WATCH = { x: 3.2, z: -0.4 };
 const DOOR = { x: 1.2, z: 2.7 };
+const MIRROR = { x: 2.35, y: 1.3, z: 2.94 };
+const COAT = { x: 3.45, z: 2.45 };
 /** The newspaper on the coffee table (top at y 0.4) and where he stands to read it. */
 const PAPER = { x: 3.2, y: 0.408, z: -1.3 };
 const READ_AT = { x: 3.2, z: -0.4 };
@@ -92,6 +109,7 @@ const LIE = { x: 5.75, y: 0.64, z: BED.z, yaw: Math.PI / 2 };
 const CARRY: StoryCarry[] = [
   { id: 'phone', name: 'Phone', note: 'F. Voss will ring.' },
 ];
+const COAT_ITEM: StoryCarry = { id: 'coat', name: 'Coat', note: 'His own. It still fits.' };
 
 type Line = { id: string; speaker: string; hold: number; volume?: number };
 const L_HAND: Line = { id: 'dialogue.morning.hand', speaker: 'Pierce', hold: 2.6 };
@@ -102,6 +120,7 @@ const L_WITHOUT: Line = { id: 'dialogue.morning.without', speaker: 'Pierce', hol
 const L_MINE: Line = { id: 'dialogue.morning.mine', speaker: 'Pierce', hold: 2.2 };
 const L_BLOCKS: Line = { id: 'dialogue.morning.blocks', speaker: 'Pierce', hold: 4.2 };
 const L_WALKS: Line = { id: 'dialogue.morning.walks', speaker: 'Pierce', hold: 5.2 };
+const COAT_SCENE_SECONDS = 8.2;
 
 const NEWS_CAPTIONS = [1, 2, 3, 4].map((n) => `news.morning.${String(n).padStart(2, '0')}`);
 /** Which still each lower third sits over. The ticker on the set carries the rest, so the scene stays short. */
@@ -196,6 +215,16 @@ export const createTheMorning = (host: MorningHost) => {
   let tvClock = 0;
   let newsT = 0;
   let scenes: number[] = [];
+  let coatTaken = false;
+  let pushT = 0;
+  let push = 0;
+  let hallMaterial: BABYLON.StandardMaterial | null = null;
+  let mirrorTex: BABYLON.MirrorTexture | null = null;
+  let double: PlayerAvatar | null = null;
+  let doubleReady = false;
+  let doubleLast = { x: 0, z: 0 };
+  let mirrorShadow = false;
+  let hookCoat: BABYLON.Mesh | null = null;
 
   const sceneOf = (b: MorningStory['beat']) => (b === 'ride' ? 0 : b === 'walk' ? 1 : b === 'home' ? 2 : b === 'sleep' || b === 'wake' ? 3 : b === 'news' ? 4 : b === 'call' ? 5 : 6);
   const markScene = () => {
@@ -376,6 +405,87 @@ export const createTheMorning = (host: MorningHost) => {
     }
   };
 
+  // ---------- The hall mirror: its glass shows the Shadow form, not Pierce ----------
+  const paintShade = (avatar: PlayerAvatar) => {
+    for (const mesh of avatar.group.getChildMeshes(false)) {
+      mesh.layerMask = DOUBLE_LAYER;
+      const material = mesh.material;
+      if (material instanceof BABYLON.PBRMaterial) {
+        material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+        material.alpha = 0.82;
+        material.useAlphaFromAlbedoTexture = false;
+        material.albedoColor = new BABYLON.Color3(0.05, 0.045, 0.06);
+        material.emissiveColor = new BABYLON.Color3(0.03, 0.015, 0.06);
+      } else if (material instanceof BABYLON.StandardMaterial) {
+        material.transparencyMode = BABYLON.Material.MATERIAL_ALPHABLEND;
+        material.alpha = 0.82;
+        material.diffuseColor = new BABYLON.Color3(0.04, 0.04, 0.05);
+        material.emissiveColor = new BABYLON.Color3(0.03, 0.015, 0.06);
+      }
+    }
+  };
+
+  const buildMirror = () => {
+    const s = host.scene;
+    const frameMat = mat(s, 'morning-mirror-frame-mat', 0.06, 0.05, 0.05);
+    owned.push(frameMat);
+    box('morning-mirror-frame', MIRROR.x, MIRROR.y, MIRROR.z + 0.03, 1.0, 1.66, 0.05, frameMat);
+    const glass = BABYLON.MeshBuilder.CreatePlane('morning-mirror', { width: 0.9, height: 1.56 }, s);
+    glass.position.set(MIRROR.x, MIRROR.y, MIRROR.z);
+    glass.isPickable = false;
+    owned.push(glass);
+    const glassMat = new BABYLON.StandardMaterial('morning-mirror-mat', s);
+    glassMat.disableLighting = true;
+    glassMat.diffuseColor = BABYLON.Color3.Black();
+    glassMat.specularColor = BABYLON.Color3.Black();
+    glassMat.backFaceCulling = false;
+    owned.push(glassMat);
+    const tex = new BABYLON.MirrorTexture('morning-mirror-tex', { width: 512, height: 512 }, s, false, BABYLON.Constants.TEXTURETYPE_UNSIGNED_BYTE);
+    tex.mirrorPlane = BABYLON.Plane.FromPositionAndNormal(glass.position, new BABYLON.Vector3(0, 0, 1));
+    tex.level = 0.8;
+    tex.renderParticles = false;
+    tex.renderSprites = false;
+    tex.refreshRate = 0;
+    glassMat.reflectionTexture = tex;
+    glass.material = glassMat;
+    owned.push(tex);
+    mirrorTex = tex;
+    // The Shadow form: a second Ch44 body on a layer the main camera skips; the glass draws it.
+    const avatar = createCharacterAvatar(s, 'morningDouble', TRANSFORM_HERO_ASSET_ID);
+    double = avatar;
+    avatar.group.setEnabled(false);
+    avatar.whenReady(() => {
+      if (double !== avatar) return;
+      doubleReady = true;
+      avatar.setLocomotion(false, true);
+      paintShade(avatar);
+      avatar.group.setEnabled(true);
+    });
+  };
+
+  const refreshMirror = () => {
+    if (!mirrorTex || !double) return;
+    const wanted = active && (beat === 'out' || beat === 'coat' || beat === 'door' || beat === 'leaving') && doubleReady;
+    if (!wanted) {
+      mirrorTex.refreshRate = 0;
+      mirrorShadow = false;
+      return;
+    }
+    const node = host.playerNode();
+    double.group.position.copyFrom(node.position);
+    double.group.rotation.y = node.rotation.y;
+    const moved = Math.hypot(node.position.x - doubleLast.x, node.position.z - doubleLast.z) > 0.003;
+    doubleLast = { x: node.position.x, z: node.position.z };
+    double.setLocomotion(moved, true);
+    double.getSkinnedMesh()?.skeleton?.prepare();
+    // The pass draws the room and only the double; Pierce himself is not in the glass.
+    const list: BABYLON.AbstractMesh[] = owned.filter((m): m is BABYLON.Mesh => m instanceof BABYLON.Mesh && m.name !== 'morning-mirror' && m.isEnabled());
+    for (const m of double.group.getChildMeshes(false)) list.push(m);
+    if (!mirrorTex.renderList || mirrorTex.renderList.length !== list.length) mirrorTex.renderList = list;
+    mirrorTex.refreshRate = 2;
+    mirrorShadow = true;
+  };
+
   const build = () => {
     const s = host.scene;
     const wood = mat(s, 'morning-wood', 0.34, 0.24, 0.17);
@@ -435,7 +545,10 @@ export const createTheMorning = (host: MorningHost) => {
     box('morning-sofa-back', 3.2, 0.7, 1.0, 2.0, 0.5, 0.2, cloth);
     box('morning-table', 3.2, 0.2, -1.3, 1.1, 0.4, 0.6, wood, true);
     box('morning-chair', 1.0, 0.25, -1.3, 0.6, 0.5, 0.6, cloth, true);
-    box('morning-coat', 1.0, 0.62, -1.18, 0.5, 0.3, 0.12, mat(s, 'morning-coat', 0.12, 0.12, 0.13));
+    // His coat hangs on a hook by the front door, beside the hall mirror.
+    box('morning-coat-hook', COAT.x, 1.75, 2.9, 0.34, 0.05, 0.08, dark);
+    hookCoat = box('morning-coat', COAT.x, 1.25, 2.86, 0.46, 0.98, 0.1, mat(s, 'morning-coat', 0.12, 0.12, 0.14));
+    buildMirror();
     // Window on the west wall, front door on the south wall.
     windowMaterial = mat(s, 'morning-window', 0.2, 0.3, 0.5, 1);
     owned.push(windowMaterial);
@@ -446,6 +559,7 @@ export const createTheMorning = (host: MorningHost) => {
     const hall = BABYLON.MeshBuilder.CreatePlane('morning-door-hall', { width: 1.0, height: 2.1 }, s);
     hall.position.set(DOOR.x, 1.05, 2.995);
     const hallMat = mat(s, 'morning-door-hall', 0.015, 0.014, 0.013);
+    hallMaterial = hallMat;
     hallMat.disableLighting = true;
     hall.material = hallMat;
     hall.isPickable = false;
@@ -464,6 +578,13 @@ export const createTheMorning = (host: MorningHost) => {
       } else item.dispose();
     }
     owned.length = 0;
+    double?.dispose();
+    double = null;
+    doubleReady = false;
+    mirrorTex = null;
+    mirrorShadow = false;
+    hookCoat = null;
+    hallMaterial = null;
     door = null;
     lamps.length = 0;
     tvTexture = null;
@@ -536,14 +657,21 @@ export const createTheMorning = (host: MorningHost) => {
     host.showObjective(true);
   };
 
+  /** The door has opened; morningEnding.ts runs the rest, so the room's own scene is over. */
   const finish = () => {
     playing = false;
     beat = 'done';
-    control();
     host.clearMarker();
     host.showObjective(false);
-    host.unlockNext();
-    host.offerEnd(lineSpeaker('ui.complete.morning', 'Level Complete'), lineText('ui.complete.morning', 'The morning kept its story. He kept the door.'));
+  };
+
+  const toDoor = () => {
+    playing = false;
+    control();
+    beat = 'door';
+    markScene();
+    host.setObjective(lineSpeaker('objective.morning.out', 'Out'), lineText('objective.morning.out', 'The front door.'), { x: DOOR.x, y: 1.3, z: DOOR.z - 0.3 });
+    host.showObjective(true);
   };
 
   /** S0 and S1: black, sound and two barks. No street is built; the room is the next thing he sees. */
@@ -710,28 +838,78 @@ export const createTheMorning = (host: MorningHost) => {
     if (time >= total + L_WITHOUT.hold + 0.4 && (!voiceBusy() || time >= total + L_WITHOUT.hold + 8)) endNews();
   };
 
+  /** He puts the coat on in front of the mirror and says the closing line. */
+  const stepCoat = () => {
+    if (!flags.has('start')) {
+      flags.add('start');
+      host.placePierce(MIRROR.x, 2.05, 0);
+      host.playClip('rebornidle', true);
+    }
+    // Behind him, close: the glass over his shoulder shows what is standing there.
+    const k = Math.min(1, time / COAT_SCENE_SECONDS);
+    host.frameCamera({ x: MIRROR.x + 0.15 - k * 0.1, y: 1.55, z: 0.55 + k * 0.7 }, { x: MIRROR.x, y: 1.35, z: 3 });
+    if (time >= 1.2 && !flags.has('coat')) {
+      flags.add('coat');
+      coatTaken = true;
+      if (hookCoat) hookCoat.setEnabled(false);
+      host.playFile(PLACE_SFX.bed, 0.5);
+      host.setCarry([...carryItems('morning', CARRY), COAT_ITEM]);
+    }
+    if (time >= 2.4 && !flags.has('line')) {
+      flags.add('line');
+      say(L_WALKS);
+    }
+    if (time >= COAT_SCENE_SECONDS) toDoor();
+  };
+
   const stepLeaving = () => {
     if (!flags.has('start')) {
       flags.add('start');
       // Beside the door, clear of its swing (it opens into the room on its west hinge), facing it.
       host.placePierce(DOOR.x + 0.8, DOOR.z - 0.35, -0.9);
       host.playClip('rebornidle', true);
-      say(L_WALKS);
+      host.beginEnding();
     }
     host.frameCamera({ x: 2.6, y: 1.55, z: 0.4 }, { x: DOOR.x, y: 1.2, z: DOOR.z });
-    // The door swings open into the room as he says it.
+    // The door swings open into the room and the hall behind it is dawn.
     if (time >= 0.5 && !flags.has('door-sound')) {
       flags.add('door-sound');
       host.playFile(PLACE_SFX.door, 0.6);
     }
-    if (door) {
-      const t = Math.min(1, Math.max(0, (time - 0.5) / 1.4));
-      door.rotation.y = DOOR_SWING * t * t * (3 - 2 * t);
-    }
-    if (time >= L_WALKS.hold + 0.6) finish();
+    const t = Math.min(1, Math.max(0, (time - 0.5) / 1.4));
+    if (door) door.rotation.y = DOOR_SWING * t * t * (3 - 2 * t);
+    if (hallMaterial) hallMaterial.emissiveColor = new BABYLON.Color3(t * 2.4, t * 2.3, t * 2.1);
+    if (time >= 3.2) finish();
   };
 
   return {
+    /** Test setup (playtest `level-8-ending`): skip to the walk to the coat, or to the door with the coat taken. */
+    jumpTo: (to: 'out' | 'door') => {
+      if (!active) return;
+      playing = false;
+      lineUntil = 0;
+      flags = new Set();
+      host.lie(false, 0, 0, 0, 0);
+      host.fade(0, 0.2);
+      host.showLine('', '');
+      setMorning(true);
+      setTv(true, 'portrait');
+      callDone = true;
+      pushT = 0;
+      control();
+      if (to === 'door') {
+        coatTaken = true;
+        if (hookCoat) hookCoat.setEnabled(false);
+        host.placePierce(MIRROR.x, 2.05, 0);
+        toDoor();
+      } else {
+        host.placePierce(WATCH.x, WATCH.z, Math.PI);
+        beat = 'out';
+        markScene();
+        host.setObjective(lineSpeaker('objective.morning.coat', 'Out'), lineText('objective.morning.coat', 'The coat. Then the door.'), { x: COAT.x, y: 1.3, z: COAT.z });
+        host.showObjective(true);
+      }
+    },
     /** The ending event: the TV switches itself on to the Hawkes Tower report (a still of the old face). */
     tvReport: (on: boolean) => setTv(on, on ? 'portrait' : 'off'),
     objectiveKey: () => 'morning',
@@ -740,7 +918,8 @@ export const createTheMorning = (host: MorningHost) => {
       if (!active || playing) return null;
       if (beat === 'home' && near(BED, 1.9)) return lineText('ui.action.morning.sleep', 'Sleep');
       if (beat === 'news' && near({ x: TV.x, z: -1.2 }, 1.9)) return lineText('ui.action.morning.watch', 'Watch');
-      if (beat === 'out' && near(DOOR, 1.3)) return lineText('ui.action.morning.leave', 'Leave');
+      if (beat === 'out' && near(COAT, 1.1)) return lineText('ui.action.morning.coat', 'Take coat');
+      if (beat === 'door' && near(DOOR, 1.3)) return lineText('ui.action.morning.leave', 'Leave');
       if ((beat === 'call' || beat === 'out') && !reading && !paperRead && near(READ_AT, 1.1)) return lineText('ui.action.morning.paper', 'Read the paper');
       return null;
     },
@@ -755,7 +934,11 @@ export const createTheMorning = (host: MorningHost) => {
         captionsShown = 0;
         return true;
       }
-      if (beat === 'out' && near(DOOR, 1.3)) {
+      if (beat === 'out' && near(COAT, 1.1)) {
+        beginScene('coat');
+        return true;
+      }
+      if (beat === 'door' && near(DOOR, 1.3)) {
         beginScene('leaving');
         return true;
       }
@@ -770,7 +953,7 @@ export const createTheMorning = (host: MorningHost) => {
       if (beat === 'ride' || beat === 'walk') endIntro();
       else if (beat === 'sleep' || beat === 'wake') endSleep();
       else if (beat === 'news') endNews();
-      else if (beat === 'leaving') finish();
+      else if (beat === 'coat') toDoor();
     },
     story: (): MorningStory => ({
       beat,
@@ -781,6 +964,9 @@ export const createTheMorning = (host: MorningHost) => {
       callDone,
       scene: sceneOf(beat),
       scenes: [...scenes],
+      mirrorShadow,
+      coatTaken,
+      push,
       band: snap.band,
       kills: snap.kills,
       report: reportSeen,
@@ -791,6 +977,7 @@ export const createTheMorning = (host: MorningHost) => {
       active = false;
       playing = false;
       prepared = false;
+      host.setPush(0);
       clearRoom();
     },
     /**
@@ -822,6 +1009,11 @@ export const createTheMorning = (host: MorningHost) => {
       newsT = 0;
       tvClock = 0;
       scenes = [];
+      coatTaken = false;
+      pushT = 0;
+      push = 0;
+      host.setPush(0);
+      if (hookCoat) hookCoat.setEnabled(true);
       paperRead = false;
       reading = 0;
       reportSeen = '';
@@ -843,12 +1035,18 @@ export const createTheMorning = (host: MorningHost) => {
       time += dt;
       blink += dt;
       if (led) led.emissiveColor = new BABYLON.Color3(blink % 1 < 0.5 ? 0.9 : 0.1, 0.05, 0.05);
+      refreshMirror();
       if (playing) {
         if (beat === 'ride' || beat === 'walk') stepIntro();
         else if (beat === 'sleep' || beat === 'wake') stepSleep();
         else if (beat === 'news') stepNews();
+        else if (beat === 'coat') stepCoat();
         else if (beat === 'leaving') stepLeaving();
       } else {
+        // The walk to the door: the camera creeps in as he nears it.
+        if (beat === 'out' || beat === 'door') pushT = Math.min(18, pushT + dt);
+        push = beat === 'out' || beat === 'door' ? pushT / 18 : 0;
+        host.setPush(push);
         if (reading > 0) {
           reading -= dt;
           // Close on the table: the paper (0.56 m) must fill a phone's narrow view, so the distance follows the aspect.
@@ -893,7 +1091,7 @@ export const createTheMorning = (host: MorningHost) => {
               callDone = true;
               beat = 'out';
               markScene();
-              host.setObjective(lineSpeaker('objective.morning.out', 'Out'), lineText('objective.morning.out', 'The front door.'), { x: DOOR.x, y: 1.3, z: DOOR.z - 0.3 });
+              host.setObjective(lineSpeaker('objective.morning.coat', 'Out'), lineText('objective.morning.coat', 'The coat. Then the door.'), { x: COAT.x, y: 1.3, z: COAT.z });
               host.showObjective(true);
             } else if (!wasBusy && ringSince > 40) {
               // Nobody picked up: Voss tries again.

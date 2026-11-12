@@ -385,7 +385,9 @@ export const createThirdPersonCamera = (
     const armedShoulder = cfg.shoulderOffset * shoulderMix;
     const shoulder = armedShoulder + volumeShoulder * cfg.shoulderOffset;
 
-    const profileDistance = toolClose ? cfg.equippedDistance : pose.distance;
+    // A scripted slow push-in (The Morning's walk to the door): up to 40% closer, eased.
+    push = expDamp(push, pushTarget, 2, clampedDt);
+    const profileDistance = (toolClose ? cfg.equippedDistance : pose.distance) * (1 - 0.4 * push);
     desiredDistance = profileDistance;
     const aimDistance = clampValue(
       desiredDistance + cfg.drawnDistanceDelta * shoulderMix,
@@ -611,6 +613,9 @@ export const createThirdPersonCamera = (
 
   reset();
 
+  let push = 0;
+  let pushTarget = 0;
+
   const setCinematic = (position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }) => {
     if (!cinematicPos) cinematicFresh = true;
     cinematicPos = new BABYLON.Vector3(position.x, position.y, position.z);
@@ -639,6 +644,10 @@ export const createThirdPersonCamera = (
     isLooking,
     setCinematic,
     clearCinematic,
+    /** 0..1: the lens creeps in as it grows (eased). */
+    setPush: (k: number) => {
+      pushTarget = Math.max(0, Math.min(1, k));
+    },
     setOverShoulder: (enabled: boolean) => {
       shoulderTarget = enabled ? 1 : 0;
     },
