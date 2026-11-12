@@ -41,22 +41,6 @@
         <button type="button" data-act="down" aria-label="Next command">&darr;</button>
         <button type="button" data-act="ctrlc" aria-label="Control C (cancel)">^C</button>
       </div>
-      <footer class="foot">
-        <nav aria-label="Site">
-          <a href="./about.html">About</a>
-          <a href="./characters.html">Characters</a>
-          <a href="./lore.html">Lore</a>
-          <a href="./whatsnew.html">What&rsquo;s new</a>
-          <a data-play href="./play/game.html">Play</a>
-        </nav>
-        <a class="footer-version" href="./whatsnew.html" data-hawkes-version data-prefix="Version " hidden></a>
-        <p class="hawkes-credit">
-          <a href="https://hawkesbiomedical.com" target="_blank" rel="noopener" data-hawkes-credit="parent">A <strong>Hawkes Biomedical</strong> company</a>
-          &middot;
-          <a href="https://hawkesgen.ai" target="_blank" rel="noopener" data-hawkes-credit="gen">Powered by <strong>HAWKES GEN</strong></a>
-        </p>
-        <p class="site-privacy">This site collects anonymous gameplay statistics to improve the game: no cookies, no personal data, no IP address stored. The terminal is a simulation: no network, no real data.</p>
-      </footer>
     </div>
     <script type="module" src="./site/terminal/main.js"></script>
     <script src="./site/hawkes-release.js" data-releases="./releases.json" defer></script>
@@ -117,7 +101,7 @@
           { id: 'level-7-release', title: 'The Station Continue enters The Train; End Level only after the story, then the station song and level 7 credits; Continue and Exit; Load Level lists it', seconds: 480, tags: ['level'] },
           { id: 'level-7', title: 'Level 7, The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door, then the end song and credits', seconds: 240, tags: ['level'] },
           { id: 'lore-link', title: 'Finish level 4 and unlock its lore entry, open its Read more page, check every lore page has Play this level', seconds: 200, tags: ['level', 'site'] },
-          { id: 'site-links', title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged', seconds: 60, tags: ['menus', 'site'] },
+          { id: 'site-links', title: 'Hawkes Gen credit on every site page except the terminal home, About lists levels 1-7 playable, the game screen unchanged', seconds: 60, tags: ['menus', 'site'] },
           { id: 'terminal', title: 'Terminal landing page: boot to prompt, /help, solve the five-step chain from the clues, root, /build as a three-act show (log flood, song, text flipbook of two silhouettes; Esc skips) to BUILD SUCCESSFUL, game opens the game; no console errors', seconds: 220, tags: ['site', 'first-minute', 'ui'] },
           { id: 'terminal-phone', title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot, the /build flipbook with both silhouettes visible', seconds: 90, tags: ['site', 'phone', 'ui'] },
           { id: 'frame-trace', title: 'Frame-time trace on all eight levels (desktop and phone): hitch counts, worst causes, no post-grace frame over 100 ms', seconds: 420, tags: ['smoke', 'perf'] },

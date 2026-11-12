@@ -1023,7 +1023,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'site-links',
         title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged',
-        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
+        description: 'Taps to play, then shows About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold). Then checks the game page itself carries no credit link.',
         seconds: 60,
         tags: ['menus', 'site'],
       },
@@ -1037,7 +1037,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'terminal-phone',
         title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot',
-        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, footer links 44 px. Then a second page (?demo=show&songlen=6, motion on) shows the /build text flipbook at 390x844: both silhouettes side by side and non-empty, flipbook text at least 10 px, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
+        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, Then a second page (?demo=show&songlen=6, motion on) shows the /build text flipbook at 390x844: both silhouettes side by side and non-empty, flipbook text at least 10 px, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
         seconds: 60,
         tags: ['site', 'phone', 'ui'],
       },
@@ -2760,9 +2760,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
     };
 
-    /** Each site page in an overlay: the footer's Powered by HAWKES GEN link, and Hawkes Biomedical on Home. */
+    /** Each site page in an overlay: the footer's Powered by HAWKES GEN link. Home is the terminal and has no footer. */
     const siteLinksCheck = async () => {
-      const pages: [string, string][] = [['index.html', 'Home'], ['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
+      const pages: [string, string][] = [['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
       const want: [string, string, RegExp, string][] = [
         ['gen', 'https://hawkesgen.ai', /powered by\s+hawkes gen/i, 'Powered by HAWKES GEN'],
         ['parent', 'https://hawkesbiomedical.com', /hawkes biomedical/i, 'Hawkes Biomedical'],
@@ -2785,7 +2785,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           footer.scrollIntoView({ block: 'end', behavior: 'instant' });
           await sleep(900);
           for (const [kind, href, text, label] of want) {
-            if (kind === 'parent' && file !== 'index.html') continue;
+            if (kind === 'parent') continue;
             const match = (root: ParentNode) => [...root.querySelectorAll<HTMLAnchorElement>('a[href]')].filter((a) => a.href.replace(/\/$/, '') === href);
             const links = match(footer).length ? match(footer) : match(doc);
             const link = links.find((a) => text.test(a.textContent ?? '')) ?? links[0];
