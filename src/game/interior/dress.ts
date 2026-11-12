@@ -115,6 +115,19 @@ const makeKit = (scene: BABYLON.Scene, g: Geo, plan: InteriorPlan, colliders: BA
   };
 };
 
+const APEX_MATERIALS: Record<string, string> = {
+  tMarble: 'marble-floor',
+  tCarpet: 'carpet',
+  tWalnut: 'walnut-panel',
+  tSteel: 'brushed-steel',
+  tGlass: 'frosted-glass',
+  tCeil: 'ceiling-tile',
+  tLeather: 'boardroom-leather',
+  tBrass: 'brushed-brass',
+  tConcrete: 'stairwell-concrete',
+  tDrywall: 'office-drywall',
+};
+
 /** Atlas art: paintings, signs, labels, screens. Drawn once per mount. */
 const paintAtlas = (scene: BABYLON.Scene) => {
   const size = 2048;
@@ -248,6 +261,13 @@ const paintAtlas = (scene: BABYLON.Scene) => {
       ctx.fillText(tag, x + 96, y + 220, 176);
       ctx.font = '9px Georgia, serif';
       ctx.fillText('H A W K E S   B I O M E D I C A L', x + 96, y + 240, 176);
+      // The Hawkes Gen poster replaces the stand-in once it loads (the stand-in stays if it cannot).
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, x, y, 192, 256);
+        tex.update(true);
+      };
+      img.src = `/assets/textures/apex/posters/poster-${i}.webp`;
     });
   });
   const award = (key: string, line1: string, line2: string) =>
@@ -416,11 +436,21 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
       'worldViewProjection', 'cameraPos', 'lPos', 'lCol', 'spotPos', 'spotDir', 'spotInfo', 'hemiSky', 'hemiGround',
       'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma',
     ],
-    samplers: ['atlas'],
+    samplers: ['atlas', ...Object.keys(APEX_MATERIALS)],
   });
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas.tex);
+  // Hawkes Gen material set (1024 px; 512 px on the low-memory tier), repeat-wrapped.
+  const low = document.body.dataset.memory === 'low';
+  for (const [sampler, file] of Object.entries(APEX_MATERIALS)) {
+    const t = new BABYLON.Texture(`/assets/textures/apex/${file}${low ? '-512' : ''}.webp`, scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+    t.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    t.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    t.anisotropicFilteringLevel = low ? 2 : 8;
+    material.setTexture(sampler, t);
+    owned.push(t);
+  }
   owned.push(material);
 
   const g = new Geo();
