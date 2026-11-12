@@ -3,8 +3,8 @@
   "assets": [
     {
       "id": "asset-hero-model",
-      "name": "ch33-hero.glb",
-      "path": "/assets/models/ch33-hero.glb",
+      "name": "pierce.glb",
+      "path": "/assets/models/pierce.glb",
       "type": "model",
       "tags": [
         "player",
@@ -138,8 +138,8 @@
     },
     {
       "id": "asset-ch33-hero",
-      "name": "ch33-hero.glb",
-      "path": "/assets/models/ch33-hero.glb",
+      "name": "pierce.glb",
+      "path": "/assets/models/pierce.glb",
       "type": "model",
       "tags": [
         "character",

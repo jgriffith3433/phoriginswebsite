@@ -1,6 +1,6 @@
 import { busInput, createUnlockedAudio, getSharedAudioContext, releaseUnlockedAudio } from './audioUnlock';
 import { storyLine } from './locale';
-import { mixVolume, playClip, preloadClips, type ClipHandle, type LoopHandle } from './sfxMix';
+import { isVoiceUrl, mixVolume, playClip, preloadClipsReady, type ClipHandle, type LoopHandle } from './sfxMix';
 
 export type CutsceneVec3 = { x: number; y: number; z: number };
 
@@ -55,6 +55,8 @@ export type CutsceneHooks = {
   onWorld?: (target: string, to: number, seconds: number) => void;
   onHud: (title?: string, text?: string) => void;
   onAnim: (actor: string, clip: string, loop: boolean) => void;
+  /** A spoken line started on this actor (faceTalk binds the mouth / gaze / gesture). */
+  onSpeak?: (actor: string, url: string, holdSeconds: number) => void;
   onLight?: (on: boolean, intensity?: number, target?: string) => void;
   onMesh?: (target: string, enabled: boolean, position?: CutsceneVec3) => void;
   onObjective?: (title?: string, text?: string) => void;
@@ -71,6 +73,8 @@ export type ActiveCutscene = {
   duration: number;
   cursor: number;
   playing: ClipHandle[];
+  /** The voice lines this scene started (the clock waits on them). */
+  voices: ClipHandle[];
   /** Fallback elements when the browser has no Web Audio. */
   elements: HTMLAudioElement[];
   loops: LoopHandle[];
@@ -79,7 +83,14 @@ export type ActiveCutscene = {
   hooks: CutsceneHooks;
   lineHold: { until: number; actor: string; restClip: string } | null;
   silent?: boolean;
+  /** Seconds the clock has been held for a voice line still sounding (bounded by VOICE_HOLD_MAX). */
+  voiceHeld?: number;
 };
+
+/** Longest the scene waits on one voice line (a clip that will not load must not freeze it). */
+const VOICE_HOLD_MAX = 12;
+/** Longest the scene waits for its clips to decode before it starts anyway. */
+const PRELOAD_WAIT_MS = 4000;
 
 const cache = new Map<string, CutsceneTimeline>();
 
@@ -125,6 +136,7 @@ const stopAudio = (cutscene: ActiveCutscene) => {
   cutscene.loops = [];
   cutscene.playing.forEach((clip) => clip.stop());
   cutscene.playing.length = 0;
+  cutscene.voices.length = 0;
   cutscene.elements.forEach((element) => releaseUnlockedAudio(element));
   cutscene.elements.length = 0;
 };
@@ -159,6 +171,7 @@ const playFile = (cutscene: ActiveCutscene, url: string, volume: number, loop: b
   });
   if (clip) {
     cutscene.playing.push(clip);
+    if (!loop && isVoiceUrl(url)) cutscene.voices.push(clip);
     return;
   }
   playElement(cutscene, url, level, loop, stubSeconds);
@@ -292,6 +305,9 @@ const fireEvent = (cutscene: ActiveCutscene, event: TimelineEvent) => {
         actor: event.actor,
         restClip: seatedTalk ? 'sit' : clip,
       };
+      cutscene.hooks.onSpeak?.(event.actor, event.audio ?? event.line ?? '', hold);
+    } else {
+      cutscene.hooks.onSpeak?.(speaker, event.audio ?? event.line ?? event.text ?? '', hold);
     }
     if (event.audio) {
       playFile(cutscene, event.audio, event.volume ?? 0.85, false, hold);
@@ -324,19 +340,45 @@ export const startCutscene = async (id: string, hooks: CutsceneHooks): Promise<A
     duration: Math.max(0.5, timeline.duration ?? 0),
     cursor: 0,
     playing: [],
+    voices: [],
     elements: [],
     loops: [],
     loopToken: 0,
     hooks,
     lineHold: null,
   };
-  if (hooks.audioEnabled()) preloadClips(timelineAudio(timeline));
+  // Every clip is fetched and decoded before the first beat, with a bounded wait; a straggler keeps loading.
+  if (hooks.audioEnabled()) {
+    await Promise.race([
+      preloadClipsReady(timelineAudio(timeline), performance.now() + PRELOAD_WAIT_MS),
+      new Promise((resolve) => setTimeout(resolve, PRELOAD_WAIT_MS + 500)),
+    ]);
+  }
   flushDueEvents(cutscene);
   return cutscene;
 };
 
+/** A voice line of this scene is still sounding (or waiting on its file). */
+const voiceSounding = (cutscene: ActiveCutscene) => {
+  cutscene.voices = cutscene.voices.filter((clip) => !clip.done());
+  return cutscene.voices.length > 0;
+};
+
 export const stepCutscene = (cutscene: ActiveCutscene, delta: number): boolean => {
-  cutscene.time += delta;
+  let next = cutscene.time + delta;
+  // A line is never cut by the next beat: the clock waits at the next spoken line (or the end) until the voice
+  // before it has finished. The wait is bounded.
+  if (!cutscene.silent && voiceSounding(cutscene) && (cutscene.voiceHeld ?? 0) < VOICE_HOLD_MAX) {
+    const upcoming = cutscene.timeline.events.slice(cutscene.cursor).find((event) => (event.type === 'line' && (event.audio || event.line)) || event.type === 'end');
+    const gate = upcoming ? Math.min(upcoming.at, cutscene.duration) : cutscene.duration;
+    if (next >= gate) {
+      next = Math.max(cutscene.time, gate - 0.0001);
+      cutscene.voiceHeld = (cutscene.voiceHeld ?? 0) + delta;
+    }
+  } else if (!voiceSounding(cutscene)) {
+    cutscene.voiceHeld = 0;
+  }
+  cutscene.time = next;
   flushDueEvents(cutscene);
   if (cutscene.lineHold && cutscene.time >= cutscene.lineHold.until) {
     cutscene.hooks.onAnim(cutscene.lineHold.actor, cutscene.lineHold.restClip, true);

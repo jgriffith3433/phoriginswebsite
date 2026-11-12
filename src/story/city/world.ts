@@ -6,6 +6,7 @@ import {
   CHUNK, CURB, DOWNTOWN, LIGHT_COLORS, LOBBY, STATION_PIT, STYLE, buildCity,
 } from './layout';
 import { type V2, Grid, ccw, clamp, earcut, obbPush, pointAt, segDist } from './math2';
+import { attachKeyShadow, keyShadowShaderOptions } from '../../render/keyShadow';
 import { CITY_SHADERS, SHARED_UNIFORMS } from './shaders';
 
 type Vec3 = [number, number, number];
@@ -119,18 +120,22 @@ export const createCityWorld = (scene: BABYLON.Scene, opts: CityWorldOptions) =>
   }
 
   // ---------- Materials ----------
-  const shaderMat = (name: string, vert: string, frag: string, extra: { attributes: string[]; uniforms?: string[]; samplers?: string[] }) => {
+  const shaderMat = (name: string, vert: string, frag: string, extra: { attributes: string[]; uniforms?: string[]; samplers?: string[]; keyShadow?: boolean }) => {
+    const keyShadow = extra.keyShadow ? keyShadowShaderOptions(scene) : { defines: [], uniforms: [], samplers: [] };
     const material = new BABYLON.ShaderMaterial(name, scene, { vertexSource: vert, fragmentSource: frag }, {
       attributes: extra.attributes,
-      uniforms: [...SHARED_UNIFORMS, ...(extra.uniforms ?? [])],
-      samplers: extra.samplers ?? ['lightMap'],
+      uniforms: [...SHARED_UNIFORMS, ...(extra.uniforms ?? []), ...keyShadow.uniforms],
+      samplers: [...(extra.samplers ?? ['lightMap']), ...keyShadow.samplers],
+      defines: keyShadow.defines,
     });
     material.backFaceCulling = true;
+    if (extra.keyShadow) attachKeyShadow(scene, material);
     return material;
   };
   const groundAttrs = ['position', 'normal', 'uv', 'uv2', 'uv3', 'color'];
   const stdAttrs = ['position', 'normal', 'uv', 'uv2', 'color'];
-  const groundMat = shaderMat('city-ground', CITY_SHADERS.groundVert, CITY_SHADERS.groundFrag, { attributes: groundAttrs });
+  // Only the street ground reads the key shadow; the far base ring is out of shadow range anyway.
+  const groundMat = shaderMat('city-ground', CITY_SHADERS.groundVert, CITY_SHADERS.groundFrag, { attributes: groundAttrs, keyShadow: true });
   const baseMat = shaderMat('city-base', CITY_SHADERS.groundVert, CITY_SHADERS.groundFrag, { attributes: groundAttrs });
   baseMat.zOffset = 3;
   const facadeMat = shaderMat('city-facade', CITY_SHADERS.facadeVert, CITY_SHADERS.facadeFrag, { attributes: stdAttrs });

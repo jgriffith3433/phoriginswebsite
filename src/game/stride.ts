@@ -5,7 +5,8 @@
  * of the hero and the street NPC rigs (they agree within 0.1 m/s). Re-measure with `npm run models:stride`.
  */
 export const STRIDE_MPS: Readonly<Record<string, number>> = { walk: 1.72, pistolwalk: 2.4, run: 3.6 };
-const STRIDE_MIN = 0.35;
+/** Allow slow half-stick walks (~0.5 m/s) without clamping into a skate. */
+const STRIDE_MIN = 0.25;
 const STRIDE_MAX = 2.6;
 export const strideRatio = (clip: string, metresPerSecond: number) =>
   Math.min(STRIDE_MAX, Math.max(STRIDE_MIN, metresPerSecond / (STRIDE_MPS[clip] ?? STRIDE_MPS.walk)));

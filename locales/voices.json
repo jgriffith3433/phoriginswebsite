@@ -156,6 +156,14 @@
     "treasurer": {
       "name": "Treasurer",
       "voiceId": "pFZP5JQG7iQjIQuC4Bku"
+    },
+    "street-woman": {
+      "name": "Street woman",
+      "voiceId": "XrExE9yKIg1WjnnlVkGX"
+    },
+    "street-elder": {
+      "name": "Street elder",
+      "voiceId": "pFZP5JQG7iQjIQuC4Bku"
     }
   },
   "speakers": {
@@ -179,6 +187,8 @@
     "conductor": "conductor",
     "board member": "board-member",
     "treasurer": "treasurer",
-    "security radio": "police"
+    "security radio": "police",
+    "street woman": "street-woman",
+    "street elder": "street-elder"
   }
 }

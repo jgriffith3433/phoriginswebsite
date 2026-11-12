@@ -7,10 +7,21 @@ import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
+import { createWantedPosters } from './wantedPosters';
+import { SIREN_KILLS, SIREN_SFX, type LedgerApi } from '../game/ledger';
 import { lifeStats } from '../game/lifeStats';
 import { createLinePool, PLACE_SFX, STATION_BARKS, STATION_PA, type PlaceLine } from './placeVoices';
+import {
+  createCrowdReact,
+  NOTICE_HOLD,
+  NOTICE_RANGE,
+  rollAfterNotice,
+  type CrowdStage,
+} from './crowdReact';
 
 export type TheStationHost = {
+  /** The street ledger on the save. Kills here count too; at SIREN_KILLS the gate gets an officer and wanted posters. */
+  ledger: LedgerApi;
   scene: BABYLON.Scene;
   running: () => boolean;
   placePierce: (x: number, z: number, yaw: number) => void;
@@ -35,8 +46,22 @@ export type TheStationHost = {
   hand: () => { x: number; y: number; z: number } | null;
   player: () => { x: number; z: number; yaw: number };
   shedShadow: (x: number, z: number) => void;
+  /** Signature effect hook (powerFx): a shock landed on, or a punch/kick swung at, a point. */
+  power?: (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'station-platform',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
   ringCall: (id: string) => void;
@@ -98,7 +123,7 @@ const STRIKE_LIMIT = 8;
 type Figure = {
   mesh: BABYLON.Mesh;
   avatar: PlayerAvatar;
-  role: 'man' | 'shade' | 'double';
+  role: 'man' | 'shade' | 'double' | 'cop';
   gone: boolean;
 };
 
@@ -155,6 +180,11 @@ type Person = {
   /** Seconds left looking at Pierce, and the wait before the next look. */
   notice: number;
   cool: number;
+  /** Staged reaction to Shadow Pierce. */
+  react: CrowdStage | null;
+  reactLeft: number;
+  coverX: number;
+  coverZ: number;
 };
 
 export type TheStation = ReturnType<typeof createTheStation>;
@@ -199,6 +229,17 @@ export const createTheStation = (host: TheStationHost) => {
   let callIn = -1;
   let haleRang = false;
   let crowd = false;
+  const shadowCrowd = createCrowdReact({
+    scene: host.scene,
+    playFile: host.playFile,
+    showLine: (title, text) => {
+      host.showLine(title, text);
+      remarkLeft = Math.max(remarkLeft, 1.8);
+    },
+  });
+  let copFigure: Figure | null = null;
+  let copBark = -1;
+  let posters: ReturnType<typeof createWantedPosters> | null = null;
   let shadeAlpha = 0.58;
   let shadePhase: 'yell' | 'strike' | 'gone' = 'yell';
   let yelled = false;
@@ -333,7 +374,43 @@ export const createTheStation = (host: TheStationHost) => {
     lineUntil = sceneTime + hold;
   };
 
-  const frameShot = () => {
+  const frameShot = (dt = 0.016) => {
+    if (host.stepCineScene) {
+      const man = figures.find((figure) => figure.role === 'man');
+      const doubleFig = figures.find((figure) => figure.role === 'double');
+      const spk = sceneTime >= T_LEFT
+        ? 'Passerby'
+        : sceneTime >= T_SEAT
+          ? 'Pierce'
+          : sceneTime >= T_MINE
+            ? 'Passerby'
+            : 'Pierce';
+      const lineKey = sceneTime >= T_LEFT
+        ? LINE_LEFT.id
+        : sceneTime >= T_SEAT
+          ? LINE_SEAT.id
+          : sceneTime >= T_MINE
+            ? LINE_MINE.id
+            : sceneTime >= T_UPTOWN
+              ? LINE_UPTOWN.id
+              : sceneTime >= T_HERE
+                ? LINE_HERE.id
+                : sceneTime >= T_ME
+                  ? LINE_ME.id
+                  : 'station.open';
+      const spkPos = sceneTime >= 21.2 && man && !man.gone
+        ? { x: man.mesh.position.x, y: 1.38, z: man.mesh.position.z }
+        : sceneTime >= 12.9 && doubleFig && !doubleFig.gone
+          ? { x: doubleFig.mesh.position.x, y: 1.38, z: doubleFig.mesh.position.z }
+          : { x: SPAWN.x, y: 1.42, z: SPAWN.z };
+      host.stepCineScene('station-platform', sceneTime, dt, {
+        applyCamera: true,
+        speaker: spk,
+        lineKey,
+        speakerPosOverride: spkPos,
+      });
+      return;
+    }
     if (sceneTime < T_UPTOWN) {
       host.frameCamera({ x: 3.6, y: 2.35, z: -0.15 }, { x: 30, y: 1.15, z: -0.9 });
       return;
@@ -352,9 +429,21 @@ export const createTheStation = (host: TheStationHost) => {
     );
   };
 
+  /** At SIREN_KILLS or more: a siren on the avenue above, an officer at the gate and wanted posters on the south wall. */
+  const gateWatch = () => {
+    if (host.ledger.get().kills < SIREN_KILLS) return;
+    const cop = spawnFigure('station-gate-officer', 'asset-ch23-npc', 10.3, -2.5, Math.PI / 2, 'cop');
+    copFigure = cop;
+    posters?.dispose();
+    posters = createWantedPosters(host.scene, [{ x: 13.4, y: 1.55, z: -7.06 }, { x: 16.6, y: 1.55, z: -7.06 }, { x: 9.6, y: 1.55, z: -7.06 }]);
+    host.playFile(SIREN_SFX, 0.32);
+    copBark = 3;
+  };
+
   const spawnCrowd = () => {
     if (crowd) return;
     crowd = true;
+    gateWatch();
     CROWD.forEach(([x, z, x0, x1], index) => {
       spawn(`station-walk-${index}`, ASSETS[index % ASSETS.length], x, z, x0, x1);
     });
@@ -366,6 +455,7 @@ export const createTheStation = (host: TheStationHost) => {
     clearFigures();
     host.showLine('', '');
     host.setWalk(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     host.holdScene(false);
     host.placePierce(SPAWN.x, SPAWN.z, SPAWN.yaw);
@@ -493,7 +583,7 @@ export const createTheStation = (host: TheStationHost) => {
         return;
       }
     }
-    frameShot();
+    frameShot(dt);
     if (!saidMe && sceneTime >= T_ME) {
       saidMe = true;
       say(lineSpeaker(LINE_ME.id, 'Pierce'), lineText(LINE_ME.id), lineAudio(LINE_ME.id), LINE_ME.hold);
@@ -544,6 +634,10 @@ export const createTheStation = (host: TheStationHost) => {
       resting: false,
       poseHold: 0,
       floorY: 0,
+      react: null,
+      reactLeft: 0,
+      coverX: 0,
+      coverZ: 0,
       notice: 0,
       cool: 3 + Math.random() * 3,
     };
@@ -668,6 +762,7 @@ export const createTheStation = (host: TheStationHost) => {
     person.floorY = floorUnder(host.scene, person.mesh.position.x, person.mesh.position.z, feet, person.avatar.group);
     person.avatar.playClip(shocked ? 'electrocuted' : 'deathforward', false);
     host.playFile(deathScream('man'), 0.72);
+    host.ledger.add('kills');
   };
 
   const bury = (person: Person) => {
@@ -690,6 +785,114 @@ export const createTheStation = (host: TheStationHost) => {
     host.offerEnd(lineSpeaker('ui.complete.station', 'Level Complete'), lineText('ui.complete.station'));
   };
 
+  const beginStationReact = (person: Person, stage: CrowdStage, t: number) => {
+    if (person.down || person === tether) return;
+    if (!shadowCrowd.canAnimate() && !person.react) return;
+    const id = person.mesh.name;
+    const fresh = shadowCrowd.noteWitness(id, t);
+    person.react = stage;
+    if (stage === 'notice') {
+      person.reactLeft = NOTICE_HOLD + Math.random() * 0.35;
+      person.fleeing = false;
+      person.moving = false;
+      face(person, Math.atan2(host.player().x - person.mesh.position.x, host.player().z - person.mesh.position.z));
+      const dx = person.mesh.position.x - host.player().x;
+      const len = Math.abs(dx) || 1;
+      person.mesh.position.x += (dx / len) * 0.45;
+      if (fresh && shadowCrowd.say('notice', 0.7)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(person.avatar, 'notice', false);
+    } else if (stage === 'panic') {
+      person.reactLeft = 3 + Math.random();
+      person.fleeing = true;
+      person.screamed = true;
+      person.dir = person.mesh.position.x >= host.player().x ? 1 : -1;
+      shadowCrowd.markPanic();
+      if (shadowCrowd.say('panic', 0.78)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.dropCarry(id, person.mesh.position.x, 0, person.mesh.position.z);
+      shadowCrowd.playStageClip(person.avatar, 'panic', true);
+    } else if (stage === 'film') {
+      person.reactLeft = 4 + Math.random() * 2;
+      person.fleeing = false;
+      person.moving = false;
+      shadowCrowd.raisePhone(id, person.avatar);
+      if (shadowCrowd.say('film', 0.68)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(person.avatar, 'film', false);
+      face(person, Math.atan2(host.player().x - person.mesh.position.x, host.player().z - person.mesh.position.z));
+    } else if (stage === 'cower') {
+      person.reactLeft = 5;
+      person.fleeing = false;
+      person.coverX = clamp(person.mesh.position.x + (Math.random() < 0.5 ? -2.4 : 2.4), 2, 78);
+      person.coverZ = person.z > 0 ? -0.4 : -2.2;
+      shadowCrowd.markCower();
+      if (shadowCrowd.say('cower', 0.62)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(person.avatar, 'cower', false);
+    }
+  };
+
+  const stirStation = (here: { x: number; z: number }, t: number, dt: number) => {
+    if (!shadowOn || playing || finished) {
+      shadowCrowd.countReacting(0);
+      return;
+    }
+    shadowCrowd.markShadow(true, t);
+    shadowCrowd.countReacting(people.filter((p) => p.react).length);
+    const near = people
+      .filter((p) => !p.down && p !== tether && !p.react
+        && Math.hypot(p.mesh.position.x - here.x, p.mesh.position.z - here.z) < NOTICE_RANGE)
+      .sort((a, b) => Math.hypot(a.mesh.position.x - here.x, a.mesh.position.z - here.z)
+        - Math.hypot(b.mesh.position.x - here.x, b.mesh.position.z - here.z));
+    for (const person of near) {
+      if (!shadowCrowd.canAnimate()) break;
+      beginStationReact(person, 'notice', t);
+      shadowCrowd.countReacting(people.filter((p) => p.react).length);
+    }
+    for (const person of people) {
+      if (!person.react) continue;
+      person.reactLeft -= dt;
+      if (person.react === 'notice' && person.reactLeft <= 0) {
+        shadowCrowd.dropPhone(person.mesh.name);
+        beginStationReact(person, rollAfterNotice(), t);
+        continue;
+      }
+      if (person.react === 'film') {
+        face(person, Math.atan2(here.x - person.mesh.position.x, here.z - person.mesh.position.z));
+      }
+      if (person.react === 'cower') {
+        const dx = person.coverX - person.mesh.position.x;
+        const dz = person.coverZ - person.mesh.position.z;
+        const d = Math.hypot(dx, dz);
+        if (d > 0.3) {
+          person.mesh.position.x += (dx / d) * Math.min(d, 2.1 * dt);
+          person.mesh.position.z += (dz / d) * Math.min(d, 2.1 * dt);
+          face(person, Math.atan2(dx, dz));
+        } else {
+          shadowCrowd.playStageClip(person.avatar, 'cower', false);
+        }
+      }
+      if (person.reactLeft <= 0 && person.react !== 'notice') {
+        const wasPanic = person.react === 'panic';
+        shadowCrowd.dropPhone(person.mesh.name);
+        person.react = null;
+        person.fleeing = wasPanic;
+        person.avatar.resumeLocomotion();
+      }
+    }
+  };
+
+  const callStationCompanion = (victim: Person) => {
+    let best: Person | null = null;
+    let bestD = 6.5;
+    for (const other of people) {
+      if (other === victim || other.down || other === tether) continue;
+      const d = Math.hypot(other.mesh.position.x - victim.mesh.position.x, other.mesh.position.z - victim.mesh.position.z);
+      if (d < bestD) { bestD = d; best = other; }
+    }
+    if (!best) return;
+    shadowCrowd.markCompanion();
+    shadowCrowd.say('companion', 0.8);
+    face(best, Math.atan2(victim.mesh.position.x - best.mesh.position.x, victim.mesh.position.z - best.mesh.position.z));
+  };
+
   return {
     objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'station'),
     dispose: () => {
@@ -697,6 +900,9 @@ export const createTheStation = (host: TheStationHost) => {
       playing = false;
       releaseLink(false);
       clearFigures();
+      copFigure = null;
+      posters?.dispose();
+      posters = null;
       for (const bead of beads) bead.dispose(false, true);
       beads.length = 0;
       for (const person of people) {
@@ -707,6 +913,7 @@ export const createTheStation = (host: TheStationHost) => {
     },
     mount: async () => {
       active = true;
+      shadowCrowd.reset();
       finished = false;
       shadowOn = false;
       handsOut = false;
@@ -714,6 +921,9 @@ export const createTheStation = (host: TheStationHost) => {
       linkLeft = 0;
       people.length = 0;
       crowd = false;
+      copFigure = null;
+      posters?.dispose();
+      posters = null;
       haleRang = false;
       callIn = -1;
       playing = false;
@@ -767,10 +977,14 @@ export const createTheStation = (host: TheStationHost) => {
       }
       if (!best) return false;
       tether = best;
+      host.ledger.add('possessions');
       linkLeft = POSSESS_SECONDS;
       best.fleeing = false;
+      best.react = null;
+      shadowCrowd.dropPhone(best.mesh.name);
       best.avatar.resumeLocomotion();
       host.playFile('/assets/audio/sfx/street/possess.wav', 0.4);
+      callStationCompanion(best);
       showGoal();
       return true;
     },
@@ -796,10 +1010,14 @@ export const createTheStation = (host: TheStationHost) => {
       }
       if (!best) return false;
       tether = best;
+      host.ledger.add('possessions');
       linkLeft = POSSESS_SECONDS;
       best.fleeing = false;
+      best.react = null;
+      shadowCrowd.dropPhone(best.mesh.name);
       best.avatar.resumeLocomotion();
       host.playFile('/assets/audio/sfx/street/possess.wav', 0.4);
+      callStationCompanion(best);
       showGoal();
       return true;
     },
@@ -810,12 +1028,13 @@ export const createTheStation = (host: TheStationHost) => {
       trailTo.set(best.mesh.position.x, best.mesh.position.y, best.mesh.position.z);
       trailLeft = 0.55;
       ensureBeads();
+      host.ledger.add('consumes');
       layDown(best, false);
       const atX = best.mesh.position.x;
       const atZ = best.mesh.position.z;
       releaseLink();
       watchDeath(atX, atZ);
-      host.playFile('/assets/audio/sfx/street/consume.wav', 0.46);
+      if (!host.power) host.playFile('/assets/audio/sfx/street/consume.wav', 0.46);
       host.playFile('/assets/audio/sfx/street/death.wav', 0.32);
       return true;
     },
@@ -824,6 +1043,7 @@ export const createTheStation = (host: TheStationHost) => {
       releaseLink();
       return true;
     },
+    crowd: () => shadowCrowd.stats(),
     toggleShadow: () => {
       if (!active || finished) return shadowOn;
       if (tether) releaseLink();
@@ -832,7 +1052,19 @@ export const createTheStation = (host: TheStationHost) => {
       trailLeft = 0;
       hideBeads();
       host.playFile(shadowOn ? '/assets/audio/sfx/street/shadow-on.wav' : '/assets/audio/sfx/street/shadow-off.wav', 0.4);
-      if (shadowOn) host.holster();
+      if (shadowOn) {
+        host.holster();
+        shadowCrowd.markShadow(true, sceneTime);
+        stirStation(host.player(), sceneTime, 0.05);
+      } else {
+        shadowCrowd.markShadow(false, sceneTime);
+        for (const person of people) {
+          if (!person.react) continue;
+          shadowCrowd.dropPhone(person.mesh.name);
+          person.react = null;
+          person.avatar.resumeLocomotion();
+        }
+      }
       showGoal();
       return shadowOn;
     },
@@ -873,10 +1105,11 @@ export const createTheStation = (host: TheStationHost) => {
         if (dist > 2.8 ? dot < 0.4 : dot < 0.08) continue;
         layDown(person, true);
         host.shedShadow(person.mesh.position.x, person.mesh.position.z);
+        host.power?.({ kind: 'shock', hit: true, x: person.mesh.position.x, y: person.mesh.position.y + 1.2, z: person.mesh.position.z });
         hit = true;
       }
       if (!hit) return false;
-      host.playFile('/assets/audio/sfx/street/shock.wav', 0.5);
+      if (!host.power) host.playFile('/assets/audio/sfx/street/shock.wav', 0.5);
       host.playFile('/assets/audio/sfx/street/death.wav', 0.28);
       shockLeft = 1.35;
       host.playClip('shadowshock', false, 1, () => {
@@ -907,7 +1140,8 @@ export const createTheStation = (host: TheStationHost) => {
       }
       if (best) layDown(best, false);
       meleeLeft = 0.85;
-      host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
+      host.power?.({ kind, hit: !!best, x: best ? best.mesh.position.x : here.x + camX, y: (best ? best.mesh.position.y : 0) + 1.2, z: best ? best.mesh.position.z : here.z + camZ });
+      if (!host.power) host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
       host.playClip(kind, false, 1, () => {
         if (active && !finished) host.resumeLocomotion();
       });
@@ -928,6 +1162,24 @@ export const createTheStation = (host: TheStationHost) => {
           if (!haleRang) {
             haleRang = true;
             host.ringCall('hale-board');
+          }
+        }
+      }
+      if (copFigure && !copFigure.gone) {
+        const me = host.player();
+        const dx = me.x - copFigure.mesh.position.x;
+        const dz = me.z - copFigure.mesh.position.z;
+        const near = Math.hypot(dx, dz);
+        // He watches the gate: turns to Pierce as he nears, says his piece once.
+        faceFigure(copFigure, near < 9 ? Math.atan2(dx, dz) : Math.PI / 2);
+        if (copBark > 0 && near < 7.5) {
+          copBark -= stepDt;
+          if (copBark <= 0) {
+            copBark = -1;
+            host.showLine(lineSpeaker('bark.station.officer', 'Police'), lineText('bark.station.officer', 'Slow down. Everyone through the gate, one at a time.'));
+            const url = lineAudio('bark.station.officer', '');
+            if (url) host.playFile(url, 0.8);
+            window.setTimeout(() => { if (active) host.showLine('', ''); }, 3200);
           }
         }
       }
@@ -959,7 +1211,7 @@ export const createTheStation = (host: TheStationHost) => {
       // The PA: a chime, then a voiced announcement (skipped until the lines have clips).
       paIn -= stepDt;
       if (paIn <= 0) {
-        paIn = 50 + Math.random() * 25;
+        paIn = 16 + Math.random() * 12;
         paNext = tether ? null : paLine();
         if (paNext) {
           host.playFile(PLACE_SFX.paChime, 0.45);
@@ -975,6 +1227,7 @@ export const createTheStation = (host: TheStationHost) => {
         if (paLineIn < 0 && paNext) {
           host.showLine(paNext.speaker, paNext.text);
           host.playFile(paNext.url, 0.55);
+          lifeStats.bark('station', paNext.speaker, paNext.id);
           remarkLeft = 4.4;
           paNext = null;
         }
@@ -985,6 +1238,7 @@ export const createTheStation = (host: TheStationHost) => {
       linkTime += stepDt;
       trailLeft = Math.max(0, trailLeft - stepDt);
       const here = host.player();
+      if (shadowOn && !playing) stirStation(here, sceneTime, stepDt);
       updateRibbon();
       if (tether) {
         linkLeft -= stepDt;
@@ -1026,7 +1280,8 @@ export const createTheStation = (host: TheStationHost) => {
         const dx = person.mesh.position.x - here.x;
         const dz = person.mesh.position.z - here.z;
         const dist = Math.hypot(dx, dz);
-        if (shadowOn && person.fleeing) person.fleeing = false;
+        // Shadow reactions own fleeing; do not clear panic mid-stage.
+        if (shadowOn && person.fleeing && !person.react) person.fleeing = false;
         if (!shadowOn && !person.fleeing && person.skittish && dist < 2.3) {
           person.fleeing = true;
           person.dir = dx >= 0 ? 1 : -1;

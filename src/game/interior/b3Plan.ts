@@ -1,6 +1,6 @@
 import type { InteriorPlan } from './dress';
 import {
-  beacon, elevatorCab, boiler, cableTray, consoleDesk, doorFrame, electricalPanel, extinguisher, eyewash, ivStand, labBench, medCart,
+  beacon, elevatorCab, boiler, cableTray, consoleDesk, doorFrame, electricalPanel, exitSign, extinguisher, eyewash, ivStand, labBench, medCart,
   papers, pipe, rack, screen, serverRack, specimenTank, surgicalLamp, valve, ventGrille,
 } from './furniture';
 import { IS } from './shader';
@@ -72,6 +72,8 @@ export const b3Plan: InteriorPlan = {
     extinguisher(k, 41.5, 31.8, W);
     ventGrille(k, 41.5, 0.25, 28.6, 0.9, 0.45, W);
     beacon(k, 44, 3.05, 24.5);
+    // Route landmarks: green EXIT over the pipe-hall door into Hall B (west), lit without raising ambient.
+    exitSign(k, 42.65, 2.55, 35.7, S);
     k.tex('level', 46.5, 2.2, 25.4, 1.2, 0.4, E, 0.15);
 
     // ---------- Hall B ----------
@@ -86,6 +88,9 @@ export const b3Plan: InteriorPlan = {
     extinguisher(k, 36.5, 40.45, N);
     ventGrille(k, 26.5, 0.25, 40.45, 1.0, 0.45, N);
     beacon(k, 46.4, 2.9, 37.9);
+    // EXIT toward the lab door (west down the long hall) — a light landmark against the fog.
+    exitSign(k, 17.2, 2.55, 38, E);
+    exitSign(k, 30, 2.55, 40.45, N);
 
     // ---------- Acid vat lab ----------
     labBench(k, 0, 36.2, 2.6, 0.75, W, 1);

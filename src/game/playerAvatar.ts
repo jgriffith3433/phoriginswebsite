@@ -28,10 +28,20 @@ export type PlayerAvatar = {
    */
   setJumpPose: (pose: number | null) => void;
   /** What the rig is playing now, for the playtest's animation trace. */
-  locomotion: () => { clip: string | null; rate: number; cinematic: boolean };
+  locomotion: () => { clip: string | null; rate: number; cinematic: boolean; phase?: string };
   setSprinting: (sprinting: boolean) => void;
   setArmed: (armed: boolean) => void;
   playClip: (keyword: string, loop?: boolean, speedRatio?: number, onEnded?: () => void) => boolean;
+  /**
+   * Upper-body dialogue gesture (GestureExplain / Lean / Cross / Nod / Shake / Point) layered
+   * over the current sit/talk/idle without locking locomotion. Returns false when the clip is
+   * missing — callers fall back to procedural bone layers in faceTalk.
+   */
+  playFaceGesture: (keyword: string, onEnded?: () => void) => boolean;
+  /** Stop a face-gesture overlay (speak-end or fallback to procedural). */
+  stopFaceGesture: () => void;
+  /** True when the loaded rig has a clip for this keyword (startWalk, stop, turn90, turn180, stairsUp…). */
+  hasClip: (keyword: string) => boolean;
   /** Seconds the clip plays, or null until the rig has loaded. */
   clipDuration: (keyword: string) => number | null;
   resumeLocomotion: () => void;
@@ -68,13 +78,34 @@ export const findClip = (clips: BABYLON.AnimationGroup[], keyword: string): BABY
   if (key === 'pistolidle') return byTail(clips, 'PistolIdle');
   if (key === 'pistolwalk') return byTail(clips, 'PistolWalk');
   if (key === 'pistoljump') return byTail(clips, 'PistolJump');
+  // Locomotion transitions (Gen motion.from-text, baked onto the hero):
+  if (key === 'startwalk') return byTail(clips, 'StartWalk') ?? byTail(clips, 'WalkStart');
+  if (key === 'stop') return byTail(clips, 'Stop') ?? byTail(clips, 'WalkStop');
+  if (key === 'turn90') return byTail(clips, 'Turn90') ?? byTail(clips, 'TurnRight90');
+  if (key === 'turn180') return byTail(clips, 'Turn180') ?? byTail(clips, 'TurnRight180');
+  if (key === 'stairsup') return byTail(clips, 'StairsUp') ?? byTail(clips, 'Stairs');
+  // Board dialogue gestures (Gen motion.from-text, baked as upper-body overlays):
+  if (key === 'gestureexplain') return byTail(clips, 'GestureExplain');
+  if (key === 'gesturelean') return byTail(clips, 'GestureLean');
+  if (key === 'gesturecross') return byTail(clips, 'GestureCross');
+  if (key === 'gesturenod') return byTail(clips, 'GestureNod');
+  if (key === 'gestureshake') return byTail(clips, 'GestureShake');
+  if (key === 'gesturepoint') return byTail(clips, 'GesturePoint');
   const want = key === 'sit' ? 'sitidle' : key === 'talk' ? 'sittalk' : compact(keyword);
   return clips.find((clip) => compact(clipTail(clip.name)) === want) ?? null;
 };
 
 const WEAPON_OVERLAY = new Set(['draw', 'holster', 'shoot']);
+/** Seated dialogue gestures: upper-body only, keep SitTalk / SitIdle underneath. */
+const FACE_GESTURE = new Set([
+  'gestureexplain', 'gesturelean', 'gesturecross', 'gesturenod', 'gestureshake', 'gesturepoint',
+]);
 /** Looping stand/walk poses. They must not lock locomotion, or a level start stays on idle until punch or the pistol clears it. */
-const POSE_LOOP = new Set(['idle', 'rebornidle', 'walk', 'run', 'pistolidle', 'pistolwalk', 'sit', 'sittalk', 'walkback']);
+const POSE_LOOP = new Set([
+  'idle', 'rebornidle', 'walk', 'run', 'pistolidle', 'pistolwalk', 'sit', 'sittalk', 'walkback', 'stairsup',
+]);
+/** One-shot start / stop / turn clips: they must not lock cinematic locomotion. */
+const LOCO_ONESHOT = new Set(['startwalk', 'stop', 'turn90', 'turn180']);
 
 const PLAYER_CLIP_SPEEDS: Record<string, number> = {
   draw: 4,
@@ -211,6 +242,10 @@ export const createCharacterAvatar = (
   let overlayEndTimer = 0;
   let overlaySeq = 0;
   let overlayEnded: (() => void) | null = null;
+  /** Face gesture overlay: separate from weapon overlays so SitTalk is not syncOverlayLocomotion'd. */
+  let faceGestureClip: BABYLON.AnimationGroup | null = null;
+  let faceGestureTimer = 0;
+  let faceGestureSeq = 0;
   let pendingClip: {
     keyword: string;
     loop: boolean;
@@ -285,6 +320,87 @@ export const createCharacterAvatar = (
       const clip = findClip(animationGroups, keyword);
       if (clip && clip !== leftover) hardStop(clip, 0);
     }
+  };
+
+  const clearFaceGestureTimer = () => {
+    if (!faceGestureTimer) return;
+    window.clearTimeout(faceGestureTimer);
+    faceGestureTimer = 0;
+  };
+
+  const releaseFaceGesture = () => {
+    clearFaceGestureTimer();
+    const leftover = faceGestureClip;
+    faceGestureClip = null;
+    if (leftover) hardStop(leftover, 0);
+    for (const keyword of FACE_GESTURE) {
+      const clip = findClip(animationGroups, keyword);
+      if (clip && clip !== leftover) hardStop(clip, 0);
+    }
+  };
+
+  /**
+   * Layer a Gen Gesture* clip on the upper body while SitTalk / SitIdle / Idle keeps the seat.
+   * Does not touch the weapon overlay lock (setLocomotion stays on cinematic sit). Missing → false.
+   */
+  const playFaceGesture = (keyword: string, onEnded?: () => void): boolean => {
+    const token = keyword.trim().toLowerCase();
+    if (!FACE_GESTURE.has(token)) return false;
+    const clip = findClip(animationGroups, token);
+    if (!clip || !upperInclude || !lowerInclude) return false;
+    let keep: BABYLON.AnimationGroup | null = null;
+    for (const g of animationGroups) {
+      if (g === clip) continue;
+      if (g.isPlaying && (!g.mask || g.mask === lowerInclude)) {
+        keep = g;
+        break;
+      }
+    }
+    if (!keep) {
+      keep =
+        findClip(animationGroups, 'sittalk')
+        ?? findClip(animationGroups, 'sit')
+        ?? (current ? findClip(animationGroups, current) : null)
+        ?? idleGroup;
+    }
+    if (!keep) return false;
+    faceGestureSeq += 1;
+    clearFaceGestureTimer();
+    if (faceGestureClip && faceGestureClip !== clip) hardStop(faceGestureClip, 0);
+    for (const keyword of FACE_GESTURE) {
+      const other = findClip(animationGroups, keyword);
+      if (other && other !== clip) hardStop(other, 0);
+    }
+    startMaskedLoop(keep, lowerInclude, keep.speedRatio || 1, true, 1);
+    faceGestureClip = clip;
+    const speed = 1;
+    const { from, to } = rangeFor(clip);
+    const seq = faceGestureSeq;
+    const finish = () => {
+      if (seq !== faceGestureSeq) return;
+      faceGestureSeq += 1;
+      releaseFaceGesture();
+      if (keep) {
+        keep.mask = null;
+        applyClipBlending(keep);
+        resetTrackWeights(keep, 1);
+        if (!keep.isPlaying) {
+          const range = rangeFor(keep);
+          keep.start(true, 1, range.from, range.to, false);
+        }
+      }
+      onEnded?.();
+    };
+    clip.mask = upperInclude;
+    clip.stop(true);
+    applyClipBlending(clip);
+    resetTrackWeights(clip, 1);
+    clip.onAnimationGroupEndObservable.addOnce(finish);
+    faceGestureTimer = window.setTimeout(finish, clipDurationMs(clip, speed, from, to) + 40);
+    clip.start(false, speed, from, to, false);
+    clip.syncWithMask(true);
+    resetTrackWeights(clip, 1);
+    return true;
   };
 
   const takeOverlayEnded = () => {
@@ -593,7 +709,9 @@ export const createCharacterAvatar = (
     onEnded?: () => void,
     lockCinematic = true,
   ) => {
-    if (loop && POSE_LOOP.has(keyword.trim().toLowerCase())) lockCinematic = false;
+    const tokenEarly = keyword.trim().toLowerCase();
+    if (loop && POSE_LOOP.has(tokenEarly)) lockCinematic = false;
+    if (!loop && LOCO_ONESHOT.has(tokenEarly)) lockCinematic = false;
     if (animationGroups.length === 0) {
       cinematic = lockCinematic;
       pendingClip = { keyword, loop, speedRatio, onEnded, lockCinematic };
@@ -834,6 +952,31 @@ export const createCharacterAvatar = (
     setSprinting,
     setArmed,
     playClip,
+    playFaceGesture,
+    stopFaceGesture: () => {
+      faceGestureSeq += 1;
+      const keepPlaying = (() => {
+        for (const g of animationGroups) {
+          if (g === faceGestureClip) continue;
+          if (g.isPlaying) return g;
+        }
+        return findClip(animationGroups, 'sittalk')
+          ?? findClip(animationGroups, 'sit')
+          ?? (current ? findClip(animationGroups, current) : null)
+          ?? idleGroup;
+      })();
+      releaseFaceGesture();
+      if (keepPlaying) {
+        keepPlaying.mask = null;
+        applyClipBlending(keepPlaying);
+        resetTrackWeights(keepPlaying, 1);
+        if (!keepPlaying.isPlaying) {
+          const range = rangeFor(keepPlaying);
+          keepPlaying.start(true, 1, range.from, range.to, false);
+        }
+      }
+    },
+    hasClip: (keyword: string) => !!findClip(animationGroups, keyword),
     clipDuration,
     resumeLocomotion,
     setShown: (on: boolean) => {
@@ -868,6 +1011,8 @@ export const createCharacterAvatar = (
       disposed = true;
       readyWaiters.length = 0;
       clearOverlayEndTimer();
+      clearFaceGestureTimer();
+      faceGestureClip = null;
       animationGroups.forEach((clip) => clip.dispose());
       skeletons.forEach((skeleton) => skeleton.dispose());
       group.dispose();

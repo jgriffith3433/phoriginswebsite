@@ -12,6 +12,8 @@ import {
 } from './game/npcs';
 import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
 import { createJumpPoser } from './game/jumpPose';
+import { createFootIk } from './game/footIk';
+import { createLocoState } from './game/locoState';
 import { clearImpactMarks, stampBulletMark } from './game/impacts';
 import { ITEM_CAP, addItem, createInventoryState, consumeItem, inventorySummary, itemCount, roomFor } from './game/inventory';
 import { getLevelDefinition, getLevels, getPlayableLevelCount, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
@@ -19,17 +21,23 @@ import { callQuestOpen, missionCallId, missionLabel, missionsFor } from './game/
 import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, flyPlayer, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
-import { installMenuNav } from './game/menuNav';
+import { createTitleScene } from './game/titleScene';
+import { installMenuNav, installMenuSounds, menuSoundLog } from './game/menuNav';
 import { lineText } from './game/locale';
 import { chapterCopy, createChapterCard } from './game/chapterCard';
+import { createChapterOpening } from './game/chapterOpening';
+import { playChapterSting } from './game/chapterSting';
 import { loreEntry, withLore } from './game/lore';
 import { goalLine, levelReward } from './game/rewards';
 import { activateGameCamera, activateMenuCamera, createMenuCamera } from './game/menuCamera';
 import { whenSkyboxReady } from './game/skybox';
 import { createQuestState, getGoalText, updateQuestProgress } from './game/progression';
 import { createSceneGrade } from './game/grade';
+import { createRenderPipeline, GRAPHICS_TIERS, pickGraphicsTier, type GraphicsTier } from './render/pipeline';
 import { createShadowVeil } from './game/shadowVeil';
+import { createPowerFx } from './game/powerFx';
 import { createPhone, STAT_MAX, STAT_MIN } from './game/phone';
+import { clampLedger, emptyLedger, ledgerBand, type Ledger, type LedgerApi } from './game/ledger';
 import { mountPipeDrips } from './game/drips';
 import { createLevelDressing } from './game/levelDressing';
 import { applySceneLighting, applyTheme, getSceneTheme } from './game/scene';
@@ -37,7 +45,9 @@ import { importAssetFile } from './game/importer';
 import { PLAYER_ASSET_ID, PLAYER_ASSET_IDS, TRANSFORM_HERO_ASSET_ID } from './game/modelLoader';
 import { DEFAULT_SCENE_FILE_PATH, disposeSceneNodes, loadSceneFromJson, loadSceneFromJsonFile, readSceneData, type SceneData, type SceneTrigger } from './game/sceneData';
 import { createMusicTriggerPlayer, createTriggerRunner, isMusicTrigger } from './game/triggers';
+import { createChapterAmbience } from './game/chapterAmbience';
 import { applyNpcAnim, skipToEnd, startCutscene, stepCutscene, stopCutsceneAudio, type ActiveCutscene } from './game/cutscenes';
+import { createCinecamDirector, CUTSCENE_TO_STORY_SCENE, type StorySceneId } from './story/cinecam';
 import { createAct1, type Act1, type ImpairState, type StoryCarry } from './story/act1';
 import { createFootsteps, surfaceFor, stepUrls } from './game/footsteps';
 import { createApexSlice, type ApexSlice } from './story/apexSlice';
@@ -48,13 +58,25 @@ import { lifeStats } from './game/lifeStats';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
+import { createMorningEnding, type MorningEnding } from './story/morningEnding';
 import { createTheMorning, ENDING_TRACK as MORNING_ENDING_TRACK, type TheMorning } from './story/theMorning';
 import { createTheTrain, ENDING_TRACK as TRAIN_ENDING_TRACK, TRAIN_CREDITS, type TheTrain } from './story/theTrain';
 import { renderLevelCredits } from './story/credits';
 import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/streetRules';
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { music } from './game/musicDirector';
-import { holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcousticsStats, setAcousticsPaused, setListener, setOcclusionRay, setZones, startTestSource, testPing, updateAcoustics, type AcousticZone, type ReverbType, type WorldOptions } from './game/acoustics';
+import { clipLog, holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import {
+  applyFaces,
+  clearFaces,
+  faceSilence,
+  faceSpeak,
+  facesSnapshot,
+  registerFace,
+  resetFaceStats,
+  updateFaces,
+} from './game/faceTalk';
 import { warmLevelFirstUse, stopLevelWarm } from './game/levelWarm';
 import { soundFallback } from './game/soundFallback';
 import { createMuzzleFlash } from './game/muzzleFlash';
@@ -259,13 +281,8 @@ capTextureSize(engine, textureCap);
     };
   }
 }
-const LOW_POWER_PIXELS = 1_000_000;
-const applyRenderScale = () => {
-  if (!lowPowerGraphics) return;
-  const pixels = Math.max(1, canvas.clientWidth * canvas.clientHeight);
-  engine.setHardwareScalingLevel(Math.max(1, Math.sqrt(pixels / LOW_POWER_PIXELS)));
-};
-applyRenderScale();
+// The render size follows the graphics tier (src/render/pipeline.ts): Low caps it near a megapixel.
+const applyRenderScale = () => render.applyRenderScale();
 // A lost WebGL context (a phone reclaiming the GPU, a driver reset) freezes the canvas. Babylon already calls
 // preventDefault on the loss and rebuilds buffers, shaders and textures when the browser restores the context.
 // Here the game holds still behind a short "Recovering…" overlay, resumes the level on restore, and restarts the
@@ -336,6 +353,8 @@ if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) (window as
 const shadowVeil = createShadowVeil(scene);
 scene.collisionsEnabled = true;
 scene.gravity = BABYLON.Vector3.Zero();
+// Mouth / look / gesture after Mixamo sit-talk, or the clip would wipe the jaw.
+scene.onAfterAnimationsObservable.add(() => { applyFaces(); });
 
 const followCamera = createThirdPersonCamera(scene);
 const camera = followCamera.camera;
@@ -351,7 +370,19 @@ hemi.intensity = 0.8;
 const sun = new BABYLON.DirectionalLight('sun', new BABYLON.Vector3(-1, -2, 1), scene);
 sun.position = new BABYLON.Vector3(12, 18, 6);
 sun.intensity = 0.9;
-const grade = createSceneGrade(scene, [followCamera.camera, menuCamera], { lowPower: lowPowerGraphics });
+/**
+ * One rendering pipeline for every chapter (src/render/pipeline.ts, docs/render.md): ACES, bloom, LUT, grain,
+ * aberration, SSAO on High, cascaded key-light shadows. The tier is `?quality=`, then Settings, then the device.
+ */
+const graphicsPick = pickGraphicsTier(qualityParam, gameSettings().graphics, lowPowerGraphics);
+document.body.dataset.graphics = graphicsPick.tier;
+const render = createRenderPipeline(scene, [followCamera.camera, menuCamera], { tier: graphicsPick.tier, canvas });
+render.setChapter('apex-peak');
+const grade = createSceneGrade(scene, render);
+render.onTier((tier) => {
+  document.body.dataset.graphics = tier;
+  grade.reapply();
+});
 
 const readDevLevelConfig = () => {
   try {
@@ -392,15 +423,19 @@ const applyLoadedScene = (loaded: Awaited<ReturnType<typeof loadSceneFromJsonFil
     missionScene = loaded.data;
     applyTheme(scene, loaded.data.theme || currentThemeName);
     applySceneLighting(scene, loaded.data);
-    grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
+    render.setChapter(getLevelDefinition(state.level).libraryId);
+    grade.setPowers(isReturnLevel() || isHomeLevel());
+    grade.setQuiet(isDeskLevel() ? 'desk' : isMorningLevel() ? 'morning' : null);
     grade.apply(loaded.data.theme || currentThemeName);
     followCamera.setVolumes(loaded.data.cameraVolumes ?? []);
+    applyAcousticZones(loaded.data);
     return;
   }
   missionScene = initialSceneData;
   disposeSceneNodes(sceneNodes);
   sceneNodes = loadSceneFromJson(scene, initialSceneData, sceneLoadOptions);
   followCamera.setVolumes(initialSceneData?.cameraVolumes ?? []);
+  applyAcousticZones(initialSceneData);
 };
 
 const npcs: Npc[] = [];
@@ -411,10 +446,35 @@ let officeSwap = false;
 let playerHeroId = PLAYER_ASSET_ID;
 const objectiveMarker = createObjectiveMarker(scene);
 const minimap = createMinimap(root);
-const dressing = createLevelDressing(scene, camera);
+const dressing = createLevelDressing(scene, camera, {
+  graphicsTier: () => render.tier(),
+  playerAt: () => (state.running ? { x: state.player.x, z: state.player.z } : null),
+});
+const titleScene = createTitleScene({
+  scene,
+  camera: menuCamera,
+  avatar: () => playerAvatar,
+  meshY: playerMeshY,
+  home: () => ({ x: state.player.x, y: state.player.y, z: state.player.z, yaw: state.characterYaw }),
+  officeLoaded: () => gameReady && isApexPeakLevel() && dressing.cityMounted(),
+  mobile: document.body.dataset.device !== 'desktop',
+});
 let playerAvatar: PlayerAvatar = createPlayerAvatar(scene);
 playerAvatar.group.rotation.y = Math.PI;
 playerPistol.attachTo(playerAvatar);
+const cinecam = createCinecamDirector({
+  scene,
+  camera: followCamera.camera,
+  render,
+  setCinematic: (pos, look, snap, fov) => followCamera.setCinematic(pos, look, snap, fov),
+  clearCinematic: () => followCamera.clearCinematic(),
+  isSolid: (mesh) => {
+    if (mesh === playerCollider || mesh === muzzleFlash.mesh || mesh.isDescendantOf(playerAvatar.group)) return false;
+    const meta = mesh.metadata as { pickup?: unknown; cameraFade?: number } | undefined;
+    if (meta?.pickup || (meta?.cameraFade ?? 0) > 0.35) return false;
+    return !FEEL_SKIP.test(mesh.name);
+  },
+});
 let storyObjectiveId = () => 'seat';
 let callQuestOpenFor = (_contactId: string) => false;
 /** The opening call on level 1 is taken on the move: Pierce keeps walking while Voss talks. */
@@ -430,9 +490,14 @@ const phone = createPhone(scene, {
   onConnected: (contactId) => {
     const quest = missionCallId(contactId);
     if (quest) markMission(quest);
+    if (contactId === 'voss') music.voss(true);
   },
-  onCallEnded: (callId, how, heard, of) => analytics?.dialogue('call', callId, how, heard, of),
-  getStat: (stat) => clampStat(save[stat]),
+  onCallEnded: (callId, how, heard, of) => {
+    analytics?.dialogue('call', callId, how, heard, of);
+    if (callId.startsWith('voss')) music.voss(false);
+  },
+  getStat: (stat) => (stat === 'ledgerBand' ? ledgerBand(ledger.get()) : clampStat(save[stat])),
+  onLedgerLine: () => { ledger.add('reported'); },
   addStat: (stat, delta) => saveGame({ [stat]: clampStat((save[stat] ?? 0) + delta) })[stat] ?? 0,
   onHand: (raised) => {
     if (!raised || phone.locksBody()) {
@@ -714,6 +779,7 @@ const ensurePlayerAvatar = (assetId: string) => {
   playerPistol.attachTo(playerAvatar);
   playerPistol.setVisible(state.player.weaponDrawn);
   phone.attachTo(playerAvatar);
+  next.whenReady(() => footIk.bind(next));
 };
 
 const placePierce = (x: number, z: number, yaw: number) => {
@@ -727,6 +793,8 @@ const placePierce = (x: number, z: number, yaw: number) => {
   playerAvatar.group.position.set(x, playerMeshY(PLAYER_STAND_Y), z);
   playerAvatar.group.rotation.y = yaw + Math.PI;
   followCamera.face(yaw);
+  locoState.reset();
+  footIk.resetDrift();
 };
 
 if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
@@ -808,11 +876,18 @@ const resetCutsceneState = () => {
   stopCutsceneAudio(activeCutscene);
   activeCutscene = null;
   state.inCutscene = false;
+  cinecam.endScene(false);
   followCamera.clearCinematic();
   showCineHud();
 };
 
 const PLAYER_HEAD_CHAIR_ID = 'chair-head';
+
+/** Board seats + Pierce: lip sync, gaze and gestures during room-for-grace (and any seat line). */
+const syncBoardFaces = () => {
+  registerFace(PLAYER_HEAD_CHAIR_ID, playerAvatar);
+  for (const npc of npcs) registerFace(npc.seatId, npc.avatar);
+};
 
 const seatPlayerAtHeadChair = () => {
   const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
@@ -942,6 +1017,7 @@ const endCutscene = () => {
   const reequip = finished ? finished.timeline.reequip !== false : true;
   if (finished) music.cutsceneEnd(finished.id);
   act.releaseSeat();
+  faceSilence();
   resetCutsceneState();
   phone.aimBeam(null);
   const restoreLight = reequip && !!gear?.light && !isReturnLevel() && !isHomeLevel() && !isDeskLevel() && !isStationLevel() && !isTrainLevel() && !isMorningLevel();
@@ -970,8 +1046,13 @@ const beginNamedCutscene = (id: string) => {
   analytics?.cutscenePlay(id);
   music.cutsceneStart(id, id === 'b3-vat-break' ? 'silence' : 'calm');
   if (id === 'b3-vat-break') music.stinger('vat-break', 3.3);
+  const storySceneId = CUTSCENE_TO_STORY_SCENE[id];
+  if (storySceneId) {
+    cinecam.beginScene(storySceneId);
+  }
   void startCutscene(id, {
     onCamera: (position, lookAt, rel) => {
+      if (storySceneId) return;
       if (!rel) {
         followCamera.setCinematic(position, lookAt);
         return;
@@ -990,6 +1071,13 @@ const beginNamedCutscene = (id: string) => {
     onWorld: (target, to, seconds) => runFinaleWorld(target, to, seconds),
     onHud: (title, text) => showCineHud(title, text),
     onAnim: (actor, clip, loop) => applyNpcAnim(npcs, actor, clip, loop, playerAvatar),
+    onSpeak: (actor, url, hold) => {
+      syncBoardFaces();
+      faceSpeak(actor, url, hold);
+      if (storySceneId) {
+        cinecam.notifyLine(storySceneId, actor, url);
+      }
+    },
     onLight: (on, intensity, target) => act.cutsceneLight(on, intensity, target),
     onMesh: (target, enabled, position) => act.onMesh(target, enabled, position),
     onObjective: (title, text) => act.onObjective(title, text),
@@ -1010,6 +1098,85 @@ const beginNamedCutscene = (id: string) => {
 };
 
 const musicTriggerPlayer = createMusicTriggerPlayer();
+/** Layered spot one-shots per chapter (beds stay on music triggers). Created after `audio` below. */
+let chapterAmbience: ReturnType<typeof createChapterAmbience> | null = null;
+
+/** Reverb zones and the occlusion ray (acoustics.ts): the loaded scene says which rooms are where. */
+configureTier(lowPowerGraphics);
+const applyAcousticZones = (data: { acousticZones?: unknown; acousticDefault?: string } | null | undefined) => {
+  setZones((data?.acousticZones as AcousticZone[] | undefined), data?.acousticDefault as ReverbType | undefined);
+  const ctx = getSharedAudioContext();
+  if (ctx) ensureRig(ctx);
+};
+
+/** The boardroom's sound lock: closed (an invisible occluder in the doorway) until Pierce is at it, then open. */
+const BOARD_DOOR = { x: 35.5, z: 32.05, length: 4.9, centerX: 36, centerZ: 32 };
+let boardDoorMesh: BABYLON.Mesh | null = null;
+let boardDoorClosed = false;
+const syncBoardDoor = () => {
+  if (!isApexPeakLevel()) {
+    if (boardDoorMesh) { boardDoorMesh.dispose(); boardDoorMesh = null; boardDoorClosed = false; markOcclusionDirty(); }
+    return;
+  }
+  if (!boardDoorMesh || boardDoorMesh.isDisposed()) {
+    boardDoorMesh = BABYLON.MeshBuilder.CreateBox('acoustic-door-board', { width: 0.12, height: 2.4, depth: BOARD_DOOR.length }, scene);
+    boardDoorMesh.position.set(BOARD_DOOR.x, 1.2, BOARD_DOOR.z);
+    boardDoorMesh.isVisible = false;
+    boardDoorMesh.isPickable = false;
+    boardDoorMesh.checkCollisions = false;
+    boardDoorMesh.metadata = { acousticDoor: true };
+    boardDoorMesh.setEnabled(false);
+    boardDoorClosed = false;
+  }
+  const d = Math.hypot(state.player.x - BOARD_DOOR.centerX, state.player.z - BOARD_DOOR.centerZ);
+  const hallSide = state.player.x < 35.3;
+  let closed = boardDoorClosed;
+  if (!hallSide || d < 3.0) closed = false;
+  else if (d > 3.8) closed = true;
+  if (closed === boardDoorClosed && boardDoorMesh.isEnabled() === closed) return;
+  boardDoorClosed = closed;
+  boardDoorMesh.setEnabled(closed);
+  boardDoorMesh.computeWorldMatrix(true);
+  markOcclusionDirty();
+  try { (window as unknown as { __phEmit?: (t: string, d?: unknown) => void }).__phEmit?.('board-door', { closed }); } catch { /* playtest not installed */ }
+};
+
+/** Walls, closed doors and glass block sound; floors, props and people do not. */
+const occRay = new BABYLON.Ray(BABYLON.Vector3.Zero(), BABYLON.Vector3.Forward(), 1);
+const occPredicate = (mesh: BABYLON.AbstractMesh) => {
+  if (!mesh.isEnabled()) return false;
+  const meta = mesh.metadata as { acousticDoor?: boolean; assetKind?: string; sceneAssetId?: string } | null;
+  if (meta?.acousticDoor) return true;
+  if (!mesh.checkCollisions || !meta) return false;
+  if (meta.assetKind === 'wall') return true;
+  return /(^|-)(wall|door|glass)/.test(meta.sceneAssetId ?? '') && !/stall|handle|jamb|casing/.test(meta.sceneAssetId ?? '');
+};
+setOcclusionRay((from, to) => {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dz = to.z - from.z;
+  const len = Math.hypot(dx, dy, dz);
+  if (len < 0.9) return false;
+  occRay.origin.set(from.x, from.y, from.z);
+  occRay.direction.set(dx / len, dy / len, dz / len);
+  occRay.length = len - 0.4;
+  return Boolean(scene.pickWithRay(occRay, occPredicate, true)?.hit);
+});
+
+let testSourceStop: (() => void) | null = null;
+const listenerForward = new BABYLON.Vector3();
+let rigEnsured = false;
+const updateWorldAudio = (delta: number) => {
+  const ctx = getSharedAudioContext();
+  if (!ctx) return;
+  if (!rigEnsured && ctx.state === 'running') { ensureRig(ctx); rigEnsured = true; }
+  syncBoardDoor();
+  camera.getDirectionToRef(BABYLON.Axis.Z, listenerForward);
+  setListener(ctx, camera.position, listenerForward, { x: state.player.x, z: state.player.z });
+  setAcousticsPaused(isPaused());
+};
+/** The audio side ticks on its own clock: a slow frame must not hold a door-open from clearing within 0.5 s. */
+setInterval(() => { if (!document.hidden) updateAcoustics(); }, 50);
 /** A story beat can drop the level's bed to silence (The Desk's mirror). 1 leaves it as the level plays it. */
 let bedDuck = 1;
 const triggerRunner = createTriggerRunner((trigger: SceneTrigger) => {
@@ -1027,13 +1194,13 @@ let forcedLoadFailure: 'error' | 'hang' | null = null;
  * left the first one's level, NPCs and story mounts in the scene for good.
  */
 let loadChain: Promise<void> = Promise.resolve();
-const loadMissionScene = (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+const loadMissionScene = (path: string, mode: 'boot' | 'arrive' | 'credits' = 'boot') => {
   const run = loadChain.then(() => loadMissionSceneNow(path, mode));
   loadChain = run.catch(() => undefined);
   return run;
 };
 
-const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot') => {
+const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' | 'credits' = 'boot') => {
   dressedLevelId = 0;
   if (mode === 'boot') {
     gameReady = false;
@@ -1047,19 +1214,21 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
   } catch { /* playtest not installed */ }
   try {
     clearNpcs(npcs);
+    clearFaces();
     clearEnemies(enemies);
     home.dispose();
     desk.dispose();
     station.dispose();
     train.dispose();
     morning.dispose();
+    if (mode !== 'credits') morningEnding.dispose();
     apex.dispose();
     boardHall.dispose();
     apexLife.dispose();
     touch.dispose();
     if (mode === 'boot') act.reset();
     resetCutsceneState();
-    if (mode === 'arrive') state.inCutscene = true;
+    if (mode === 'arrive' || mode === 'credits') state.inCutscene = true;
     const forced = forcedLoadFailure;
     forcedLoadFailure = null;
     if (forced === 'hang') await new Promise<never>(() => {});
@@ -1069,19 +1238,40 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     applyLoadedScene(loaded);
     triggerRunner.bind(loaded?.data.triggers ?? []);
     musicTriggerPlayer.bind(loaded?.data.triggers ?? []);
-    if (mode === 'boot' && loaded?.data && !isDeskLevel()) npcs.push(...spawnNpcsFromScene(scene, loaded.data));
-    await act.dressLevel();
+    chapterAmbience?.stop();
+    if (mode === 'boot' && loaded?.data && !isDeskLevel()) {
+      npcs.push(...spawnNpcsFromScene(scene, loaded.data));
+      syncBoardFaces();
+    }
+    if (mode !== 'credits') await act.dressLevel();
     freezeStaticScene();
     mountPipeDrips(scene, loaded?.data.theme === 'B3 Basement');
     clearImpactMarks();
     bindScenePickups();
     ensurePlayerAvatar(isReturnLevel() || isHomeLevel() || isDeskLevel() || isStationLevel() || isTrainLevel() || isMorningLevel() ? TRANSFORM_HERO_ASSET_ID : PLAYER_ASSET_ID);
-    if (isHomeLevel()) await home.mount();
-    if (isStationLevel()) await station.mount();
-    if (isTrainLevel()) await train.mount();
+    if (mode !== 'credits') {
+      if (isHomeLevel()) await home.mount();
+      if (isStationLevel()) await station.mount();
+      if (isTrainLevel()) await train.mount();
+    }
     // Runtime dressing that is not in the level file (city under the office, basement air, station kit, the train car).
-    dressing.mount({ levelId: loaded?.data.id ?? '', powers: isReturnLevel() });
-    touch.mount(getLevelDefinition(state.level).libraryId);
+    dressing.mount({
+      levelId: loaded?.data.id ?? '',
+      libraryId: getLevelDefinition(state.level).libraryId,
+      powers: isReturnLevel(),
+      setKeyDir: (dir) => render.setKeyDir(dir),
+      morning: {
+        tvOn: () => morning.story().tvOn,
+        tvBright: () => morning.story().tvBright,
+        day: () => {
+          const beat = morning.story().beat;
+          if (beat === 'ride' || beat === 'walk' || beat === 'home' || beat === 'sleep') return 0;
+          if (beat === 'wake') return 0.55;
+          return 1;
+        },
+      },
+    });
+    if (mode !== 'credits') touch.mount(getLevelDefinition(state.level).libraryId);
     preloadClips(TOUCH_SOUNDS);
     await Promise.all([
       waitAvatarReady(playerAvatar),
@@ -1091,7 +1281,11 @@ const loadMissionSceneNow = async (path: string, mode: 'boot' | 'arrive' = 'boot
     await waitFrames(3);
     // Compile every shader now, under the title card, so Start never opens on a world Babylon is still skipping
     // (a mesh whose effect is not ready is not drawn: pure black behind the HUD on a slow GPU).
-    if (mode === 'arrive') {
+    if (mode === 'credits') {
+      // The Morning's credits fly over other levels' empty rooms: no story, no mounts, just the shaders.
+      playerAvatar.group.setEnabled(false);
+      await whenShadersCompiled(performance.now() + SHADERS_READY_MAX_MS);
+    } else if (mode === 'arrive') {
       act.onOfficeArrived();
       dressedLevelId = 0;
     } else {
@@ -1151,6 +1345,8 @@ type SaveData = {
   vossTrust?: number;
   /** How hot Hale runs against Pierce (-2..+2), moved by what he says on Hale's calls. */
   haleTemper?: number;
+  /** What the Shadow did on the street (kills, possessions, consumes, witnesses, things reported). See docs/story/ledger.md. */
+  ledger?: Ledger;
 };
 const clampStat = (value: unknown) => Math.max(STAT_MIN, Math.min(STAT_MAX, Math.round(Number(value) || 0)));
 const defaultSave: SaveData = { unlocked: 1, level: 1, sound: true };
@@ -1209,6 +1405,7 @@ const parseSave = (raw: string): SaveData => {
     lore: Array.isArray(parsed.lore) ? withLore(parsed.lore.filter((x) => Number.isInteger(x))) : [],
     vossTrust: clampStat(parsed.vossTrust),
     haleTemper: clampStat(parsed.haleTemper),
+    ledger: clampLedger(parsed.ledger),
   };
 };
 
@@ -1275,9 +1472,21 @@ const saveGame = (next: Partial<SaveData>) => {
     lore: next.lore ?? save.lore,
     vossTrust: clampStat(next.vossTrust ?? save.vossTrust),
     haleTemper: clampStat(next.haleTemper ?? save.haleTemper),
+    ledger: clampLedger(next.ledger ?? save.ledger),
   };
   writeSaveCookie(save);
   return save;
+};
+
+/** The street ledger as the stories see it: read, add, reset. Every change is written to the save cookie. */
+const ledger: LedgerApi = {
+  get: () => clampLedger(save.ledger),
+  add: (kind, amount = 1) => {
+    const now = clampLedger(save.ledger);
+    now[kind] += amount;
+    return saveGame({ ledger: now }).ledger ?? now;
+  },
+  reset: () => saveGame({ ledger: emptyLedger() }).ledger ?? emptyLedger(),
 };
 
 const hasProgress = () => save.unlocked > 1 || save.level > 1;
@@ -1390,7 +1599,7 @@ const endingTrack = (level: number) => (getLevelDefinition(level).libraryId === 
 let walkWanted = false;
 const footsteps = createFootsteps((url, rate) => {
   const level = mixVolume(url, 0.34);
-  playClip(url, level, { rate });
+  playClip(url, level, { rate, world: { cls: 'step' } });
 });
 let endingSong: HTMLAudioElement | null = null;
 
@@ -1441,13 +1650,13 @@ const audio = {
     osc.stop(this.ctx.currentTime + duration);
   },
   /** One-shots play from a decoded buffer, so a phone hears them without a finger on the screen. */
-  play(url: string, volume: number, rate?: number) {
+  play(url: string, volume: number, rate?: number, world?: WorldOptions) {
     if (!this.enabled) return;
     this.ensure();
     const level = mixVolume(url, volume);
     const fallback = soundFallback(url);
-    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume), { rate }); } : undefined;
-    if (playClip(url, level, { onError, rate })) return;
+    const onError = fallback ? () => { playClip(fallback, mixVolume(fallback, volume), { rate, world }); } : undefined;
+    if (playClip(url, level, { onError, rate, world })) return;
     playElementOnce(fallback ?? url, level);
   },
   /** Footsteps are one-shots on each foot plant (footsteps.ts); this only says whether he is walking. */
@@ -1476,6 +1685,7 @@ const audio = {
   win() {
     stopEndingSong();
     musicTriggerPlayer.stop();
+    chapterAmbience?.stop();
     if (!this.enabled) return;
     this.ensure();
     const song = createUnlockedAudio(endingTrack(state.level), 'music');
@@ -1490,6 +1700,14 @@ const audio = {
     void song.play().catch(() => {});
   },
 };
+
+chapterAmbience = createChapterAmbience({
+  play: (url, volume, world) => audio.play(url, volume, undefined, world),
+  player: () => ({ x: state.player.x, y: Math.max(1.2, playerMeshY(state.player.y) + 1.2), z: state.player.z }),
+  scriptedSilence: () => state.inCutscene || bedDuck < 0.08,
+  active: () => state.running && audio.enabled && !isPaused() && messageBox.classList.contains('hidden'),
+  lowTier: () => lowPowerGraphics || memoryTier.tier === 'low',
+});
 
 const updateHud = () => {
   const healthPct = Math.max(0, Math.min(100, (state.health / MAX_HEALTH) * 100));
@@ -1960,8 +2178,9 @@ const syncStartButtonLabel = () => {
     messageText.textContent = levelStartLine();
   }
   newGameBtn.style.display = resume ? '' : 'none';
-  resetBtn.style.display = '';
-  resetBtn.textContent = messageTitle.textContent === 'Defeat' ? 'Main Menu' : 'Reset';
+  // Reset lives in Settings now (behind a confirm); this button is only the Defeat card's Main Menu.
+  resetBtn.style.display = messageTitle.textContent === 'Defeat' ? '' : 'none';
+  resetBtn.textContent = 'Main Menu';
   const hideLoad = messageTitle.textContent === 'Defeat' || messageTitle.textContent === 'Mission Clear';
   loadModelBtn.textContent = 'Load Level';
   loadModelBtn.style.display = hideLoad ? 'none' : '';
@@ -2197,7 +2416,8 @@ const scenePlaying = () =>
   || desk.playing()
   || station.playing()
   || train.playing()
-  || morning.playing();
+  || morning.playing()
+  || morningEnding.active();
 
 const acidSkippable = () => state.running && act.acidActive() && act.vatSeen() && act.acidTime() > 1;
 const performSkip = () => {
@@ -2283,6 +2503,7 @@ shadowHint?.addEventListener('click', (event) => {
       markMission('power-shadow');
       analytics?.used('shadow-mode');
     }
+    powerFx.toggleShadow(shadowPlay().shadowMode());
     music.power(shadowPlay().shadowMode());
     if (!shadowPlay().shadowMode()) {
       playerAvatar.setArmed(false);
@@ -2534,7 +2755,9 @@ const applyLevelConfig = (config: LevelDefinition) => {
   applyLevelCombat(config);
   applyTheme(scene, config.theme);
   if (missionScene) applySceneLighting(scene, missionScene);
-  grade.setPowers(isReturnLevel() || isHomeLevel() || isDeskLevel());
+  render.setChapter(config.libraryId);
+  grade.setPowers(isReturnLevel() || isHomeLevel());
+  grade.setQuiet(config.libraryId === 'the-desk' ? 'desk' : config.libraryId === 'the-morning' ? 'morning' : null);
   grade.apply(config.theme);
 };
 
@@ -2586,7 +2809,7 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
   state.progression.highestUnlocked = getUnlockedLevelCount(Math.max(1, state.progression.highestUnlocked));
   state.inventory = createInventoryState();
   if (fresh) {
-    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0 });
+    saveGame({ health: MAX_HEALTH, ammo: 0, medkits: itemCount(state.inventory, 'medkit'), missions: {}, vossTrust: 0, haleTemper: 0, ledger: emptyLedger() });
   } else if (typeof save.health === 'number') {
     state.health = save.health;
     state.inventory.items.ammo = save.ammo ?? 0;
@@ -2712,7 +2935,7 @@ act = createAct1({
     phone.silence();
     followCamera.setCallFrame(false);
   },
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
   audioOn: () => audio.enabled,
   ensureAudio: () => audio.ensure(),
   win: () => audio.win(),
@@ -2737,6 +2960,22 @@ act = createAct1({
   },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   impair: (next) => setImpair(next),
   flashlight: (on) => {
@@ -2756,6 +2995,10 @@ act = createAct1({
     syncEquippedCamera();
   },
   showLine: (title, text) => showCineHud(title, text),
+  faceSpeak: (actor, url, hold) => {
+    syncBoardFaces();
+    faceSpeak(actor, url, hold ?? 3.6);
+  },
   holdScene: (held) => {
     state.inCutscene = held;
     if (held) audio.setWalk(false);
@@ -2804,7 +3047,7 @@ const apexLife = createApexLife({
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   active: () => state.running && !state.inCutscene && !apex.playing(),
   lowPower: () => lowPowerGraphics,
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
   showLine: (title, text) => showCineHud(title, text),
 });
 
@@ -2815,7 +3058,7 @@ const boardHall = createApexBoardHall({
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   running: () => state.running,
   inCutscene: () => state.inCutscene && !apex.playing(),
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
   showLine: (title, text) => showCineHud(title, text),
   impair: (next) => setImpair(next),
 });
@@ -2824,10 +3067,11 @@ const boardHall = createApexBoardHall({
 const touch = createTouchables({
   scene,
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
-  playFile: (url, volume) => audio.play(url, volume),
+  playFile: (url, volume, at) => audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined),
 });
 
 const home: GoingHome = createGoingHome({
+  ledger,
   scene,
   camera,
   running: () => state.running,
@@ -2837,6 +3081,22 @@ const home: GoingHome = createGoingHome({
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
@@ -2859,6 +3119,7 @@ const home: GoingHome = createGoingHome({
   refreshHud: () => updateHud(),
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   hand: () => {
     const joint = playerAvatar.findJoint('RightHand');
     if (!joint) return null;
@@ -2884,6 +3145,7 @@ const home: GoingHome = createGoingHome({
     log.push({ power, step, setup, t: seconds });
     analytics?.feature('lesson', `${power}.${step}`);
   },
+  graphicsTier: () => render.tier(),
 });
 
 const desk: TheDesk = createTheDesk({
@@ -2892,6 +3154,22 @@ const desk: TheDesk = createTheDesk({
   playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   faceCamera: (yaw) => followCamera.face(yaw),
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
@@ -2922,6 +3200,7 @@ const desk: TheDesk = createTheDesk({
 });
 
 const station: TheStation = createTheStation({
+  ledger,
   scene,
   camera,
   running: () => state.running,
@@ -2951,8 +3230,25 @@ const station: TheStation = createTheStation({
   },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
     state.inCutscene = held;
@@ -2969,6 +3265,7 @@ const station: TheStation = createTheStation({
 });
 
 const morning: TheMorning = createTheMorning({
+  ledger,
   scene,
   placePierce,
   lie: (on, x, y, z, yaw) => {
@@ -2982,6 +3279,22 @@ const morning: TheMorning = createTheMorning({
   playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   fade: (to, seconds) => screenFade.to(to, seconds ?? 0),
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
@@ -3000,7 +3313,9 @@ const morning: TheMorning = createTheMorning({
   setCarry: (items) => { storyCarry = items; },
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
   resumeLocomotion: () => playerAvatar.resumeLocomotion(),
-  offerEnd: (title, text) => offerLevelEnd(title, text),
+  beginEnding: () => { morningEnding.begin(); },
+  setPush: (k) => followCamera.setPush(k),
+  playerNode: () => playerAvatar.group,
   clearInput: () => clearInputState(),
   unlockNext: () => unlockProgress(),
   refreshHud: () => updateHud(),
@@ -3010,6 +3325,43 @@ const morning: TheMorning = createTheMorning({
     updateHud();
   },
   callBusy: () => phone.locksBody(),
+});
+
+/** The end of Level 8 and Act I: white dawn, the title, credits over empty places, the Act II call and card. */
+const morningEnding: MorningEnding = createMorningEnding({
+  loadShot: async (path) => {
+    await loadMissionScene(path, 'credits');
+    playerAvatar.group.setEnabled(false);
+  },
+  camera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
+  playFile: (url, volume) => { audio.play(url, volume); },
+  playMusic: async (url) => {
+    stopEndingSong();
+    if (!audio.enabled) return true;
+    let exists = false;
+    try { exists = (await fetch(url, { method: 'HEAD', cache: 'no-store' })).ok; } catch { /* offline */ }
+    if (!exists) return false;
+    audio.ensure();
+    const song = createUnlockedAudio(url, 'music');
+    endingSong = song;
+    song.loop = false;
+    song.volume = 0.8;
+    void song.play().catch(() => {});
+    return true;
+  },
+  stopMusic: () => stopEndingSong(),
+  tone: (frequency, seconds, type, volume) => audio.tone(frequency, seconds, type, volume),
+  showLine: (title, text) => showCineHud(title, text),
+  complete: () => {
+    clearInputState();
+    audio.setWalk(false);
+    unlockPointer();
+    unlockProgress();
+    markMission('main');
+    updateHud();
+    analytics?.levelCompleted();
+  },
+  exit: () => { window.location.assign('/'); },
 });
 
 const train: TheTrain = createTheTrain({
@@ -3040,8 +3392,25 @@ const train: TheTrain = createTheTrain({
   },
   player: () => ({ x: state.player.x, z: state.player.z, yaw: state.characterYaw }),
   shedShadow: (x, z) => shadowVeil.shed(x, z, Math.atan2(x - state.player.x, z - state.player.z)),
+  power: (e) => onPowerHit(e),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
+  stepCineScene: (sceneId, atSeconds, dt, opts) => {
+    if (sceneId === 'voss-morning-call') {
+      const pv = phone.view();
+      cinecam.stepScene(sceneId, atSeconds, dt, {
+        ...opts,
+        speaker: pv.speaker || opts?.speaker || 'Voss',
+        lineKey: pv.line || opts?.lineKey || 'phone.voss-morning',
+        applyCamera: pv.focused && (opts?.applyCamera ?? true),
+      });
+      return;
+    }
+    cinecam.stepScene(sceneId, atSeconds, dt, opts);
+  },
+  endCineScene: (clearCam = true) => {
+    cinecam.endScene(clearCam);
+  },
   showLine: (title, text) => showCineHud(title, text),
   holdScene: (held) => {
     state.inCutscene = held;
@@ -3071,6 +3440,34 @@ storyObjectiveId = () => {
   return act.objectiveKey();
 };
 
+
+// Signature power effects (powerFx.ts): GPU particles, bolt, tendril, hit-stop. Hosts call `power`; the clicks below do the rest.
+const powerFxHand = new BABYLON.Vector3();
+const powerFxChest = new BABYLON.Vector3();
+const powerFx = createPowerFx(scene, {
+  low: lowPowerGraphics,
+  play: (url, volume, rate, at) => audio.play(url, volume, rate, at ? { at, cls: 'effect' } : undefined),
+  hand: () => {
+    const joint = playerAvatar.findJoint('RightHand');
+    if (joint) return powerFxHand.copyFrom(joint.getAbsolutePosition());
+    return powerFxHand.set(state.player.x + Math.sin(state.characterYaw) * 0.42, 1.2, state.player.z + Math.cos(state.characterYaw) * 0.42);
+  },
+  chest: () => powerFxChest.set(state.player.x, 1.3 + playerLift, state.player.z),
+});
+const onPowerHit = (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => {
+  const at = new BABYLON.Vector3(e.x, e.y, e.z);
+  if (e.kind === 'shock') powerFx.shock(at);
+  else powerFx.melee(e.kind, at, e.hit);
+};
+(window as unknown as { __phPowerFx?: unknown }).__phPowerFx = powerFx;
+// Gen-made particle textures replace the drawn stand-ins once each loads (a failed load keeps the stand-in).
+for (const [name, file] of [['wisp', 'smoke'], ['ink', 'ink'], ['ember', 'ember'], ['star', 'star']] as const) {
+  const t = new BABYLON.Texture(`/assets/textures/fx/${file}.webp`, scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE, () => {
+    t.hasAlpha = false;
+    powerFx.setTexture(name, t);
+  });
+}
+
 // Level 7 keeps the station's Shadow mode (its riders are the targets).
 const shadowPlay = () => (isStationLevel() ? station : isTrainLevel() ? train : home);
 
@@ -3090,8 +3487,11 @@ const beginGame = () => {
   spaceDown = false;
   stopEndingSong();
   beginGameAt = performance.now();
-  // Keep the black veil under the chapter card until reveal crossfades it away.
-  screenFade.to(1, 0);
+  const handover = openingHandover;
+  openingHandover = false;
+  // Keep the black veil under a plain chapter card until reveal crossfades it away. After an opening shot the world
+  // is already on screen, so the veil stays clear and the lens glides instead.
+  if (!handover) screenFade.to(1, 0);
   audio.start();
   state.running = true;
   menuCameraActive = false;
@@ -3103,6 +3503,7 @@ const beginGame = () => {
   updateHud();
   hideMessage();
   music.chapterStart(state.level, isMorningLevel() ? 'silence' : 'calm');
+  chapterAmbience?.start(state.level);
   act.onStart();
   if (isHomeLevel()) home.onStart();
   if (isDeskLevel()) desk.onStart();
@@ -3117,6 +3518,10 @@ const beginGame = () => {
   analytics?.levelStarted();
   checkpoint = { x: state.player.x, z: state.player.z };
   lostWatcher.reset();
+  if (handover) {
+    void chapterOpening.glide().then(() => chapterCard.release(300));
+    return;
+  }
   void waitFrames(REVEAL_PAINT_FRAMES).then(() => {
     revealFromBlack(() => state.running);
   });
@@ -3204,6 +3609,55 @@ const cancelColdOpen = async () => {
   showMessage('PH Origins', levelStartLine());
 };
 
+/**
+ * Chapter openings (src/game/chapterOpening.ts): the title shot runs on the warmed scene before `beginGame`, then
+ * `beginGame` glides the lens into the follow camera. `openingHandover` tells `beginGame` the world is already on
+ * screen (no black veil, no hold-until-painted: the shot was painted already).
+ */
+let openingHandover = false;
+const chapterOpening = createChapterOpening({
+  scene,
+  camera: followCamera.camera,
+  snapToSpawn: (spawn) => followCamera.snapTo({ x: spawn.x, y: PLAYER_STAND_Y, z: spawn.z }, gatherCameraIgnoreMeshes(), spawn.yaw),
+  isSolid: (mesh) => {
+    if (mesh === playerCollider || mesh === muzzleFlash.mesh || mesh.isDescendantOf(playerAvatar.group)) return false;
+    const meta = mesh.metadata as { pickup?: unknown; cameraFade?: number } | undefined;
+    if (meta?.pickup || (meta?.cameraFade ?? 0) > 0.35) return false;
+    return !FEEL_SKIP.test(mesh.name);
+  },
+  dip: () => {
+    screenFade.to(1, 0.12);
+    window.setTimeout(() => screenFade.to(0, 0.3), 160);
+  },
+});
+
+/** Run the level's opening shot: the title over the moving world, a sting, one press skips. Resolves when it ends. */
+const playOpening = async (level: { id: number; name: string }, warm: Promise<unknown>) => {
+  let pendingSkip = false;
+  chapterCard.show(level.id, level.name, () => {
+    pendingSkip = true;
+    chapterOpening.skip();
+  });
+  // Black under the title while the scene finishes its first-use warm; nothing compiles after the shot starts.
+  screenFade.to(1, 0);
+  await Promise.race([warm, new Promise<void>((resolve) => window.setTimeout(resolve, 4600 + WARM_AFTER_CARD_MS))]);
+  stopLevelWarm();
+  await whenShadersCompiled(performance.now() + 4000);
+  activateGameCamera(scene, camera);
+  chapterOpening.prepare(level.id);
+  if (pendingSkip) chapterOpening.skip();
+  // The shot's first frame must be painted before the veil lifts: no black frame, no pop.
+  await waitFrames(REVEAL_PAINT_FRAMES);
+  const until = performance.now() + 2500;
+  while (performance.now() < until && (await worldLitShare()) < WORLD_LIT_MIN) await waitFrames(1);
+  const running = chapterOpening.run();
+  screenFade.to(0, 0.7);
+  window.setTimeout(() => chapterCard.titleIn(), 450);
+  if (playChapterSting(level.id)) chapterOpening.noteSting(level.id);
+  await running;
+  chapterCard.titleOut();
+};
+
 let startingLevel = false;
 
 /** After the chapter card closes, first-use warm may still finish — never hold Start more than this past the card. */
@@ -3252,11 +3706,15 @@ const startAtLevel = async (levelId: number, fresh = false, forceLoad = false, h
       return stats;
     }).catch(() => null);
     if (chapter) {
-      await chapterCard.show(level.id, level.name);
-      await Promise.race([
-        warm,
-        new Promise<void>((resolve) => window.setTimeout(resolve, WARM_AFTER_CARD_MS)),
-      ]);
+      try {
+        await playOpening(level, warm);
+        openingHandover = true;
+      } catch (error) {
+        console.warn('opening failed, starting the level directly', error);
+        chapterOpening.cancel();
+        chapterCard.release(0);
+        openingHandover = false;
+      }
     } else {
       void warm;
     }
@@ -3578,7 +4036,11 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
   playerLift += (liftWant - playerLift) * Math.min(1, delta * 14);
   if (state.inCutscene) return;
   playerAvatar.group.rotation.y = state.characterYaw + Math.PI;
-  playerAvatar.group.position.set(state.player.x, playerMeshY(state.player.y) + playerLift, state.player.z);
+  playerAvatar.group.position.set(
+    state.player.x,
+    playerMeshY(state.player.y) + playerLift - footHipDrop,
+    state.player.z,
+  );
 };
 
 const levelSealed = () => pendingEnd?.levelId === state.level;
@@ -3643,9 +4105,29 @@ const keepInsideFloors = (before: { x: number; z: number }) => {
 /** Smoothed horizontal speed the walk loop matches, so the planted foot stays planted. */
 let groundSpeed = 0;
 const jumpPose = createJumpPoser();
+const footIk = createFootIk(scene);
+playerAvatar.whenReady(() => footIk.bind(playerAvatar));
+const locoState = createLocoState();
+/** Pelvis drop from foot IK (m), subtracted from the avatar visual Y each frame. */
+let footHipDrop = 0;
+let lastClimbY = 0;
+/** Foot-slide totals keyed by library id for the playtest probe. */
+const footSlideByLevel: Record<string, { max: number; mean: number; plants: number }> = {};
+// After the clip poses the legs, plant the feet on stairs/ramps and drop the pelvis. Low tier keeps it.
+scene.onAfterAnimationsObservable.add(() => {
+  if (!state.running || state.inCutscene) return;
+  const dt = Math.min(0.05, Math.max(0, engine.getDeltaTime() / 1000));
+  footHipDrop = footIk.update(dt, lastJumpPose, true);
+  const lib = getLevelDefinition(state.level).libraryId;
+  const s = footIk.sample();
+  footSlideByLevel[lib] = { max: s.maxPlantDrift, mean: s.meanPlantDrift, plants: s.plants };
+});
 /** Last pose and input the avatar was given, for the playtest probe. */
 let lastJumpPose: number | null = null;
 let lastMoving = false;
+let lastLocoPhase = 'idle';
+/** Stick / key walk magnitude 0..1 after clamp — half tilt must walk at half speed. */
+let lastWalkMag = 0;
 
 /** Scratch vectors for on-foot / possess movement — never allocate these per frame. */
 const moveForward = new BABYLON.Vector3();
@@ -3745,9 +4227,35 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   strideFrom.x = state.player.x;
   strideFrom.z = state.player.z;
   groundSpeed = walkedBefore;
-  if (desiredMove.lengthSquared() > 0) {
+  // Stick tilt is the speed: half tilt walks at half playerSpeed so the stride can match (phone criterion).
+  // Keys stay at 1. Diagonal stick past the unit circle is clamped.
+  const walkMagnitude = Math.min(1, Math.hypot(moveX, moveZ));
+  lastWalkMag = walkMagnitude;
+  const moveHeadingEarly = desiredMove.lengthSquared() > 0
+    ? Math.atan2(desiredMove.x, desiredMove.z)
+    : null;
+  const climbRate = delta > 1e-4 ? (state.player.y - lastClimbY) / delta : 0;
+  lastClimbY = state.player.y;
+  const movingIntent = impair ? desiredMove.lengthSquared() > 0.0025 : walkMagnitude > 0.05;
+  const loco = locoState.step({
+    moving: movingIntent,
+    moveHeading: moveHeadingEarly,
+    faceYaw: state.characterYaw,
+    grounded: state.player.grounded && !shadowFlying,
+    climbRate,
+    hasClip: (k) => playerAvatar.hasClip(k),
+    delta,
+  });
+  lastLocoPhase = loco.phase;
+  if (loco.oneshot) {
+    playerAvatar.playClip(loco.oneshot, false, 1, () => playerAvatar.resumeLocomotion());
+  }
+  if (desiredMove.lengthSquared() > 0 && !loco.holdMove) {
     desiredMove.normalize();
-    const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1) * (impair?.speed ?? 1);
+    const speed = state.playerSpeed
+      * (shadowRunActive() ? SHADOW_RUN_SPEED : Math.max(walkMagnitude, impair ? 0.15 : 0))
+      * (impair?.speed ?? 1)
+      * loco.speedScale;
     // A stalled frame (a slow GPU, a shader compile) must not carry him metres in one step and tunnel a wall corner,
     // but it must not slow him either (a 2 fps run then walks at a tenth of speed). Spend the frame in steps of at most
     // MAX_MOVE_DELTA, each collided and floor-checked, up to MAX_MOVE_FRAME of real time.
@@ -3768,7 +4276,6 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     state.player.x = impair.maxX;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
   }
-  const walkMagnitude = Math.hypot(moveX, moveZ);
   const moving = impair ? desiredMove.lengthSquared() > 0.0025 : walkMagnitude > 0.05;
   const moveHeading = desiredMove.lengthSquared() > 0
     ? Math.atan2(desiredMove.x, desiredMove.z)
@@ -3802,13 +4309,16 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
 
   const handsOut = shadowPlay().controls() && shadowPlay().handsOut();
   const aimFacing = state.player.weaponDrawn || handsOut;
-  const facingTarget = aimFacing
-    ? (followCamera.isLooking() || !moving || moveHeading === null ? followCamera.getYaw() : moveHeading)
-    : (moving && moveHeading !== null ? moveHeading : state.characterYaw);
+  const facingTarget = loco.faceYaw !== null
+    ? loco.faceYaw
+    : aimFacing
+      ? (followCamera.isLooking() || !moving || moveHeading === null ? followCamera.getYaw() : moveHeading)
+      : (moving && moveHeading !== null ? moveHeading : state.characterYaw);
+  const turnRate = loco.phase === 'turn90' || loco.phase === 'turn180' ? 10 : (followCamera.isLooking() ? 22 : 24);
   state.characterYaw = lerpAngle(
     state.characterYaw,
     facingTarget,
-    1 - Math.exp(-(followCamera.isLooking() ? 22 : 24) * Math.min(delta, 0.05)),
+    1 - Math.exp(-turnRate * Math.min(delta, 0.05)),
   );
 
   const travelled = Math.hypot(state.player.x - strideFrom.x, state.player.z - strideFrom.z);
@@ -3821,12 +4331,13 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   const pose = shadowFlying ? jumpPose.reset() : jumpPose.step(state.player, delta, moving);
   const jumpAnim = pose !== null;
   const sprinting = moving && shadowRunActive();
+  const animMoving = moving && !loco.holdMove && loco.speedScale > 0.08;
   playerAvatar.setSprinting(sprinting);
-  playerAvatar.setLocomotion(moving, shadowFlying ? true : !jumpAnim);
+  playerAvatar.setLocomotion(animMoving, shadowFlying ? true : !jumpAnim);
   playerAvatar.setJumpPose(pose);
   lastJumpPose = pose;
   lastMoving = moving;
-  playerAvatar.setStride(moving && !jumpAnim ? groundSpeed : null);
+  playerAvatar.setStride(animMoving && !jumpAnim ? groundSpeed : null);
   audio.setWalk(
     moving
     && !jumpAnim
@@ -4067,7 +4578,11 @@ const possessAimed = () => {
   const took = (spot && shadowPlay().possessAt(spot.x, spot.y, spot.z)) || shadowPlay().possessLook();
   if (!took) return false;
   markMission('power-possess');
-  audio.tone(78, 0.1, 'sine', 0.06);
+  const focus = shadowPlay().linkFocus();
+  if (focus) {
+    powerFx.possess(new BABYLON.Vector3(focus.x, 1.55, focus.z));
+    powerFx.setPossessing(true, new BABYLON.Vector3(focus.x, 1.6, focus.z));
+  }
   updateHud();
   return true;
 };
@@ -4077,7 +4592,10 @@ const useShadowClick = () => {
   analytics?.used(shadowPick === 'possess' ? (shadowPlay().linked() ? 'consume' : 'possess') : 'shadow-shock');
   if (shadowPick === 'possess') {
     if (shadowPlay().linked()) {
+      const victim = shadowPlay().linkFocus();
       if (shadowPlay().consume()) {
+        if (victim) powerFx.consume(new BABYLON.Vector3(victim.x, 1.2, victim.z));
+        powerFx.setPossessing(false);
         markMission('power-consume');
         audio.tone(64, 0.14, 'sine', 0.07);
       }
@@ -4227,6 +4745,11 @@ window.addEventListener('keydown', (event) => {
   // While paused or in Settings, keys belong to the menu.
   if (isPaused() || settingsOpen()) return;
   // Desktop skip key during a scene (touch holds the Skip button instead).
+  if (event.key === 'Enter' && morningEnding.active()) {
+    event.preventDefault();
+    morningEnding.skip();
+    return;
+  }
   if (event.key === 'Enter' && state.running && scenePlaying() && skipCutsceneBtn && !skipCutsceneBtn.hidden) {
     event.preventDefault();
     performSkip();
@@ -4291,6 +4814,7 @@ window.addEventListener('keydown', (event) => {
         markMission('power-shadow');
         analytics?.used('shadow-mode');
       }
+      powerFx.toggleShadow(shadowPlay().shadowMode());
       music.power(shadowPlay().shadowMode());
       if (!shadowPlay().shadowMode()) {
         playerAvatar.setArmed(false);
@@ -4433,11 +4957,14 @@ leftStickZone.addEventListener('pointerdown', (event) => {
   const centerY = rect.top + rect.height / 2;
   const dx = (event.clientX - centerX) / (rect.width * 0.38);
   const dy = (event.clientY - centerY) / (rect.height * 0.38);
-  const mag = Math.min(1, Math.hypot(dx, dy));
-  state.movementVector.x = Math.min(1, Math.max(-1, dx)) / Math.max(1, mag);
-  state.movementVector.y = Math.min(1, Math.max(-1, dy)) / Math.max(1, mag);
-  const knobX = Math.max(-38, Math.min(38, dx * 38));
-  const knobY = Math.max(-38, Math.min(38, dy * 38));
+  const clampX = Math.max(-1, Math.min(1, dx));
+  const clampY = Math.max(-1, Math.min(1, dy));
+  const magnitude = Math.hypot(clampX, clampY);
+  // Keep tilt magnitude (half stick = half speed); only clamp to the unit circle past the rim.
+  state.movementVector.x = magnitude > 1 ? clampX / magnitude : clampX;
+  state.movementVector.y = magnitude > 1 ? clampY / magnitude : clampY;
+  const knobX = state.movementVector.x * 38;
+  const knobY = state.movementVector.y * 38;
   leftStickKnob.style.left = `calc(50% + ${knobX}px)`;
   leftStickKnob.style.top = `calc(50% + ${knobY}px)`;
   leftStickKnob.style.transform = 'translate(-50%, -50%)';
@@ -4623,6 +5150,7 @@ const pauseBtn = document.getElementById('pauseBtn') as HTMLButtonElement;
 const pauseMenu = document.getElementById('pauseMenu') as HTMLDivElement;
 const resumeBtn = document.getElementById('resumeBtn') as HTMLButtonElement;
 const settingsMenu = document.getElementById('settingsMenu') as HTMLDivElement;
+installMenuSounds(settingsMenu);
 const settingsRows = document.getElementById('settingsRows') as HTMLDivElement;
 const soundSwitch = document.getElementById('soundSwitch') as HTMLButtonElement;
 const musicVolume = document.getElementById('musicVolume') as HTMLInputElement;
@@ -4638,6 +5166,7 @@ const subsSwitch = document.getElementById('subsSwitch') as HTMLButtonElement;
 const subsSize = document.getElementById('subsSize') as HTMLInputElement;
 const subsSizeOut = document.getElementById('subsSizeOut') as HTMLOutputElement;
 const subsBoxSwitch = document.getElementById('subsBoxSwitch') as HTMLButtonElement;
+const graphicsTierButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('#graphicsTiers .graphics-tier'));
 
 const SUB_SIZE_LABELS: SubtitleSize[] = ['sm', 'md', 'lg'];
 const SUB_SIZE_WORDS = ['Small', 'Medium', 'Large'];
@@ -4675,6 +5204,8 @@ const renderGameSettings = () => {
   subsSizeOut.textContent = SUB_SIZE_WORDS[sizeIdx];
   subsBoxSwitch.setAttribute('aria-checked', String(s.subtitleBox));
   subsBoxSwitch.textContent = s.subtitleBox ? 'On' : 'Off';
+  const tier = render.tier();
+  for (const button of graphicsTierButtons) button.setAttribute('aria-checked', String(button.dataset.tier === tier));
 };
 
 const renderSettings = () => {
@@ -4723,11 +5254,35 @@ subsBoxSwitch.addEventListener('click', () => {
   setGameSettings({ subtitleBox: !gameSettings().subtitleBox });
   analytics?.setting('subtitleBox', gameSettings().subtitleBox ? 'on' : 'off');
 });
+// Graphics Low / Medium / High: the pipeline switches at once (shadows, SSAO, post passes, render size) and the
+// choice is saved; it wins over the device's pick on the next visit.
+for (const button of graphicsTierButtons) {
+  button.addEventListener('click', () => {
+    const tier = button.dataset.tier as GraphicsTier;
+    if (!GRAPHICS_TIERS.includes(tier)) return;
+    render.setTier(tier);
+    setGameSettings({ graphics: tier });
+    analytics?.setting('graphics', tier);
+    analytics?.context({ graphics: tier });
+  });
+}
 
 const settingsOpen = () => !settingsMenu.hidden;
+const resetRowEl = document.getElementById('resetRow') as HTMLElement;
+const resetSectionEl = document.getElementById('progressSection') as HTMLElement;
+const resetConfirmEl = document.getElementById('resetConfirm') as HTMLElement;
+const resetProgressBtn = document.getElementById('resetProgressBtn') as HTMLButtonElement;
+/** Progress can only be erased from the title, never mid-level. */
+const syncResetRow = () => {
+  const onTitle = !state.running;
+  resetRowEl.hidden = !onTitle;
+  resetSectionEl.hidden = !onTitle;
+  resetConfirmEl.hidden = true;
+};
 const openSettings = () => {
   analytics?.screen(state.running ? 'settings-pause' : 'settings-title');
   renderSettings();
+  syncResetRow();
   settingsMenu.hidden = false;
   unlockPointer();
   invertYSwitch.focus({ preventScroll: true });
@@ -4910,17 +5465,7 @@ window.addEventListener('click', (event) => {
   event.stopImmediatePropagation();
   event.preventDefault();
 }, true);
-resetBtn.addEventListener('click', () => {
-  if (messageTitle.textContent === 'Defeat') {
-    analytics?.toTitle();
-    defeatLeft = 0;
-    levelPicked = false;
-    state.running = false;
-    menuCameraActive = true;
-    activateMenuCamera(scene, menuCamera);
-    showMessage('PH Origins', levelStartLine());
-    return;
-  }
+const resetProgress = () => {
   analytics?.feature('reset-progress');
   stopEndingSong();
   clearSave();
@@ -4938,6 +5483,37 @@ resetBtn.addEventListener('click', () => {
   showMessage('PH Origins', levelStartLine());
   menuCameraActive = true;
   activateMenuCamera(scene, menuCamera);
+};
+
+resetProgressBtn.addEventListener('click', () => {
+  resetConfirmEl.hidden = false;
+  resetProgressBtn.hidden = true;
+  document.getElementById('resetCancelBtn')?.focus({ preventScroll: true });
+});
+document.getElementById('resetCancelBtn')?.addEventListener('click', () => {
+  resetConfirmEl.hidden = true;
+  resetProgressBtn.hidden = false;
+  resetProgressBtn.focus({ preventScroll: true });
+});
+document.getElementById('resetConfirmBtn')?.addEventListener('click', () => {
+  resetConfirmEl.hidden = true;
+  resetProgressBtn.hidden = false;
+  resetProgress();
+  closeSettings();
+});
+
+resetBtn.addEventListener('click', () => {
+  if (messageTitle.textContent === 'Defeat') {
+    analytics?.toTitle();
+    defeatLeft = 0;
+    levelPicked = false;
+    state.running = false;
+    menuCameraActive = true;
+    activateMenuCamera(scene, menuCamera);
+    showMessage('PH Origins', levelStartLine());
+    return;
+  }
+  resetProgress();
 });
 
 /** Screen box (CSS px) of the lab doorway at the end of the cold-open hall, or null when it is not in view. */
@@ -4978,7 +5554,7 @@ const applyCarSway = () => {
 /** Skip shows whenever a cutscene or a scripted scene runs. Also called when a scene starts, so it is there from the first frame. */
 const syncSkipButton = () => {
   if (!skipCutsceneBtn) return;
-  const canSkip = state.running && (scenePlaying() || acidSkippable());
+  const canSkip = state.running && !morningEnding.active() && (scenePlaying() || acidSkippable());
   skipCutsceneBtn.hidden = !canSkip;
   if (!canSkip) clearSkipHold();
 };
@@ -5000,7 +5576,19 @@ const renderLoop = () => {
     scene.render();
     return;
   }
-  const delta = engine.getDeltaTime() / 1000;
+  const rawDelta = engine.getDeltaTime() / 1000;
+  // Hit-stop: a real-time hold (50-100 ms) with the action frozen; Babylon animation stops too.
+  const stopped = powerFx.hitStopLeft() > 0;
+  scene.animationTimeScale = stopped ? 0 : 1;
+  const delta = stopped ? 0.0001 : rawDelta;
+  powerFx.update(rawDelta, camera);
+  {
+    const linked = shadowPlay().controls() && shadowPlay().linked();
+    const focus = linked ? shadowPlay().linkFocus() : null;
+    powerFx.setPossessing(linked, focus ? new BABYLON.Vector3(focus.x, 1.6, focus.z) : undefined);
+    powerFx.setRunning(shadowPlay().controls() && shadowRunActive(), new BABYLON.Vector3(state.player.x, 0.9 + playerLift, state.player.z));
+  }
+  render.update(delta);
   screenFade.update(delta);
   syncActionHint();
   stepHuntRetry(delta);
@@ -5026,7 +5614,19 @@ const renderLoop = () => {
       if (!finale) act.beforeCutsceneStep(activeCutscene.id, activeCutscene.time);
       else stepFinaleWorld(delta);
       const playing = stepCutscene(activeCutscene, delta);
+      if (playing && activeCutscene) {
+        const storySceneId = CUTSCENE_TO_STORY_SCENE[activeCutscene.id];
+        if (storySceneId) {
+          cinecam.stepScene(storySceneId, activeCutscene.time, delta);
+        }
+      }
       if (!playing) endCutscene();
+      syncBoardFaces();
+      updateFaces(delta, {
+        pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
+        boardMeeting: activeCutscene?.id === 'room-for-grace',
+        lowTier: lowPowerGraphics || render.tier() === 'low',
+      });
       act.alarmTick(delta);
       objectiveMarker.update(delta);
       updateCamera(delta, false, null);
@@ -5052,6 +5652,10 @@ const renderLoop = () => {
       updateCamera(delta, false, null);
     } else if (train.playing()) {
       train.step(delta);
+      updateCamera(delta, false, null);
+    } else if (morningEnding.active()) {
+      morningEnding.step(delta);
+      morning.step(delta);
       updateCamera(delta, false, null);
     } else if (morning.playing()) {
       morning.step(delta);
@@ -5086,12 +5690,17 @@ const renderLoop = () => {
     apex.step(delta);
     boardHall.step(delta);
     if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
+    updateFaces(delta, {
+      pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
+      boardMeeting: false,
+      lowTier: lowPowerGraphics || render.tier() === 'low',
+    });
     home.step(delta);
     station.step(delta);
     train.step(delta);
     morning.step(delta);
     if (isDeskLevel()) desk.step(delta);
-    const streetShake = Math.max(home.shake(), desk.shake());
+    const streetShake = Math.max(home.shake(), desk.shake(), powerFx.shake());
     if (streetShake > 0) {
       camera.position.x += (Math.random() - 0.5) * streetShake;
       camera.position.y += (Math.random() - 0.5) * streetShake * 0.65;
@@ -5171,12 +5780,18 @@ const renderLoop = () => {
     if (!menuCameraActive) updateCamera(delta);
   }
 
+  titleScene.step(
+    delta,
+    menuCameraActive && !state.running && !coldOpenRunning && !messageBox.classList.contains('hidden') && messageTitle.textContent === 'PH Origins',
+  );
+  updateWorldAudio(delta);
   musicTriggerPlayer.update(
     camera.position,
     delta,
     state.running && audio.enabled,
     state.inCutscene ? 0.18 * bedDuck : bedDuck,
   );
+  chapterAmbience?.update(delta);
 
   if (possessBar && possessFill) {
     const left = shadowPlay().linked() ? shadowPlay().possessLeft() : 0;
@@ -5329,7 +5944,7 @@ modelInput.addEventListener('change', (event) => {
 
 const devActions: Record<string, () => void> = {
   reset: () => {
-    resetBtn.click();
+    resetProgress();
   },
   hp: () => {
     state.health = MAX_HEALTH;
@@ -5394,6 +6009,7 @@ window.addEventListener('resize', () => {
 /** Playtest setup: lay the page out as a 390x844 phone, centred and scaled to fit a desktop viewport. */
 const setPhoneFrame = (on: boolean, landscape = false, size?: { w: number; h: number }) => {
   phoneFramed = on;
+  configureTier(on || lowPowerGraphics);
   if (on) {
     const w = size?.w ?? (landscape ? 844 : 390);
     const h = size?.h ?? (landscape ? 390 : 844);
@@ -5430,7 +6046,7 @@ analytics = createGameAnalytics({
   }),
   player: () => ({ x: state.player.x, z: state.player.z }),
 });
-analytics.context({ graphics: lowPowerGraphics ? 'low' : 'high' });
+analytics.context({ graphics: render.tier() });
 
 // Hawkes playtest contract (src/playtest/phPlaytest.ts). Read-only probe; the bot plays through real input.
 installPhPlaytest({
@@ -5458,8 +6074,25 @@ installPhPlaytest({
     jumpPose: lastJumpPose,
     groundSpeed,
     moving: lastMoving,
+    walkMag: lastWalkMag,
+    phase: lastLocoPhase,
     ...playerAvatar.locomotion(),
   }),
+  /** Planted-foot drift (m) for the live level and every level visited this run. */
+  footSlide: () => {
+    const live = footIk.sample();
+    const lib = getLevelDefinition(state.level).libraryId;
+    footSlideByLevel[lib] = { max: live.maxPlantDrift, mean: live.meanPlantDrift, plants: live.plants };
+    return {
+      max: live.maxPlantDrift,
+      mean: live.meanPlantDrift,
+      plants: live.plants,
+      left: live.left,
+      right: live.right,
+      hipDrop: live.hipDrop,
+      byLevel: { ...footSlideByLevel },
+    };
+  },
   cameraYaw: () => followCamera.getYaw(),
   objective: () => {
     const target = objectiveMarker.getTarget();
@@ -5492,14 +6125,23 @@ installPhPlaytest({
       log: phone.replyLog(),
       caption: phonePanel && !phonePanel.hidden ? box(phonePanel) : null,
       stats: { vossTrust: clampStat(save.vossTrust), haleTemper: clampStat(save.haleTemper), min: STAT_MIN, max: STAT_MAX },
+      ledger: ledger.get(),
     };
   },
   /** Test shortcut: ring a scripted call (as the story does) and set the saved trust values. */
+  /** Test shortcut: the street ledger (counts, band) so two playtests can be compared, or set it before The Morning. */
+  ledger: (seed?: Partial<Ledger>) => {
+    if (seed) saveGame({ ledger: { ...ledger.get(), ...seed } });
+    const now = ledger.get();
+    return { ...now, band: ledgerBand(now) };
+  },
   callTest: (id: string, seed?: { vossTrust?: number; haleTemper?: number }) => {
     if (seed) saveGame({ vossTrust: seed.vossTrust ?? save.vossTrust, haleTemper: seed.haleTemper ?? save.haleTemper });
     phone.ring(id);
   },
   chapter: () => chapterCard.view(),
+  chapterLayout: () => chapterCard.layout(),
+  opening: () => chapterOpening.probe(),
   hudShown: () => !pauseBtn.hidden && getComputedStyle(pauseBtn).visibility !== 'hidden',
   worldLuma: () => worldLitShare(),
   menu: () => ({
@@ -5568,10 +6210,26 @@ installPhPlaytest({
   ],
   /** Apex Peak vertical-slice quality readings for the playtest. */
   desk: () => desk.stats(),
+  /** What the city did about the street ledger (Going Home's siren and car, the Station gate's officer). */
+  heat: () => home.heat(),
+  /** Staged Shadow crowd reactions (Going Home / Station / Train): witnesses, voices, filmers. */
+  crowd: () => {
+    if (isHomeLevel()) return home.crowd();
+    if (getLevelDefinition(state.level).libraryId === 'the-station') return station.crowd?.() ?? null;
+    if (getLevelDefinition(state.level).libraryId === 'the-train') return train.crowd?.() ?? null;
+    return null;
+  },
+  rainNight: () => (isHomeLevel() ? home.rainNight() : dressing.station()),
+  stationRain: () => dressing.station(),
+  /** Playtest setup shortcut (named): Going Home hands over Shock without its lesson. */
+  grantShock: () => { if (isHomeLevel()) home.grantShock(); },
   life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
     : null),
+  /** Lip sync, blinks, look-at and dialogue gestures on every registered on-screen speaker. */
+  faces: () => facesSnapshot(),
+  resetFaces: () => resetFaceStats(),
   /** Board plot through the Apex hall (desk, locked door, Hale threat) — no call required. */
   boardHall: () => (isApexPeakLevel() ? boardHall.snapshot() : null),
   pickups: () => pickups
@@ -5634,10 +6292,41 @@ installPhPlaytest({
   },
   train: () => dressing.train()?.stats() ?? null,
   morning: () => (isMorningLevel() ? morning.story() : null),
+  endSuite: () => morningEnding.status(),
+  morningJump: (to) => morning.jumpTo(to),
   ending: () => endingSong?.src || null,
   failNextLoad: (kind) => { forcedLoadFailure = kind; },
   waypoint: () => objectiveWaypoint.view(),
   lost: () => ({ prompt: Boolean(lostHint && !lostHint.hidden), idle: lostWatcher.idle(), returning }),
+  render: () => render.stats(),
+  b3Horror: () => dressing.b3Horror(),
+  quietLight: () => dressing.quietLight(),
+  // Mean colour of the next finished frame (after the grade): read in the same frame, so it works without a
+  // preserved drawing buffer. A coarse 32x18 grid is plenty for a chapter's colour fingerprint.
+  frameColor: () => new Promise((resolve) => {
+    scene.onAfterRenderObservable.addOnce(() => {
+      try {
+        const gl = (engine as unknown as { _gl?: WebGL2RenderingContext })._gl;
+        if (!gl) { resolve(null); return; }
+        const w = gl.drawingBufferWidth;
+        const h = gl.drawingBufferHeight;
+        // One read (one GPU sync), then a 32x18 grid out of it.
+        const px = new Uint8Array(w * h * 4);
+        gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let iy = 0; iy < 18; iy += 1) {
+          for (let ix = 0; ix < 32; ix += 1) {
+            const i = (Math.floor(((iy + 0.5) / 18) * h) * w + Math.floor(((ix + 0.5) / 32) * w)) * 4;
+            r += px[i]; g += px[i + 1]; b += px[i + 2]; n += 1;
+          }
+        }
+        r /= n * 255; g /= n * 255; b /= n * 255;
+        resolve({ r, g, b, luma: 0.2126 * r + 0.7152 * g + 0.0722 * b });
+      } catch {
+        resolve(null);
+      }
+    });
+  }),
   graphics: () => ({
     memoryTier: memoryTier.tier,
     deviceMemory: memoryTier.deviceMemory,
@@ -5711,11 +6400,27 @@ installPhPlaytest({
     settings: soundSettings(),
     bed: musicTriggerPlayer.active(),
     bedPlaying: musicTriggerPlayer.playing(),
+    ambience: chapterAmbience?.probe() ?? null,
     footsteps: walkWanted,
     stepCount: footsteps.count(),
     steps: footsteps.events(),
     music: music.probe(),
+    title: () => ({ ...titleScene.probe(), menuSounds: menuSoundLog() }),
+    titleStrike: () => titleScene.strikeNow(),
+    voice: clipLog().filter((c) => c.voice),
+    acoustics: { ...acousticsProbe(getSharedAudioContext()), door: { closed: boardDoorClosed } },
   }),
+  acousticPing: (side: 'left' | 'right' | 'front') => {
+    const ctx = getSharedAudioContext();
+    return ctx ? testPing(ctx, side) : Promise.resolve({ left: 0, right: 0, side });
+  },
+  acousticReset: () => resetAcousticsStats(),
+  acousticTestSource: (x: number, y: number, z: number, seconds: number) => {
+    testSourceStop?.();
+    testSourceStop = null;
+    const ctx = getSharedAudioContext();
+    if (ctx && seconds > 0) testSourceStop = startTestSource(ctx, { x, y, z }, seconds, 'voice', 'test-board-voice', 0.4);
+  },
   playSettings: () => gameSettings(),
 });
 

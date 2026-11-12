@@ -21,6 +21,30 @@ export const artFrame = (k: Kit, key: string, x: number, y0: number, z: number, 
   k.tex(key, x, y0, z, w, h, n, 0, 0.058);
 };
 
+/** Cork memo board on a wall (atlas key 'memo'), walnut frame. */
+export const memoBoard = (k: Kit, x: number, y0: number, z: number, w: number, n: V2) => {
+  const t = tangent(n);
+  const c = along({ x, z }, t, 0, n, 0.014);
+  k.set(IS.WOOD, 0.2, 0.12, 0.07);
+  k.box(c.x, y0 - 0.03, c.z, w / 2 + 0.03, w * 0.75 + 0.06, 0.02, t);
+  k.tex('memo', x, y0, z, w, w * 0.75, n, 0, 0.032);
+};
+
+/** Wall-hung award case: walnut box, dark back, brass cup and a plaque below it. */
+export const awardCase = (k: Kit, key: string, x: number, y0: number, z: number, n: V2) => {
+  const t = tangent(n);
+  const d = 0.12;
+  const c = along({ x, z }, t, 0, n, d / 2);
+  k.set(IS.WOOD, 0.16, 0.1, 0.06);
+  k.box(c.x, y0, c.z, 0.45, 0.6, d / 2, t);
+  const cup = along({ x, z }, t, 0, n, d + 0.06);
+  k.set(IS.METAL, 0.8, 0.62, 0.22);
+  k.cyl(cup.x, y0 + 0.3, cup.z, 0.05, 0.1, 0.22, 12, true);
+  k.cyl(cup.x, y0 + 0.26, cup.z, 0.06, 0.06, 0.04, 12, true);
+  const pl = along({ x, z }, t, 0, n, d + 0.006);
+  k.tex(key, x, y0 + 0.02, z, 0.6, 0.19, n, 0.1, d + 0.006);
+};
+
 export const sconce = (k: Kit, x: number, y: number, z: number, n: V2) => {
   const t = tangent(n);
   const back = along({ x, z }, t, 0, n, 0.015);

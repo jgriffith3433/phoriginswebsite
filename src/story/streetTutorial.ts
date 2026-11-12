@@ -108,6 +108,12 @@ export const createTutorial = () => {
       lastIntro = clock;
       return true;
     },
+    /** Test shortcut (playtest setup): hand over `p` without its lesson. */
+    force: (p: Power) => {
+      unlocked.add(p);
+      power = p;
+      lastIntro = clock;
+    },
     isUnlocked: (p: Power) => unlocked.has(p),
     mark,
     reset: () => {

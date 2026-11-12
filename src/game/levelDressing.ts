@@ -3,7 +3,10 @@ import * as BABYLON from '@babylonjs/core';
 import { createCityView, type CityView } from '../story/city/cityView';
 import { createStationDress, type StationDress } from '../story/stationDress';
 import { createTrainDress, type TrainDress } from '../story/trainDress';
+import type { GraphicsTier } from '../render/pipeline';
 import { createAtmosphere, type Atmosphere } from './atmosphere';
+import { createB3Horror, type B3Horror } from './b3Horror';
+import { createQuietLight, type QuietLight, type QuietMode } from './quietLight';
 import { apexPlan } from './interior/apexPlan';
 import { b3Plan } from './interior/b3Plan';
 import { createInteriorDress, type InteriorDress } from './interior/dress';
@@ -13,24 +16,40 @@ import { createInteriorDress, type InteriorDress } from './interior/dress';
  * mount it from the level id, so the editor draws what the player sees.
  *
  * apex-peak:   the generated city 205 m below the office windows.
- * b3-basement: dust, light shafts, steam, a visible flashlight beam.
+ * b3-basement: dust, light shafts, steam, a visible flashlight beam, horror lighting.
  * the-station: tiles, tunnels, tubes, ads, departure board, plus dust.
  * the-train:   the subway car: seats, poles, ads, tunnel out the windows, sway.
+ * Quiet chapters (library id): The Return / The Desk / The Morning light looks.
  * (going-home mounts its own city: the level runs it.)
  */
 export type DressingContext = {
   /** Level file id: apex-peak, b3-basement, the-station, ... */
   levelId: string;
+  /** Level-library id when it differs from the scene file (the-return, the-desk). */
+  libraryId?: string;
   /** The Return: the basement with the powers look. */
   powers?: boolean;
+  /** Morning: TV on / picture brightness / dawn day amount for quiet light. */
+  morning?: { tvOn: () => boolean; tvBright?: () => number; day: () => number };
+  /** Steer the contact-shadow key (desk lamp, dawn). */
+  setKeyDir?: (dir: [number, number, number] | null) => void;
 };
 
-export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera) => {
+export type LevelDressingOptions = {
+  /** Live graphics tier (Low skips volumetric scattering; smaller flashlight shadow map). */
+  graphicsTier?: () => GraphicsTier;
+  /** Pierce's feet for B3 hall life (radio crackle). */
+  playerAt?: () => { x: number; z: number } | null;
+};
+
+export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera, options: LevelDressingOptions = {}) => {
   let cityView: CityView | null = null;
   let atmosphere: Atmosphere | null = null;
   let station: StationDress | null = null;
   let train: TrainDress | null = null;
   let interior: InteriorDress | null = null;
+  let horror: B3Horror | null = null;
+  let quiet: QuietLight | null = null;
   let current = '';
 
   const clear = () => {
@@ -44,15 +63,33 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
     train = null;
     interior?.dispose();
     interior = null;
+    horror?.dispose();
+    horror = null;
+    quiet?.dispose();
+    quiet = null;
+    if (scene.metadata && typeof scene.metadata === 'object') {
+      delete (scene.metadata as { b3Horror?: unknown }).b3Horror;
+      delete (scene.metadata as { quietLight?: unknown }).quietLight;
+    }
     current = '';
   };
 
+  const quietModeFor = (ctx: DressingContext): QuietMode | null => {
+    const id = ctx.libraryId ?? ctx.levelId;
+    if (id === 'the-return' || (ctx.levelId === 'b3-basement' && ctx.powers)) return 'return';
+    if (id === 'the-desk') return 'desk';
+    if (id === 'the-morning') return 'morning';
+    return null;
+  };
+
   const mobile = () => typeof document !== 'undefined' && document.body.dataset.device !== 'desktop';
+  const tier = () => options.graphicsTier?.() ?? 'high';
 
   return {
     mount: (ctx: DressingContext) => {
       // Always rebuild: a reload of the same level file replaces the meshes this dressing reads.
-      const key = `${ctx.levelId}|${ctx.powers ? 1 : 0}`;
+      const lib = ctx.libraryId ?? ctx.levelId;
+      const key = `${ctx.levelId}|${lib}|${ctx.powers ? 1 : 0}`;
       clear();
       current = key;
       if (ctx.levelId === 'apex-peak') {
@@ -78,8 +115,11 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
           shafts: { match: /^light-/, gain: powers ? 0.06 : 0.3, maxHeight: 4.2 },
           steam,
           steamColor: [0.62, 0.72, 0.66],
-          beam: powers ? 0.05 : 0.14,
+          // Stronger visible cone on horror B3 (soft additive + scrolling noise in atmosphere.ts).
+          beam: powers ? 0.05 : 0.28,
         });
+        horror = createB3Horror(scene, { powers, tier, playerAt: options.playerAt });
+        scene.metadata = { ...(scene.metadata ?? {}), b3Horror: horror };
       } else if (ctx.levelId === 'the-station') {
         station = createStationDress(scene);
         atmosphere = createAtmosphere(scene, {
@@ -92,21 +132,45 @@ export const createLevelDressing = (scene: BABYLON.Scene, camera: BABYLON.Camera
       } else if (ctx.levelId === 'the-train') {
         // No dust or shafts: the car stays cheaper than the station on a phone.
         train = createTrainDress(scene);
+      } else if (ctx.levelId === 'the-morning') {
+        // Dawn shafts + dust live in quietLight (tier-aware); no B3-style atmosphere here.
+      }
+      const quietMode = quietModeFor(ctx);
+      if (quietMode) {
+        quiet = createQuietLight(scene, camera, {
+          mode: quietMode,
+          tier,
+          setKeyDir: ctx.setKeyDir,
+          tvOn: ctx.morning?.tvOn,
+          tvBright: ctx.morning?.tvBright,
+          morningDay: ctx.morning?.day,
+        });
+        scene.metadata = { ...(scene.metadata ?? {}), quietLight: quiet };
       }
     },
     step: (dt: number) => {
       cityView?.step(dt);
       atmosphere?.step(dt);
+      horror?.step(dt);
+      quiet?.step(dt);
       station?.step(dt);
       train?.step(dt);
       interior?.step(dt);
     },
+    /** The office city (apex-peak) is drawn: the title scene looks out at it. */
+    cityMounted: () => !!cityView?.mounted(),
     /** The car's camera roll this frame (0 off the train). */
     roll: () => train?.roll() ?? 0,
     /** Level 6's ending: the departure board flips to his stop. */
     setBoardStop: (on: boolean) => station?.setBoardStop(on),
     /** The mounted train kit, for level 7's script and the playtest. */
     train: () => train,
+    /** Station rain / sodium / board dress (null off that level). */
+    station: () => station?.stats?.() ?? null,
+    /** B3 horror lighting (flashlight shadows, vat, flicker); null off that level. */
+    b3Horror: () => horror?.stats() ?? null,
+    /** Quiet chapters (Return / Desk / Morning); null off those levels. */
+    quietLight: () => quiet?.stats() ?? null,
     dispose: clear,
   };
 };

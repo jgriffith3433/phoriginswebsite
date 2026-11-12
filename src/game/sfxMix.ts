@@ -1,6 +1,7 @@
 import catalog from '../../locales/sfx.json';
 import { busInput, getSharedAudioContext } from './audioUnlock';
 import type { SoundBus } from './soundSettings';
+import { createSourceGraph, isPhoneUrl, setVoiceActive, type SourceHandle, type WorldOptions } from './acoustics';
 
 /**
  * `volume` on a sound effect is its full playback level. Preview plays that.
@@ -211,6 +212,8 @@ type LiveClip = {
   loop: boolean;
   gain: GainNode;
   source: AudioBufferSourceNode | null;
+  /** Live amplitude / spectral tap for faceTalk (voice lines only). */
+  analyser: AnalyserNode | null;
   startedAt: number;
   offset: number;
   held: boolean;
@@ -219,7 +222,84 @@ type LiveClip = {
   onEnded?: () => void;
   rate: number;
   voiceEnd?: () => void;
+  url: string;
+  /** A spoken line: one at a time, in the order asked (the voice channel below). */
+  voice: boolean;
+  /** Set once the voice channel gave it the floor; the hook (duck, stinger) fires then, not when it was asked for. */
+  active: boolean;
+  askedAt: number;
+  startedWall: number;
+  /** Seconds of the file played when it was stopped, for the cut check. */
+  cutAt: number;
+  graph: SourceHandle | null;
 };
+
+/** Face talk reads this every frame: amplitude 0..1 and a 0..1 spectral centroid. */
+export type VoiceMeter = { speaking: boolean; url: string; amp: number; centroid: number };
+const voiceTimeBuf = new Uint8Array(512);
+const voiceFreqBuf = new Uint8Array(256);
+let voiceAnalyser: AnalyserNode | null = null;
+let voiceMeterUrl = '';
+
+export const sampleVoiceMeter = (): VoiceMeter => {
+  if (!voiceAnalyser || !voiceActive || voiceActive.finished || !voiceActive.active) {
+    return { speaking: false, url: '', amp: 0, centroid: 0 };
+  }
+  voiceAnalyser.getByteTimeDomainData(voiceTimeBuf);
+  let sum = 0;
+  for (let i = 0; i < voiceTimeBuf.length; i += 1) {
+    const v = (voiceTimeBuf[i]! - 128) / 128;
+    sum += v * v;
+  }
+  const amp = Math.min(1, Math.sqrt(sum / voiceTimeBuf.length) * 3.2);
+  voiceAnalyser.getByteFrequencyData(voiceFreqBuf);
+  let weighted = 0;
+  let total = 0;
+  for (let i = 0; i < voiceFreqBuf.length; i += 1) {
+    const m = voiceFreqBuf[i]!;
+    weighted += i * m;
+    total += m;
+  }
+  const centroid = total > 0 ? weighted / (total * (voiceFreqBuf.length - 1)) : 0;
+  return { speaking: true, url: voiceMeterUrl, amp, centroid };
+};
+
+/** What the playtest's audio probe reads: every voice clip's start, end and whether a stop cut it short. */
+export type ClipEvent = {
+  url: string;
+  voice: boolean;
+  /** performance.now() seconds when the file began to sound (0 if it never did). */
+  start: number;
+  end: number;
+  /** Seconds the line waited behind another voice. */
+  waited: number;
+  duration: number;
+  state: 'ended' | 'stopped' | 'failed';
+  /** Stopped before the last 0.15 s of the file. */
+  cut: boolean;
+  /** Another voice clip was sounding when this one began (the channel makes this 0). */
+  overlapped: boolean;
+};
+const clipEvents: ClipEvent[] = [];
+export const clipLog = () => clipEvents;
+export const clearClipLog = () => { clipEvents.length = 0; };
+
+/**
+ * Voice lines are cutscene VO, phone voices and barks (not sfx or beds). Only one sounds at a time: a line asked
+ * for while another plays waits its turn (never cuts it, never overlaps it).
+ */
+export const isVoiceUrl = (url: string) => {
+  const u = url.split('?')[0]!;
+  if (/\/sfx\//.test(u)) return false;
+  // Cutscene VO, phone lines, and place barks (`/audio/vo/`) all drive faceTalk.
+  return /\/audio\/cutscenes\/(?:[^/]+\/)*[^/]+\.(?:ogg|wav|mp3)$/.test(u) && !/(?:hum|rumble|alarm|beep|door|loop|bed)[^/]*\.(?:ogg|wav|mp3)$/.test(u)
+    || /\/audio\/phone\/[^/]+-[^/]+\.(?:ogg|wav|mp3)$/.test(u)
+    || /\/audio\/vo\/[^/]+\.(?:ogg|wav|mp3)$/.test(u);
+};
+const voiceQueue: LiveClip[] = [];
+let voiceActive: LiveClip | null = null;
+/** Whether a voice line is sounding or waiting its turn. */
+export const voiceBusy = () => voiceActive !== null || voiceQueue.length > 0;
 
 const liveClips = new Set<LiveClip>();
 let clipsHeld = false;
@@ -250,16 +330,67 @@ export const forgetClip = (url: string) => {
 
 const finish = (clip: LiveClip, ended: boolean) => {
   if (clip.finished) return;
+  if (clip.voice) {
+    const now = performance.now() / 1000;
+    const played = clip.active;
+    const duration = clip.buffer?.duration ?? 0;
+    const at = clip.cutAt >= 0 ? clip.cutAt : duration;
+    clipEvents.push({
+      url: clip.url,
+      voice: true,
+      start: played ? clip.startedWall : 0,
+      end: now,
+      waited: played ? Math.max(0, clip.startedWall - clip.askedAt) : now - clip.askedAt,
+      duration,
+      state: ended ? 'ended' : played ? 'stopped' : 'failed',
+      cut: !ended && played && duration > 0 && at < duration - 0.15,
+      overlapped: false,
+    });
+    if (clipEvents.length > 400) clipEvents.shift();
+  }
   clip.finished = true;
   clip.voiceEnd?.();
   clip.voiceEnd = undefined;
   liveClips.delete(clip);
+  if (clip.voice && (voiceAnalyser === clip.analyser || voiceMeterUrl === clip.url)) {
+    voiceAnalyser = null;
+    voiceMeterUrl = '';
+  }
   disconnect(clip.source);
+  disconnect(clip.analyser);
   disconnect(clip.gain);
+  clip.graph?.dispose();
+  clip.graph = null;
   clip.source = null;
+  clip.analyser = null;
   clip.buffer = null;
+  if (clip.voice) {
+    const at = voiceQueue.indexOf(clip);
+    if (at >= 0) voiceQueue.splice(at, 1);
+    if (voiceActive === clip) voiceActive = null;
+    pumpVoice();
+  }
   if (ended) clip.onEnded?.();
 };
+
+/** Gives the floor to the next waiting voice line once its file is decoded. */
+function pumpVoice() {
+  if (voiceActive && !voiceActive.finished) return;
+  voiceActive = null;
+  const next = voiceQueue[0];
+  if (!next || !next.buffer) {
+    // Nobody is speaking or about to: effects and beds come back up.
+    if (!next) setVoiceActive(false);
+    return;
+  }
+  voiceQueue.shift();
+  voiceActive = next;
+  setVoiceActive(true);
+  next.active = true;
+  next.startedWall = performance.now() / 1000;
+  next.voiceEnd = voiceHook?.(clean(next.url)) ?? undefined;
+  if (!next.held) startSource(next);
+}
 
 const startSource = (clip: LiveClip) => {
   if (!clip.buffer || clip.finished) return;
@@ -267,7 +398,19 @@ const startSource = (clip: LiveClip) => {
   source.buffer = clip.buffer;
   source.loop = clip.loop;
   source.playbackRate.value = clip.rate;
-  source.connect(clip.gain);
+  // Voice lines get an AnalyserNode so faceTalk can drive the jaw from amplitude.
+  if (clip.voice) {
+    const analyser = clip.analyser ?? clip.ctx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.35;
+    clip.analyser = analyser;
+    source.connect(analyser);
+    analyser.connect(clip.gain);
+    voiceAnalyser = analyser;
+    voiceMeterUrl = clip.url;
+  } else {
+    source.connect(clip.gain);
+  }
   const offset = clip.loop ? clip.offset % clip.buffer.duration : clip.offset;
   if (!clip.loop && offset >= clip.buffer.duration) {
     finish(clip, true);
@@ -299,19 +442,30 @@ const pauseSource = (clip: LiveClip) => {
 export const playClip = (
   url: string,
   volume: number,
-  options: { loop?: boolean; bus?: SoundBus; destination?: AudioNode; rate?: number; onEnded?: () => void; onError?: () => void } = {},
+  options: { loop?: boolean; bus?: SoundBus; destination?: AudioNode; rate?: number; world?: WorldOptions; onEnded?: () => void; onError?: () => void } = {},
 ): ClipHandle | null => {
   const ctx = getSharedAudioContext();
   if (!ctx) return null;
   const gain = ctx.createGain();
   gain.gain.value = clamp(volume);
-  gain.connect(options.destination ?? busInput(ctx, options.bus ?? 'sfx'));
+  const isVoice = !options.loop && options.bus !== 'music' && !options.destination && isVoiceUrl(url);
+  let graph: SourceHandle | null = null;
+  if (options.destination) {
+    gain.connect(options.destination);
+  } else {
+    // Everything else goes through the acoustic graph: the room, the position, the phone band, the duck.
+    const bus = options.bus ?? 'sfx';
+    const kind = bus === 'music' ? 'bed' : isPhoneUrl(url) ? 'phone' : isVoice ? 'voice' : 'effect';
+    graph = createSourceGraph(ctx, clean(url), kind, options.world, busInput(ctx, bus));
+    gain.connect(graph.input);
+  }
   const clip: LiveClip = {
     ctx,
     buffer: null,
     loop: options.loop === true,
     gain,
     source: null,
+    analyser: null,
     startedAt: 0,
     offset: 0,
     held: clipsHeld,
@@ -319,12 +473,24 @@ export const playClip = (
     finished: false,
     onEnded: options.onEnded,
     rate: options.rate ?? 1,
+    url: clean(url),
+    voice: isVoice,
+    graph,
+    active: false,
+    askedAt: performance.now() / 1000,
+    startedWall: 0,
+    cutAt: -1,
   };
-  clip.voiceEnd = voiceHook?.(clean(url)) ?? undefined;
+  if (clip.voice) voiceQueue.push(clip);
+  else clip.voiceEnd = voiceHook?.(clean(url)) ?? undefined;
   liveClips.add(clip);
   loadBuffer(clean(url), ctx).then((buffer) => {
     if (clip.finished) return;
     clip.buffer = buffer;
+    if (clip.voice) {
+      pumpVoice();
+      return;
+    }
     if (!clip.held) startSource(clip);
   }, () => {
     if (clip.finished) return;
@@ -346,6 +512,7 @@ export const playClip = (
     },
     stop: (fade = 0) => {
       if (clip.finished) return;
+      if (clip.source) clip.cutAt = ctx.currentTime - clip.startedAt;
       if (fade > 0 && clip.source) {
         const now = ctx.currentTime;
         gain.gain.cancelScheduledValues(now);

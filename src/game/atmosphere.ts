@@ -34,11 +34,13 @@ uniform mat4 world;
 uniform vec3 camPos;
 varying float vH;
 varying float vEdge;
+varying vec2 vUv;
 void main(void) {
   vec3 w = (world * vec4(position, 1.0)).xyz;
   vec3 n = normalize(mat3(world) * normal);
   vEdge = abs(dot(n, normalize(camPos - w)));
   vH = uv.y;
+  vUv = uv;
   gl_Position = worldViewProjection * vec4(position, 1.0);
 }
 `;
@@ -47,10 +49,29 @@ const BEAM_FRAG = /* glsl */ `
 precision highp float;
 varying float vH;
 varying float vEdge;
+varying vec2 vUv;
 uniform float beamI;
+uniform float time;
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
 void main(void) {
   float fall = pow(1.0 - vH, 1.35) * smoothstep(0.0, 0.1, vH);
-  float a = fall * (0.3 + 0.7 * pow(vEdge, 0.7)) * beamI;
+  // Soft additive dust scroll on every tier (no volumetric post required).
+  float scroll = noise(vec2(vUv.x * 6.0, vUv.y * 10.0 - time * 0.55));
+  float wisps = noise(vec2(vUv.x * 14.0 + time * 0.2, vUv.y * 3.0 - time * 0.9));
+  float mote = 0.72 + 0.28 * scroll + 0.18 * wisps;
+  float a = fall * (0.28 + 0.72 * pow(vEdge, 0.7)) * beamI * mote;
   if (a < 0.002) discard;
   gl_FragColor = vec4(vec3(1.0, 0.95, 0.86) * a, a);
 }
@@ -365,7 +386,7 @@ export const createAtmosphere = (scene: BABYLON.Scene, opts: AtmosphereOptions) 
     beamMesh.rotationQuaternion = new BABYLON.Quaternion();
     beamMat = new BABYLON.ShaderMaterial('atmo-beam', scene, { vertexSource: BEAM_VERT, fragmentSource: BEAM_FRAG }, {
       attributes: ['position', 'normal', 'uv'],
-      uniforms: ['worldViewProjection', 'world', 'camPos', 'beamI'],
+      uniforms: ['worldViewProjection', 'world', 'camPos', 'beamI', 'time'],
       needAlphaBlending: true,
     });
     beamMat.backFaceCulling = false;
@@ -435,7 +456,8 @@ export const createAtmosphere = (scene: BABYLON.Scene, opts: AtmosphereOptions) 
           beamMesh.position.copyFrom(spot.getAbsolutePosition());
           const dir = spot.direction.clone().normalize();
           BABYLON.Quaternion.FromUnitVectorsToRef(BABYLON.Vector3.Forward(), dir, beamMesh.rotationQuaternion!);
-          beamMat.setFloat('beamI', (opts.beam ?? 0) * Math.min(1.4, spot.intensity / 30));
+          beamMat.setFloat('beamI', (opts.beam ?? 0) * Math.min(1.55, spot.intensity / 30));
+          beamMat.setFloat('time', clock);
           beamMat.setVector3('camPos', cam);
         }
       }

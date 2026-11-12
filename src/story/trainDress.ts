@@ -1,6 +1,7 @@
 import * as BABYLON from '@babylonjs/core';
 
 import { detectDevice } from '../game/mobile';
+import { attachKeyShadow, KEY_SHADOW_GLSL, keyShadowShaderOptions } from '../render/keyShadow';
 import { Geo } from './city/geo';
 import { AD_COPY, paintAd } from './stationDress';
 
@@ -114,6 +115,7 @@ uniform float splatReady;
 uniform float glassPass;
 uniform vec3 doorOpen;
 uniform sampler2D atlas;
+${KEY_SHADOW_GLSL}
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -239,11 +241,15 @@ void main(void) {
     if (surf != ${SURF.WINDOW}.0) {
       discard;
     }
-    float fres = pow(1.0 - abs(dot(V, n)), 3.0);
+    // Dark-window interior reflection: ceiling strips + seat blue ghost over the tunnel.
+    float fres = pow(1.0 - abs(dot(V, n)), 2.6);
     vec3 R = reflect(-V, n);
-    float strip = smoothstep(0.55, 0.92, R.y) * 0.32;
-    vec3 glassCol = vec3(0.05, 0.06, 0.07) + vec3(0.88, 0.92, 0.90) * (fres * 0.48 + strip);
-    float alpha = clamp(0.14 + fres * 0.34 + strip * 0.45, 0.14, 0.58);
+    float strip = smoothstep(0.5, 0.95, R.y) * 0.42;
+    float seatGhost = smoothstep(0.15, 0.55, -R.y) * 0.22;
+    float fail = (vWorld.z < 0.0 && floor(vWorld.x / 1.5) == 7.0) ? flicker : 1.0;
+    vec3 interior = vec3(0.88, 0.92, 0.90) * strip * fail + vec3(0.18, 0.28, 0.55) * seatGhost;
+    vec3 glassCol = vec3(0.04, 0.05, 0.055) + interior * (0.55 + fres * 0.7);
+    float alpha = clamp(0.16 + fres * 0.38 + strip * 0.5, 0.16, 0.62);
     gl_FragColor = vec4(glassCol, alpha);
     return;
   }
@@ -308,7 +314,8 @@ void main(void) {
     emis = albedo * vColor.a;
   }
 
-  vec3 lit = albedo * lighting(n) + emis;
+  // Key-light contact shadow (src/render/keyShadow.ts) under Pierce and the riders.
+  vec3 lit = albedo * lighting(n) * keyShadow(vWorld + n * 0.02) + emis;
   if (gloss > 0.0) {
     vec3 R = reflect(-V, n);
     lit += vec3(0.9, 0.95, 0.92) * pow(max(R.y, 0.0), 14.0) * gloss * 0.35;
@@ -403,11 +410,14 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
   }
   atlas.update(true);
 
+  const keyShadow = keyShadowShaderOptions(scene);
   const material = new BABYLON.ShaderMaterial('train-dress', scene, { vertexSource: VERT, fragmentSource: FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
-    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'splatReady', 'glassPass', 'doorOpen'],
-    samplers: ['atlas'],
+    uniforms: ['worldViewProjection', 'cameraPos', 'scroll', 'speedN', 'time', 'flicker', 'platform', 'splatReady', 'glassPass', 'doorOpen', ...keyShadow.uniforms],
+    samplers: ['atlas', ...keyShadow.samplers],
+    defines: keyShadow.defines,
   });
+  attachKeyShadow(scene, material);
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas);
@@ -871,6 +881,11 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       material.setVector3('doorOpen', doorVec);
 
       glassMaterial.setVector3('cameraPos', camPos);
+      glassMaterial.setFloat('scroll', scroll);
+      glassMaterial.setFloat('speedN', speedN);
+      glassMaterial.setFloat('time', clock);
+      glassMaterial.setFloat('flicker', flicker);
+      glassMaterial.setFloat('platform', platform);
       glassMaterial.setVector3('doorOpen', doorVec);
 
       if (splatReady) {
@@ -927,6 +942,10 @@ export const createTrainDress = (scene: BABYLON.Scene) => {
       ads,
       windows,
       lampsPassed: Math.floor(scroll / LAMP_GAP),
+      /** Tunnel lamp period at current speed (s). Cruise 14 m/s / 11 m ≈ 0.79 s (≤ 3 s bar). */
+      lampPeriodSec: speed > 0.2 ? Math.round((LAMP_GAP / speed) * 100) / 100 : 99,
+      lampGap: LAMP_GAP,
+      flicker,
       speed: Math.round(speed * 10) / 10,
       roll: rollNow,
       platform: Math.round(platform * 100) / 100,

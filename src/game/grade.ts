@@ -1,67 +1,87 @@
 import * as BABYLON from '@babylonjs/core';
 
+import type { RenderPipeline } from '../render/pipeline';
+
 export type SceneGrade = {
   apply: (themeName: string) => void;
   /** Heightened contrast and saturation while Pierce is the changed body. */
   setPowers: (on: boolean) => void;
+  /**
+   * Quiet-chapter grade on the shared pipeline: desk night (one lamp), morning dawn,
+   * or null to clear. Applied after theme / powers.
+   */
+  setQuiet: (mode: 'desk' | 'morning' | null) => void;
   /** 0–1. Basement only: tighter red vignette and a darker exposure while the creature is close. */
   setFear: (amount: number) => void;
+  /** Apply the current theme again (after a graphics tier change resets the bloom caps). */
+  reapply: () => void;
   dispose: () => void;
 };
 
-const aces = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
-
 /**
- * Per-level color grade. SSAO is optional: some WebGL setups fail the depth prepass
- * and the scene should still render without it.
+ * Per-theme exposure, bloom, vignette and curves, applied to the one rendering pipeline (src/render/pipeline.ts),
+ * which owns the post stack, the chapter LUT, SSAO, shadows and the graphics tier.
  */
-export const createSceneGrade = (
-  scene: BABYLON.Scene,
-  cameras: BABYLON.Camera[],
-  options: { lowPower?: boolean } = {},
-): SceneGrade => {
-  // Phones and tablets: no SSAO and a smaller, narrower bloom. The grade and the vignette stay the same.
-  const lowPower = options.lowPower === true;
-  const pipeline = new BABYLON.DefaultRenderingPipeline('ph-grade', true, scene, cameras);
-  pipeline.fxaaEnabled = true;
-  pipeline.samples = 1;
-  pipeline.bloomEnabled = true;
-  pipeline.bloomThreshold = 0.72;
-  pipeline.bloomKernel = 42;
-  pipeline.bloomScale = 0.45;
-  pipeline.imageProcessingEnabled = true;
-  const image = pipeline.imageProcessing;
-  image.toneMappingEnabled = true;
-  image.toneMappingType = aces;
-  image.vignetteEnabled = true;
-  image.vignetteColor = new BABYLON.Color4(0, 0, 0, 0);
-  image.vignetteWeight = 2.4;
-  image.vignetteStretch = 0.4;
-  image.vignetteCameraFov = 0.7;
-
-  let ssao: BABYLON.SSAO2RenderingPipeline | null = null;
-  let ssaoAttached = false;
-  if (!lowPower) {
-    try {
-      ssao = new BABYLON.SSAO2RenderingPipeline('ph-ssao', scene, { ssaoRatio: 0.5, blurRatio: 0.5 }, cameras);
-      ssaoAttached = true;
-      ssao.radius = 1.35;
-      ssao.totalStrength = 0.72;
-      ssao.base = 0.18;
-      ssao.expensiveBlur = false;
-      ssao.samples = 8;
-    } catch (error) {
-      console.warn('SSAO unavailable', error);
-      ssao = null;
-    }
-  }
+export const createSceneGrade = (scene: BABYLON.Scene, render: RenderPipeline): SceneGrade => {
+  const pipeline = render.pipeline;
+  const image = render.image;
 
   let theme = '';
   let powers = false;
+  let quiet: 'desk' | 'morning' | null = null;
   let baseExposure = 1;
   let baseVignette = 2.2;
   const curves = new BABYLON.ColorCurves();
   image.colorCurves = curves;
+
+  const applyQuiet = () => {
+    if (quiet === 'desk') {
+      // One desk lamp in the dark: crush fill, warm midtones, deep vignette.
+      image.exposure = 0.78;
+      image.contrast = 1.22;
+      image.vignetteWeight = 3.4;
+      image.vignetteColor.set(0.02, 0.03, 0.06, 0);
+      pipeline.bloomWeight = 0.32;
+      pipeline.bloomThreshold = 0.42;
+      pipeline.bloomKernel = 36;
+      pipeline.bloomScale = 0.48;
+      curves.globalSaturation = -6;
+      curves.shadowsExposure = -28;
+      curves.highlightsExposure = 18;
+      curves.midtonesHue = 22;
+      curves.shadowsHue = 32;
+      image.colorCurvesEnabled = true;
+      paintHemiGround(0.02, 0.03, 0.06);
+      scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+      scene.fogColor = new BABYLON.Color3(0.02, 0.025, 0.05);
+      scene.fogStart = 8;
+      scene.fogEnd = 42;
+      render.setSsao({ wanted: true, strength: 0.55, radius: 1.1 });
+    } else if (quiet === 'morning') {
+      // Grey-gold dawn: soft contrast, warm highlights, open vignette.
+      image.exposure = 1.08;
+      image.contrast = 1.06;
+      image.vignetteWeight = 1.35;
+      image.vignetteColor.set(0.08, 0.06, 0.04, 0);
+      pipeline.bloomWeight = 0.22;
+      pipeline.bloomThreshold = 0.55;
+      pipeline.bloomKernel = 40;
+      pipeline.bloomScale = 0.46;
+      curves.globalSaturation = 8;
+      curves.highlightsHue = 18;
+      curves.midtonesHue = 14;
+      curves.shadowsHue = 8;
+      curves.highlightsExposure = 10;
+      curves.shadowsExposure = 12;
+      image.colorCurvesEnabled = true;
+      paintHemiGround(0.28, 0.24, 0.18);
+      scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+      scene.fogColor = new BABYLON.Color3(0.42, 0.4, 0.38);
+      scene.fogStart = 18;
+      scene.fogEnd = 70;
+      render.setSsao({ wanted: true, strength: 0.32, radius: 0.95 });
+    }
+  };
 
   const apply = (themeName: string) => {
     theme = themeName;
@@ -134,6 +154,8 @@ export const createSceneGrade = (
       image.colorCurvesEnabled = true;
       liftFill(1.15, 0.32);
       paintHemiGround(0.78, 0.82, 0.76);
+      // The Return: bright halls, linear fog (horror B3 uses exp2; do not keep that density here).
+      scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
       scene.fogColor = new BABYLON.Color3(0.05, 0.07, 0.055);
       scene.fogStart = 22;
       scene.fogEnd = 86;
@@ -168,28 +190,19 @@ export const createSceneGrade = (
       image.colorCurvesEnabled = true;
       if (apex) liftFill(1.9, 0.55);
     }
-    if (lowPower) {
-      pipeline.bloomKernel = Math.min(pipeline.bloomKernel, 24);
-      pipeline.bloomScale = Math.min(pipeline.bloomScale, 0.3);
-    }
+    render.capBloom();
     baseExposure = image.exposure;
     baseVignette = image.vignetteWeight;
-    if (ssao) {
-      const manager = scene.postProcessRenderPipelineManager;
-      if (apex && ssaoAttached) {
-        manager.detachCamerasFromRenderPipeline(ssao.name, cameras);
-        ssaoAttached = false;
-      } else if (!apex && !ssaoAttached) {
-        manager.attachCamerasToRenderPipeline(ssao.name, cameras);
-        ssaoAttached = true;
-      }
-      if (powers) {
-        ssao.totalStrength = basement ? 0.16 : 0.38;
-        ssao.radius = 1.05;
-      } else {
-        ssao.totalStrength = basement ? 0.95 : 0.7;
-        ssao.radius = basement ? 1.6 : 1.25;
-      }
+    // Contact AO everywhere on the high tier; the office keeps it gentle (bright, wide rooms), the basement deep.
+    if (powers) render.setSsao({ wanted: true, strength: basement ? 0.16 : 0.38, radius: 1.05 });
+    else if (apex) render.setSsao({ wanted: true, strength: 0.5, radius: 0.9 });
+    else render.setSsao({ wanted: true, strength: basement ? 0.95 : 0.7, radius: basement ? 1.6 : 1.25 });
+    // Quiet chapters override the theme look last (desk night, morning dawn).
+    if (quiet) {
+      applyQuiet();
+      render.capBloom();
+      baseExposure = image.exposure;
+      baseVignette = image.vignetteWeight;
     }
   };
 
@@ -211,6 +224,12 @@ export const createSceneGrade = (
     if (theme) apply(theme);
   };
 
+  const setQuiet = (mode: 'desk' | 'morning' | null) => {
+    if (quiet === mode) return;
+    quiet = mode;
+    if (theme) apply(theme);
+  };
+
   const setFear = (amount: number) => {
     if (theme !== 'B3 Basement') return;
     const t = Math.max(0, Math.min(1, amount));
@@ -222,10 +241,11 @@ export const createSceneGrade = (
   return {
     apply,
     setPowers,
+    setQuiet,
     setFear,
-    dispose: () => {
-      pipeline.dispose();
-      ssao?.dispose();
+    reapply: () => {
+      if (theme) apply(theme);
     },
+    dispose: () => render.dispose(),
   };
 };

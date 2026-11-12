@@ -6,14 +6,27 @@ import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import type { Store, WalkPath } from './city/layout';
 import { pointAt } from './city/math2';
+import type { GraphicsTier } from '../render/pipeline';
 import { createTraffic, type Traffic } from './city/traffic';
 import { createCityWorld, type CityWorld } from './city/world';
 import { CITY_NEAR } from './city/cityView';
+import { createRainNight, type RainNight } from './city/rainNight';
 import { deathScream, SHOP_LINE, STREET_BARKS, STREET_SFX, STREET_TALKS, streetCopy as resolveStreet, type StreetLine } from './streetAudio';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
+import { createPoliceCar, type PoliceCar } from './policeCar';
+import { SIREN_KILLS, SIREN_SFX, SIREN_WITHIN, type LedgerApi } from '../game/ledger';
 import { createTutorial, PROMPTS, type Power, type Prompt, type Step } from './streetTutorial';
+import {
+  createCrowdReact,
+  NOTICE_HOLD,
+  NOTICE_RANGE,
+  rollAfterNotice,
+  type CrowdStage,
+} from './crowdReact';
 
 export type GoingHomeHost = {
+  /** The street ledger on the save: kills, possessions, consumes, witnesses, reported. */
+  ledger: LedgerApi;
   scene: BABYLON.Scene;
   camera: BABYLON.Camera;
   running: () => boolean;
@@ -23,6 +36,18 @@ export type GoingHomeHost = {
   resumeLocomotion: () => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'lobby-scream',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   fade: (to: number, seconds?: number) => void;
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
@@ -45,6 +70,8 @@ export type GoingHomeHost = {
   leftHand: () => { x: number; y: number; z: number } | null;
   holster: () => void;
   shedShadow: (x: number, z: number) => void;
+  /** Signature effect hook (powerFx): a shock landed on, or a punch/kick swung at, a point. */
+  power?: (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => void;
   pushPhoneText: (id: string) => void;
   ability: () => 'shock' | 'possess';
   /** Select a street ability (the lesson hands it over when the power unlocks). */
@@ -53,6 +80,8 @@ export type GoingHomeHost = {
   unlock: (power: Power) => void;
   /** The tutorial logs a step (probe and analytics read it). */
   stepLogged: (power: Power, step: Step, setup: string, seconds: number) => void;
+  /** Live graphics tier (Low caps rain; High enables SSR when available). */
+  graphicsTier?: () => GraphicsTier;
 };
 
 const HOME = { x: 163.5, z: 21.2 };
@@ -135,6 +164,13 @@ type Person = {
   focus?: number;
   /** Sent running so the crowd lesson's twist can show them losing him. */
   bait?: boolean;
+  /** Staged reaction to Shadow Pierce (notice → panic / film / cower). */
+  react?: CrowdStage | null;
+  /** Seconds left in the current reaction stage. */
+  reactLeft?: number;
+  /** Cover spot for cower (doorway / corner offset). */
+  coverX?: number;
+  coverZ?: number;
 };
 
 type Pose = { t: number; x: number; z: number; yaw: number };
@@ -199,6 +235,15 @@ export const createGoingHome = (host: GoingHomeHost) => {
   let finished = false;
   let policeWaves = 0;
   let policeLine = false;
+  // The city's answer to what the ledger holds (docs/story/ledger.md).
+  let heatClock = 0;
+  let killSeenAt = -1;
+  let sirenAt = -1;
+  let carDueAt = -1;
+  let carSpawnedAt = -1;
+  let carArrivedAt = -1;
+  let policeCar: PoliceCar | null = null;
+  let witnessed = new Set<Person>();
   let shoutLeft = 0;
   let skipStreet = false;
   let tether: Person | null = null;
@@ -220,6 +265,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
   const WALKERS = mobile ? 9 : 16;
   let world: CityWorld | null = null;
   let traffic: Traffic | null = null;
+  let rainDress: RainNight | null = null;
   let stores: Store[] = [];
   let savedMaxZ = 0;
   let savedMinZ = 0;
@@ -229,6 +275,14 @@ export const createGoingHome = (host: GoingHomeHost) => {
   let chatterLeft = 0;
   let chatterNext: { title: string; line: StreetLine } | null = null;
   let insideShop = '';
+  const crowd = createCrowdReact({
+    scene: host.scene,
+    playFile: host.playFile,
+    showLine: (title, text) => {
+      host.showLine(title, text);
+      shoutLeft = Math.max(shoutLeft, 1.8);
+    },
+  });
 
   const shouldShow = (person: Person, dist: number) => {
     if (person === tether) return true;
@@ -369,10 +423,178 @@ export const createGoingHome = (host: GoingHomeHost) => {
       rejoin: false,
       lift: 0,
       idle: 0,
+      react: null,
+      reactLeft: 0,
     };
     face(person, yaw);
     people.push(person);
     return person;
+  };
+
+  /** Start or advance a civilian's reaction to Shadow Pierce. */
+  const beginReact = (person: Person, stage: CrowdStage, streetT: number) => {
+    if (person.role === 'police' || person.role === 'hostile' || person.role === 'desk') return;
+    if (person.mood === 'down' || person === tether) return;
+    if (!crowd.canAnimate() && !person.react) return;
+    const id = person.mesh.name;
+    const fresh = crowd.noteWitness(id, streetT);
+    person.react = stage;
+    if (stage === 'notice') {
+      person.reactLeft = NOTICE_HOLD + Math.random() * 0.4;
+      person.mood = 'stagger';
+      person.stagger = person.reactLeft;
+      face(person, Math.atan2(host.player().x - person.mesh.position.x, host.player().z - person.mesh.position.z));
+      // Step back a half metre.
+      const dx = person.mesh.position.x - host.player().x;
+      const dz = person.mesh.position.z - host.player().z;
+      const len = Math.hypot(dx, dz) || 1;
+      const nx = person.mesh.position.x + (dx / len) * 0.55;
+      const nz = person.mesh.position.z + (dz / len) * 0.55;
+      const to = world ? world.resolve(nx, nz, 0.36) : { x: nx, z: nz };
+      person.mesh.position.x = to.x;
+      person.mesh.position.z = to.z;
+      if (fresh && crowd.say('notice', 0.7)) crowd.noteVoicedInWindow(streetT);
+      crowd.playStageClip(person.avatar, 'notice', false);
+    } else if (stage === 'panic') {
+      person.reactLeft = 3.2 + Math.random() * 1.4;
+      person.mood = 'flee';
+      person.screamed = true;
+      crowd.markPanic();
+      if (crowd.say('panic', 0.78)) crowd.noteVoicedInWindow(streetT);
+      crowd.dropCarry(id, person.mesh.position.x, person.floorY || 0, person.mesh.position.z);
+      crowd.playStageClip(person.avatar, 'panic', true);
+      if (person.avatar.hasClip('yellingout')) person.avatar.playClip('yellingout', true);
+    } else if (stage === 'film') {
+      person.reactLeft = 4.5 + Math.random() * 2;
+      person.mood = 'stagger';
+      person.stagger = person.reactLeft;
+      crowd.raisePhone(id, person.avatar);
+      if (crowd.say('film', 0.68)) crowd.noteVoicedInWindow(streetT);
+      crowd.playStageClip(person.avatar, 'film', false);
+      face(person, Math.atan2(host.player().x - person.mesh.position.x, host.player().z - person.mesh.position.z));
+    } else if (stage === 'cower') {
+      person.reactLeft = 5 + Math.random() * 2;
+      person.mood = 'stagger';
+      person.stagger = person.reactLeft;
+      // Cover: offset toward the nearest building face / curb (away from Pierce, against the path edge).
+      const dx = person.mesh.position.x - host.player().x;
+      const dz = person.mesh.position.z - host.player().z;
+      const len = Math.hypot(dx, dz) || 1;
+      const cx = person.mesh.position.x + (dx / len) * 2.2;
+      const cz = person.mesh.position.z + (dz / len) * 2.2 + (Math.random() < 0.5 ? -1.1 : 1.1);
+      const to = world ? world.resolve(cx, cz, 0.36) : { x: cx, z: cz };
+      person.coverX = to.x;
+      person.coverZ = to.z;
+      crowd.markCower();
+      if (crowd.say('cower', 0.62)) crowd.noteVoicedInWindow(streetT);
+      crowd.playStageClip(person.avatar, 'cower', false);
+    }
+  };
+
+  /** Stir nearby civilians when Shadow is on. */
+  const stirCrowd = (here: { x: number; z: number }, streetT: number, dt: number) => {
+    if (!shadowOn || playing || finished) {
+      crowd.countReacting(0);
+      return;
+    }
+    crowd.markShadow(true, streetT);
+    let live = 0;
+    for (const person of people) {
+      if (person.react) live += 1;
+    }
+    crowd.countReacting(live);
+    // Seed new reactors.
+    const candidates = people
+      .filter((person) => {
+        if (!person.shown || person.mood === 'down' || person === tether) return false;
+        if (person.react) return false;
+        if (person.role === 'police' || person.role === 'hostile' || person.role === 'desk') return false;
+        const dist = Math.hypot(person.mesh.position.x - here.x, person.mesh.position.z - here.z);
+        return dist < NOTICE_RANGE;
+      })
+      .sort((a, b) => {
+        const da = Math.hypot(a.mesh.position.x - here.x, a.mesh.position.z - here.z);
+        const db = Math.hypot(b.mesh.position.x - here.x, b.mesh.position.z - here.z);
+        return da - db;
+      });
+    for (const person of candidates) {
+      if (!crowd.canAnimate()) break;
+      beginReact(person, 'notice', streetT);
+      crowd.countReacting(people.filter((p) => p.react).length);
+    }
+    // Advance stages.
+    for (const person of people) {
+      if (!person.react) continue;
+      person.reactLeft = (person.reactLeft ?? 0) - dt;
+      if (person.react === 'notice' && person.reactLeft <= 0) {
+        crowd.dropPhone(person.mesh.name);
+        beginReact(person, rollAfterNotice(), streetT);
+        continue;
+      }
+      if (person.react === 'film') {
+        face(person, Math.atan2(here.x - person.mesh.position.x, here.z - person.mesh.position.z));
+      }
+      if (person.react === 'cower' && person.coverX != null && person.coverZ != null) {
+        const dx = person.coverX - person.mesh.position.x;
+        const dz = person.coverZ - person.mesh.position.z;
+        const d = Math.hypot(dx, dz);
+        if (d > 0.25) {
+          const step = Math.min(d, 2.2 * dt);
+          let nx = person.mesh.position.x + (dx / d) * step;
+          let nz = person.mesh.position.z + (dz / d) * step;
+          if (world) {
+            const to = world.resolve(nx, nz, 0.36);
+            nx = to.x;
+            nz = to.z;
+          }
+          person.mesh.position.x = nx;
+          person.mesh.position.z = nz;
+          face(person, Math.atan2(dx, dz));
+          person.moving = true;
+        } else {
+          person.moving = false;
+          crowd.playStageClip(person.avatar, 'cower', false);
+          face(person, Math.atan2(here.x - person.mesh.position.x, here.z - person.mesh.position.z) + Math.PI);
+        }
+      }
+      if (person.reactLeft <= 0 && person.react !== 'notice') {
+        crowd.dropPhone(person.mesh.name);
+        // After panic they lose him (tutorial twist still lands on bait).
+        if (person.react === 'panic') {
+          person.mood = 'lost';
+          person.lost = 2.4 + Math.random() * 1.2;
+          if (person.bait && tut.power() === 'shadow') logStep('shadow', 'twist');
+        } else {
+          person.mood = 'lost';
+          person.lost = 1.6 + Math.random() * 0.8;
+        }
+        person.react = null;
+        person.reactLeft = 0;
+        person.avatar.resumeLocomotion();
+      }
+    }
+  };
+
+  const callCompanion = (victim: Person) => {
+    const vx = victim.mesh.position.x;
+    const vz = victim.mesh.position.z;
+    let best: Person | null = null;
+    let bestD = 6.5;
+    for (const other of people) {
+      if (other === victim || other === tether || !other.shown || other.mood === 'down') continue;
+      if (other.role === 'police' || other.role === 'hostile') continue;
+      const d = Math.hypot(other.mesh.position.x - vx, other.mesh.position.z - vz);
+      if (d < bestD) {
+        bestD = d;
+        best = other;
+      }
+    }
+    if (!best) return;
+    crowd.markCompanion();
+    crowd.say('companion', 0.8);
+    face(best, Math.atan2(vx - best.mesh.position.x, vz - best.mesh.position.z));
+    best.mood = 'stagger';
+    best.stagger = 1.4;
   };
 
   const slideDoors = (open: number) => {
@@ -770,6 +992,52 @@ export const createGoingHome = (host: GoingHomeHost) => {
     if (backToStreet && !finished) showStreet();
   };
 
+  /** A bystander died by the Shadow's hand: the ledger counts it, anyone close saw it and runs, and past SIREN_KILLS the city answers. */
+  const noteKill = (person: Person) => {
+    if (person.role !== 'walk' && person.role !== 'shop' && person.role !== 'desk') return;
+    const at = person.mesh.position;
+    host.ledger.add('kills');
+    for (const other of people) {
+      if (other === person || other === tether || !other.shown || other.mood === 'down' || witnessed.has(other)) continue;
+      if (other.role !== 'walk' && other.role !== 'shop' && other.role !== 'desk') continue;
+      if (Math.hypot(other.mesh.position.x - at.x, other.mesh.position.z - at.z) > 16) continue;
+      witnessed.add(other);
+      host.ledger.add('witnesses');
+      if (other.mood === 'calm') other.mood = 'flee';
+      if (!other.screamed) {
+        other.screamed = true;
+        host.playFile(lineAudio('shout.street.pedestrian', PEDESTRIAN), 0.6);
+      }
+    }
+    if (killSeenAt < 0) killSeenAt = heatClock;
+    if (sirenAt < 0 && host.ledger.get().kills >= SIREN_KILLS) {
+      sirenAt = heatClock;
+      carDueAt = heatClock + 3;
+      host.playFile(SIREN_SFX, 0.55);
+    }
+  };
+
+  /** Two kills bring the siren, then the car about ten seconds on: it comes in along the avenue and two officers step out. */
+  const stepHeat = (dt: number, here: { x: number; z: number }) => {
+    heatClock += dt;
+    if (carDueAt >= 0 && !policeCar && heatClock >= carDueAt) {
+      carDueAt = -1;
+      carSpawnedAt = heatClock;
+      const stop = { x: here.x + 14, z: 29.2 };
+      policeCar = createPoliceCar(host.scene, { x: here.x - 120, z: 29.2 }, stop, () => {
+        carArrivedAt = heatClock;
+        host.playFile(SIREN_SFX, 0.7);
+        policeWaves += 1;
+        const at = policeCar?.position() ?? stop;
+        spawnPolice(at.x - 3.2, 26.6, 0);
+        spawnPolice(at.x + 3.0, 26.4, 1);
+        host.showLine(lineSpeaker('shout.street.police', 'Police'), lineText('shout.street.police', 'Stop! Stay where you are!'));
+        host.playFile(lineAudio('shout.street.police', POLICE_SHOUT), 0.9);
+      });
+    }
+    policeCar?.step(dt);
+  };
+
   const layDown = (person: Person, shocked: boolean) => {
     if (person.mood === 'down') return;
     person.hp = 0;
@@ -786,6 +1054,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
     const kind = person.role === 'police' ? 'police' : person.role === 'desk' || person.role === 'shop' ? 'woman' : 'man';
     host.playFile(deathScream(kind), 0.72);
     if (person.keeperOf) keeperDown(person);
+    noteKill(person);
   };
 
   const bury = (person: Person) => {
@@ -799,6 +1068,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
     playing = false;
     clip = '';
     host.holdScene(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     host.showLine('', '');
     host.setWalk(false);
@@ -847,6 +1117,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
     streetTime = 0;
     host.fade(0, 0.4);
     host.holdScene(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     const nearStairs = new URLSearchParams(location.search).get('at') === 'stairs';
     host.placePierce(nearStairs ? 150 : STREET.x, STREET.z, STREET.yaw);
@@ -957,8 +1228,12 @@ export const createGoingHome = (host: GoingHomeHost) => {
     person.mood = 'calm';
     person.stagger = 0;
     person.attack = 0;
+    person.react = null;
+    crowd.dropPhone(person.mesh.name);
     ensureBeads();
+    host.ledger.add('possessions');
     host.playFile(STREET_SFX.possess, 0.4);
+    callCompanion(person);
     if (tut.power() === 'possess' && person.keeperOf === 'tape') logStep('possess', 'safe');
     if (tut.power() === 'consume' && person.keeperOf === 'station') logStep('consume', 'safe');
     showStreet();
@@ -1003,6 +1278,28 @@ export const createGoingHome = (host: GoingHomeHost) => {
     setTowerCut: (floors: number) => world?.setTowerCut(floors),
     objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'home'),
     playing: () => playing,
+    /** Playtest setup shortcut: hand over Shock without its lesson, so a run can reach the ledger's kills. */
+    grantShock: () => {
+      tut.force('shock');
+      host.unlock('shock');
+      host.setAbility('shock');
+      showStreet();
+    },
+    /** What the city did about the ledger, for the playtest probe. Seconds are street time. */
+    heat: () => ({
+      kills: host.ledger.get().kills,
+      sirenAt,
+      carSpawnedAt,
+      carArrivedAt,
+      sirenToCarSeconds: sirenAt >= 0 && carArrivedAt >= 0 ? carArrivedAt - sirenAt : -1,
+      carActive: Boolean(policeCar),
+      witnesses: witnessed.size,
+      withinSeconds: SIREN_WITHIN,
+    }),
+    /** Rain-slick night dress (probe `rainNight()`): neon, rain, puddles, steam, flares. */
+    rainNight: () => (active && rainDress ? rainDress.stats() : null),
+    /** Staged Shadow crowd reactions (probe `crowd()`): witnesses, voices, filmers. */
+    crowd: () => crowd.stats(),
     skip: () => {
       if (active && playing && !finished) handoff();
     },
@@ -1015,6 +1312,17 @@ export const createGoingHome = (host: GoingHomeHost) => {
     mount: async () => {
       active = true;
       finished = false;
+      host.ledger.reset();
+      crowd.reset();
+      heatClock = 0;
+      killSeenAt = -1;
+      sirenAt = -1;
+      carDueAt = -1;
+      carSpawnedAt = -1;
+      carArrivedAt = -1;
+      witnessed = new Set();
+      policeCar?.dispose();
+      policeCar = null;
       policeWaves = 0;
       policeLine = false;
       resetLesson();
@@ -1053,6 +1361,13 @@ export const createGoingHome = (host: GoingHomeHost) => {
       makeGate('station', 'asset-ch23-npc');
       traffic = createTraffic(host.scene, world, mobile ? 9 : 16);
       traffic.mount(bootX, STREET.z);
+      rainDress?.dispose();
+      rainDress = createRainNight(host.scene, {
+        tier: () => host.graphicsTier?.() ?? 'high',
+        playerAt: () => (active ? host.player() : null),
+        parent: world.root(),
+        mobile,
+      });
       for (const person of people) {
         const dist = Math.hypot(person.mesh.position.x - bootX, person.mesh.position.z - STREET.z);
         person.shown = !shouldShow(person, dist);
@@ -1087,8 +1402,12 @@ export const createGoingHome = (host: GoingHomeHost) => {
       gates.length = 0;
       for (const node of disposers) node.dispose(false, true);
       disposers.length = 0;
+      policeCar?.dispose();
+      policeCar = null;
       traffic?.dispose();
       traffic = null;
+      rainDress?.dispose();
+      rainDress = null;
       world?.dispose();
       world = null;
       stores = [];
@@ -1180,13 +1499,14 @@ export const createGoingHome = (host: GoingHomeHost) => {
       trailTo.set(best.mesh.position.x, best.mesh.position.y, best.mesh.position.z);
       trailLeft = 0.55;
       ensureBeads();
+      host.ledger.add('consumes');
       layDown(best, false);
       const atX = best.mesh.position.x;
       const atZ = best.mesh.position.z;
       if (tut.power() === 'consume') logStep('consume', 'harder');
       releaseLink(false);
       watchDeath(atX, atZ);
-      host.playFile(STREET_SFX.consume, 0.46);
+      if (!host.power) host.playFile(STREET_SFX.consume, 0.46);
       host.playFile(STREET_SFX.death, 0.32);
       shake = 0.22;
       showStreet();
@@ -1215,7 +1535,24 @@ export const createGoingHome = (host: GoingHomeHost) => {
       trailLeft = 0;
       hideBeads();
       host.playFile(shadowOn ? STREET_SFX.shadowOn : STREET_SFX.shadowOff, 0.4);
-      if (shadowOn) host.holster();
+      if (shadowOn) {
+        host.holster();
+        crowd.markShadow(true, streetTime);
+        stirCrowd(host.player(), streetTime, 0.05);
+      } else {
+        crowd.markShadow(false, streetTime);
+        for (const person of people) {
+          if (!person.react) continue;
+          crowd.dropPhone(person.mesh.name);
+          person.react = null;
+          person.reactLeft = 0;
+          if (person.mood === 'stagger' || person.mood === 'flee') {
+            person.mood = 'lost';
+            person.lost = 1.2;
+          }
+          person.avatar.resumeLocomotion();
+        }
+      }
       if (shadowOn && tut.power() === 'shadow' && tut.started()) logStep('shadow', 'safe');
       showStreet();
       return shadowOn;
@@ -1249,6 +1586,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
         const wasPolice = target.role === 'police';
         layDown(target, true);
         host.shedShadow(target.mesh.position.x, target.mesh.position.z);
+        host.power?.({ kind: 'shock', hit: true, x: target.mesh.position.x, y: target.mesh.position.y + 1.2, z: target.mesh.position.z });
         if (wasPolice && tut.power() === 'shock') {
           pairDown += 1;
           if (pairDown === 1) {
@@ -1271,7 +1609,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
         }
       }
       if (!hit) return false;
-      host.playFile(STREET_SFX.shock, 0.5);
+      if (!host.power) host.playFile(STREET_SFX.shock, 0.5);
       shoveLeft = 1.35;
       shake = 0.18;
       host.playClip('shadowshock', false, 1, () => {
@@ -1315,7 +1653,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
         }
       }
       meleeLeft = 0.85;
-      host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
+      host.power?.({ kind, hit: !!best, x: best ? best.mesh.position.x : here.x + camX, y: (best ? best.mesh.position.y : 0) + 1.2, z: best ? best.mesh.position.z : here.z + camZ });
+      if (!host.power) host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
       host.playClip(kind, false, 1, () => {
         if (active && !playing && !finished) host.resumeLocomotion();
       });
@@ -1377,11 +1716,31 @@ export const createGoingHome = (host: GoingHomeHost) => {
         const moving = Math.hypot(pb.x - pa.x, pb.z - pa.z) > 0.2 && pt < 0.98 && time > 2.5 && time < 35.2;
         host.placePierce(x, z, yaw);
         setClip(moving ? 'walk' : 'idle', moving);
-        const [sa, sb, st] = sample(SHOTS, time);
-        host.frameCamera(
-          { x: lerp(sa.cx, sb.cx, st), y: lerp(sa.cy, sb.cy, st), z: lerp(sa.cz, sb.cz, st) },
-          { x: lerp(sa.lx, sb.lx, st), y: lerp(sa.ly, sb.ly, st), z: lerp(sa.lz, sb.lz, st) },
-        );
+        if (host.stepCineScene) {
+          const lobbySpeaker = time >= 13.0 ? 'Pierce' : 'Receptionist';
+          const lobbyLine = time >= 13.2
+            ? 'dialogue.home.not-up'
+            : time >= 8.8
+              ? 'dialogue.home.police'
+              : time >= 6.2
+                ? 'dialogue.home.scream'
+                : 'lobby.walk';
+          const lobbySpeakerPos = time >= 13.0
+            ? { x, y: 1.44, z }
+            : { x: 3.8, y: 1.40, z: 4.2 };
+          host.stepCineScene('lobby-scream', time, dt, {
+            applyCamera: true,
+            speaker: lobbySpeaker,
+            lineKey: lobbyLine,
+            speakerPosOverride: lobbySpeakerPos,
+          });
+        } else {
+          const [sa, sb, st] = sample(SHOTS, time);
+          host.frameCamera(
+            { x: lerp(sa.cx, sb.cx, st), y: lerp(sa.cy, sb.cy, st), z: lerp(sa.cz, sb.cz, st) },
+            { x: lerp(sa.lx, sb.lx, st), y: lerp(sa.ly, sb.ly, st), z: lerp(sa.lz, sb.lz, st) },
+          );
+        }
         if (!screamed && time >= 6.2) {
           screamed = true;
           say(lineSpeaker('dialogue.home.scream', 'Receptionist'), lineText('dialogue.home.scream', 'Ah! Oh my god!'), lineAudio('dialogue.home.scream', SCREAM), 0.92, 2.4);
@@ -1401,6 +1760,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
         streetTime += dt;
         tut.tick(dt);
         stepLesson(dt, here0);
+        stepHeat(dt, here0);
+        if (shadowOn) stirCrowd(here0, streetTime, dt);
         refreshPrompt();
         const shopNow = shopHere();
         if (shopNow && shopNow !== insideShop) host.playFile(STREET_SFX.bell, 0.32);
@@ -1425,6 +1786,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       linkTime += dt;
       const here = host.player();
       world?.step(here.x, here.z, dt);
+      rainDress?.step(dt);
       recycleWait -= dt;
       if (recycleWait <= 0 && !playing) {
         recycleWait = 0.5;
@@ -1490,8 +1852,29 @@ export const createGoingHome = (host: GoingHomeHost) => {
           tetherMove = { x: 0, z: 0 };
           continue;
         }
-        if (shadowOn && person !== tether && (person.mood === 'chase' || person.mood === 'flee') && !(person.focus && person.focus > 0)) {
-          if (person.bait && tut.power() === 'shadow') logStep('shadow', 'twist');
+        // Chase loses him in Shadow; staged panic/film/cower keep reacting until their stage ends.
+        if (
+          shadowOn
+          && person !== tether
+          && !person.react
+          && person.mood === 'chase'
+          && !(person.focus && person.focus > 0)
+        ) {
+          person.mood = 'lost';
+          person.lost = 2.8 + Math.random() * 1.2;
+          person.attack = 0;
+          person.stagger = 0;
+        }
+        // Unshadowed flee that started before Shadow still goes lost (tutorial bait).
+        if (
+          shadowOn
+          && person !== tether
+          && !person.react
+          && person.mood === 'flee'
+          && person.bait
+          && !(person.focus && person.focus > 0)
+        ) {
+          if (tut.power() === 'shadow') logStep('shadow', 'twist');
           person.mood = 'lost';
           person.lost = 2.8 + Math.random() * 1.2;
           person.attack = 0;
@@ -1507,7 +1890,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
                 : 'calm';
           }
         }
-        if (!shadowOn && seen && person.mood === 'calm' && person.skittish && (person.role === 'walk' || person.role === 'shop') && dist < 2.4) {
+        const nervous = host.ledger.get().kills >= SIREN_KILLS;
+        if (!shadowOn && seen && person.mood === 'calm' && (person.skittish || nervous) && (person.role === 'walk' || person.role === 'shop') && dist < (nervous ? 7 : 2.4)) {
           person.mood = 'flee';
           if (!person.screamed) {
             person.screamed = true;
@@ -1598,6 +1982,14 @@ export const createGoingHome = (host: GoingHomeHost) => {
           const step = Math.min(len, speed * dt);
           let nx = person.mesh.position.x + (mx / len) * step;
           let nz = person.mesh.position.z + (mz / len) * step;
+          if (person.react || person.mood === 'flee' || person.mood === 'chase') {
+            const others = people
+              .filter((o) => o !== person && o.shown && o.mood !== 'down')
+              .map((o) => ({ x: o.mesh.position.x, z: o.mesh.position.z }));
+            const push = crowd.separate({ x: nx, z: nz }, others);
+            nx += push.x;
+            nz += push.z;
+          }
           if (world && person.mood !== 'calm') {
             const to = world.resolve(nx, nz, 0.36);
             nx = to.x;

@@ -1,4 +1,5 @@
 import * as BABYLON from '@babylonjs/core';
+import { music } from '../game/musicDirector';
 
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { TRANSFORM_HERO_ASSET_ID } from '../game/modelLoader';
@@ -27,6 +28,18 @@ export type DeskHost = {
   playClip: (clip: string, loop: boolean, speed?: number) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'mirror',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   /** Keep the follow camera's heading fixed (the stick walks relative to it). */
   faceCamera: (yaw: number) => void;
   fade: (to: number, seconds?: number) => void;
@@ -170,6 +183,7 @@ export const createTheDesk = (host: DeskHost) => {
   let desk = { ...DESK_TOP_FALLBACK };
   let arriveT = 0;
   let sweepT = 0;
+  let deskHit = false;
   let idleSince = 0;
   let sweptAt = -1;
   let goingAt = -1;
@@ -552,6 +566,7 @@ export const createTheDesk = (host: DeskHost) => {
           const url = prop.sound === 'crash' ? DESK_SFX.crash : prop.sound === 'impact' ? DESK_SFX.impact : DESK_SFX.land;
           heard(prop.sound === 'land' ? 'paper-land' : prop.sound === 'impact' ? 'desk-impact' : 'terminal-crash', url, prop.sound === 'land' ? 0.45 : 0.7, nextRate());
           deskStats.off = countOff();
+          if (!deskHit && deskStats.off > 0) { deskHit = true; music.stinger('desk-papers'); }
           if (prop.id === 'terminal') deskStats.terminalOff = true;
         }
       }
@@ -717,6 +732,12 @@ export const createTheDesk = (host: DeskHost) => {
     host.faceCamera(MIRROR.yaw);
     if (!doubleShown && doubleReady) showDouble(true);
     mirrorCamera(here.x, here.z);
+    host.stepCineScene?.('mirror', beatT, dt, {
+      applyCamera: false,
+      speaker: 'Pierce',
+      lineKey: thatsMeAt >= 0 ? 'dialogue.return.mirror' : turnT >= 0 ? 'desk.mirror.turn' : 'desk.mirror.breath',
+      speakerPosOverride: { x: here.x, y: 1.46, z: here.z },
+    });
     const ramp = smooth((beatT - LAG_RAMP_FROM) / LAG_RAMP_FOR);
     lag = turnedAt >= 0 && beatT > turnedAt + 2.4
       ? Math.max(0, lag - dt * 0.6)
@@ -762,6 +783,7 @@ export const createTheDesk = (host: DeskHost) => {
       quiet(false);
       headAngle = 0;
       showDouble(false);
+      host.endCineScene?.(false);
       host.releaseCamera();
       phase = 'walk';
       clock = 0;
@@ -965,6 +987,7 @@ export const createTheDesk = (host: DeskHost) => {
           host.fade(0, 0.6);
           say(lineSpeaker('dialogue.desk.still', 'Pierce Hawkes'), lineText('dialogue.desk.still'), lineAudio('dialogue.desk.still', STILL), 0.92, 4.8);
           phase = 'sweep';
+          deskHit = false;
           sweepT = 0;
           idleSince = clock;
         }

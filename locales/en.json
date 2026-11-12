@@ -2289,6 +2289,366 @@
       "note": "Two people talking"
     },
     {
+      "id": "bark.crowd.notice.01",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "What is that?",
+      "audio": "/assets/audio/vo/bark.crowd.notice.01.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.02",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Did you see him?",
+      "audio": "/assets/audio/vo/bark.crowd.notice.02.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.03",
+      "type": "bark",
+      "speaker": "Rider",
+      "text": "Back up. Back up.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.03.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.04",
+      "type": "bark",
+      "speaker": "Receptionist",
+      "text": "That isn't right.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.04.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.05",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Oh no. No.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.05.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.06",
+      "type": "bark",
+      "speaker": "Street woman",
+      "text": "Keep your distance.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.06.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.07",
+      "type": "bark",
+      "speaker": "Street elder",
+      "text": "Eyes on him.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.07.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.08",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Something's wrong.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.08.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.09",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "Don't get closer.",
+      "audio": "/assets/audio/vo/bark.crowd.notice.09.ogg",
+      "performance": "surprised",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.notice.10",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Is he even human?",
+      "audio": "/assets/audio/vo/bark.crowd.notice.10.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: notice"
+    },
+    {
+      "id": "bark.crowd.panic.01",
+      "type": "shout",
+      "speaker": "Passerby",
+      "text": "Get away from me!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.01.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.02",
+      "type": "shout",
+      "speaker": "Commuter",
+      "text": "Run! Just run!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.02.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.03",
+      "type": "shout",
+      "speaker": "Traveler",
+      "text": "Somebody help!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.03.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.04",
+      "type": "shout",
+      "speaker": "Rider",
+      "text": "It's coming this way!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.04.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.05",
+      "type": "shout",
+      "speaker": "Receptionist",
+      "text": "Don't touch me!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.05.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.06",
+      "type": "shout",
+      "speaker": "Night shift",
+      "text": "Out of the way!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.06.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.07",
+      "type": "shout",
+      "speaker": "Street woman",
+      "text": "Leave me alone!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.07.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.08",
+      "type": "shout",
+      "speaker": "Street elder",
+      "text": "He's not a man!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.08.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.09",
+      "type": "shout",
+      "speaker": "Passerby",
+      "text": "Call the police!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.09.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.panic.10",
+      "type": "shout",
+      "speaker": "Commuter",
+      "text": "Go go go!",
+      "audio": "/assets/audio/vo/bark.crowd.panic.10.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: panic"
+    },
+    {
+      "id": "bark.crowd.film.01",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "I'm getting this.",
+      "audio": "/assets/audio/vo/bark.crowd.film.01.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.02",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Phone's up. Stay back.",
+      "audio": "/assets/audio/vo/bark.crowd.film.02.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.03",
+      "type": "bark",
+      "speaker": "Rider",
+      "text": "Everyone needs to see this.",
+      "audio": "/assets/audio/vo/bark.crowd.film.03.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.04",
+      "type": "bark",
+      "speaker": "Receptionist",
+      "text": "Recording. Don't move.",
+      "audio": "/assets/audio/vo/bark.crowd.film.04.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.05",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Got him on camera.",
+      "audio": "/assets/audio/vo/bark.crowd.film.05.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.06",
+      "type": "bark",
+      "speaker": "Street woman",
+      "text": "Live. Right now.",
+      "audio": "/assets/audio/vo/bark.crowd.film.06.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.07",
+      "type": "bark",
+      "speaker": "Street elder",
+      "text": "Don't look away.",
+      "audio": "/assets/audio/vo/bark.crowd.film.07.ogg",
+      "performance": "excited",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.film.08",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "This is going up.",
+      "audio": "/assets/audio/vo/bark.crowd.film.08.ogg",
+      "performance": "curious",
+      "note": "Crowd Shadow reaction: film"
+    },
+    {
+      "id": "bark.crowd.cower.01",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Please don't.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.01.ogg",
+      "performance": "whispers",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.02",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "I won't look.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.02.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.03",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Stay down. Stay quiet.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.03.ogg",
+      "performance": "whispers",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.04",
+      "type": "bark",
+      "speaker": "Rider",
+      "text": "Make it go past.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.04.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.05",
+      "type": "bark",
+      "speaker": "Receptionist",
+      "text": "Not me. Not tonight.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.05.ogg",
+      "performance": "whispers",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.cower.06",
+      "type": "bark",
+      "speaker": "Night shift",
+      "text": "Just let it pass.",
+      "audio": "/assets/audio/vo/bark.crowd.cower.06.ogg",
+      "performance": "nervous",
+      "note": "Crowd Shadow reaction: cower"
+    },
+    {
+      "id": "bark.crowd.companion.01",
+      "type": "bark",
+      "speaker": "Passerby",
+      "text": "Hey! Look at me!",
+      "audio": "/assets/audio/vo/bark.crowd.companion.01.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: companion"
+    },
+    {
+      "id": "bark.crowd.companion.02",
+      "type": "bark",
+      "speaker": "Commuter",
+      "text": "Come back! That's not you!",
+      "audio": "/assets/audio/vo/bark.crowd.companion.02.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: companion"
+    },
+    {
+      "id": "bark.crowd.companion.03",
+      "type": "bark",
+      "speaker": "Traveler",
+      "text": "Wake up! Fight it!",
+      "audio": "/assets/audio/vo/bark.crowd.companion.03.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: companion"
+    },
+    {
+      "id": "bark.crowd.train.01",
+      "type": "shout",
+      "speaker": "Traveler",
+      "text": "Pull the handle!",
+      "audio": "/assets/audio/vo/bark.crowd.train.01.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: train"
+    },
+    {
+      "id": "bark.crowd.train.02",
+      "type": "shout",
+      "speaker": "Rider",
+      "text": "Between the cars! Move!",
+      "audio": "/assets/audio/vo/bark.crowd.train.02.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: train"
+    },
+    {
+      "id": "bark.crowd.train.03",
+      "type": "shout",
+      "speaker": "Receptionist",
+      "text": "Emergency! Now!",
+      "audio": "/assets/audio/vo/bark.crowd.train.03.ogg",
+      "performance": "shouting",
+      "note": "Crowd Shadow reaction: train"
+    },
+    {
       "id": "bark.station.01",
       "type": "bark",
       "speaker": "Commuter",
@@ -2414,6 +2774,56 @@
       "audioVoice": "XrExE9yKIg1WjnnlVkGX"
     },
     {
+      "id": "pa.station.04",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "This is Hawkes Street. Transfers to the six and the crosstown bus.",
+      "audio": "",
+      "note": "Station PA, after sfx.station.pa-chime. Needs Gen take → assets/audio/vo/pa.station.04.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.05",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "The local to Liberty Square is approaching. Stand clear of the platform edge.",
+      "audio": "",
+      "note": "Station PA, after sfx.station.pa-chime. Needs Gen take → assets/audio/vo/pa.station.05.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.06",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "Last stop for this train is Riverside. Please take your belongings.",
+      "audio": "",
+      "note": "Station PA, after sfx.station.pa-chime. Needs Gen take → assets/audio/vo/pa.station.06.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.07",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "Mind the gap between the train and the platform.",
+      "audio": "",
+      "note": "Station PA, after sfx.station.pa-chime. Needs Gen take → assets/audio/vo/pa.station.07.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
+      "id": "pa.station.08",
+      "type": "bark",
+      "speaker": "Platform PA",
+      "text": "Service advisory. Expect delays on the uptown six.",
+      "audio": "",
+      "note": "Station PA, after sfx.station.pa-chime. Needs Gen take → assets/audio/vo/pa.station.08.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "XrExE9yKIg1WjnnlVkGX"
+    },
+    {
       "id": "bark.train.r01",
       "type": "bark",
       "speaker": "Rider",
@@ -2526,6 +2936,46 @@
       "note": "Train conductor over the car speakers",
       "audioText": "We are being held by the dispatcher. Thank you for your patience.",
       "audioPerformance": "tired",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.03",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "Next stop, Hawkes Street. This is a local.",
+      "audio": "",
+      "note": "Train conductor over the car speakers. Needs Gen take → assets/audio/vo/pa.train.03.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.04",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "Doors opening on the left.",
+      "audio": "",
+      "note": "Train conductor over the car speakers. Needs Gen take → assets/audio/vo/pa.train.04.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.05",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "Approaching Liberty Square. Stand clear.",
+      "audio": "",
+      "note": "Train conductor over the car speakers. Needs Gen take → assets/audio/vo/pa.train.05.ogg (credits wall).",
+      "audioPerformance": "default",
+      "audioVoice": "iP95p4xoKVk53GoZ742B"
+    },
+    {
+      "id": "pa.train.06",
+      "type": "bark",
+      "speaker": "Conductor",
+      "text": "This train skips Tower Street tonight. Next stop, Riverside.",
+      "audio": "",
+      "note": "Train conductor over the car speakers. Needs Gen take → assets/audio/vo/pa.train.06.ogg (credits wall).",
+      "audioPerformance": "default",
       "audioVoice": "iP95p4xoKVk53GoZ742B"
     },
     {
@@ -3257,12 +3707,12 @@
       "type": "dialogue",
       "speaker": "Pierce",
       "text": "Somebody is going to have to tell them which one of us walks in.",
-      "audio": "/assets/audio/cutscenes/morning/walks.ogg",
-      "performance": "tired",
+      "audio": "/assets/audio/cutscenes/morning/walks.mp3",
+      "performance": "default",
       "audioText": "Somebody is going to have to tell them which one of us walks in.",
-      "audioPerformance": "tired",
+      "audioPerformance": "default",
       "audioVoice": "ZthjuvLPty3kTMaNKVKb",
-      "note": "Level 8, The Morning (silent placeholder clip until the voice is generated)"
+      "note": "Level 8 closing line at the coat and the hall mirror (canon from docs/story/level-8-beat-sheet.md S6). Voiced with Hawkes Gen."
     },
     {
       "id": "phone.voss-morning.01",
@@ -4719,6 +5169,335 @@
       "audioPerformance": "default",
       "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
       "note": "Call voss-morning: reply moment line (chosen reply or answer)"
+    },
+    {
+      "id": "dialogue.morning.act2",
+      "type": "dialogue",
+      "speaker": "Unknown caller",
+      "text": "Pierce. The one who got off the train is looking for you. Find me first.",
+      "audio": "/assets/audio/cutscenes/morning/act2-call.mp3",
+      "note": "NEW CANON: the Act II hook after the Level 8 credits. A caller Pierce has never heard; she knows about the other body. Voiced with Hawkes Gen (Alexandra voice).",
+      "performance": "default",
+      "audioText": "Pierce. The one who got off the train is looking for you. Find me first.",
+      "audioPerformance": "default",
+      "audioVoice": "kdmDKE6EkgrWrrykO9Qt"
+    },
+    {
+      "id": "ui.end.act2",
+      "type": "ui",
+      "speaker": "Act II",
+      "text": "Act II is coming",
+      "audio": "",
+      "note": "Level 8 end card title"
+    },
+    {
+      "id": "ui.end.exit",
+      "type": "ui",
+      "speaker": "Exit",
+      "text": "Exit",
+      "audio": "",
+      "note": "Level 8 end card button"
+    },
+    {
+      "id": "ui.end.caller",
+      "type": "ui",
+      "speaker": "Unknown caller",
+      "text": "Unknown caller",
+      "audio": "",
+      "note": "Level 8 post-credits call"
+    },
+    {
+      "id": "ui.end.buzz",
+      "type": "ui",
+      "speaker": "Incoming",
+      "text": "Incoming",
+      "audio": "",
+      "note": "Level 8 post-credits call sub line"
+    },
+    {
+      "id": "ui.action.morning.coat",
+      "type": "ui",
+      "speaker": "Take coat",
+      "text": "Take coat",
+      "audio": "",
+      "note": "Level 8 coat by the door"
+    },
+    {
+      "id": "objective.morning.coat",
+      "type": "objective",
+      "speaker": "Out",
+      "text": "The coat. Then the door.",
+      "audio": "",
+      "note": "Level 8 after the call"
+    },
+    {
+      "id": "news.morning.04.b1",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. One man was taken to hospital from the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.b1.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. One man was taken to hospital from the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (injuries)"
+    },
+    {
+      "id": "news.morning.04.d2",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Two people died on the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.d2.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Two people died on the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 2)"
+    },
+    {
+      "id": "news.morning.04.d3",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Three people died on the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.d3.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Three people died on the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 3)"
+    },
+    {
+      "id": "news.morning.04.d4",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Four people died on the avenue.",
+      "audio": "/assets/audio/vo/news.morning.04.d4.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Four people died on the avenue.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 4)"
+    },
+    {
+      "id": "news.morning.04.d5",
+      "type": "dialogue",
+      "speaker": "Morning News",
+      "text": "Police were at Hawkes Tower overnight. Five or more people died on the avenue. Police are asking who was there.",
+      "audio": "/assets/audio/vo/news.morning.04.d5.mp3",
+      "audioText": "Police were at Hawkes Tower overnight. Five or more people died on the avenue. Police are asking who was there.",
+      "audioPerformance": "default",
+      "audioVoice": "cjVigY5qzO86Huf0OWal",
+      "note": "Ledger (docs/story/ledger.md): The Morning, TV report 4 (deaths, count 5)"
+    },
+    {
+      "id": "news.morning.tick.4.b1",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: ONE MAN TO HOSPITAL FROM TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d2",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: TWO DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d3",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: THREE DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d4",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: FOUR DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.tick.4.d5",
+      "type": "text",
+      "speaker": "Ticker",
+      "text": "POLICE: FIVE OR MORE DEAD ON TOWER AVENUE",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): The Morning TV ticker"
+    },
+    {
+      "id": "news.morning.paper.b0",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "A QUIET NIGHT\nON TOWER AVENUE\nHawkes chairman out. Police found no one hurt.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.b1",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "MAN TAKEN TO\nHOSPITAL ON AVENUE\nPolice ask who was on Tower Avenue last night.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d2",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "TWO DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d3",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "THREE DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d4",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "FOUR DEAD ON\nTOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.d5",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "FIVE OR MORE DEAD\nON TOWER AVENUE\nPolice: no weapon, no suspect.",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper on the coffee table in The Morning: two headline rows, then a standfirst"
+    },
+    {
+      "id": "news.morning.paper.title",
+      "type": "text",
+      "speaker": "The City Ledger",
+      "text": "The City Ledger",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): newspaper name"
+    },
+    {
+      "id": "ui.action.morning.paper",
+      "type": "ui",
+      "speaker": "Read the paper",
+      "text": "Read the paper",
+      "audio": "",
+      "note": "Ledger (docs/story/ledger.md): Level 8 coffee table"
+    },
+    {
+      "id": "dialogue.morning.paper.b0",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "Nobody hurt. Maybe I can still walk back.",
+      "audio": "/assets/audio/cutscenes/morning/paper-b0.mp3",
+      "audioText": "Nobody hurt. Maybe I can still walk back.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Ledger (docs/story/ledger.md): Pierce reads the paper (Jackson, tired)"
+    },
+    {
+      "id": "dialogue.morning.paper.b1",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "One man in hospital. That was my hand.",
+      "audio": "/assets/audio/cutscenes/morning/paper-b1.mp3",
+      "audioText": "One man in hospital. That was my hand.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Ledger (docs/story/ledger.md): Pierce reads the paper (Jackson, tired)"
+    },
+    {
+      "id": "dialogue.morning.paper.b2",
+      "type": "dialogue",
+      "speaker": "Pierce",
+      "text": "They're counting them. Every one of them mine.",
+      "audio": "/assets/audio/cutscenes/morning/paper-b2.mp3",
+      "audioText": "They're counting them. Every one of them mine.",
+      "audioPerformance": "tired",
+      "audioVoice": "ZthjuvLPty3kTMaNKVKb",
+      "note": "Ledger (docs/story/ledger.md): Pierce reads the paper (Jackson, tired)"
+    },
+    {
+      "id": "phone.voss-morning.03b0",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "I watched the avenue last night. Nobody was hurt. That helps us both.",
+      "audio": "/assets/audio/phone/voss-morning-03-b0.mp3",
+      "audioText": "I watched the avenue last night. Nobody was hurt. That helps us both.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b0), line 03"
+    },
+    {
+      "id": "phone.voss-morning.03b1",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "I watched the avenue last night. One man in hospital. That will be a question.",
+      "audio": "/assets/audio/phone/voss-morning-03-b1.mp3",
+      "audioText": "I watched the avenue last night. One man in hospital. That will be a question.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b1), line 03"
+    },
+    {
+      "id": "phone.voss-morning.03b2",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "Dead on the avenue, Pierce. The police are counting. So am I.",
+      "audio": "/assets/audio/phone/voss-morning-03-b2.mp3",
+      "audioText": "Dead on the avenue, Pierce. The police are counting. So am I.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b2), line 03"
+    },
+    {
+      "id": "phone.voss-morning.06b0",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You're not on the tape, Pierce. The man in the photograph is. And the street has nothing.",
+      "audio": "/assets/audio/phone/voss-morning-06-b0.mp3",
+      "audioText": "You're not on the tape, Pierce. The man in the photograph is. And the street has nothing.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b0), line 06"
+    },
+    {
+      "id": "phone.voss-morning.06b1",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You're not on the tape, Pierce. But a hospital bed is a witness. Stay away from windows.",
+      "audio": "/assets/audio/phone/voss-morning-06-b1.mp3",
+      "audioText": "You're not on the tape, Pierce. But a hospital bed is a witness. Stay away from windows.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b1), line 06"
+    },
+    {
+      "id": "phone.voss-morning.06b2",
+      "type": "phone",
+      "speaker": "Voss",
+      "text": "You're on no tape, Pierce. But the dead have families, and families have lawyers. I can't seal that.",
+      "audio": "/assets/audio/phone/voss-morning-06-b2.mp3",
+      "audioText": "You're on no tape, Pierce. But the dead have families, and families have lawyers. I can't seal that.",
+      "audioPerformance": "default",
+      "audioVoice": "XjLkpWUlnhS8i7gGz3lZ",
+      "note": "Ledger (docs/story/ledger.md): voss-morning alternate by ledger band (b2), line 06"
+    },
+    {
+      "id": "bark.station.officer",
+      "type": "bark",
+      "speaker": "Police",
+      "text": "Slow down. Everyone through the gate, one at a time.",
+      "audio": "/assets/audio/sfx/station/officer-gate.mp3",
+      "audioText": "Slow down. Everyone through the gate, one at a time.",
+      "audioPerformance": "default",
+      "audioVoice": "IRHApOXLvnW57QJPQH2P",
+      "note": "Ledger (docs/story/ledger.md): The Station: officer at the gate once the ledger is at 2 kills or more"
     }
   ]
 }

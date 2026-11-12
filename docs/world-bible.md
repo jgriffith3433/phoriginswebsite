@@ -37,18 +37,33 @@ floor to his own bed.
   (`src/story/apexBoardHall.ts`, playtest `living-places`). Hall 2 still has the cleaner.
 
 ### 2. B3 (level 2, and level 3's first half) - `b3-basement.json`
-- **Mood:** sealed, wet, wrong. Near dark; practical lights make small colored pools; fog 5-32 m.
+- **Mood:** sealed, wet, wrong. A place the player is afraid to light. Near dark; practical lights make small colored
+  pools; exponential fog so corridor ends fall to black until the beam cuts them.
 - **Looks/sounds:** pipe hall, containment, chem stores, decon, control, transformation wing, utility, the ACID VAT
-  room. Riveted steel, stained tile, hazard-banded doorframes, dripping pipes, steam. Bed `b3-drone.ogg` 0.20, drips,
-  hum, creature skitter and breath inside 15 m.
+  room. Riveted steel, stained tile, wet epoxy and diamond plate with puddle decals, hazard-banded doorframes, dripping
+  pipes, steam. The phone flashlight (G) is a shadow-casting spot with a visible additive beam cone (scrolling dust
+  noise on every tier; volumetric scattering on High). Fluorescent practicals flicker on a script with a buzz on the
+  sfx bus. The vat is the hero green light (emissive liquid, projected caustics, rising bubbles). Green EXIT signs and
+  red beacons mark the route without raising ambient. Creature gets a cool rim when the beam hits it. Bed
+  `b3-drone.ogg` 0.20, drips, hum, fluorescent buzz, creature skitter and breath inside 15 m.
 - **Size:** about 45 x 45 m of rooms; roughly 2 minutes to walk once, longer under the hunt.
-- **In/out:** in by the cab; out through the vat room (transformation) and again as Ch44 up the cab to Apex.
+- **In/out:** in by the cab; out through the vat room (transformation) and again as Ch44 up the cab to Apex. Cold open
+  (first visit) boots here in the long hall with the flashlight already on.
+- *Exists (horror lighting):* `src/game/b3Horror.ts` on `b3-basement` (skipped fear for The Return's powers look).
+  Playtest `b3-horror-light`.
 - *Gap:* The Return runs the same rooms bright and empty (creature hidden): the biggest "demo" risk in the game.
+  Gen wet-surface albedos land under `assets/textures/b3/` (`wet-concrete`, `rust-grating`, `lab-tile`,
+  `algae-wall`, plus `-n`/`-r` maps and `-512` low-tier copies). The interior shader mixes them into EPOXY /
+  DIAMOND / LAB_FLOOR / LAB_TILE when each WebP loads (`b3Surf`); procedural stand-ins stay until then.
+  Authored `mat-b3-floor` points at the wet-concrete set once Gen imports.
 
 ### 3. The Return and The Desk (levels 3-4) - B3 hall, cab, Apex office, restroom mirror
-- **Mood:** too bright, too clean; powers grade over-lit. A man learning his own hands.
+- **Mood:** The Return: clinical over-bright humming fluorescents that blow out highlights, too clean and too empty,
+  with one tube that buzzes (`src/game/quietLight.ts`). The Desk: a single desk-lamp key in the dark with long shadows
+  across the desk and floor, city glow through the window as rim, MirrorTexture vanity plaque that reads reversed in
+  the glass. A man learning his own hands.
 - The ride up (`elevator-up`, ~69 s), the mirror (`bathroomMirror.ts`), the desk (papers shoved off). Same room as
-  Apex so the player sees what changed, not what is new.
+  Apex so the player sees what changed, not what is new. Playtest `quiet-light`.
 
 ### 4. Hawkes Tower lobby (level 5 opening) - `going-home.json`
 - **Mood:** marble night-shift. Receptionist desk beside the east elevator, doors on floor L.
@@ -56,25 +71,39 @@ floor to his own bed.
 
 ### 5. The Street (level 5) - `src/story/city/`
 - **Mood:** wet neon downtown at night, a living grid: avenues at z -144, -56, 32, 120, 208, cross streets x -126...294.
+  Kabuki-in-the-rain: wet asphalt with a puddle mask, neon and headlights smeared across the street, rain with ground
+  splashes, steam from manhole vents, headlight/taillight flares on traffic (`src/story/city/rainNight.ts`).
 - **Looks/sounds:** signals, crosswalks, traffic, a plaza with subway globes, Liberty Square fountain, market
   (x 62-72), diner (96-108), news stand (145-156), park and pond NE, 1150 m of suburb edge. Bed `room-tone` 0.12,
-  traffic, sirens, bell on shop doors, footsteps.
+  traffic, sirens, bell on shop doors, footsteps, rain hiss.
+- **Neon landmarks (8 along Pierce's sidewalk; DynamicTexture stand-ins swap to Gen WebPs in `assets/textures/city/neon/` when present):**
+  Hawkes Biomedical billboard, pharmacy cross, noodle bar, pawn shop, Midnight Diner, Voss Capital, Liberty Square,
+  hotel VACANCY. Public Hawkes signage never names B3, the vat or the creature.
+- **Reflections:** High tier tries SSR; Low/Medium use a shared reflection probe on planar puddle plates (+1.8 cm over
+  asphalt). Phone caps rain at ~1/3 and keeps the probe path (≥30 fps at 390x844).
 - **Size:** Pierce's route is ~163 m of sidewalk (about 55 s); the whole generated city is ~2.3 km across.
 - **In/out:** in from the lobby; out down the stairs at x 163.5 to the station.
+- Playtest: `rain-city` (options `phone`).
 
 ### 6. The Station (level 6) - `the-station.json`
-- **Mood:** fluorescent, tiled, humming, one tube failing. HAWKES ST.
+- **Mood:** sodium platform wash over tiled walls, humming, one tube failing. HAWKES ST. Rain still falls at the open
+  stair end (west concourse); the platform itself is covered.
 - Concourse, six turnstiles, platform, track trench, two cars, tunnel mouths. Bed 0.10. Departure board counting
-  down, tunnel wind, PA (`placeVoices.ts`).
+  down (emissive amber matrix), tunnel wind, PA (`placeVoices.ts`). Tile / platform-concrete / platform-edge stay
+  procedural until Gen seamless WebPs land (`assets/textures/station/`); `stationDress` mixes them in via `stSurf`.
 - **Size:** ~80 m x 15 m; in by the stairs, out through the open train door.
 
 ### 7. The Train (level 7) - `the-train.json`
 - **Mood:** the rocking dark between stops, amber lamps. Three cars, one set re-entered, then a stop with no name.
-- Car x 0-18, benches, poles, ads, a 6 line map. Bed `train/rumble.ogg` 0.22, lamp rhythm every 11 m of tunnel, sway.
+- Car x 0-18, benches, poles, ads, a 6 line map. Bed `train/rumble.ogg` 0.22. Tunnel lamps every 11 m (~0.8 s at
+  cruise 14 m/s, always ≤ 3 s while moving); one fluorescent tube flickers; dark windows reflect the car's strip lights
+  and seat blue over the tunnel.
 - **In/out:** in from the open door; out the north door at the unnamed stop (End Level).
 
 ### 8. The Morning (level 8) - `the-morning.json`
-- **Mood:** one room after the worst night; grey-gold light, a kettle through the wall, a TV on its timer.
+- **Mood:** one room after the worst night; grey-gold dawn. Sunlight through venetian blinds as visible shafts in the
+  air (VolumetricLightScattering on High, light-shaft meshes on Low), slowly sliding across the room; dust motes in the
+  beams; the TV casting flickering blue spill synced to its picture (`src/game/quietLight.ts`). Playtest `quiet-light`.
 - Apartment shell + runtime furniture, chair at the window, coat, face-down photo, landline with a red light, bed, TV,
   door. Bed `morning-room.ogg` 0.16.
 - **Size:** one room, about 6 x 5 m; the whole level is ~8 minutes of scenes and one short walk.
@@ -87,6 +116,10 @@ floor to his own bed.
 -> train (uptown 6) -> unnamed stop (old body gets off) -> Pierce rides on -> his stop -> three blocks -> his room.
 
 ---
+
+### The title scene (the menu's own place, not a level)
+
+After the cold open the Hawkes terminal title card sits over the level 1 office at night: Pierce stands at the window with his back to us, rain running down the pane, the generated city glowing 205 m below, his theme playing. About every 20 s lightning shows his reflection in the glass as the Shadow form for 0.3 s (broad, hunched, too tall, two red eyes) with a low sting. It tells the premise before a word is read: the man at the glass is already not alone in it. `src/game/titleScene.ts`.
 
 ## Landmarks
 
@@ -113,19 +146,25 @@ shows the tower, far, lit, in the same position as the lobby clock tower, so lev
 ## Who lives here
 
 Characters keep their names, voices (Hawkes Gen / ElevenLabs voices in `locales/voices.json`) and rules. Pierce is
-Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the receptionist is Liz.
+Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the receptionist is Liz. Full want / arc /
+moment / personality / voice / animations for the named board live under Characters below.
 
 ### Named cast
 - **Pierce Hawkes.** Chairman and founder. Two bodies: the **old body** (`asset-ch33-hero`, the tower's coat) and the
   **new body** (`asset-ch44-hero`, the player). Terse, tired, polite to doormen. Reacts to being seen with flinches and
-  refusal; never explains himself.
+  refusal; never explains himself. On foot he starts, stops and turns in place with planted feet (clips `StartWalk`,
+  `Stop`, `Turn90` mirrored for the other side, `Turn180`, `StairsUp`; stairs down is the walk with foot IK). The same
+  IK and speed-matched stride cover the Shadow form on levels 5–7. On-screen lines drive a face: lip flap, blinks,
+  look-at and upper-body dialogue gestures (`src/game/faceTalk.ts`).
 - **Director Hale (woman, Annie).** The board's steel. Furious, measured, always on a phone or leaving a room. Her fear is
-  a leak to the street. She calls Pierce at three points (levels 3, 6, 7) and each call is at a threshold.
+  a leak to the street. She calls Pierce at three points (levels 3, 6, 7) and each call is at a threshold. At the board
+  table her mouth, eyes and hands move with her lines.
 - **Voss (man).** Pierce's friend-on-the-record, the one who calls first and asks questions the others don't. Treats B3
-  as a ward ("patients, not prototypes"). Loyal to the charter.
-- **Lang (man).** The calendar; wants a date for Zurich. Mentioned, seated at the board, never on the street.
+  as a ward ("patients, not prototypes"). Loyal to the charter. Same face talk at the board.
+- **Lang (man).** The calendar; wants a date for Zurich. Mentioned, seated at the board, never on the street. Same face
+  talk when he speaks in `room-for-grace`.
 - **The old body.** Holds the pole like he owns the train. Always one car ahead. Gets off at a stop with no name.
-  Never explained, never addressed by any third party.
+  Never explained, never addressed by any third party. Not a separate Characters entry (same voice and face as Pierce).
 - **The commuter** (`asset-ch28-npc`). The man the old body talks to. Says "Night." Does not look back either.
 - **The creature** (`asset-parasite-starkie`). In B3, hunts in bursts, runs to the vat glass. Never seen in public.
 
@@ -137,8 +176,9 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
   already in. Hale's on her feet.") and a darkened silhouette through the board doorway (procedural, never a second
   Hale mesh next to seated Hale) that Pierce flinches at (`bark.apex.threat01`). Level 4 does not remount the slice or
   the board-hall module, so only the empty floor remains.
-- **B3:** the creature loop (wait in decon, chase in bursts, roam 5-15 s, bite 22 at 1.8 m). **New:** a dead guard's
-  badge on a drum and a radio that crackles twice when Pierce passes (no voice, just a tone) so the hall has a beat.
+- **B3:** the creature loop (wait in decon, chase in bursts, roam 5-15 s, bite 22 at 1.8 m). *Exists:* a dead guard's
+  badge on the Hall B drum and a radio that crackles twice when Pierce passes (no voice, just a tone;
+  `src/game/b3Horror.ts`).
 - **Lobby:** the receptionist (Liz) works late; on seeing Pierce she screams and calls police (scripted).
 - **Street:** recycled pool of 16 pedestrians (9 mobile) on sidewalk paths; about one in twenty-five hostile, one in
   five runs; police arrive once, from behind, about 30 s after Voss's text; traffic on a lane graph; shopkeepers in
@@ -153,13 +193,117 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
   named character).
 
 ### How they react to the player
-- **Pierce is the threat.** In Shadow mode he walks through people, who lose him and wander off; unshadowed he is stared
-  at, shrunk from, screamed at.
+- **Pierce is the threat.** When he goes **Shadow** in a crowd, civilians stage a GTA-style reaction (`src/story/crowdReact.ts`):
+  **notice** (stare, step back, a voiced bark), then **panic** (scream, flee, drop what they carry), **film** (raise a lit
+  phone), or **cower** (tuck into a doorway/corner). At most 6 reactors animate at once on phone. Hostiles and police still
+  **lose him** in Shadow and wander off; he still walks through people. Unshadowed he is stared at, shrunk from, screamed at.
 - **Hostile/police:** punch on contact, run at Pierce, blocked by cars, lose him in Shadow mode.
-- **Pedestrians:** turn when he bumps them, one in five screams or runs if he is right on them.
-- **Riders:** keep their eyes off him; a possessed rider walks inside the car only.
+- **Pedestrians:** turn when he bumps them; one in five screams or runs if he is right on them while unshadowed; in Shadow
+  they join the staged notice/panic/film/cower pool (many voices, no back-to-back line repeats).
+- **Riders:** on The Train, Shadow reactions include pulling the emergency handle or hiding toward the end-door gap between
+  cars; a possessed rider's nearby companion calls out. Otherwise they keep their eyes off him; a possessed rider walks
+  inside the car only.
 - **The old body and the commuter are never targets and never turn around.**
 - **Voss** is the only person who sounds as if he suspects: "You don't sound like yourself." "Whose voice is that?"
+- **Crowd voice archetypes** (not named cast): Passerby, Commuter, Traveler, Rider, Receptionist, Night shift, Street woman,
+  Street elder — eight Gen voices across the forty `bark.crowd.*` lines.
+
+---
+
+## Characters
+
+One entry per named character. Voice ids from `locales/voices.json`. Clips are Mixamo tails on the GLB (`Idle` / `Walk` /
+`SitTalk` etc.); the creature has no spoken talk.
+
+### Pierce Hawkes
+- Want: get through the night without anyone naming what he became, then go home.
+- Arc: late chairman on the 58th → the thing that walks out of B3 → the man who lets the old body keep the street.
+- Moment: Shadow on the sidewalk — the city stares, films and flees while he keeps walking to the stairs.
+- Personality: terse, tired, polite.
+- Voice: ZthjuvLPty3kTMaNKVKb (Jackson / `pierce`)
+- Animations: idle (`Idle` / `RebornIdle` as Ch44), walk (`Walk`, stride-matched), talk (`SitTalk` at the board; phone lines while standing)
+
+### Director Hale
+- Want: keep the board calendar and the street clean of any B3 leak.
+- Arc: furious at Pierce walking out → pleased the board held → contained at the unnamed stop.
+- Moment: each threshold call (pipe hall, station stairs, train stop) where she talks and he barely answers.
+- Personality: steel, measured, furious.
+- Voice: XW70ikSsadUbinwLMZ5w (Annie / `hale`)
+- Animations: idle (`SitIdle` at the board), walk (departure after the meeting), talk (`SitTalk` in `room-for-grace`)
+
+### Voss
+- Want: keep Pierce reachable — late call, street text, morning check — and treat B3 as a ward.
+- Arc: the friend who hustles him into the board → the one who texts that police are coming → the morning voice that asks whose voice that is.
+- Moment: answering `voss-late` in the hall while already walking to his seat.
+- Personality: loyal, probing, warm.
+- Voice: XjLkpWUlnhS8i7gGz3lZ (`voss`)
+- Animations: idle (`SitIdle`), walk (board departure), talk (`SitTalk` / phone lines)
+
+### Lang
+- Want: a date for Zurich on the calendar.
+- Arc: seated at the board, calendar first → leaves with the others → never follows Pierce to the street.
+- Moment: the board cutscene where he is present and the Zurich ask lands in the room.
+- Personality: calendar, dry, impatient.
+- Voice: 2UMI2FME0FFUFMlUoRER (`lang`)
+- Animations: idle (`SitIdle`), walk (board departure), talk (`SitTalk`)
+
+### The old body
+- Want: keep the coat and the street without looking back.
+- Arc: boards with the commuter at HAWKES ST → always one car ahead → gets off at a stop with no name.
+- Moment: the train stop door — he says "This is me," walks out facing away, never turns.
+- Personality: owned, calm, closed.
+- Voice: ZthjuvLPty3kTMaNKVKb (same Pierce voice when he speaks)
+- Animations: idle (pole hold / stand), walk (through end doors and off the car), talk (stop line "This is me.")
+
+### The commuter
+- Want: an uptown seat next to the man in the coat.
+- Arc: waits on the platform → boards with the old body → says "Night." and does not look back.
+- Moment: the station opening — shadow-Pierce watches him talk to the other Pierce, then both board.
+- Personality: ordinary, tired, incurious.
+- Voice: TxGEqnHWrfWFTfGW9XjX (`commuter`)
+- Animations: idle (platform wait), walk (into the car and out at the stop), talk (platform exchange + "Night.")
+
+### The creature
+- Want: reach the vat glass and Pierce.
+- Arc: flees the lab reveal → hunts the basement in bursts → lunges the glass that remakes Pierce.
+- Moment: the hunt rush when the flashlight finds it and it commits the last metres.
+- Personality: hungry, silent, sudden.
+- Voice: creature SFX pool (skitter / shriek / hiss / snarl — no spoken Gen line)
+- Animations: idle (`Idle` in decon), walk (`Walk` roam and flee), talk (none — shriek / Attack stand in for voice)
+
+## Characters
+
+### Pierce Hawkes
+- Want: keep the charter and the building's secret intact while he still looks like a man who belongs on the 58th floor.
+- Arc: late chairman → vat → refuses the stare → walks home as the thing the street cannot name.
+- Moment: Room for Grace — he speaks from the head chair and the board looks at him; after B3, the mirror look.
+- Personality: terse, tired, polite.
+- Voice: Jackson (`ZthjuvLPty3kTMaNKVKb` in `locales/voices.json`).
+- Animations: idle, walk, talk; Idle / Walk / SitIdle / SitTalk; faceTalk (lip flap, blinks, look-at, explain/lean/cross/nod/shake/point).
+
+### Director Hale
+- Want: a clean reschedule and no leak to the street.
+- Arc: furious in the board → walkout call → contained update on the train → still watching.
+- Moment: Room for Grace — she turns on Pierce from chair-n-2; heads around the table follow her voice.
+- Personality: steel, measured, furious.
+- Voice: Annie / Hale (`XW70ikSsadUbinwLMZ5w`).
+- Animations: idle, walk, talk; SitIdle / SitTalk / Idle / Walk; faceTalk gaze + gestures while she speaks.
+
+### Voss
+- Want: the truth of what Pierce is carrying, without breaking the charter in public.
+- Arc: late call → board seat → Morning call that still asks.
+- Moment: Room for Grace and every Voss phone call; on-screen he talks with a face at the south seat.
+- Personality: loyal, probing, warm-on-record.
+- Voice: Voss (`XjLkpWUlnhS8i7gGz3lZ`).
+- Animations: idle, walk, talk; SitIdle / SitTalk / Idle / Walk; faceTalk.
+
+### Lang
+- Want: a firm date for Zurich on the calendar.
+- Arc: seated pressure at the board → never returns to the street story.
+- Moment: his spoken lines in Room for Grace; the table looks to him when he has the floor.
+- Personality: calendar, clipped, impatient.
+- Voice: Lang (`2UMI2FME0FFUFMlUoRER`).
+- Animations: idle, walk, talk; SitIdle / SitTalk / Idle / Walk; faceTalk.
 
 ---
 
@@ -178,8 +322,9 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   Hale's standing silhouette through the board doorway flinches Pierce (*Exists*, `apexBoardHall`, beat 35); the alarm
   and red monitor; the board's departure; hall 2 practicals flicker (*Exists*, `apexSlice`); the city 205 m below moves;
   the cleaner walk (*Exists*, beat 29).
-- **Sound:** room-tone 0.14; HVAC; phone tones; alarm loop 0.46; cab hum 0.5; chimes; cart wheels, sofa creak, skyline,
-  screen tap, troffer flicker, door-locked (`locales/sfx.json` apex group).
+- **Sound:** bed `office-night.ogg` 0.14; layered spots (`src/game/chapterAmbience.ts`): HVAC, distant phones,
+  printers, elevator dings, low office walla, troffer flicker, skyline, glass tick. Phone tones; alarm 0.46; cab hum;
+  cart wheels, sofa creak, screen tap, door-locked (`locales/sfx.json` apex / ambience groups).
 - **Changes:** the valuation screen's number ticks down on each tap; the monitor goes dark; by level 4 the papers are
   on the floor and the room is bright.
 - **Gap budget:** hall 1: desk person + locked door + board murmur + sconces; hall 2: cleaner and cart + art + flicker +
@@ -192,16 +337,21 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   drawer for a keycard (**new**).
 - **Own events:** the creature hunts and rests; pipes knock; steam bursts at the drops; light dips on a rush; red edge
   flash; a gurney wheel squeals when he passes (**new**); one halogen fails every ~40 s.
-- **Sound:** `b3-drone`, drips, skitter, breath, hiss, heartbeat when near, chitter.
+- **Sound:** bed `b3-drone.ogg`; layered spots: drips, pipe groans, distant machinery, fluorescent buzz, radio
+  crackle, knock, scrape, glass tick (`chapterAmbience` ch2). Creature skitter, breath, hiss, heartbeat when near.
 - **Changes:** pools dim as the creature approaches; after the vat break the hall lights come up (Return).
 - **Gap budget:** every room has a practical, a drip and a pipe sound within 5 m.
 
 ### The Return and The Desk
 - **Interactions:** Ride Elevator, answer Hale (F), Look in mirror (E), open a stall door (**new**, E: a creak and a
   line), flush the sink (**new**, E: running water over the reflection), shove papers (scripted), read a paper (**new**).
-- **Own events:** the cab sways; floor LEDs cycle; Hale rings at x 44, z 30; phone buzzes; fluorescent hum in the bath.
-- **Sound:** cab hum, chimes, door slide, water, mirror breathing.
-- **Changes:** Pierce's reflection shows the new body; the powers grade; the desk becomes a mess.
+- **Own events:** the cab sways; floor LEDs cycle; Hale rings at x 44, z 30; phone buzzes; one clinical tube buzzes and
+  stutters in the Return halls; The Desk's lamp is the only warm pool (city rim on the glass).
+- **Sound:** Return layered spots: fluorescent hum, a far-off door, flicker, drip, pipe, distant ding (`chapterAmbience`
+  ch3). Desk: city through the glass, a clock, HVAC, muffled phone, paper (`chapterAmbience` ch4). Cab hum, chimes,
+  mirror look ducks the bed.
+- **Changes:** Pierce's reflection shows the new body; Return stays over-bright; The Desk goes dark but for the lamp;
+  the desk becomes a mess.
 - **The Desk, played (built):** walking up to the glass (no prompt) eases the camera over his shoulder; the reflection
   lags him up to 0.5 s and turns its head once before he does, the bed and his breath go silent, "That's me." plays.
   At the desk a held drag (mouse or one finger) sweeps papers, folder, glass and terminal off with paper and impact
@@ -221,9 +371,11 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
 - **Interactions:** C Shadow mode, Tab switch, click Shock/Possess (a second click kills), Consume, Shift run/fly,
   punch/kick when unshadowed, E at stores (**new**: buy nothing, but the shopkeeper's bell and a line), pick up the
   medkit/ammo box, phone, flashlight, minimap.
-- **Own events:** signals cycle 30 s; traffic and police; peds scream; lights bloom; a car hits and knocks back;
+- **Own events:** signals cycle 30 s; traffic and police; peds stage Shadow reactions (notice / panic / film / cower,
+  many voices); lights bloom; a car hits and knocks back;
   shopkeepers call; sirens (**new**, a siren Doppler every ~45 s); the diner cook shouts (**new**).
-- **Sound:** traffic bed, footsteps, Shadow Shock, scream, siren, bell, busker at distance, wind, rain on awning (**new**).
+- **Sound:** bed `street-night.ogg`; layered spots: rain on cars/awnings, distant sirens, traffic hiss, neon buzz,
+  passers-by walla, shop bell (`chapterAmbience` ch5). Footsteps, Shadow Shock, scream.
 - **Changes:** Voss's text arrives; police arrive; wet reflections; the plaza globes get closer; a building window row
   goes dark as the streets empty (**new**).
 - **Gap budget:** an avenue block is ~50 m = 16 s; there is always a shop sign, a pedestrian, a car or a siren within 10 s.
@@ -233,23 +385,28 @@ Per area: **interactions** (several kinds), **events on their own**, **ambient s
   trash bins, newsstand (**new**), turnstile (hop with a E), Shadow powers on commuters.
 - **Own events:** the departure board counts down each second; a train passes (wind and light); the tube fails; the PA;
   the scripted shadow-commuter scene; Hale's call after 0.7 s.
-- **Sound:** station bed 0.10, tunnel wind, PA, train passing roar, rat squeak.
+- **Sound:** bed `platform.ogg` 0.10; layered spots: arriving/departing trains with brake squeal, crowd walla,
+  PA chime, door air (`chapterAmbience` ch6). Eight voiced Platform PA lines (`pa.station.01`–`08`, place names Hawkes
+  Street, Liberty Square, Riverside, Tower Street). Tunnel wind, train pass.
 - **Changes:** commuters thin out; the board's next train changes to "BOARDING".
 
 ### Train
 - **Interactions:** E Next car at the front door, grab a pole (**new**, E: sways with it), read an ad (**new**, E:
   zooms), answer Hale at the stop, Shadow powers on riders, hold the door (**new**, fails).
 - **Own events:** lamps pass; sway; jolt; train brakes into the unnamed stop; the old body walks out; the doors close.
-- **Sound:** wheel rumble loop, rail joints, brake squeal, door chime, conductor PA.
+- **Sound:** bed `train/rumble.ogg` 0.22; layered spots: wheel clatter on a rhythm, door chimes, brakes
+  (`chapterAmbience` ch7). Six voiced conductor PA lines (`pa.train.01`–`06`).
 - **Changes:** car 1 full, car 2 sparse, car 3 empty but for the two; the stop's tile glows green.
 
 ### The Morning
 - **Interactions:** E at the door, Sleep, Watch, Leave, answer the landline (F), open the fridge (**new**, E: a jar,
   a cold light, one line), turn the radio on (**new**, E: static to the same news), touch the photo (**new**, E: stays
   face down).
-- **Own events:** kettle through the wall, building elevator, a neighbour's door, the TV timer; the sun climbs across
-  the floor; the red light blinks.
-- **Sound:** `morning-room.ogg` 0.16, traffic, kettle, TV audio.
+- **Own events:** kettle through the wall, building elevator, a neighbour's door, the TV timer; dawn shafts slide east
+  across the floor after Sleep; dust catches the beams; TV blue flicker on the sofa wall while Watch plays; the red
+  light blinks.
+- **Sound:** bed `morning-room.ogg` 0.16; layered spots: birds, distant traffic, fridge hum, TV static, bed creak,
+  neighbour door (`chapterAmbience` ch8). Score stays near silence (docs/music.md); the bed and spots still run.
 - **Changes:** light moves across the room during the sleep scene; the TV picks up his name.
 
 ---
@@ -291,6 +448,12 @@ last resort (one line at most). "Where/when" is the place and the trigger.
 | 28 | **Leave.** | Door | "Somebody is going to have to tell them which one of us walks in." End Level | line, ending-6, credits |
 
 ### Built this pass
+- **37. Faces that talk.** *Exists* (`src/game/faceTalk.ts`, playtest `board-faces`): every on-screen speaker (Pierce,
+  the board seats, the night cleaner, the desk associate, Apex life barks) drives a mouth from the live voice
+  AnalyserNode, blinks every 2–6 s, looks at the current speaker or Pierce (head yaw capped 60°), and plays upper-body
+  dialogue gestures (explain, lean, cross, nod, shake, point). Prefers baked `Gesture*` clips on the seat GLB
+  (`playFaceGesture`); procedural bone layers stand in until Gen `motion.from-text` takes land. The Level 1 board
+  meeting is the showcase.
 - **36. The street teaches one power at a time.** *Exists* (`src/story/streetTutorial.ts`, `goingHome.ts`, playtest
   `street-powers`): Going Home, level 5 — each power in four steps (safe use, harder use, a twist, a payoff), never two
   at once and never closer than 30 s. Shadow in the crowd (people lose him; one startled walker runs and loses him);
@@ -387,3 +550,18 @@ Every scripted Voss and Hale call (`voss-late`, `voss-meeting`, `hale-walkout`, 
 - **The Morning**: Voss's last call is two-way. Its first and last line have three variants on vossTrust (<= -1 cold, 0 neutral, >= 1 warm), and two moments (the vote; the tape) let Pierce answer.
 - Voice stays terse. Replies never name B3 in public, and nobody explains the two Pierces: Pierce asks "Who else knows about last night?", never "why are there two of me".
 - Voices are the existing cast (Voss Adam-line voice, Pierce Jackson, Hale Annie), `assets/audio/phone/*-r1a|b|c(-ans|s-ans).mp3`, ids `phone.<call>.r1a`, `.r1a.ans`, `.r1s.ans`.
+
+
+## Level 8 ending and the Act II hook (new canon, 2026-11)
+
+- **The mirror by the door:** the hall mirror shows Pierce as the Shadow form. Nobody comments on it.
+- **The coat** hangs by the door; he takes it and says the closing line: "Somebody is going to have to tell them which one of us walks in." (from the level 8 beat sheet).
+- **Dawn:** the door opens onto white, then black, then the title PH ORIGINS and the end-suite cue.
+- **Credits:** names only, over eight empty places: the apartment, the boardroom, the office window, B3's long hall, the vat room, the lobby, the station platform, the train car.
+- **NEW CANON, the Act II call:** after the credits a phone buzzes. An unknown woman (voice: Alexandra) says: "Pierce. The one who got off the train is looking for you. Find me first." She knows about the other body; who she is is Act II's question.
+
+## The ledger (added with the street ledger task)
+
+- **Landmarks**: The City Ledger newspaper on Pierce's coffee table in The Morning; the police car on the Going Home avenue; three wanted posters and an officer at the Station gate (kills 2 or more).
+- **Who lives here**: the Morning News anchor (calm, practised, public-safe), the gate officer (Police voice, tired and careful).
+- **What happens**: two bystander deaths bring the siren and a car within 20 s; the morning after, the TV, the paper and Voss all say what the night cost. Bands and lines: `docs/story/ledger.md`.

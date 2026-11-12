@@ -13,6 +13,12 @@ import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
 import { lifeStats } from '../game/lifeStats';
 import { createLinePool, TRAIN_BARKS, TRAIN_PA } from './placeVoices';
+import {
+  createCrowdReact,
+  NOTICE_HOLD,
+  NOTICE_RANGE,
+  type CrowdStage,
+} from './crowdReact';
 
 /**
  * Level 7, The Train. Continue after The Station enters it. End Level is offered only from `finish`,
@@ -59,8 +65,22 @@ export type TheTrainHost = {
   hand: () => { x: number; y: number; z: number } | null;
   player: () => { x: number; z: number; yaw: number };
   shedShadow: (x: number, z: number) => void;
+  /** Signature effect hook (powerFx): a shock landed on, or a punch/kick swung at, a point. */
+  power?: (e: { kind: 'shock' | 'punch' | 'kick'; hit: boolean; x: number; y: number; z: number }) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'train-stop',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
   ringCall: (id: string) => void;
@@ -174,6 +194,9 @@ type Rider = {
   /** The aisle spot (z) he shifts to, or null; `shifted` once he is standing there. */
   aisleZ: number | null;
   shifted: boolean;
+  /** Staged reaction to Shadow Pierce: notice, film, cower, pull the handle, or hide between cars. */
+  react: CrowdStage | null;
+  reactLeft: number;
 };
 
 type Beat = 'opening' | 'cars' | 'stop' | 'door' | 'closing' | 'done';
@@ -201,6 +224,16 @@ export const createTheTrain = (host: TheTrainHost) => {
   let conductorIn = 12;
   const riderLine = createLinePool(TRAIN_BARKS);
   const conductorLine = createLinePool(TRAIN_PA);
+  const shadowCrowd = createCrowdReact({
+    scene: host.scene,
+    playFile: host.playFile,
+    showLine: (title, text) => {
+      host.showLine(title, text);
+      lineUntil = Math.max(lineUntil, sceneTime + 1.8);
+    },
+  });
+  let handlePulled = false;
+  let hiderSent = false;
   let handsOut = false;
   let tether: Rider | null = null;
   let tetherMove = { x: 0, z: 0 };
@@ -351,7 +384,7 @@ export const createTheTrain = (host: TheTrainHost) => {
       const rider: Rider = {
         mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0,
         routine: aisle !== undefined ? 'sway' : (['read', 'sleep', 'sway'] as const)[index % 3], phase: Math.random() * 6, notice: 0, cool: 2 + Math.random() * 2,
-        aisleZ: aisle ?? null, shifted: false,
+        aisleZ: aisle ?? null, shifted: false, react: null, reactLeft: 0,
       };
       lifeStats.person(id, 'train', rider.routine);
       face(avatar, yaw);
@@ -490,13 +523,153 @@ export const createTheTrain = (host: TheTrainHost) => {
     if (announce && active && !finished) showGoal();
   };
 
+  const callTrainCompanion = (victim: Rider) => {
+    let best: Rider | null = null;
+    let bestD = 5.5;
+    for (const other of riders) {
+      if (other === victim || other.down || other === tether) continue;
+      const d = Math.hypot(other.mesh.position.x - victim.mesh.position.x, other.mesh.position.z - victim.mesh.position.z);
+      if (d < bestD) { bestD = d; best = other; }
+    }
+    if (!best) return;
+    shadowCrowd.markCompanion();
+    shadowCrowd.say('companion', 0.8);
+    face(best.avatar, Math.atan2(victim.mesh.position.x - best.mesh.position.x, victim.mesh.position.z - best.mesh.position.z));
+  };
+
   const link = (rider: Rider) => {
     tether = rider;
     linkLeft = POSSESS_SECONDS;
+    rider.react = null;
+    shadowCrowd.dropPhone(rider.mesh.name);
     rider.avatar.resumeLocomotion();
     host.playFile(STREET_SFX.possess, 0.4);
+    callTrainCompanion(rider);
     showGoal();
     return true;
+  };
+
+  const beginTrainReact = (rider: Rider, stage: CrowdStage, t: number) => {
+    if (rider.down || rider === tether) return;
+    if (!shadowCrowd.canAnimate() && !rider.react) return;
+    const id = rider.mesh.name;
+    const fresh = shadowCrowd.noteWitness(id, t);
+    rider.react = stage;
+    if (stage === 'notice') {
+      rider.reactLeft = NOTICE_HOLD;
+      rider.moving = false;
+      face(rider.avatar, Math.atan2(host.player().x - rider.mesh.position.x, host.player().z - rider.mesh.position.z));
+      if (fresh && shadowCrowd.say('notice', 0.7)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(rider.avatar, 'notice', false);
+    } else if (stage === 'handle') {
+      rider.reactLeft = 2.4;
+      rider.moving = true;
+      handlePulled = true;
+      shadowCrowd.markHandle();
+      if (shadowCrowd.say('train', 0.8)) shadowCrowd.noteVoicedInWindow(t);
+      host.playFile('/assets/audio/sfx/touch/emergency-handle.ogg', 0.5);
+      // The pull answers: the car lurches, brakes bite for a moment, lights feel it.
+      fireLurch('stumble');
+      const car = host.car();
+      if (car && (car.speed() ?? 0) > 2) {
+        const was = car.speed();
+        car.setSpeed(Math.max(3, was * 0.35));
+        window.setTimeout(() => { if (active && !finished) host.car()?.setSpeed(was); }, 2200);
+      }
+      host.playFile(SFX.brakes, 0.35);
+      shadowCrowd.playStageClip(rider.avatar, 'handle', false);
+    } else if (stage === 'hide') {
+      rider.reactLeft = 4;
+      rider.moving = true;
+      hiderSent = true;
+      shadowCrowd.markHide();
+      if (shadowCrowd.say('train', 0.75)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(rider.avatar, 'hide', true);
+    } else if (stage === 'film') {
+      rider.reactLeft = 4;
+      rider.moving = false;
+      shadowCrowd.raisePhone(id, rider.avatar);
+      if (shadowCrowd.say('film', 0.68)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(rider.avatar, 'film', false);
+    } else if (stage === 'cower') {
+      rider.reactLeft = 5;
+      rider.moving = false;
+      shadowCrowd.markCower();
+      if (shadowCrowd.say('cower', 0.62)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.playStageClip(rider.avatar, 'cower', false);
+    } else if (stage === 'panic') {
+      rider.reactLeft = 3;
+      rider.moving = true;
+      shadowCrowd.markPanic();
+      if (shadowCrowd.say('panic', 0.78)) shadowCrowd.noteVoicedInWindow(t);
+      shadowCrowd.dropCarry(id, rider.mesh.position.x, 0, rider.mesh.position.z);
+      shadowCrowd.playStageClip(rider.avatar, 'panic', true);
+    }
+  };
+
+  const stirTrain = (here: { x: number; z: number }, t: number, dt: number) => {
+    if (!shadowOn || !controls()) {
+      shadowCrowd.countReacting(0);
+      return;
+    }
+    shadowCrowd.markShadow(true, t);
+    shadowCrowd.countReacting(riders.filter((r) => r.react).length);
+    const near = riders
+      .filter((r) => !r.down && r !== tether && !r.react
+        && Math.hypot(r.mesh.position.x - here.x, r.mesh.position.z - here.z) < NOTICE_RANGE)
+      .sort((a, b) => Math.hypot(a.mesh.position.x - here.x, a.mesh.position.z - here.z)
+        - Math.hypot(b.mesh.position.x - here.x, b.mesh.position.z - here.z));
+    for (const rider of near) {
+      if (!shadowCrowd.canAnimate()) break;
+      beginTrainReact(rider, 'notice', t);
+      shadowCrowd.countReacting(riders.filter((r) => r.react).length);
+    }
+    for (const rider of riders) {
+      if (!rider.react) continue;
+      rider.reactLeft -= dt;
+      if (rider.react === 'notice' && rider.reactLeft <= 0) {
+        shadowCrowd.dropPhone(rider.mesh.name);
+        // On the train: first reactor pulls the handle, second hides between cars, rest film/cower/panic.
+        let next: CrowdStage = 'panic';
+        if (!handlePulled) next = 'handle';
+        else if (!hiderSent) next = 'hide';
+        else {
+          const roll = Math.random();
+          next = roll < 0.4 ? 'film' : roll < 0.7 ? 'cower' : 'panic';
+        }
+        beginTrainReact(rider, next, t);
+        continue;
+      }
+      if (rider.react === 'handle') {
+        // Walk toward the emergency handle at the back of the car (x≈1, z≈-0.7).
+        const tx = 1.0 - rider.mesh.position.x;
+        const tz = -0.7 - rider.mesh.position.z;
+        const d = Math.hypot(tx, tz) || 1;
+        rider.mesh.position.x += (tx / d) * Math.min(d, 2.4 * dt);
+        rider.mesh.position.z += (tz / d) * Math.min(d, 2.4 * dt);
+        face(rider.avatar, Math.atan2(tx, tz));
+      }
+      if (rider.react === 'hide') {
+        // Toward the front end door gap (between cars).
+        const tx = 17.4 - rider.mesh.position.x;
+        const d = Math.abs(tx) || 1;
+        rider.mesh.position.x += Math.sign(tx) * Math.min(Math.abs(tx), 2.8 * dt);
+        face(rider.avatar, tx > 0 ? Math.PI / 2 : -Math.PI / 2);
+        if (d < 0.4) {
+          rider.mesh.setEnabled(false);
+          rider.avatar.setShown(false);
+        }
+      }
+      if (rider.react === 'film') {
+        face(rider.avatar, Math.atan2(here.x - rider.mesh.position.x, here.z - rider.mesh.position.z));
+      }
+      if (rider.reactLeft <= 0 && rider.react !== 'notice') {
+        shadowCrowd.dropPhone(rider.mesh.name);
+        rider.react = null;
+        rider.moving = false;
+        rider.avatar.resumeLocomotion();
+      }
+    }
   };
 
   // ---------- Objective ----------
@@ -563,6 +736,7 @@ export const createTheTrain = (host: TheTrainHost) => {
     playing = false;
     host.showLine('', '');
     host.setWalk(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     host.holdScene(false);
     // playClip locks cinematic. Calling it after resume leaves him sliding in idle.
@@ -653,7 +827,37 @@ export const createTheTrain = (host: TheTrainHost) => {
     host.refreshHud();
   };
 
-  const stopShot = () => host.frameCamera({ x: 7.6, y: 1.78, z: -1.05 }, { x: STOP_DOOR.x + 0.2, y: 1.2, z: 1.25 });
+  const stopShot = (dt = 0.016) => {
+    if (host.stepCineScene) {
+      const spk = said.has(L_BACK.id) || said.has(L_WAIT.id)
+        ? 'Pierce'
+        : said.has(L_NIGHT.id) || said.has(L_MINE.id)
+          ? 'OldBody'
+          : 'Pierce';
+      const lineKey = said.has(L_BACK.id)
+        ? L_BACK.id
+        : said.has(L_WAIT.id)
+          ? L_WAIT.id
+          : said.has(L_NIGHT.id)
+            ? L_NIGHT.id
+            : said.has(L_MINE.id)
+              ? L_MINE.id
+              : said.has(L_STOP.id)
+                ? L_STOP.id
+                : 'train.stop';
+      const spkPos = spk === 'OldBody' && double && !double.gone
+        ? { x: double.mesh.position.x, y: 1.38, z: double.mesh.position.z }
+        : { x: 7.3, y: 1.44, z: -0.35 };
+      host.stepCineScene('train-stop', sceneTime, dt, {
+        applyCamera: true,
+        speaker: spk,
+        lineKey,
+        speakerPosOverride: spkPos,
+      });
+      return;
+    }
+    host.frameCamera({ x: 7.6, y: 1.78, z: -1.05 }, { x: STOP_DOOR.x + 0.2, y: 1.2, z: 1.25 });
+  };
 
   const beginStop = () => {
     beat = 'stop';
@@ -697,7 +901,7 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const stepStop = (dt: number) => {
     sceneTime += dt;
-    stopShot();
+    stopShot(dt);
     const speed = host.car()?.speed() ?? 0;
     if (speed < 7.5) cue(L_STOP, 0.4);
     if (openedAt < 0 && (speed < 0.3 || sceneTime > 12)) {
@@ -800,7 +1004,19 @@ export const createTheTrain = (host: TheTrainHost) => {
     trailLeft = 0;
     hideBeads();
     host.playFile(on ? STREET_SFX.shadowOn : STREET_SFX.shadowOff, 0.4);
-    if (on) host.holster();
+    if (on) {
+      host.holster();
+      shadowCrowd.markShadow(true, sceneTime);
+      stirTrain(host.player(), sceneTime, 0.05);
+    } else {
+      shadowCrowd.markShadow(false, sceneTime);
+      for (const rider of riders) {
+        if (!rider.react) continue;
+        shadowCrowd.dropPhone(rider.mesh.name);
+        rider.react = null;
+        rider.avatar.resumeLocomotion();
+      }
+    }
     showGoal();
   };
 
@@ -911,10 +1127,14 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   return {
     objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : beat === 'door' ? 'stop' : 'train'),
+    crowd: () => shadowCrowd.stats(),
     mount: async () => {
       active = true;
       finished = false;
       playing = false;
+      shadowCrowd.reset();
+      handlePulled = false;
+      hiderSent = false;
       shadowOn = false;
       handsOut = false;
       tether = null;
@@ -1041,7 +1261,7 @@ export const createTheTrain = (host: TheTrainHost) => {
       const atZ = best.mesh.position.z;
       releaseLink();
       watchDeath(atX, atZ);
-      host.playFile(STREET_SFX.consume, 0.46);
+      if (!host.power) host.playFile(STREET_SFX.consume, 0.46);
       host.playFile(STREET_SFX.death, 0.32);
       return true;
     },
@@ -1069,8 +1289,9 @@ export const createTheTrain = (host: TheTrainHost) => {
       for (const { rider } of hits) {
         layDown(rider, true);
         host.shedShadow(rider.mesh.position.x, rider.mesh.position.z);
+        host.power?.({ kind: 'shock', hit: true, x: rider.mesh.position.x, y: rider.mesh.position.y + 1.2, z: rider.mesh.position.z });
       }
-      host.playFile(STREET_SFX.shock, 0.5);
+      if (!host.power) host.playFile(STREET_SFX.shock, 0.5);
       host.playFile(STREET_SFX.death, 0.28);
       shockLeft = 1.35;
       host.playClip('shadowshock', false, 1, () => {
@@ -1082,8 +1303,9 @@ export const createTheTrain = (host: TheTrainHost) => {
       if (!controls() || shadowOn || meleeLeft > 0) return false;
       const best = inFront(kind === 'kick' ? 2.35 : 1.7, () => 0.35, false)[0];
       if (best) layDown(best.rider, false);
-      meleeLeft = 0.85;
-      host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
+      const at = host.player();
+      host.power?.({ kind, hit: !!best, x: best ? best.rider.mesh.position.x : at.x, y: (best ? best.rider.mesh.position.y : 0) + 1.2, z: best ? best.rider.mesh.position.z : at.z });
+      if (!host.power) host.playFile(kind === 'kick' ? STREET_SFX.kick : STREET_SFX.punch, 0.55);
       host.playClip(kind, false, 1, () => {
         if (active && !finished) host.resumeLocomotion();
       });
@@ -1135,11 +1357,12 @@ export const createTheTrain = (host: TheTrainHost) => {
       }
       conductorIn -= stepDt;
       if (conductorIn <= 0) {
-        conductorIn = 55 + Math.random() * 30;
+        conductorIn = 18 + Math.random() * 12;
         const said = tether ? null : conductorLine();
         if (said) {
           host.showLine(said.speaker, said.text);
           host.playFile(said.url, 0.42);
+          lifeStats.bark('train', said.speaker, said.id);
           lineUntil = Math.max(lineUntil, sceneTime + 4.2);
         }
       }
@@ -1155,6 +1378,7 @@ export const createTheTrain = (host: TheTrainHost) => {
       }
       stepRiders(stepDt);
       const here = host.player();
+      if (shadowOn) stirTrain(here, sceneTime, stepDt);
 
       if (beat === 'cars') {
         // Set points: a lurch or a stumble when Pierce passes x, once each per car.

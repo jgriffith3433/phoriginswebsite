@@ -810,5 +810,9 @@
         "fadeSeconds": 1.5
       }
     }
+  ],
+  "acousticDefault": "street",
+  "acousticZones": [
+    {"id": "home-lobby", "type": "lobby", "minX": -6.7, "maxX": 6.7, "minZ": 0.4, "maxZ": 17.6, "priority": 2}
   ]
 }

@@ -160,5 +160,53 @@
         "fadeSeconds": 1.5
       }
     }
-  ]
+  ],
+  "cameraVolumes": [
+      {
+        "id": "vol-train-car",
+        "profile": "hallway",
+        "minX": 0,
+        "maxX": 18,
+        "minY": 0,
+        "maxY": 2.6,
+        "minZ": -1.5,
+        "maxZ": 1.5,
+        "priority": 1
+      },
+      {
+        "id": "vol-train-end-front",
+        "profile": "doorway",
+        "minX": 16.5,
+        "maxX": 18.2,
+        "minY": 0,
+        "maxY": 2.5,
+        "minZ": -1.2,
+        "maxZ": 1.2,
+        "priority": 3
+      },
+      {
+        "id": "vol-train-end-back",
+        "profile": "doorway",
+        "minX": -0.2,
+        "maxX": 1.5,
+        "minY": 0,
+        "maxY": 2.5,
+        "minZ": -1.2,
+        "maxZ": 1.2,
+        "priority": 3
+      },
+      {
+        "id": "vol-train-side-door",
+        "profile": "doorway",
+        "minX": 10.4,
+        "maxX": 12.0,
+        "minY": 0,
+        "maxY": 2.5,
+        "minZ": 0.6,
+        "maxZ": 1.6,
+        "priority": 3
+      }
+    ],
+  "acousticDefault": "train",
+  "acousticZones": []
 }

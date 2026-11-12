@@ -113,9 +113,17 @@ export const applyTheme = (scene: BABYLON.Scene, themeName: string) => {
   const theme = getSceneTheme(themeName);
   scene.clearColor = new BABYLON.Color4(theme.skyBottom.r, theme.skyBottom.g, theme.skyBottom.b, 1);
   scene.fogColor = theme.fog;
-  scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
-  scene.fogStart = theme.name === 'B3 Basement' ? 5 : theme.name === 'Street' ? 28 : theme.name === 'Station' ? 12 : 10;
-  scene.fogEnd = theme.fogDistance;
+  if (theme.name === 'B3 Basement') {
+    // Exponential fog: corridor ends fall to black; the flashlight and practicals cut the near field.
+    scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+    scene.fogDensity = 0.055;
+    scene.fogStart = 0;
+    scene.fogEnd = theme.fogDistance;
+  } else {
+    scene.fogMode = BABYLON.Scene.FOGMODE_LINEAR;
+    scene.fogStart = theme.name === 'Street' ? 28 : theme.name === 'Station' ? 12 : 10;
+    scene.fogEnd = theme.fogDistance;
+  }
   scene.ambientColor = theme.ambient;
   scene.metadata = { ...(scene.metadata ?? {}), themeName: theme.name };
   applySkyboxForTheme(scene, theme.name);

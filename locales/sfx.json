@@ -525,6 +525,17 @@
       "note": "Walking into a shop."
     },
     {
+      "id": "sfx.street.rain-hiss",
+      "group": "street",
+      "text": "Seamless loop of steady rain hiss on wet asphalt city street at night, soft continuous drizzle and distant drip, no thunder, no traffic, no voices, no music.",
+      "audio": "/assets/audio/sfx/street/rain-hiss.ogg",
+      "loop": true,
+      "duration": 8,
+      "influence": 0.6,
+      "volume": 0.14,
+      "note": "Going Home rain bed (rainNight.ts). Falls back to room-tone until Gen lands the take."
+    },
+    {
       "id": "sfx.train.rumble",
       "group": "train",
       "text": "Seamless loop of the inside of a moving subway car in a tunnel, steady low wheel rumble, rhythmic rail joints clicking, a faint electric motor whine and car body rattle, no voices, no announcements, no music.",
@@ -892,6 +903,26 @@
       "influence": 0.65,
       "volume": 0.28,
       "note": "Apex Peak: hall 2 troffer flicker."
+    },
+    {
+      "id": "sfx.b3.fluorescent-buzz",
+      "group": "b3",
+      "text": "Looping basement fluorescent tube electrical buzz and soft hum, wet concrete room, occasional faint flicker crackle, seamless loop, no voices, no music.",
+      "audio": "/assets/audio/sfx/b3/fluorescent-buzz.ogg",
+      "loop": true,
+      "duration": 4,
+      "influence": 0.7,
+      "volume": 0.16,
+      "note": "B3 horror: buzz under flickering hall practicals. Gen take a_a83de8c66ca60e3c."
+    },
+    {
+      "id": "sfx.b3.radio-crackle",
+      "group": "b3",
+      "text": "One-shot short dead security radio crackle and static burst from a handheld walkie on a metal drum, distant muffled, no voices, no music.",
+      "audio": "/assets/audio/sfx/b3/radio-crackle.ogg",
+      "influence": 0.7,
+      "volume": 0.38,
+      "note": "B3 hall life: crackle when Pierce passes the drum badge. Gen take a_9a8081f88d47c226."
     },
     {
       "id": "sfx.apex.door-locked",
@@ -1345,6 +1376,319 @@
       "influence": 0.5,
       "volume": 0.8,
       "note": "Stinger fired by the music director (tv-news). Not yet generated."
+    },
+    {
+      "id": "sfx.power.shock-1",
+      "group": "power",
+      "text": "Violent dark electric arc crackle with a low thump, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/power/shock-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature shock take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.shock-2",
+      "group": "power",
+      "text": "Violent dark electric arc crackle with a low thump, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/power/shock-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature shock take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.shock-3",
+      "group": "power",
+      "text": "Violent dark electric arc crackle with a low thump, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/power/shock-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature shock take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.possess-1",
+      "group": "power",
+      "text": "Dark smoke tendril slithering into a body, low sub drone, eerie, short, no words.",
+      "audio": "/assets/audio/sfx/power/possess-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature possess take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.possess-2",
+      "group": "power",
+      "text": "Dark smoke tendril slithering into a body, low sub drone, eerie, short, no words.",
+      "audio": "/assets/audio/sfx/power/possess-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature possess take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.possess-3",
+      "group": "power",
+      "text": "Dark smoke tendril slithering into a body, low sub drone, eerie, short, no words.",
+      "audio": "/assets/audio/sfx/power/possess-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature possess take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.consume-1",
+      "group": "power",
+      "text": "Monstrous draining suction, energy pulled into a chest, rising hum then a heavy thud, short.",
+      "audio": "/assets/audio/sfx/power/consume-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature consume take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.consume-2",
+      "group": "power",
+      "text": "Monstrous draining suction, energy pulled into a chest, rising hum then a heavy thud, short.",
+      "audio": "/assets/audio/sfx/power/consume-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature consume take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.consume-3",
+      "group": "power",
+      "text": "Monstrous draining suction, energy pulled into a chest, rising hum then a heavy thud, short.",
+      "audio": "/assets/audio/sfx/power/consume-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature consume take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.punch-1",
+      "group": "power",
+      "text": "Heavy fist punch hitting a body, meaty thud with a sharp slap, short, no voices.",
+      "audio": "/assets/audio/sfx/power/punch-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature punch take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.punch-2",
+      "group": "power",
+      "text": "Heavy fist punch hitting a body, meaty thud with a sharp slap, short, no voices.",
+      "audio": "/assets/audio/sfx/power/punch-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature punch take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.punch-3",
+      "group": "power",
+      "text": "Heavy fist punch hitting a body, meaty thud with a sharp slap, short, no voices.",
+      "audio": "/assets/audio/sfx/power/punch-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature punch take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.kick-1",
+      "group": "power",
+      "text": "Powerful kick landing on a body, deep thud with a whoosh before it, short, no voices.",
+      "audio": "/assets/audio/sfx/power/kick-1.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature kick take 1 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.kick-2",
+      "group": "power",
+      "text": "Powerful kick landing on a body, deep thud with a whoosh before it, short, no voices.",
+      "audio": "/assets/audio/sfx/power/kick-2.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature kick take 2 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.power.kick-3",
+      "group": "power",
+      "text": "Powerful kick landing on a body, deep thud with a whoosh before it, short, no voices.",
+      "audio": "/assets/audio/sfx/power/kick-3.ogg",
+      "influence": 0.6,
+      "volume": 0.5,
+      "note": "Signature kick take 3 of 3 (powerFx.ts, round robin)."
+    },
+    {
+      "id": "sfx.street.siren-police",
+      "group": "street",
+      "text": "A police car siren wailing on a city avenue at night, rising and falling, approaching from far away then passing close, no voices",
+      "audio": "/assets/audio/sfx/street/siren-police.mp3",
+      "duration": 8,
+      "influence": 0.7,
+      "volume": 0.55,
+      "note": "Ledger: sirens once 2 or more bystanders are dead (Going Home street, The Station gate)."
+    },
+    {
+      "id": "sfx.ambience.apex-hvac",
+      "group": "ambience",
+      "text": "Seamless soft HVAC vent hum in a late-night corporate office hallway, low air whoosh, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-hvac.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "loop": true,
+      "duration": 10
+    },
+    {
+      "id": "sfx.ambience.apex-phone",
+      "group": "ambience",
+      "text": "Distant office desk phone ringing twice through a closed door, muffled, then stops, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-phone.ogg",
+      "influence": 0.6,
+      "volume": 0.18,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.apex-printer",
+      "group": "ambience",
+      "text": "Laser printer spit paper once in a quiet office, short mechanical whirr and paper slide, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-printer.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.apex-walla",
+      "group": "ambience",
+      "text": "Very distant soft office walla murmur through glass, unintelligible, late night, no clear words, no music.",
+      "audio": "/assets/audio/sfx/ambience/apex-walla.ogg",
+      "influence": 0.6,
+      "volume": 0.16,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.b3-drip",
+      "group": "ambience",
+      "text": "Single water drip into a metal basement puddle with a short echo, wet concrete, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/b3-drip.ogg",
+      "influence": 0.6,
+      "volume": 0.28,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.b3-pipe-groan",
+      "group": "ambience",
+      "text": "Long metal pipe groan in a dark basement corridor, slow stress creak, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/b3-pipe-groan.ogg",
+      "influence": 0.6,
+      "volume": 0.26,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.b3-machinery",
+      "group": "ambience",
+      "text": "Distant basement machinery rumble thud through concrete walls, low and brief, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/b3-machinery.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.return-door",
+      "group": "ambience",
+      "text": "Heavy office door closing far down an empty fluorescent hall, latch click and boom, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/return-door.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.desk-clock",
+      "group": "ambience",
+      "text": "Soft mechanical wall clock tick once in a quiet dark office, close, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/desk-clock.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.street-neon",
+      "group": "ambience",
+      "text": "Neon sign electrical buzz and soft flicker on a rainy city street at night, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/street-neon.ogg",
+      "influence": 0.6,
+      "volume": 0.18,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.street-walla",
+      "group": "ambience",
+      "text": "Distant rain-soaked street crowd walla, unintelligible, wet city night, no clear words, no music.",
+      "audio": "/assets/audio/sfx/ambience/street-walla.ogg",
+      "influence": 0.6,
+      "volume": 0.16,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.street-awning",
+      "group": "ambience",
+      "text": "Rain hitting a shop awning and car roof, short dense patter, wet night, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/street-awning.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.station-brakes",
+      "group": "ambience",
+      "text": "Subway train brake squeal arriving at a tiled station platform, metallic and echoing, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/station-brakes.ogg",
+      "influence": 0.6,
+      "volume": 0.26,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.station-walla",
+      "group": "ambience",
+      "text": "Crowd walla on a subway platform, footsteps and murmur, tiled reverb, unintelligible, no music.",
+      "audio": "/assets/audio/sfx/ambience/station-walla.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.train-clatter",
+      "group": "ambience",
+      "text": "Train wheel clatter on rail joints in a tunnel, rhythmic metallic knock, short, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/train-clatter.ogg",
+      "influence": 0.6,
+      "volume": 0.28,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.morning-birds",
+      "group": "ambience",
+      "text": "Soft morning birds outside a city apartment window, brief chirps, grey dawn, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/morning-birds.ogg",
+      "influence": 0.6,
+      "volume": 0.22,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
+    },
+    {
+      "id": "sfx.ambience.morning-traffic",
+      "group": "ambience",
+      "text": "Distant morning traffic wash through a closed apartment window, soft and far, no horns, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/morning-traffic.ogg",
+      "influence": 0.6,
+      "volume": 0.18,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts).",
+      "duration": 4
+    },
+    {
+      "id": "sfx.ambience.morning-fridge",
+      "group": "ambience",
+      "text": "Apartment refrigerator compressor hum click, soft start then steady, close kitchen, no voices, no music.",
+      "audio": "/assets/audio/sfx/ambience/morning-fridge.ogg",
+      "influence": 0.6,
+      "volume": 0.2,
+      "note": "Layered chapter ambience spot (chapterAmbience.ts)."
     }
   ]
 }

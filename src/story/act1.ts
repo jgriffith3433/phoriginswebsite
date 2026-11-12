@@ -75,7 +75,7 @@ export type ActHost = {
   seatHead: () => void;
   leaveHead: () => void;
   beginCutscene: (id: string) => void;
-  playFile: (url: string, volume: number) => void;
+  playFile: (url: string, volume: number, at?: { x: number; y: number; z: number }) => void;
   audioOn: () => boolean;
   ensureAudio: () => void;
   win: () => void;
@@ -96,9 +96,23 @@ export type ActHost = {
   beamAt: (at: { x: number; y: number; z: number } | null) => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'window-monologue' | 'elevator-ride' | 'mirror',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   fade: (to: number, seconds?: number) => void;
   raiseLight: () => void;
   showLine: (title: string, text: string) => void;
+  /** Bind an on-screen speaker's mouth / gaze (board murmurs while Pierce walks to the seat). */
+  faceSpeak?: (actor: string, url: string, holdSeconds?: number) => void;
   holdScene: (held: boolean) => void;
   arriveOffice: () => void;
   /** Hand input impairment to the player controller (null clears it). Used by the acid in the vat break. */
@@ -982,6 +996,9 @@ export const createAct1 = (host: ActHost) => {
   /** The cab ride is played, not watched: he steps in, looks around, presses B3, the cab does the rest. */
   let cabPressed = false;
   let cabT = 0;
+  let windowT = 0;
+  let mirrorT = 0;
+  let currentAsideId = '';
   let cabAsided = false;
   let cabDinged = false;
   let cabHum: ClipHandle | null = null;
@@ -1049,6 +1066,13 @@ export const createAct1 = (host: ActHost) => {
       queueAside(CAB_ASIDE);
     }
     stepAside(delta);
+    const hereCab = host.playerXZ();
+    host.stepCineScene?.('elevator-ride', cabT, delta, {
+      applyCamera: false,
+      speaker: 'Pierce',
+      lineKey: currentAsideId || 'dialogue.elevator-b3.01',
+      speakerPosOverride: { x: hereCab.x, y: 1.48, z: hereCab.z },
+    });
     let rawFloor = 0;
     for (let i = 0; i < CAB_FLOOR_AT.length; i += 1) if (cabT >= CAB_FLOOR_AT[i]) rawFloor = i;
     const arrived = cabT >= CAB_ARRIVE_AT;
@@ -1067,6 +1091,7 @@ export const createAct1 = (host: ActHost) => {
     }
     if (cabT >= CAB_END_AT) {
       clearAside();
+      host.endCineScene?.(false);
       cabHum?.stop();
       cabHum = null;
       cabPressed = false;
@@ -1095,6 +1120,7 @@ export const createAct1 = (host: ActHost) => {
     asideQueue = [];
     asideLeft = 0;
     asideGap = 0;
+    currentAsideId = '';
     host.showLine('', '');
   };
 
@@ -1104,6 +1130,7 @@ export const createAct1 = (host: ActHost) => {
       clearAside();
       return;
     }
+    currentAsideId = line.id;
     asideLeft = line.duration;
     asideGap = 0;
     host.showLine('Pierce', lineText(line.id));
@@ -1127,7 +1154,11 @@ export const createAct1 = (host: ActHost) => {
     boardTalkIn = hall ? 6 + Math.random() * 2 : 11 + Math.random() * 7;
     if (!said) return;
     host.showLine(said.speaker, said.text);
-    host.playFile(said.url, hall ? Math.max(0.16, 0.5 - (away - 9) * 0.008) : 0.5);
+    // Face the murmur from a board seat so heads turn while Pierce walks in.
+    const seats = ['chair-s-1', 'chair-n-2', 'chair-s-3', 'chair-n-1', 'chair-s-2', 'chair-n-3'];
+    const seat = seats[Math.floor(Math.random() * seats.length)]!;
+    host.faceSpeak?.(seat, said.url, 3.6);
+    host.playFile(said.url, 0.8, { x: BOARD_TABLE.x, y: 1.5, z: BOARD_TABLE.z });
     boardLineLeft = 3.6;
   };
 
@@ -1218,17 +1249,20 @@ export const createAct1 = (host: ActHost) => {
   const beginMirrorLook = () => {
     if (!host.isReturn() || phase !== 'mirror') return;
     phase = 'mirror-look';
-    mirrorLeft = 5.4;
+    mirrorLeft = 5.6;
+    mirrorT = 0;
     host.holdScene(true);
     host.hideMarker();
     host.showObjective(false);
     host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
     host.holdLocomotion();
     host.playClip('rebornidle', true);
-    host.frameCamera(
-      { x: MIRROR_STAND.x - 0.72, y: 1.68, z: MIRROR_STAND.z + 0.88 },
-      { x: MIRROR_GLASS.x, y: 1.46, z: MIRROR_GLASS.z },
-    );
+    host.stepCineScene?.('mirror', 0, 0.016, {
+      applyCamera: true,
+      speaker: 'Pierce',
+      lineKey: 'dialogue.return.mirror',
+      speakerPosOverride: { x: MIRROR_STAND.x, y: 1.46, z: MIRROR_STAND.z },
+    });
     host.showLine('Pierce', lineText('dialogue.return.mirror', "That's me. I'm not seeing things."));
     host.playFile(lineAudio('dialogue.return.mirror', '/assets/audio/cutscenes/return-mirror/01-pierce-thats-me.wav'), 0.92);
   };
@@ -1901,16 +1935,17 @@ export const createAct1 = (host: ActHost) => {
       host.camera.position.x += (Math.random() - 0.5) * amp;
       host.camera.position.y += (Math.random() - 0.5) * amp * 0.65;
     }
+    const cAt = { x: node.position.x, y: 0.5, z: node.position.z };
     const near = (span: number, floor = 0.05) => Math.max(floor, 1 - Math.min(dist, span) / span);
     breathIn -= delta;
     if (huntMood === 'lurk' && dist < 15 && breathIn <= 0) {
       breathIn = 2.8 + Math.random() * 2.6;
-      host.playFile(CREATURE_SFX.breath, 0.34 * near(15, 0.08));
+      host.playFile(CREATURE_SFX.breath, 0.34 * near(15, 0.08), cAt);
     }
     if (dist < 4.6) {
       if (!hissed) {
         hissed = true;
-        host.playFile(CREATURE_SFX.hiss, huntMood === 'strike' ? 0.58 : 0.36);
+        host.playFile(CREATURE_SFX.hiss, huntMood === 'strike' ? 0.58 : 0.36, cAt);
       }
     } else if (dist > 7.5) hissed = false;
     if (huntMood === 'lurk' && lurkIdle <= 0 && huntPath.length > 0 && dist < 22) {
@@ -1918,28 +1953,28 @@ export const createAct1 = (host: ActHost) => {
       if (scrapeIn <= 0) {
         scrapeIn = 0.75 + Math.random() * 1.05;
         const step = Math.random() < 0.28 ? CREATURE_SFX.skitter : CREATURE_SFX.scrape;
-        host.playFile(step, 0.3 * near(18, 0.06));
+        host.playFile(step, 0.3 * near(18, 0.06), cAt);
       }
     }
     skitterIn -= delta;
     if (huntMood === 'lurk' && dist > 8 && skitterIn <= 0) {
       skitterIn = 6 + Math.random() * 6;
-      host.playFile(CREATURE_SFX.skitter, dist > 16 ? 0.12 : 0.22);
+      host.playFile(CREATURE_SFX.skitter, dist > 16 ? 0.12 : 0.22, cAt);
     }
     chitterIn -= delta;
     if (huntMood === 'lurk' && lurkIdle > 0.4 && dist < 12 && chitterIn <= 0) {
       chitterIn = 3.4 + Math.random() * 2.8;
-      host.playFile(CREATURE_SFX.chitter, 0.26 * near(12, 0.08));
+      host.playFile(CREATURE_SFX.chitter, 0.26 * near(12, 0.08), cAt);
     }
     knockIn -= delta;
     if (knockIn <= 0) {
       knockIn = 9 + Math.random() * 8;
-      host.playFile(CREATURE_SFX.knock, 0.16);
+      host.playFile(CREATURE_SFX.knock, 0.16, cAt);
     }
     cryIn -= delta;
     if (huntMood === 'lurk' && dist > 14 && cryIn <= 0) {
       cryIn = 16 + Math.random() * 10;
-      host.playFile(CREATURE_SFX.cry, 0.2);
+      host.playFile(CREATURE_SFX.cry, 0.2, cAt);
     }
     heartIn -= delta;
     if (huntMood === 'strike' && dist < 10 && heartIn <= 0) {
@@ -3740,9 +3775,17 @@ export const createAct1 = (host: ActHost) => {
       }
       if (host.isReturn() && phase === 'mirror-look') {
         host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
+        mirrorT += delta;
+        host.stepCineScene?.('mirror', mirrorT, delta, {
+          applyCamera: true,
+          speaker: 'Pierce',
+          lineKey: 'dialogue.return.mirror',
+          speakerPosOverride: { x: MIRROR_STAND.x, y: 1.46, z: MIRROR_STAND.z },
+        });
         mirrorLeft -= delta;
         if (mirrorLeft <= 0) {
           host.showLine('', '');
+          host.endCineScene?.();
           host.releaseCamera();
           host.holdScene(false);
           finishLevel('return');
@@ -3759,8 +3802,17 @@ export const createAct1 = (host: ActHost) => {
         if (elevatorDoorOpen >= 1) beginLab();
       }
       if (phase === 'to-window' && host.running() && !host.inCutscene()) {
+        windowT += delta;
         stepAside(delta);
+        const hereWin = host.playerXZ();
+        host.stepCineScene?.('window-monologue', windowT, delta, {
+          applyCamera: false,
+          speaker: 'Pierce',
+          lineKey: currentAsideId || 'dialogue.apex-window.01',
+          speakerPosOverride: { x: hereWin.x, y: 1.46, z: hereWin.z },
+        });
         if (!asideBusy() && inWalkup('trigger-office-window', 48, 46.2, 1.6)) {
+          host.endCineScene?.(false);
           void mountSecurityFeed();
           beginVossCall();
         }

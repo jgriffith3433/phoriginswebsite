@@ -1,5 +1,6 @@
 import * as BABYLON from '@babylonjs/core';
 
+import { attachKeyShadow, keyShadowShaderOptions } from '../../render/keyShadow';
 import { Geo } from '../../story/city/geo';
 import { INTERIOR_FRAG, INTERIOR_VERT, IS, MAX_INTERIOR_LIGHTS } from './shader';
 
@@ -115,6 +116,31 @@ const makeKit = (scene: BABYLON.Scene, g: Geo, plan: InteriorPlan, colliders: BA
   };
 };
 
+const APEX_MATERIALS: Record<string, string> = {
+  tMarble: 'marble-floor',
+  tCarpet: 'carpet',
+  tWalnut: 'walnut-panel',
+  tSteel: 'brushed-steel',
+  tGlass: 'frosted-glass',
+  tCeil: 'ceiling-tile',
+  tLeather: 'boardroom-leather',
+  tBrass: 'brushed-brass',
+  tConcrete: 'stairwell-concrete',
+  tDrywall: 'office-drywall',
+};
+
+/**
+ * B3 Gen wet surfaces under `assets/textures/b3/`. Optional: until each WebP
+ * loads, `b3Surf` stays 0 and the procedural stand-in in the shader keeps reading.
+ * Index into b3Surf: 0 epoxy, 1 diamond, 2 lab floor, 3 algae wall.
+ */
+const B3_MATERIALS: { sampler: string; file: string; surf: number }[] = [
+  { sampler: 'tEpoxy', file: 'wet-concrete', surf: 0 },
+  { sampler: 'tDiamond', file: 'rust-grating', surf: 1 },
+  { sampler: 'tLabFloor', file: 'lab-tile', surf: 2 },
+  { sampler: 'tAlgae', file: 'algae-wall', surf: 3 },
+];
+
 /** Atlas art: paintings, signs, labels, screens. Drawn once per mount. */
 const paintAtlas = (scene: BABYLON.Scene) => {
   const size = 2048;
@@ -213,6 +239,89 @@ const paintAtlas = (scene: BABYLON.Scene) => {
       ctx.strokeRect(x + 6, y + 6, w - 12, h - 12);
     });
   };
+  // Hawkes Biomedical product posters (public line only), award plaques and the memo board.
+  const posters: [string, string, string, string][] = [
+    ['CARDIVEX', 'Heart, steadied.', '#10233f', '#d9b25f'],
+    ['NEUROLITH', 'Clear thought. Every day.', '#14302f', '#bfe3d8'],
+    ['VIREON', 'Defence, rebuilt.', '#2a1a33', '#e8c7a0'],
+    ['AURELIA', 'Rest, restored.', '#1d2a44', '#f1e4c8'],
+  ];
+  posters.forEach(([name, tag, bg, fg], i) => {
+    cell(`poster-${i}`, 192, 256, (x, y) => {
+      ctx.fillStyle = bg;
+      ctx.fillRect(x, y, 192, 256);
+      const g = ctx.createRadialGradient(x + 96, y + 100, 6, x + 96, y + 100, 90);
+      g.addColorStop(0, fg);
+      g.addColorStop(1, bg);
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, 192, 200);
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = fg;
+      ctx.lineWidth = 2;
+      for (let k = 0; k < 6; k += 1) {
+        const a = (k / 6) * Math.PI * 2 + i;
+        ctx.beginPath();
+        ctx.arc(x + 96 + Math.cos(a) * 34, y + 100 + Math.sin(a) * 34, 10, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = fg;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 26px Georgia, serif';
+      ctx.fillText(name, x + 96, y + 196, 176);
+      ctx.font = 'italic 13px Georgia, serif';
+      ctx.fillText(tag, x + 96, y + 220, 176);
+      ctx.font = '9px Georgia, serif';
+      ctx.fillText('H A W K E S   B I O M E D I C A L', x + 96, y + 240, 176);
+      // The Hawkes Gen poster replaces the stand-in once it loads (the stand-in stays if it cannot).
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, x, y, 192, 256);
+        tex.update(true);
+      };
+      img.src = `/assets/textures/apex/posters/poster-${i}.webp`;
+    });
+  });
+  const award = (key: string, line1: string, line2: string) =>
+    cell(key, 320, 112, (x, y) => {
+      ctx.fillStyle = '#1a1612';
+      ctx.fillRect(x, y, 320, 112);
+      ctx.strokeStyle = '#c9a868';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 6, y + 6, 308, 100);
+      ctx.fillStyle = '#c9a868';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 22px Georgia, serif';
+      ctx.fillText(line1, x + 160, y + 40, 290);
+      ctx.font = '15px Georgia, serif';
+      ctx.fillText(line2, x + 160, y + 76, 290);
+    });
+  award('award-0', 'INNOVATION IN MEDICINE', 'Hawkes Biomedical, 2019');
+  award('award-1', 'BEST PLACE TO WORK', 'Pharma Leaders Forum, 2022');
+  cell('memo', 256, 192, (x, y) => {
+    ctx.fillStyle = '#7a5a3a';
+    ctx.fillRect(x, y, 256, 192);
+    ctx.fillStyle = '#a07a4e';
+    ctx.fillRect(x + 8, y + 8, 240, 176);
+    const notes: [number, number, number, number, string][] = [
+      [18, 20, 96, 70, '#f1ead2'],
+      [130, 16, 100, 56, '#e8d27a'],
+      [26, 100, 80, 70, '#dfe8ee'],
+      [120, 88, 112, 80, '#f1ead2'],
+    ];
+    notes.forEach(([nx, ny, nw, nh, c], k) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(x + nx, y + ny, nw, nh);
+      ctx.fillStyle = '#b02e2e';
+      ctx.beginPath();
+      ctx.arc(x + nx + nw / 2, y + ny + 6, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4a4a4a';
+      for (let l = 0; l < 4; l += 1) ctx.fillRect(x + nx + 8, y + ny + 18 + l * 10 + k, nw - 16 - ((l * 13 + k * 7) % 24), 2);
+    });
+  });
   sign('exit', 256, 96, '#0b5d2a', '#eaffef', 'EXIT');
   sign('biohazard', 320, 200, '#f2c300', '#111', '☣ BIOHAZARD', { sub: 'AUTHORIZED PERSONNEL ONLY' });
   sign('acid', 320, 200, '#f2c300', '#111', 'DANGER', { sub: 'CORROSIVE — FULL PPE', stripe: true });
@@ -334,17 +443,78 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
   const atlas = paintAtlas(scene);
   owned.push(atlas.tex);
 
+  const keyShadow = keyShadowShaderOptions(scene);
   const material = new BABYLON.ShaderMaterial('interior-dress', scene, { vertexSource: INTERIOR_VERT, fragmentSource: INTERIOR_FRAG }, {
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
     uniforms: [
       'worldViewProjection', 'cameraPos', 'lPos', 'lCol', 'spotPos', 'spotDir', 'spotInfo', 'hemiSky', 'hemiGround',
-      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma',
+      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma', 'b3Surf', 'flashShadowStrength', 'flashLightMatrix', ...keyShadow.uniforms,
     ],
-    samplers: ['atlas'],
+    samplers: [
+      'atlas',
+      ...Object.keys(APEX_MATERIALS),
+      ...B3_MATERIALS.map((m) => m.sampler),
+      'flashShadowMap',
+      ...keyShadow.samplers,
+    ],
+    defines: keyShadow.defines,
   });
+  attachKeyShadow(scene, material);
+  material.setFloat('flashShadowStrength', 0);
+  const flashMatIdentity = BABYLON.Matrix.Identity();
+  material.setMatrix('flashLightMatrix', flashMatIdentity);
   material.backFaceCulling = true;
   material.zOffset = -1;
   material.setTexture('atlas', atlas.tex);
+  // Hawkes Gen material set (1024 px; 512 px on the low-memory tier), repeat-wrapped.
+  const low = document.body.dataset.memory === 'low';
+  for (const [sampler, file] of Object.entries(APEX_MATERIALS)) {
+    const t = new BABYLON.Texture(`/assets/textures/apex/${file}${low ? '-512' : ''}.webp`, scene, false, true, BABYLON.Texture.TRILINEAR_SAMPLINGMODE);
+    t.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+    t.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+    t.anisotropicFilteringLevel = low ? 2 : 8;
+    material.setTexture(sampler, t);
+    owned.push(t);
+  }
+  // B3 wet surfaces: 1x1 stub until Gen WebPs land (or 512 on the low tier).
+  const b3Surf = new BABYLON.Vector4(0, 0, 0, 0);
+  material.setVector4('b3Surf', b3Surf);
+  const stub = new BABYLON.DynamicTexture('b3-surf-stub', { width: 4, height: 4 }, scene, false);
+  {
+    const ctx = stub.getContext() as CanvasRenderingContext2D;
+    ctx.fillStyle = '#3a3c3b';
+    ctx.fillRect(0, 0, 4, 4);
+    stub.update();
+  }
+  stub.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  stub.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  owned.push(stub);
+  for (const entry of B3_MATERIALS) {
+    material.setTexture(entry.sampler, stub);
+    const path = `/assets/textures/b3/${entry.file}${low ? '-512' : ''}.webp`;
+    const t = new BABYLON.Texture(
+      path,
+      scene,
+      false,
+      true,
+      BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+      () => {
+        t.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+        t.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+        t.anisotropicFilteringLevel = low ? 2 : 8;
+        material.setTexture(entry.sampler, t);
+        if (entry.surf === 0) b3Surf.x = 1;
+        else if (entry.surf === 1) b3Surf.y = 1;
+        else if (entry.surf === 2) b3Surf.z = 1;
+        else b3Surf.w = 1;
+        material.setVector4('b3Surf', b3Surf);
+      },
+      () => {
+        // Missing file: keep the procedural stand-in (b3Surf channel stays 0).
+      },
+    );
+    owned.push(t);
+  }
   owned.push(material);
 
   const g = new Geo();
@@ -555,7 +725,13 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
         hemiGround.set(0.02, 0.02, 0.02);
       }
       fogColor.copyFrom(scene.fogColor ?? BABYLON.Color3.Black());
-      fogInfo.set(scene.fogStart, scene.fogEnd, scene.fogMode === BABYLON.Scene.FOGMODE_LINEAR ? 1 : 0);
+      if (scene.fogMode === BABYLON.Scene.FOGMODE_EXP2) {
+        fogInfo.set(scene.fogDensity || 0.05, 0, 2);
+      } else if (scene.fogMode === BABYLON.Scene.FOGMODE_LINEAR) {
+        fogInfo.set(scene.fogStart, scene.fogEnd, 1);
+      } else {
+        fogInfo.set(0, 0, 0);
+      }
       material.setVector3('cameraPos', cam);
       material.setArray4('lPos', lPos);
       material.setArray3('lCol', lCol);
@@ -569,6 +745,18 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
       material.setFloat('time', clock);
       material.setFloat('lightGain', plan.lightGain ?? 1);
       material.setFloat('toGamma', scene.imageProcessingConfiguration.applyByPostProcess ? 0 : 1);
+      // B3 flashlight shadows (bound by levelDressing when the horror pass is live).
+      const horror = (scene.metadata as { b3Horror?: { flashShadowBind: () => {
+        enabled: boolean; map: BABYLON.RenderTargetTexture | null; matrix: BABYLON.Matrix | null; strength: number;
+      } } } | null)?.b3Horror;
+      const bind = horror?.flashShadowBind();
+      if (bind?.enabled && bind.map && bind.matrix) {
+        material.setFloat('flashShadowStrength', bind.strength);
+        material.setMatrix('flashLightMatrix', bind.matrix);
+        material.setTexture('flashShadowMap', bind.map);
+      } else {
+        material.setFloat('flashShadowStrength', 0);
+      }
     },
     dispose: () => {
       for (const o of owned) o.dispose();

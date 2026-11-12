@@ -1,5 +1,5 @@
 import type { InteriorPlan, Kit } from './dress';
-import { artFrame, elevatorCab, bench, bookshelf, exitSign, extinguisher, floorLamp, pendantBar, plant, plaque, rug, sconce, screen, sideTable, troffer } from './furniture';
+import { artFrame, awardCase, memoBoard, elevatorCab, bench, bookshelf, exitSign, extinguisher, floorLamp, pendantBar, plant, plaque, rug, sconce, screen, sideTable, troffer } from './furniture';
 import { IS } from './shader';
 
 /**
@@ -82,6 +82,13 @@ export const apexPlan: InteriorPlan = {
     for (const z of [2.6, 12.9, 23.6, 30]) sconce(k, -2.2, 2.05, z, W);
     for (const z of [3.6, 8.8, 18.6, 28.8]) sconce(k, 2.2, 2.05, z, E);
     for (const z of [6, 15, 24]) troffer(k, 0, z, 3.196, true);
+    // History on every stretch of the halls: product posters, award cases and memo boards.
+    artFrame(k, 'poster-2', -2.2, 1.2, 6.3, 0.7, 0.93, W);
+    artFrame(k, 'poster-0', -2.2, 1.2, 15.6, 0.7, 0.93, W);
+    artFrame(k, 'poster-1', -2.2, 1.2, 28, 0.7, 0.93, W);
+    memoBoard(k, 2.2, 1.3, 12, 0.7, E);
+    awardCase(k, 'award-0', 2.2, 1.15, 16.2, E);
+    awardCase(k, 'award-1', 2.2, 1.15, 24.8, E);
     exitSign(k, 0, 2.55, -1, S);
     extinguisher(k, 2.2, 1.0, E);
     bench(k, -2.2, 2.4, 1.3, W);
@@ -106,6 +113,12 @@ export const apexPlan: InteriorPlan = {
     for (const x of [10, 26.2]) sconce(k, x, 2.05, 29.8, S);
     for (const x of [12, 22, 31]) troffer(k, x, 32, 3.196, false);
     rug(k, 2.99, 29.01, 31.2, 32.8, 0.32, 0.1, 0.09, 0.022);
+    artFrame(k, 'poster-3', 8, 1.2, 29.8, 0.7, 0.93, S);
+    memoBoard(k, 10, 1.3, 34.26, 0.7, N);
+    awardCase(k, 'award-0', 18, 1.15, 34.26, N);
+    artFrame(k, 'poster-0', 20, 1.2, 29.8, 0.7, 0.93, S);
+    awardCase(k, 'award-1', 28, 1.15, 29.8, S);
+    memoBoard(k, 31.5, 1.3, 34.26, 0.7, N);
     restroomDoorway(k);
     troffer(k, 18, 27.35, 3.136, false);
     extinguisher(k, 34.6, 29.8, S);

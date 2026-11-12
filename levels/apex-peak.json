@@ -3994,5 +3994,14 @@
         "maxZ": 23.2,
         "priority": 3
       }
-    ]
+    ],
+  "acousticDefault": "hall",
+  "acousticZones": [
+    {"id": "apex-hall-1", "type": "hall", "minX": -2.2, "maxX": 2.2, "minZ": -1, "maxZ": 34.25, "priority": 1},
+    {"id": "apex-hall-2", "type": "hall", "minX": 2.2, "maxX": 35.3, "minZ": 29.8, "maxZ": 34.26, "priority": 1},
+    {"id": "apex-board", "type": "boardroom", "minX": 35.2, "maxX": 53.0, "minZ": 24.0, "maxZ": 40.0, "priority": 2},
+    {"id": "apex-office", "type": "hall", "minX": 43.2, "maxX": 52.7, "minZ": 40.0, "maxZ": 46.72, "priority": 2},
+    {"id": "apex-restroom", "type": "hall", "minX": 15.6, "maxX": 20.4, "minZ": 25.5, "maxZ": 29.56, "priority": 2},
+    {"id": "apex-lift", "type": "elevator", "minX": 42.2, "maxX": 45.8, "minZ": 19.0, "maxZ": 24.0, "priority": 5}
+  ]
 }
