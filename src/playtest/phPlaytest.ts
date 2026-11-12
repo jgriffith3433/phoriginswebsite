@@ -908,6 +908,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['level', 'phone'],
       },
       {
+        id: 'scenes-no-skip',
+        title: 'The Desk with no input and no Skip: the mirror starts by itself, the walk, the desk and the going-home line all end on their own',
+        description: 'Starts The Desk (test shortcut) and then touches nothing: no keys, no stick, no drag, no Skip. The mirror beat must engage by itself (about 5 s), play to "That\'s me" (by about 30 s), the walk to the desk must hand over by itself (45 s cap), the papers must be on the desk and drawn when the desk scene starts, Pierce must be in idle (not the walk clip) while the scene holds him, and the scene must end with the End Level card within 150 s. Metrics: deskMirrorSeconds, deskSceneSeconds, deskTotalSeconds. Problems: a beat that never ends, a walk clip while standing, papers missing.',
+        seconds: 240,
+        tags: ['level', 'story'],
+      },
+      {
         id: 'analytics',
         title: 'Hawkes Analytics: level 1 played to its card, the events going out (debug log), the feedback card after the level',
         description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
@@ -8180,6 +8187,49 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     if (id === 'crowd-shadow') {
       const outcome = await crowdShadowRun();
       t.finish(outcome);
+      return;
+    }
+
+    if (id === 'scenes-no-skip') {
+      levelsTotal = 1;
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('The Desk, hands off');
+      await enterLevel(4);
+      await waitControl('The Desk');
+      const t0 = performance.now();
+      let mirrorAt = -1;
+      let sceneAt = -1;
+      let doneAt = -1;
+      let papersSeen = false;
+      let walkClipWhileHeld = 0;
+      let lastPos = probe.player();
+      while (performance.now() - t0 < 150000) {
+        await tick();
+        const d = probe.desk?.();
+        if (!d) break;
+        const now = (performance.now() - t0) / 1000;
+        if (d.mirror.thatsMe && mirrorAt < 0) { mirrorAt = now; t.event('mirror-done', `${now.toFixed(1)} s, no input`); }
+        if ((d.phase === 'arrive' || d.phase === 'sweep' || d.phase === 'going') && sceneAt < 0) { sceneAt = now; t.event('desk-scene', `${now.toFixed(1)} s`); }
+        if (d.phase === 'sweep' || d.phase === 'going') {
+          const meshes = probe.scene.meshes.filter((m) => /^desk-paper-\d$/.test(m.name));
+          if (meshes.some((m) => m.isEnabled() && m.isVisible)) papersSeen = true;
+          const p = probe.player();
+          const moved = Math.hypot(p.x - lastPos.x, p.z - lastPos.z);
+          if (moved < 0.001 && /walk/i.test(String((probe as unknown as { anim?: () => string }).anim?.() ?? ''))) walkClipWhileHeld += 1;
+          lastPos = p;
+        }
+        if (d.phase === 'done') { doneAt = now; break; }
+      }
+      t.metric('deskMirrorSeconds', Math.round(mirrorAt));
+      t.metric('deskSceneSeconds', Math.round(sceneAt));
+      t.metric('deskTotalSeconds', Math.round(doneAt));
+      if (mirrorAt < 0) t.problem('bug', 'the mirror beat never ended on its own (no input, no Skip) within 150 s');
+      if (sceneAt < 0) t.problem('bug', 'the desk scene never started on its own');
+      if (sceneAt >= 0 && !papersSeen) t.problem('bug', 'no papers on the desk during the desk scene');
+      if (walkClipWhileHeld > 3) t.problem('bug', 'the walk clip played while Pierce stood still in the desk scene');
+      if (doneAt < 0) t.problem('bug', 'the desk scene did not end on its own within 150 s (only Skip ended it)');
+      t.progress(1);
+      t.finish(doneAt >= 0 && mirrorAt >= 0 ? 'done' : 'error');
       return;
     }
 
