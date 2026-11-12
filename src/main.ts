@@ -12,6 +12,8 @@ import {
 } from './game/npcs';
 import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
 import { createJumpPoser } from './game/jumpPose';
+import { createFootIk } from './game/footIk';
+import { createLocoState } from './game/locoState';
 import { clearImpactMarks, stampBulletMark } from './game/impacts';
 import { ITEM_CAP, addItem, createInventoryState, consumeItem, inventorySummary, itemCount, roomFor } from './game/inventory';
 import { getLevelDefinition, getLevels, getPlayableLevelCount, getUnlockedLevelCount, loadLevelLibrary } from './game/levels';
@@ -750,6 +752,7 @@ const ensurePlayerAvatar = (assetId: string) => {
   playerPistol.attachTo(playerAvatar);
   playerPistol.setVisible(state.player.weaponDrawn);
   phone.attachTo(playerAvatar);
+  next.whenReady(() => footIk.bind(next));
 };
 
 const placePierce = (x: number, z: number, yaw: number) => {
@@ -763,6 +766,8 @@ const placePierce = (x: number, z: number, yaw: number) => {
   playerAvatar.group.position.set(x, playerMeshY(PLAYER_STAND_Y), z);
   playerAvatar.group.rotation.y = yaw + Math.PI;
   followCamera.face(yaw);
+  locoState.reset();
+  footIk.resetDrift();
 };
 
 if ((import.meta as unknown as { env?: { DEV?: boolean } }).env?.DEV) {
@@ -3867,7 +3872,11 @@ const updateCamera = (delta: number, moving = false, moveHeading: number | null 
   playerLift += (liftWant - playerLift) * Math.min(1, delta * 14);
   if (state.inCutscene) return;
   playerAvatar.group.rotation.y = state.characterYaw + Math.PI;
-  playerAvatar.group.position.set(state.player.x, playerMeshY(state.player.y) + playerLift, state.player.z);
+  playerAvatar.group.position.set(
+    state.player.x,
+    playerMeshY(state.player.y) + playerLift - footHipDrop,
+    state.player.z,
+  );
 };
 
 const levelSealed = () => pendingEnd?.levelId === state.level;
@@ -3932,9 +3941,29 @@ const keepInsideFloors = (before: { x: number; z: number }) => {
 /** Smoothed horizontal speed the walk loop matches, so the planted foot stays planted. */
 let groundSpeed = 0;
 const jumpPose = createJumpPoser();
+const footIk = createFootIk(scene);
+playerAvatar.whenReady(() => footIk.bind(playerAvatar));
+const locoState = createLocoState();
+/** Pelvis drop from foot IK (m), subtracted from the avatar visual Y each frame. */
+let footHipDrop = 0;
+let lastClimbY = 0;
+/** Foot-slide totals keyed by library id for the playtest probe. */
+const footSlideByLevel: Record<string, { max: number; mean: number; plants: number }> = {};
+// After the clip poses the legs, plant the feet on stairs/ramps and drop the pelvis. Low tier keeps it.
+scene.onAfterAnimationsObservable.add(() => {
+  if (!state.running || state.inCutscene) return;
+  const dt = Math.min(0.05, Math.max(0, engine.getDeltaTime() / 1000));
+  footHipDrop = footIk.update(dt, lastJumpPose, true);
+  const lib = getLevelDefinition(state.level).libraryId;
+  const s = footIk.sample();
+  footSlideByLevel[lib] = { max: s.maxPlantDrift, mean: s.meanPlantDrift, plants: s.plants };
+});
 /** Last pose and input the avatar was given, for the playtest probe. */
 let lastJumpPose: number | null = null;
 let lastMoving = false;
+let lastLocoPhase = 'idle';
+/** Stick / key walk magnitude 0..1 after clamp — half tilt must walk at half speed. */
+let lastWalkMag = 0;
 
 /** Scratch vectors for on-foot / possess movement — never allocate these per frame. */
 const moveForward = new BABYLON.Vector3();
@@ -4034,9 +4063,35 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   strideFrom.x = state.player.x;
   strideFrom.z = state.player.z;
   groundSpeed = walkedBefore;
-  if (desiredMove.lengthSquared() > 0) {
+  // Stick tilt is the speed: half tilt walks at half playerSpeed so the stride can match (phone criterion).
+  // Keys stay at 1. Diagonal stick past the unit circle is clamped.
+  const walkMagnitude = Math.min(1, Math.hypot(moveX, moveZ));
+  lastWalkMag = walkMagnitude;
+  const moveHeadingEarly = desiredMove.lengthSquared() > 0
+    ? Math.atan2(desiredMove.x, desiredMove.z)
+    : null;
+  const climbRate = delta > 1e-4 ? (state.player.y - lastClimbY) / delta : 0;
+  lastClimbY = state.player.y;
+  const movingIntent = impair ? desiredMove.lengthSquared() > 0.0025 : walkMagnitude > 0.05;
+  const loco = locoState.step({
+    moving: movingIntent,
+    moveHeading: moveHeadingEarly,
+    faceYaw: state.characterYaw,
+    grounded: state.player.grounded && !shadowFlying,
+    climbRate,
+    hasClip: (k) => playerAvatar.hasClip(k),
+    delta,
+  });
+  lastLocoPhase = loco.phase;
+  if (loco.oneshot) {
+    playerAvatar.playClip(loco.oneshot, false, 1, () => playerAvatar.resumeLocomotion());
+  }
+  if (desiredMove.lengthSquared() > 0 && !loco.holdMove) {
     desiredMove.normalize();
-    const speed = state.playerSpeed * (shadowRunActive() ? SHADOW_RUN_SPEED : 1) * (impair?.speed ?? 1);
+    const speed = state.playerSpeed
+      * (shadowRunActive() ? SHADOW_RUN_SPEED : Math.max(walkMagnitude, impair ? 0.15 : 0))
+      * (impair?.speed ?? 1)
+      * loco.speedScale;
     // A stalled frame (a slow GPU, a shader compile) must not carry him metres in one step and tunnel a wall corner,
     // but it must not slow him either (a 2 fps run then walks at a tenth of speed). Spend the frame in steps of at most
     // MAX_MOVE_DELTA, each collided and floor-checked, up to MAX_MOVE_FRAME of real time.
@@ -4057,7 +4112,6 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     state.player.x = impair.maxX;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
   }
-  const walkMagnitude = Math.hypot(moveX, moveZ);
   const moving = impair ? desiredMove.lengthSquared() > 0.0025 : walkMagnitude > 0.05;
   const moveHeading = desiredMove.lengthSquared() > 0
     ? Math.atan2(desiredMove.x, desiredMove.z)
@@ -4091,13 +4145,16 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
 
   const handsOut = shadowPlay().controls() && shadowPlay().handsOut();
   const aimFacing = state.player.weaponDrawn || handsOut;
-  const facingTarget = aimFacing
-    ? (followCamera.isLooking() || !moving || moveHeading === null ? followCamera.getYaw() : moveHeading)
-    : (moving && moveHeading !== null ? moveHeading : state.characterYaw);
+  const facingTarget = loco.faceYaw !== null
+    ? loco.faceYaw
+    : aimFacing
+      ? (followCamera.isLooking() || !moving || moveHeading === null ? followCamera.getYaw() : moveHeading)
+      : (moving && moveHeading !== null ? moveHeading : state.characterYaw);
+  const turnRate = loco.phase === 'turn90' || loco.phase === 'turn180' ? 10 : (followCamera.isLooking() ? 22 : 24);
   state.characterYaw = lerpAngle(
     state.characterYaw,
     facingTarget,
-    1 - Math.exp(-(followCamera.isLooking() ? 22 : 24) * Math.min(delta, 0.05)),
+    1 - Math.exp(-turnRate * Math.min(delta, 0.05)),
   );
 
   const travelled = Math.hypot(state.player.x - strideFrom.x, state.player.z - strideFrom.z);
@@ -4110,12 +4167,13 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   const pose = shadowFlying ? jumpPose.reset() : jumpPose.step(state.player, delta, moving);
   const jumpAnim = pose !== null;
   const sprinting = moving && shadowRunActive();
+  const animMoving = moving && !loco.holdMove && loco.speedScale > 0.08;
   playerAvatar.setSprinting(sprinting);
-  playerAvatar.setLocomotion(moving, shadowFlying ? true : !jumpAnim);
+  playerAvatar.setLocomotion(animMoving, shadowFlying ? true : !jumpAnim);
   playerAvatar.setJumpPose(pose);
   lastJumpPose = pose;
   lastMoving = moving;
-  playerAvatar.setStride(moving && !jumpAnim ? groundSpeed : null);
+  playerAvatar.setStride(animMoving && !jumpAnim ? groundSpeed : null);
   audio.setWalk(
     moving
     && !jumpAnim
@@ -4735,11 +4793,14 @@ leftStickZone.addEventListener('pointerdown', (event) => {
   const centerY = rect.top + rect.height / 2;
   const dx = (event.clientX - centerX) / (rect.width * 0.38);
   const dy = (event.clientY - centerY) / (rect.height * 0.38);
-  const mag = Math.min(1, Math.hypot(dx, dy));
-  state.movementVector.x = Math.min(1, Math.max(-1, dx)) / Math.max(1, mag);
-  state.movementVector.y = Math.min(1, Math.max(-1, dy)) / Math.max(1, mag);
-  const knobX = Math.max(-38, Math.min(38, dx * 38));
-  const knobY = Math.max(-38, Math.min(38, dy * 38));
+  const clampX = Math.max(-1, Math.min(1, dx));
+  const clampY = Math.max(-1, Math.min(1, dy));
+  const magnitude = Math.hypot(clampX, clampY);
+  // Keep tilt magnitude (half stick = half speed); only clamp to the unit circle past the rim.
+  state.movementVector.x = magnitude > 1 ? clampX / magnitude : clampX;
+  state.movementVector.y = magnitude > 1 ? clampY / magnitude : clampY;
+  const knobX = state.movementVector.x * 38;
+  const knobY = state.movementVector.y * 38;
   leftStickKnob.style.left = `calc(50% + ${knobX}px)`;
   leftStickKnob.style.top = `calc(50% + ${knobY}px)`;
   leftStickKnob.style.transform = 'translate(-50%, -50%)';
@@ -5831,8 +5892,25 @@ installPhPlaytest({
     jumpPose: lastJumpPose,
     groundSpeed,
     moving: lastMoving,
+    walkMag: lastWalkMag,
+    phase: lastLocoPhase,
     ...playerAvatar.locomotion(),
   }),
+  /** Planted-foot drift (m) for the live level and every level visited this run. */
+  footSlide: () => {
+    const live = footIk.sample();
+    const lib = getLevelDefinition(state.level).libraryId;
+    footSlideByLevel[lib] = { max: live.maxPlantDrift, mean: live.meanPlantDrift, plants: live.plants };
+    return {
+      max: live.maxPlantDrift,
+      mean: live.meanPlantDrift,
+      plants: live.plants,
+      left: live.left,
+      right: live.right,
+      hipDrop: live.hipDrop,
+      byLevel: { ...footSlideByLevel },
+    };
+  },
   cameraYaw: () => followCamera.getYaw(),
   objective: () => {
     const target = objectiveMarker.getTarget();

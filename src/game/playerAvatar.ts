@@ -28,10 +28,12 @@ export type PlayerAvatar = {
    */
   setJumpPose: (pose: number | null) => void;
   /** What the rig is playing now, for the playtest's animation trace. */
-  locomotion: () => { clip: string | null; rate: number; cinematic: boolean };
+  locomotion: () => { clip: string | null; rate: number; cinematic: boolean; phase?: string };
   setSprinting: (sprinting: boolean) => void;
   setArmed: (armed: boolean) => void;
   playClip: (keyword: string, loop?: boolean, speedRatio?: number, onEnded?: () => void) => boolean;
+  /** True when the loaded rig has a clip for this keyword (startWalk, stop, turn90, turn180, stairsUp…). */
+  hasClip: (keyword: string) => boolean;
   /** Seconds the clip plays, or null until the rig has loaded. */
   clipDuration: (keyword: string) => number | null;
   resumeLocomotion: () => void;
@@ -68,13 +70,23 @@ export const findClip = (clips: BABYLON.AnimationGroup[], keyword: string): BABY
   if (key === 'pistolidle') return byTail(clips, 'PistolIdle');
   if (key === 'pistolwalk') return byTail(clips, 'PistolWalk');
   if (key === 'pistoljump') return byTail(clips, 'PistolJump');
+  // Locomotion transitions (Gen motion.from-text, baked onto the hero):
+  if (key === 'startwalk') return byTail(clips, 'StartWalk') ?? byTail(clips, 'WalkStart');
+  if (key === 'stop') return byTail(clips, 'Stop') ?? byTail(clips, 'WalkStop');
+  if (key === 'turn90') return byTail(clips, 'Turn90') ?? byTail(clips, 'TurnRight90');
+  if (key === 'turn180') return byTail(clips, 'Turn180') ?? byTail(clips, 'TurnRight180');
+  if (key === 'stairsup') return byTail(clips, 'StairsUp') ?? byTail(clips, 'Stairs');
   const want = key === 'sit' ? 'sitidle' : key === 'talk' ? 'sittalk' : compact(keyword);
   return clips.find((clip) => compact(clipTail(clip.name)) === want) ?? null;
 };
 
 const WEAPON_OVERLAY = new Set(['draw', 'holster', 'shoot']);
 /** Looping stand/walk poses. They must not lock locomotion, or a level start stays on idle until punch or the pistol clears it. */
-const POSE_LOOP = new Set(['idle', 'rebornidle', 'walk', 'run', 'pistolidle', 'pistolwalk', 'sit', 'sittalk', 'walkback']);
+const POSE_LOOP = new Set([
+  'idle', 'rebornidle', 'walk', 'run', 'pistolidle', 'pistolwalk', 'sit', 'sittalk', 'walkback', 'stairsup',
+]);
+/** One-shot start / stop / turn clips: they must not lock cinematic locomotion. */
+const LOCO_ONESHOT = new Set(['startwalk', 'stop', 'turn90', 'turn180']);
 
 const PLAYER_CLIP_SPEEDS: Record<string, number> = {
   draw: 4,
@@ -593,7 +605,9 @@ export const createCharacterAvatar = (
     onEnded?: () => void,
     lockCinematic = true,
   ) => {
-    if (loop && POSE_LOOP.has(keyword.trim().toLowerCase())) lockCinematic = false;
+    const tokenEarly = keyword.trim().toLowerCase();
+    if (loop && POSE_LOOP.has(tokenEarly)) lockCinematic = false;
+    if (!loop && LOCO_ONESHOT.has(tokenEarly)) lockCinematic = false;
     if (animationGroups.length === 0) {
       cinematic = lockCinematic;
       pendingClip = { keyword, loop, speedRatio, onEnded, lockCinematic };
@@ -834,6 +848,7 @@ export const createCharacterAvatar = (
     setSprinting,
     setArmed,
     playClip,
+    hasClip: (keyword: string) => !!findClip(animationGroups, keyword),
     clipDuration,
     resumeLocomotion,
     setShown: (on: boolean) => {
