@@ -89,13 +89,11 @@ export const CHAPTER_SPOTS: Record<number, AmbienceSpot[]> = {
   ],
   6: [
     spot('station-pass', '/assets/audio/sfx/station/train-pass.ogg', 0.28, 'machinery', [12, 30], 1.2),
-    spot('station-brakes', '/assets/audio/sfx/ambience/station-brakes.ogg', 0.26, 'machinery', [8, 22], 1.0),
     spot('station-walla', '/assets/audio/sfx/ambience/station-walla.ogg', 0.2, 'ambience', [4, 14], 1.5),
     spot('station-chime', '/assets/audio/sfx/station/pa-chime.ogg', 0.22, 'effect', [6, 18], 2.4),
     spot('station-doors', '/assets/audio/train/doors-open.ogg', 0.18, 'effect', [10, 26], 1.2),
     spot('station-rumble', '/assets/audio/train/rumble.ogg', 0.14, 'ambience', [16, 36], 0.8),
     spot('station-close', '/assets/audio/train/doors-close.ogg', 0.16, 'effect', [10, 24], 1.2),
-    spot('station-brake2', '/assets/audio/train/brakes.ogg', 0.2, 'machinery', [14, 32], 1.0),
   ],
   7: [
     spot('train-clatter', '/assets/audio/sfx/ambience/train-clatter.ogg', 0.28, 'machinery', [1, 6], 0.4),
@@ -111,10 +109,10 @@ export const CHAPTER_SPOTS: Record<number, AmbienceSpot[]> = {
     spot('morning-birds', '/assets/audio/sfx/ambience/morning-birds.ogg', 0.22, 'ambience', [4, 14], 2.2),
     spot('morning-traffic', '/assets/audio/sfx/ambience/morning-traffic.ogg', 0.18, 'ambience', [8, 22], 1.6),
     spot('morning-fridge', '/assets/audio/sfx/ambience/morning-fridge.ogg', 0.2, 'machinery', [1, 3.5], 1.0),
-    spot('morning-tv', '/assets/audio/sfx/home/tv-static.ogg', 0.12, 'effect', [1, 4], 1.2),
-    spot('morning-bed', '/assets/audio/sfx/home/bed-creak.ogg', 0.14, 'effect', [0.5, 2], 0.6),
-    spot('morning-door', '/assets/audio/sfx/home/door-open.ogg', 0.16, 'effect', [6, 16], 1.4),
-    spot('morning-glass', '/assets/audio/sfx/glass-tick.ogg', 0.12, 'effect', [1, 4], 1.5),
+    // Domestic only: a wall clock and the street. The old pool fired the CRT static burst, a bed creak and a door
+    // swing at random spots around him all morning (the "weird sound" J heard); the TV and the bed sound when used.
+    spot('morning-clock', '/assets/audio/sfx/ambience/desk-clock.ogg', 0.1, 'effect', [1.5, 3.5], 1.6),
+    spot('morning-kettle', '/assets/audio/sfx/ambience/morning-fridge.ogg', 0.12, 'machinery', [2, 5], 1.0),
     spot('morning-skyline', '/assets/audio/sfx/apex/skyline.ogg', 0.14, 'ambience', [3, 10], 1.8),
   ],
 };

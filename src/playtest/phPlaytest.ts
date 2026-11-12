@@ -59,6 +59,7 @@ export type PhProbe = {
     options: { key: number; text: string; rect: { x: number; y: number; w: number; h: number } | null }[];
     left: number; total: number;
     log: { call: string; moment: string; choice: string; cutOff: boolean; delta: number; stat: string; value: number }[];
+    windows: { call: string; moment: string; words: number; window: number; openedAt: number; voiceEndAt: number; closedAt: number; how: string }[];
     caption: { x: number; y: number; w: number; h: number } | null;
     stats: { vossTrust: number; haleTemper: number; min: number; max: number };
   };
@@ -277,6 +278,8 @@ export type PhProbe = {
     steps?: { surface: string; variant: number; rate: number; foot: string }[];
     /** Music director (docs/music.md): state, state log, duck depth, events. */
     /** Every voice clip: start, end, whether a stop cut it short, whether another voice sounded under it. */
+    sceneMix?: { maxSfx: number; minVoice: number; sfxToVoiceDb: number | null; capped: number; entries: { url: string; kind: string; asked: number; gain: number; capped: boolean }[] };
+    sceneMixReset?: () => void;
     voice?: { url: string; start: number; end: number; waited: number; duration: number; state: string; cut: boolean; overlapped: boolean }[];
     /** Spatial audio: reverb zone, occlusion, panning, loudness, dropouts (src/game/acoustics.ts). */
     acoustics?: AcousticsProbe;
@@ -342,6 +345,11 @@ class SmokeStuck extends Error {}
 
 /** Usual timeline lengths, seconds. A scripted scene (lobby, desk, station opening) has no timeline file. */
 const SCRIPTED_LIMIT = 150;
+/** Meshes a scene refers to, by scene id: the audit reports any that never exist while the scene runs. */
+const SCENE_PROPS: Record<string, RegExp[]> = {
+  'station-opening': [/^station-man$/, /^station-double$/, /^station-shade$/],
+  'the-desk': [/^desk-paper-\d$/],
+};
 /** In `full`, these long rides are skipped after this many seconds. Levels 1–6 stay near ten minutes; level 7 is the train after them. */
 const FULL_SKIP_AFTER: Record<string, number> = { 'elevator-b3': 16, 'elevator-up': 16 };
 
@@ -908,6 +916,20 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         tags: ['level', 'phone'],
       },
       {
+        id: 'scenes-no-skip',
+        title: 'The Desk with no input and no Skip: the mirror starts by itself, the walk, the desk and the going-home line all end on their own',
+        description: 'Starts The Desk (test shortcut) and then touches nothing: no keys, no stick, no drag, no Skip. The mirror beat must engage by itself (about 5 s), play to "That\'s me" (by about 30 s), the walk to the desk must hand over by itself (45 s cap), the papers must be on the desk and drawn when the desk scene starts, Pierce must be in idle (not the walk clip) while the scene holds him, and the scene must end with the End Level card within 150 s. Metrics: deskMirrorSeconds, deskSceneSeconds, deskTotalSeconds. Problems: a beat that never ends, a walk clip while standing, papers missing.',
+        seconds: 240,
+        tags: ['level', 'story'],
+      },
+      {
+        id: 'scene-audit',
+        title: 'Every scripted scene, hands off: the lobby, the station platform, the train opening and stop, the morning — no Skip, no input',
+        description: 'Starts levels 5, 6, 7 and 8 directly (test shortcuts) and touches nothing: no keys, no stick, no Skip. Each scene that starts (probe.scripted() or a timeline cutscene) is timed and audited every frame: the walk clip playing with no movement (walking in place), movement with no walk clip (sliding), and the props the scene refers to (SCENE_PROPS). A scene that runs past its limit is a bug and is then skipped so the run can go on. Metrics per scene: scene:<id>:walkInPlaceFrames, scene:<id>:slideFrames, cutscene:<id> (seconds); events scene-audit. Options: level (one level number only).',
+        seconds: 600,
+        tags: ['level', 'story', 'quality'],
+      },
+      {
         id: 'analytics',
         title: 'Hawkes Analytics: level 1 played to its card, the events going out (debug log), the feedback card after the level',
         description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
@@ -1001,9 +1023,23 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'site-links',
         title: 'Powered by HAWKES GEN on every site page, Hawkes Biomedical on Home, About lists levels 1-7 playable, the game screen unchanged',
-        description: 'Taps to play, then shows Home, About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold), plus a Hawkes Biomedical link to https://hawkesbiomedical.com on Home. Then checks the game page itself carries no credit link.',
+        description: 'Taps to play, then shows About, Characters and What\'s new in an overlay one after another. On About it first scrolls to "What you can play" and checks a Playable card for each of levels 1-7 (outlined gold, red when wrong), and that the "still being built out" line is gone. Then it scrolls each page to its footer and checks a visible "Powered by HAWKES GEN" link to https://hawkesgen.ai (outlined in gold). Then checks the game page itself carries no credit link.',
         seconds: 60,
         tags: ['menus', 'site'],
+      },
+      {
+        id: 'terminal',
+        title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the five-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
+        description: 'Loads index.html in an overlay (the page is the gateway terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the LOGIN GUIDE (/help prints Step N of 5 and the exact command): rev ~/.hat_backwards, nmap the named host, curl the backup, john with the staff wordlist, ssh as ops. The prompt must turn root@ph-origins:/# (red). /build (page loaded with ?songlen=8, an 8 s song) prints more than 300 log lines in its first 3 s (terminalFloodLines3s), then the song starts or the silent fallback line shows, the text flipbook updates at least 10 times in 2 s with both silhouettes non-empty every sample (terminalFlipFrames2s), Esc skips to BUILD SUCCESSFUL; a second /build left alone ends by itself with at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
+        seconds: 150,
+        tags: ['site', 'first-minute', 'ui'],
+      },
+      {
+        id: 'terminal-phone',
+        title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot',
+        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, Then a second page (?demo=show&songlen=6, motion on) shows the /build text flipbook at 390x844: both silhouettes side by side and non-empty, flipbook text at least 10 px, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
+        seconds: 60,
+        tags: ['site', 'phone', 'ui'],
       },
       {
         id: 'frame-trace',
@@ -1224,7 +1260,11 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     // ---- what the bot watches every frame
     let lastLine = '';
     let lastPhone = '';
-    let scene: { id: string; t0: number; limit: number; skipAt: number; last: number; skipped: boolean } | null = null;
+    let scene: {
+      id: string; t0: number; limit: number; skipAt: number; last: number; skipped: boolean;
+      /** Scene audit: samples taken, samples with the walk clip and no movement, movement without a walk clip, the last position, props never seen. */
+      samples: number; walkInPlace: number; slide: number; lastP: { x: number; z: number } | null; propsSeen: Set<string>;
+    } | null = null;
     let lastPos: { x: number; z: number; y: number } | null = null;
     let fallen = false;
     // Animation trace (quality rule 5): how long each mismatch between motion and clip has lasted.
@@ -1290,7 +1330,10 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         const skipAfter = full ? FULL_SKIP_AFTER[nowId]
           : smoke && (cut || smokeSkipScripted) ? (FULL_SKIP_AFTER[nowId] ?? SMOKE_SKIP_AFTER) : undefined;
         const bySpeed = speed > 1 && cut ? cut.duration / speed : undefined;
-        scene = { id: nowId, t0: performance.now(), limit, skipAt: Math.min(skipAfter ?? Infinity, bySpeed ?? Infinity), last: -1, skipped: false };
+        scene = {
+          id: nowId, t0: performance.now(), limit, skipAt: Math.min(skipAfter ?? Infinity, bySpeed ?? Infinity), last: -1, skipped: false,
+          samples: 0, walkInPlace: 0, slide: 0, lastP: null, propsSeen: new Set(),
+        };
         t.add('cutscenes');
         t.event('cutscene-start', nowId);
         levelSteps += 1;
@@ -1302,6 +1345,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         const secs = (performance.now() - scene.t0) / 1000;
         const time = cut?.time ?? secs;
         if (time > scene.last + 0.5) { scene.last = time; mark(); }
+        auditSceneFrame(scene);
         if (!scene.skipped && secs > scene.skipAt) {
           scene.skipped = true;
           t.event('cutscene-skip', `${scene.id} at ${secs.toFixed(0)} s`);
@@ -1398,9 +1442,39 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
     };
 
+    /** Scene audit: while a scene runs, is the walk clip playing with no movement, is he moving with no walk clip, and are its props there. */
+    const auditSceneFrame = (sc: NonNullable<typeof scene>) => {
+      const p = probe.player();
+      const clip = String(probe.motion?.()?.clip ?? '').toLowerCase();
+      const walking = /walk|run/.test(clip);
+      if (sc.lastP) {
+        const moved = Math.hypot(p.x - sc.lastP.x, p.z - sc.lastP.z);
+        sc.samples += 1;
+        // A cut (placePierce to a new mark) is a jump of metres: not a slide.
+        if (walking && moved < 0.005) sc.walkInPlace += 1;
+        if (!walking && clip && moved > 0.15 && moved < 2.5) sc.slide += 1;
+      }
+      sc.lastP = { x: p.x, z: p.z };
+      for (const re of SCENE_PROPS[sc.id] ?? []) {
+        if (sc.propsSeen.has(re.source)) continue;
+        if (probe.scene.meshes.some((m) => re.test(m.name) && m.isEnabled())) sc.propsSeen.add(re.source);
+      }
+    };
+
     const endScene = () => {
       if (!scene) return;
       const secs = (performance.now() - scene.t0) / 1000;
+      // The audit's findings, per scene: shown as metrics and, when it matters, as bugs.
+      t.metric(`scene:${scene.id}:walkInPlaceFrames`, scene.walkInPlace);
+      t.metric(`scene:${scene.id}:slideFrames`, scene.slide);
+      if (scene.walkInPlace > 3) t.problem('bug', `scene "${scene.id}": the walk clip played with no movement for ${scene.walkInPlace} frames (walking in place)`);
+      if (scene.slide > 3) t.problem('warning', `scene "${scene.id}": Pierce moved with no walk clip for ${scene.slide} frames (sliding)`);
+      const lastSecs = secs;
+      if (lastSecs > 4) {
+        const missing = (SCENE_PROPS[scene.id] ?? []).filter((re) => !scene!.propsSeen.has(re.source));
+        if (missing.length) t.problem('bug', `scene "${scene.id}": props it refers to were never present: ${missing.map((re) => re.source).join(', ')}`);
+      }
+      t.event('scene-audit', `${scene.id}: started, ${scene.skipped ? 'ended only by Skip' : 'ended by itself'}, ${secs.toFixed(1)} s, walk-in-place ${scene.walkInPlace}, slide ${scene.slide}`);
       t.event('cutscene-end', `${scene.id} after ${secs.toFixed(1)} s${scene.skipped ? ' (skipped)' : ''}`);
       t.metric(`cutscene:${scene.id}`, Math.round(secs * 10) / 10);
       scene = null;
@@ -2429,9 +2503,266 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       await sleep(3000); // hold the cards for the footage
     };
 
-    /** Each site page in an overlay: the footer's Powered by HAWKES GEN link, and Hawkes Biomedical on Home. */
+
+    /** The landing page is a terminal (index.html). Shown in an overlay and driven with real key and tap events. */
+    const terminalRun = async (phone: boolean) => {
+      levelsTotal = 1;
+      const KEY = 'hawkes-terminal-test-restore';
+      const STORE = 'ph-origins-terminal';
+      const saved = localStorage.getItem(STORE);
+      localStorage.removeItem(STORE); // a clean guest; the visitor's own save comes back at the end
+      t.scene(phone ? 'Terminal on a phone' : 'Terminal');
+      const frame = document.createElement('iframe');
+      frame.title = 'terminal';
+      frame.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html' + (phone ? '?motion=off' : '?songlen=8'), location.href).href;
+      Object.assign(frame.style, phone
+        ? { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '9999', border: '0', background: '#000' }
+        : { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '9999', border: '0', background: '#000' });
+      const t0 = performance.now();
+      document.body.appendChild(frame);
+      void KEY;
+      try {
+        const until = performance.now() + 20000;
+        while (!frame.contentDocument?.getElementById('termInput') && performance.now() < until) await sleep(100);
+        const win = frame.contentWindow as any;
+        const doc = frame.contentDocument as Document;
+        const input = doc.getElementById('termInput') as HTMLInputElement | null;
+        if (!input || !win) { t.problem('bug', 'terminal: index.html did not show a #termInput'); return; }
+        const log = () => (doc.getElementById('termLog') as HTMLElement).innerText;
+        const prompt = () => (doc.getElementById('termPrompt') as HTMLElement).textContent ?? '';
+        const idle = () => !input.hasAttribute('aria-busy');
+        const setValue = (v: string) => {
+          Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!.call(input, v);
+          input.dispatchEvent(new win.Event('input', { bubbles: true }));
+        };
+        const type = async (line: string) => {
+          input.focus();
+          for (const ch of line) { // real key events, one character at a time (the page keeps the value itself)
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: ch, bubbles: true, cancelable: true }));
+            setValue(input.value + ch);
+          }
+        };
+        const enter = async (line: string, wait = 20000) => {
+          await t.until(idle, 60000, 'the previous output to finish');
+          await type(line);
+          input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+          (doc.getElementById('termForm') as HTMLFormElement).requestSubmit();
+          await sleep(40);
+          await t.until(idle, wait, `"${line}" to finish printing`);
+          t.add('interactions');
+        };
+        const runLine = async (line: string) => { const before = log().length; await enter(line); return log().slice(before); };
+        const expect = (out: string, re: RegExp, what: string) => { if (!re.test(out)) t.problem('bug', `terminal: ${what} (wanted ${re}, got "${out.slice(0, 160).replace(/\n/g, ' | ')}")`); };
+
+        // 1. boot, then the guest prompt
+        await t.until(() => /^guest@ph-origins:~\$$/.test(prompt()) && idle() && /Type\s+help/.test(log()), 8000, 'the boot to end on the guest prompt');
+        const bootSeconds = (performance.now() - t0) / 1000;
+        t.metric('terminalBootSeconds', Math.round(bootSeconds * 10) / 10);
+        t.event('terminal-boot', `${bootSeconds.toFixed(1)} s to the prompt`);
+        if (phone) {
+          if (bootSeconds > 1.5) t.problem('bug', `terminal (reduced motion): the boot took ${bootSeconds.toFixed(1)} s, it should print at once`);
+        } else if (bootSeconds > 3.5) t.problem('bug', `terminal: boot to prompt took ${bootSeconds.toFixed(1)} s (limit 3)`);
+        t.event('terminal-first', `prompt ${prompt()}`);
+
+        if (phone) {
+          // ---- layout at 390x844, then 480 tall for a keyboard
+          const de = doc.documentElement;
+          t.metric('terminalScrollWidth', de.scrollWidth);
+          if (de.scrollWidth > 391 || doc.body.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll (${de.scrollWidth}px in a 390px frame)`);
+          const screenEl = doc.getElementById('screen') as HTMLElement;
+          const fs = parseFloat(win.getComputedStyle(screenEl).fontSize);
+          t.metric('terminalFontPx', fs);
+          if (fs < 14) t.problem('bug', `terminal phone: text is ${fs}px, under 14px`);
+          const bar = doc.querySelector('.tapbar') as HTMLElement;
+          const buttons = [...bar.querySelectorAll('button')] as HTMLElement[];
+          if (win.getComputedStyle(bar).display === 'none' || buttons.length < 7) t.problem('bug', `terminal phone: the quick-key row is missing (${buttons.length} buttons)`);
+          let prev: DOMRect | null = null;
+          for (const b of buttons) {
+            const r = b.getBoundingClientRect();
+            if (r.width < 44 || r.height < 44) t.problem('bug', `terminal phone: "${b.textContent}" is ${Math.round(r.width)}x${Math.round(r.height)}, under 44 px`);
+            if (prev && r.left - prev.right < 8 - 0.5) t.problem('bug', `terminal phone: "${b.textContent}" sits ${Math.round(r.left - prev.right)} px from its neighbour (need 8)`);
+            if (r.right > 391) t.problem('bug', `terminal phone: "${b.textContent}" runs off the right edge (${Math.round(r.right)})`);
+            prev = r;
+          }
+          for (const a of [...doc.querySelectorAll('.foot a')] as HTMLElement[]) {
+            const r = a.getBoundingClientRect();
+            if (r.width > 0 && r.height < 44) t.problem('bug', `terminal phone: footer link "${a.textContent?.trim()}" is ${Math.round(r.height)} px tall, under 44`);
+          }
+          frame.style.height = '480px'; // the soft keyboard takes the lower half
+          await sleep(500);
+          const form = (doc.getElementById('termForm') as HTMLElement).getBoundingClientRect();
+          const barRect = bar.getBoundingClientRect();
+          t.event('terminal-keyboard', `prompt bottom ${Math.round(form.bottom)}, button row bottom ${Math.round(barRect.bottom)}, frame 480`);
+          if (form.bottom > 481 || form.top < 0) t.problem('bug', `terminal phone: the prompt is off screen with the keyboard up (top ${Math.round(form.top)}, bottom ${Math.round(form.bottom)} of 480)`);
+          if (barRect.bottom > 481) t.problem('bug', `terminal phone: the quick-key row is under the keyboard (bottom ${Math.round(barRect.bottom)} of 480)`);
+          const guide = await runLine('/help');
+          if (!/LOGIN GUIDE[\s\S]*Step 1 of 5/.test(guide)) t.problem('bug', 'terminal phone: /help shows no LOGIN GUIDE');
+          if (doc.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: the LOGIN GUIDE scrolls sideways (${doc.documentElement.scrollWidth}px)`);
+          const form2 = (doc.getElementById('termForm') as HTMLElement).getBoundingClientRect();
+          if (form2.bottom > 481 || form2.top < 0) t.problem('bug', `terminal phone: the prompt left the screen after /help with the keyboard up (top ${Math.round(form2.top)}, bottom ${Math.round(form2.bottom)})`);
+          const tap = async (act: string) => {
+            const b = bar.querySelector(`[data-act="${act}"]`) as HTMLElement;
+            b.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+            b.click();
+            await sleep(80);
+          };
+          await tap('help');
+          await t.until(idle, 5000, 'help to print');
+          expect(log(), /Look around/, 'the help button did not print the command list');
+          setValue('hel');
+          await tap('tab');
+          if (input.value !== 'help ') t.problem('bug', `terminal phone: the Tab button did not complete "hel" (value "${input.value}")`);
+          setValue('');
+          await tap('up');
+          if (input.value !== 'help') t.problem('bug', `terminal phone: the up arrow did not recall the last command (value "${input.value}")`);
+          setValue('abc');
+          await tap('ctrlc');
+          if (input.value !== '' || !/\^C/.test(log())) t.problem('bug', 'terminal phone: the ^C button did not cancel the line');
+          await tap('ls'); await t.until(idle, 5000, 'ls');
+          expect(log(), /README\.txt/, 'the ls button did not list the home directory');
+          // ---- the flipbook at 390x844 (a second page with the show started at once; the phone page above is motion off)
+          const f2 = document.createElement('iframe');
+          f2.title = 'terminal show';
+          f2.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html?demo=show&songlen=6', location.href).href;
+          Object.assign(f2.style, { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '10000', border: '0', background: '#000' });
+          frame.style.display = 'none';
+          document.body.appendChild(f2);
+          try {
+            const d2 = () => f2.contentDocument as Document | null;
+            await t.until(() => d2()?.getElementById('termShow')?.dataset.act === 'flip', 20000, 'the phone flipbook to start');
+            await t.until(() => Number(d2()?.getElementById('termShow')?.dataset.frames ?? 0) >= 3, 5000, 'the phone flipbook to flip');
+            const w2 = f2.contentWindow as any;
+            const L = d2()!.getElementById('flipL') as HTMLElement;
+            const R = d2()!.getElementById('flipR') as HTMLElement;
+            const fpx = parseFloat(w2.getComputedStyle(L).fontSize);
+            const lr = L.getBoundingClientRect();
+            const rr = R.getBoundingClientRect();
+            const nl = (L.textContent ?? '').replace(/\s/g, '').length;
+            const nr = (R.textContent ?? '').replace(/\s/g, '').length;
+            t.metric('terminalFlipFontPx', fpx);
+            t.metric('terminalFlipScrollWidth', d2()!.documentElement.scrollWidth);
+            if (fpx < 10) t.problem('bug', `terminal phone: flipbook text is ${fpx}px, under 10px`);
+            if (nl < 20 || nr < 20) t.problem('bug', `terminal phone: a silhouette is missing (left ${nl} chars, right ${nr})`);
+            if (!(lr.right <= rr.left + 1 && lr.left >= 0 && rr.right <= 391)) t.problem('bug', `terminal phone: the silhouettes are not side by side on screen (left ${Math.round(lr.left)}-${Math.round(lr.right)}, right ${Math.round(rr.left)}-${Math.round(rr.right)})`);
+            if (d2()!.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll in the flipbook (${d2()!.documentElement.scrollWidth}px)`);
+            const mute = d2()!.getElementById('showMute')!.getBoundingClientRect();
+            if (mute.width < 44 || mute.height < 44) t.problem('bug', `terminal phone: the mute button is ${Math.round(mute.width)}x${Math.round(mute.height)}, under 44 px`);
+            const e2: string[] = w2.__termErrors ?? [];
+            if (e2.length) t.problem('bug', `terminal phone flipbook: ${e2.length} page error(s): ${e2.slice(0, 3).join(' | ')}`);
+          } finally { f2.remove(); frame.style.display = ''; }
+        } else {
+          // ---- /help and the permission wall
+          const help = await runLine('/help');
+          const names = help.split('\n').filter((l) => /^\s{2}\/?[a-z]+\s{2,}\S/.test(l)).length;
+          t.metric('terminalHelpCommands', names);
+          if (names < 15) t.problem('bug', `terminal: /help lists ${names} commands, under 15`);
+          expect(help, /LOGIN GUIDE[\s\S]*Step 1 of 5/, '/help should open with the LOGIN GUIDE');
+          expect(await runLine('/build'), /permission denied/i, '/build as guest should be refused');
+          expect(await runLine('sudo ls'), /sudoers/, 'sudo as guest should be refused');
+          await runLine('su root'); expect(prompt(), /Password/, 'su root should ask for a password');
+          expect(await runLine('hunter2'), /Authentication failure/, 'a wrong root password should fail');
+          expect(prompt(), /^guest@/, 'a failed su should leave the guest prompt');
+          expect(await runLine('hint'), /hint \(step 1 of 5\): Next: rev/, 'hint should give the next command for step 1');
+          expect(await runLine('ls -a'), /\.hat_backwards/, 'ls -a should show the hat');
+
+          // ---- the documented chain, from the clues only
+          expect(await runLine('rev ~/.hat_backwards'), /gw\.hawkes\.lan/, 'the reversed hat should name the host');
+          expect(await runLine('nmap gw.hawkes.lan'), /8080\/tcp\s+open[\s\S]*gw\.cfg\.bak/, 'nmap should list 8080 and the backup');
+          expect(await runLine('curl gw.hawkes.lan:8080/backup/gw.cfg.bak'), /saved to ~\/loot/, 'curl should save the backup');
+          expect(await runLine('john ~/loot/gw.cfg.bak'), /no password found/, 'the default wordlist should not crack it');
+          expect(await runLine('john --wordlist=/usr/share/wordlists/hawkes-staff.txt ~/loot/gw.cfg.bak'), /\(ops\)/, 'the staff wordlist should crack ops');
+          await runLine('ssh ops@gw.hawkes.lan');
+          expect(prompt(), /password/i, 'ssh should ask for a password');
+          expect(await runLine('roomforgrace58'), /ACCESS GRANTED/, 'the cracked password should log in as root');
+          await sleep(300);
+          expect(prompt(), /^root@ph-origins:\/#$/, 'the prompt should be root@ph-origins:/#');
+          const appEl = doc.getElementById('app') as HTMLElement;
+          const col = win.getComputedStyle(doc.getElementById('termPrompt')!).color;
+          t.event('terminal-root', `prompt colour ${col}, is-root ${appEl.classList.contains('is-root')}`);
+          if (!appEl.classList.contains('is-root')) t.problem('bug', 'terminal: the prompt did not turn red after root');
+          t.event('milestone', 'terminal root reached');
+
+          // ---- /build: three acts. Run 1 looks at the flood, the song and the flipbook, then skips with Esc.
+          const showEl = () => doc.getElementById('termShow') as HTMLElement | null;
+          const startBuild = async () => {
+            await t.until(idle, 60000, 'the previous output to finish');
+            await type('/build');
+            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+            (doc.getElementById('termForm') as HTMLFormElement).requestSubmit();
+            await sleep(40);
+          };
+          await startBuild();
+          const s0 = performance.now();
+          await t.until(() => !!showEl() && !showEl()!.hidden, 4000, 'the build show to appear');
+          await sleep(Math.max(0, 3000 - (performance.now() - s0)));
+          const floodLines = Number(showEl()?.dataset.lines ?? 0);
+          t.metric('terminalFloodLines3s', floodLines);
+          if (floodLines <= 300) t.problem('bug', `terminal: /build printed ${floodLines} log lines in its first 3 s (want more than 300)`);
+          await t.until(() => showEl()?.dataset.act === 'flip', 15000, 'the flood to hand over to the song');
+          await t.until(() => showEl()?.dataset.audio === 'playing' || showEl()?.dataset.audio === 'silent', 20000, 'the song to start or fall back to silent');
+          const audioState = showEl()?.dataset.audio ?? '';
+          t.event('terminal-song', audioState);
+          if (audioState === 'silent' && !/song\.mp3 not found, playing silent/.test(showEl()?.textContent ?? '')) t.problem('bug', 'terminal: the silent fallback line is missing');
+          const f0 = Number(showEl()?.dataset.frames ?? 0);
+          let bothFull = 0;
+          let samples = 0;
+          const fs0 = performance.now();
+          while (performance.now() - fs0 < 2000) {
+            const l = (doc.getElementById('flipL')?.textContent ?? '').replace(/\s/g, '').length;
+            const r = (doc.getElementById('flipR')?.textContent ?? '').replace(/\s/g, '').length;
+            samples += 1;
+            if (l > 0 && r > 0) bothFull += 1;
+            await sleep(100);
+          }
+          const frames2s = Number(showEl()?.dataset.frames ?? 0) - f0;
+          t.metric('terminalFlipFrames2s', frames2s);
+          t.metric('terminalFlipBothHalves', Math.round((100 * bothFull) / Math.max(1, samples)));
+          if (frames2s < 10) t.problem('bug', `terminal: the flipbook updated ${frames2s} times in 2 s (want 10 or more)`);
+          if (bothFull < samples) t.problem('bug', `terminal: the flipbook had an empty half in ${samples - bothFull} of ${samples} samples`);
+          input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+          await t.until(() => idle() && /BUILD SUCCESSFUL/.test(log()), 5000, 'Esc to skip to BUILD SUCCESSFUL');
+          t.add('interactions');
+          // Run 2: left alone, the show ends with the (short, 8 s) song and lands on the same summary.
+          const b0 = performance.now();
+          await startBuild();
+          await t.until(idle, 60000, '/build to finish on its own');
+          const seconds = (performance.now() - b0) / 1000;
+          t.metric('terminalBuildSeconds', Math.round(seconds * 10) / 10);
+          const text = log();
+          const stages = doc.querySelectorAll('#termLog .line.head').length;
+          t.metric('terminalBuildStages', stages);
+          if (stages < 8) t.problem('bug', `terminal: /build showed ${stages} stages, under 8`);
+          if (seconds < 8 || seconds > 40) t.problem('bug', `terminal: /build ran ${seconds.toFixed(1)} s (want the flood, then the 8 s test song)`);
+          expect(text, /BUILD SUCCESSFUL/, '/build should end in BUILD SUCCESSFUL');
+          expect(text, /TOTAL\s+\d+\s+\d+/, '/build should end with a summary table');
+          expect(text, /\[#+-*\]\s+\d+%/, '/build should draw progress bars');
+          expect(text, /\d+\/\d+ passed/, '/build should count tests');
+          const ls = await runLine('ls /opt/hawkes-biomedical');
+          expect(ls, /modules/, 'ls /opt/hawkes-biomedical should list modules');
+          expect(await runLine('ls /opt/hawkes-biomedical/modules'), /patient-intake[\s\S]*billing/, 'the built modules should be listed');
+          expect(await runLine('cat /opt/hawkes-biomedical/README.md'), /medical backend framework/, 'the built README should read');
+          expect(await runLine('/build status'), /COMPLETE/, '/build status should say COMPLETE');
+
+          // ---- the game
+          expect(await runLine('hint'), /root|build/i, 'hint as root should point at /build');
+          await runLine('game');
+          await t.until(() => /game\.html/.test(String(win.location?.pathname ?? '')) || /game\.html/.test(frame.contentWindow?.location.href ?? ''), 6000, 'game to open the game page').catch(() => {});
+          const where = frame.contentWindow?.location.href ?? '';
+          t.event('terminal-game', where);
+          if (!/game\.html/.test(where)) t.problem('bug', `terminal: "game" did not open the game (page is ${where})`);
+        }
+        const errs: string[] = win.__termErrors ?? [];
+        if (errs.length) t.problem('bug', `terminal: ${errs.length} page error(s): ${errs.slice(0, 3).join(' | ')}`);
+        await sleep(1500);
+      } finally {
+        frame.remove();
+        if (saved == null) localStorage.removeItem(STORE); else localStorage.setItem(STORE, saved);
+      }
+    };
+
+    /** Each site page in an overlay: the footer's Powered by HAWKES GEN link. Home is the terminal and has no footer. */
     const siteLinksCheck = async () => {
-      const pages: [string, string][] = [['index.html', 'Home'], ['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
+      const pages: [string, string][] = [['about.html', 'About'], ['characters.html', 'Characters'], ['whatsnew.html', 'What\'s new']];
       const want: [string, string, RegExp, string][] = [
         ['gen', 'https://hawkesgen.ai', /powered by\s+hawkes gen/i, 'Powered by HAWKES GEN'],
         ['parent', 'https://hawkesbiomedical.com', /hawkes biomedical/i, 'Hawkes Biomedical'],
@@ -2454,7 +2785,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           footer.scrollIntoView({ block: 'end', behavior: 'instant' });
           await sleep(900);
           for (const [kind, href, text, label] of want) {
-            if (kind === 'parent' && file !== 'index.html') continue;
+            if (kind === 'parent') continue;
             const match = (root: ParentNode) => [...root.querySelectorAll<HTMLAnchorElement>('a[href]')].filter((a) => a.href.replace(/\/$/, '') === href);
             const links = match(footer).length ? match(footer) : match(doc);
             const link = links.find((a) => text.test(a.textContent ?? '')) ?? links[0];
@@ -3529,6 +3860,16 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (cs.whiteSpace !== 'nowrap' && (line.textContent ?? '').trim()) {
             t.problem('bug', `${where}: caption is not one line (white-space ${cs.whiteSpace})`);
           } else if ((line.textContent ?? '').trim()) t.event('caption-one-line', where);
+        }
+        {
+          // Voice is the loudest thing in a scene: no one-shot sfx gain above the scene ceiling or a voice gain.
+          const mix = probe.sound().sceneMix;
+          if (mix && mix.entries.length) {
+            t.metric('sceneSfxMaxGain', Number(mix.maxSfx.toFixed(3)));
+            if (mix.sfxToVoiceDb != null) t.metric('sceneSfxToVoiceDb', Number(mix.sfxToVoiceDb.toFixed(1)));
+            t.event('scene-mix', `${where}: sfx max ${mix.maxSfx.toFixed(2)}, voice min ${mix.minVoice.toFixed(2)}, ${mix.sfxToVoiceDb == null ? 'no voice yet' : `${mix.sfxToVoiceDb.toFixed(1)} dB`}, capped ${mix.capped}`);
+            if (mix.minVoice > 0 && mix.maxSfx > mix.minVoice) t.problem('bug', `${where}: a scene sfx (${mix.maxSfx.toFixed(2)}) is louder than the voice (${mix.minVoice.toFixed(2)})`);
+          }
         }
         t.scene(`Cinematic ${where}`);
       };
@@ -5414,6 +5755,20 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       let lastAction = '';
       let stepsDone = 0;
       let scenesSeen: number[] = [];
+      const bedPhases: string[] = [];
+      let bedMinOver = 99;
+      let bedWalked = 0;
+      let bedMaxPitch = 0;
+      let bedMaxRoll = 0;
+      const tvHashes = new Set<number>();
+      let tvBound = false;
+      let tvVisible = false;
+      let tvCoveredSamples = 0;
+      let tvNewsSamples = 0;
+      let tvAudioLive = 0;
+      let tvAudioSeen: { name: string; level: number; at: unknown; cls: string; nodes: number; playing: boolean } | null = null;
+      let roomExitSeen: { cue: string; level: number; voiceLevel: number; plays: number; steps: number } | null = null;
+      let lastLines: { id: string; heard: boolean; audio: boolean }[] = [];
       for (;;) {
         await tick();
         if (performance.now() - t0 > 300000) return 'stuck';
@@ -5428,6 +5783,24 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
             t.event('scene', `level 8 ${names[scenesSeen[scenesSeen.length - 1]]} (${scenesSeen.length}/7)`);
           }
           tvText = s.tvText || tvText;
+          lastLines = s.lines;
+          if (s.pose.phase !== 'none' && bedPhases[bedPhases.length - 1] !== s.pose.phase) bedPhases.push(s.pose.phase);
+          if (s.pose.phase === 'asleep' || s.pose.phase === 'wake') {
+            bedMinOver = Math.min(bedMinOver, s.pose.minOverMattress);
+            bedMaxPitch = Math.max(bedMaxPitch, s.pose.pitch);
+            bedMaxRoll = Math.max(bedMaxRoll, Math.abs(s.pose.roll));
+          }
+          bedWalked = Math.max(bedWalked, s.pose.walked);
+          if (s.tv.on && s.beat === 'news') {
+            tvHashes.add(s.tv.hash);
+            tvBound = tvBound || s.tv.bound;
+            tvVisible = tvVisible || s.tv.visible;
+            tvNewsSamples += 1;
+            if (s.tv.covered) tvCoveredSamples += 1;
+            if (s.tvAudio.playing && s.tvAudio.nodes > 0) tvAudioLive += 1;
+            tvAudioSeen = s.tvAudio;
+          }
+          roomExitSeen = s.roomExit;
           if (s.beat !== lastBeat) {
             lastBeat = s.beat;
             t.event('beat', `level 8 beat: ${s.beat}`);
@@ -5489,6 +5862,43 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       const slept = heard.indexOf(textOf('dialogue.morning.slept'));
       t.event('check', `wake: scene ${sawSleepScene ? 'played' : 'NOT seen'}, lying in bed ${sawLying}, woke ${sawWake}, "I slept." ${slept >= 0 ? 'heard' : 'missing'}`);
       if (!sawSleepScene || !sawLying || !sawWake || slept < 0) t.problem('bug', 'Pierce did not wake in bed after sleeping');
+      // 1b: the bed sequence ran its states in order, the body lay on (not in) the mattress, and he walked to the TV.
+      {
+        const want = ['stand', 'turn', 'sitdown', 'sit', 'recline', 'asleep', 'wake', 'situp', 'standup', 'walk', 'face'];
+        const inSeq = want.every((p, i) => bedPhases[i] === p);
+        t.event('check', `bed: phases ${bedPhases.join('>') || 'none'}, flat ${bedMaxPitch.toFixed(2)} rad, shift ${bedMaxRoll.toFixed(2)}, lowest body over mattress ${bedMinOver.toFixed(2)} m, walked ${bedWalked.toFixed(1)} m`);
+        if (!inSeq) t.problem('bug', `the bed scene did not run lie down, sleep, wake, sit up, stand, walk in order (${bedPhases.join('>') || 'none'})`);
+        if (bedMaxPitch < 1.4) t.problem('bug', 'Pierce never lay flat in the bed');
+        if (bedMinOver < 0.05) t.problem('bug', `Pierce sank into the mattress (${bedMinOver.toFixed(2)} m over it)`);
+        if (bedMaxRoll < 0.02) t.problem('bug', 'Pierce never shifted while asleep');
+        if (bedWalked < 2) t.problem('bug', `Pierce did not walk from the bed to the TV (${bedWalked.toFixed(1)} m)`);
+        t.metric('bedWalkedMeters', Math.round(bedWalked * 10) / 10);
+      }
+      // 1c: every voiced line the room asked for played to its end (the scene waited for the voice).
+      {
+        const spoken = lastLines.filter((l) => l.audio);
+        const unheard = spoken.filter((l) => !l.heard).map((l) => l.id);
+        t.event('check', `room lines: ${spoken.length} voiced, ${unheard.length} not played out ${unheard.join(', ')}`);
+        if (spoken.length < 3) t.problem('bug', `the bed and news scenes asked for only ${spoken.length} voiced lines`);
+        if (unheard.length) t.problem('bug', `voiced lines cut off or not finished before the scene moved on: ${unheard.join(', ')}`);
+      }
+      // 1d: the TV texture is bound to the screen mesh, not covered, and changing (two samples differ).
+      {
+        t.event('check', `tv texture: bound ${tvBound}, visible ${tvVisible}, ${tvHashes.size} distinct frames in ${tvNewsSamples} samples, covered in ${tvCoveredSamples}`);
+        if (!tvBound || !tvVisible) t.problem('bug', 'the TV screen has no picture texture bound or is hidden');
+        if (tvHashes.size < 2) t.problem('bug', 'the TV picture did not change between samples (frame hash stayed the same)');
+        if (tvNewsSamples > 0 && tvCoveredSamples / tvNewsSamples > 0.5) t.problem('bug', 'something covers the TV screen from the camera during the news');
+      }
+      // 1e: tv-audio-playing: a connected, running node with a name and level, from the set's position, during the news.
+      // room-exit-sfx: the exit cue's id and its level against the voice (and no old tv-static / door ambience).
+      {
+        t.event('check', `tv-audio-playing: ${tvAudioLive}/${tvNewsSamples} samples live, ${tvAudioSeen ? `${tvAudioSeen.name} level ${tvAudioSeen.level} cls ${tvAudioSeen.cls} at ${JSON.stringify(tvAudioSeen.at)}` : 'never'}`);
+        t.metric('tvAudioLiveSamples', tvAudioLive);
+        if (tvNewsSamples > 0 && (tvAudioLive === 0 || !tvAudioSeen?.name || !tvAudioSeen.level || !tvAudioSeen.at)) t.problem('bug', 'the TV news had no audible sound from the set (no live audio node with a name, level and position)');
+        t.event('check', `room-exit-sfx: ${roomExitSeen ? `${roomExitSeen.cue} level ${roomExitSeen.level} vs voice ${roomExitSeen.voiceLevel}, ${roomExitSeen.plays} door, ${roomExitSeen.steps} steps` : 'none'}`);
+        if (!roomExitSeen || roomExitSeen.plays < 1) t.problem('bug', 'leaving the bed played no door or footstep cue');
+        else if (roomExitSeen.level >= roomExitSeen.voiceLevel) t.problem('bug', 'the room-exit sound is not quieter than the voice');
+      }
       // 2: the TV names the tower and Pierce.
       t.event('check', `tv: ${tvText}`);
       if (!/HAWKES TOWER/.test(tvText) || !/PIERCE HAWKES/.test(tvText) || !sawTv) t.problem('bug', `the TV did not name Hawkes Tower and Pierce Hawkes (${tvText || 'nothing shown'})`);
@@ -5969,6 +6379,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               if (caption && hit(o.rect, caption)) t.problem('bug', `${callId}: reply bubble "${o.text}" overlaps the call caption`);
               for (const c of controls) if (hit(o.rect, c)) t.problem('bug', `${callId}: reply bubble "${o.text}" overlaps #${c.id}`);
             }
+            const bar = document.querySelector<HTMLElement>('#callReplies .cr-timer');
+            if (!bar || bar.getBoundingClientRect().width < 1) t.problem('bug', `${callId}: no visible countdown bar while the answer window is open`);
             t.event('replies-open', `${callId}: ${r.options.map((o) => `${o.key} ${o.text}`).join(' | ')} (${r.total}s)`);
             if (mode === 'cut') {
               await sleep(700);
@@ -5978,7 +6390,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
               if (touch()) await tapAt(document.querySelector<HTMLElement>('#callReplies [data-reply="0"]'), `reply 1 (${chosenText})`);
               else await tap('1', `reply 1 (${chosenText})`);
             } else {
-              await t.until(() => (probe.replies?.().log.length ?? 0) > handled, 12000, `${callId} silence answer`);
+              await t.until(() => (probe.replies?.().log.length ?? 0) > handled, 40000, `${callId} silence answer`);
             }
             const log = probe.replies?.().log ?? [];
             const last = log[log.length - 1];
@@ -6025,6 +6437,21 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         await sleep(300);
       }
       if (firsts[0] === firsts[1]) t.problem('bug', `voss-morning opens with the same line at vossTrust -2 and +2: "${firsts[0]}"`);
+      // Every window: at least max(8 s, 6 s + 0.35 s per option word), clock from the voice's end, never closed at or before it.
+      const wins = probe.replies?.().windows ?? [];
+      let minAfterVoice = 9999;
+      for (const w of wins) {
+        const need = Math.max(8, 6 + 0.35 * w.words);
+        if (w.window < need - 0.01) t.problem('bug', `${w.call}/${w.moment}: window ${w.window.toFixed(1)} s is under ${need.toFixed(1)} s for ${w.words} words`);
+        t.event('reply-window', `${w.call}/${w.moment}: ${w.words} words, window ${w.window.toFixed(1)} s, ${w.how}`);
+        if (w.how === 'timeout') {
+          const open = (w.closedAt - w.voiceEndAt) / 1000;
+          minAfterVoice = Math.min(minAfterVoice, open);
+          if (!w.voiceEndAt || w.closedAt <= w.voiceEndAt) t.problem('bug', `${w.call}/${w.moment}: the window closed at or before the voice ended`);
+          else if (open < need - 0.5) t.problem('bug', `${w.call}/${w.moment}: the buttons stayed ${open.toFixed(1)} s after the voice ended, under ${need.toFixed(1)} s`);
+        }
+      }
+      t.metric('replyWindowMinAfterVoice', Math.round((minAfterVoice === 9999 ? 0 : minAfterVoice) * 10) / 10);
       t.metric('replyMoments', moments);
       t.metric('replyCutOffs', cutOffs);
       t.metric('replySilences', silences);
@@ -6335,6 +6762,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     if (exploreN > 0) {
       levelsTotal = 1;
       const feel = probe.feel;
+      const camPhone = Boolean(options.phone);
+      if (camPhone) { probe.phoneFrame(true); await sleep(600); }
       let fadedPeak = 0;
       let hallwayFrames = 0;
       const cw = installCameraWatch({
@@ -6434,12 +6863,15 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.metric('cameraInside', sum.inside);
       t.metric('cameraNear', sum.near);
       t.metric('cameraBlocked', sum.blocked);
+      t.metric('cameraBehindWall', sum.behindWall);
       t.metric('cameraNearWall', sum.nearWall);
       t.metric('cameraSnaps', sum.snaps);
       t.metric('cameraJitter', sum.jitter);
       t.metric('cameraMaxCoverage', Math.round(sum.maxCoverage * 100) / 100);
       t.metric('cameraFadedPeak', fadedPeak);
       t.metric('cameraHallwayFrames', hallwayFrames);
+      if (camPhone) probe.phoneFrame(false);
+      if (sum.behindWall > 0) t.problem('bug', `camera inside or behind a wall/door on ${LEVEL_NAMES[exploreN - 1]}: ${sum.behindWall} frames`);
       t.event('camera-summary', JSON.stringify({ ...sum, worst: sum.worst.map((w) => ({ ...w, shot: undefined })), fadedPeak, hallwayFrames }));
       sum.worst.forEach((w, i) => { if (w.shot) t.event('camera-screenshot', JSON.stringify({ rank: i + 1, kind: w.kind, detail: w.detail, image: w.shot })); });
       if (sum.inside > 0) t.problem('bug', `camera inside geometry on ${LEVEL_NAMES[exploreN - 1]}: ${sum.inside} frames`);
@@ -6453,7 +6885,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         t.problem('bug', `cameraBlocked ${sum.blocked} on L${exploreN} exceeds 10% of baseline ${base.blocked} (cap ${blockedCap})`);
       }
       t.progress(1);
-      t.finish(sum.inside <= insideCap && sum.blocked <= blockedCap ? 'done' : 'lost');
+      t.finish(sum.inside <= insideCap && sum.blocked <= blockedCap && sum.behindWall === 0 ? 'done' : 'lost');
       return;
     }
 
@@ -7854,6 +8286,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return;
     }
 
+    if (id === 'terminal' || id === 'terminal-phone') {
+      await terminalRun(id === 'terminal-phone');
+      t.progress(1);
+      t.finish('done');
+      return;
+    }
+
     if (id === 'site-links') {
       t.progress(0.15);
       await siteLinksCheck();
@@ -8175,6 +8614,83 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     if (id === 'crowd-shadow') {
       const outcome = await crowdShadowRun();
       t.finish(outcome);
+      return;
+    }
+
+    if (id === 'scene-audit') {
+      levelsTotal = 4;
+      if (probe.sound().prompt) await tapToPlay();
+      const only = Number(options.level) || 0;
+      const plan: { n: number; seconds: number }[] = [
+        { n: 5, seconds: 70 }, { n: 6, seconds: 90 }, { n: 7, seconds: 60 }, { n: 8, seconds: 60 },
+      ].filter((p) => !only || p.n === only);
+      let started = 0;
+      for (const { n, seconds } of plan) {
+        t.scene(`scene-audit L${n}`);
+        if (n === 7) await probe.setupHidden('the-train');
+        else await probe.setupLevel(n);
+        await t.until(() => probe.running() && probe.level().id === n, 90000, `level ${n} running`);
+        const t0 = performance.now();
+        let sawScene = false;
+        while ((performance.now() - t0) / 1000 < seconds) {
+          await tick();
+          if (probe.cutscene() || probe.scripted()) sawScene = true;
+          // A scene that ended and gave control back is done: the rest of the window is not the audit's.
+          if (sawScene && controllable()) break;
+        }
+        if (!sawScene) t.problem('bug', `level ${n}: no scene started by itself within ${seconds} s`);
+        else {
+          started += 1;
+          if (!controllable()) t.problem('bug', `level ${n}: its scene was still running after ${seconds} s with no Skip`);
+        }
+        levelIndex += 1;
+        t.progress(levelIndex / plan.length);
+      }
+      t.metric('scenesStartedLevels', started);
+      t.finish(started === plan.length ? 'done' : 'error');
+      return;
+    }
+
+    if (id === 'scenes-no-skip') {
+      levelsTotal = 1;
+      if (probe.sound().prompt) await tapToPlay();
+      t.scene('The Desk, hands off');
+      await enterLevel(4);
+      await waitControl('The Desk');
+      const t0 = performance.now();
+      let mirrorAt = -1;
+      let sceneAt = -1;
+      let doneAt = -1;
+      let papersSeen = false;
+      let walkClipWhileHeld = 0;
+      let lastPos = probe.player();
+      while (performance.now() - t0 < 150000) {
+        await tick();
+        const d = probe.desk?.();
+        if (!d) break;
+        const now = (performance.now() - t0) / 1000;
+        if (d.mirror.thatsMe && mirrorAt < 0) { mirrorAt = now; t.event('mirror-done', `${now.toFixed(1)} s, no input`); }
+        if ((d.phase === 'arrive' || d.phase === 'sweep' || d.phase === 'going') && sceneAt < 0) { sceneAt = now; t.event('desk-scene', `${now.toFixed(1)} s`); }
+        if (d.phase === 'sweep' || d.phase === 'going') {
+          const meshes = probe.scene.meshes.filter((m) => /^desk-paper-\d$/.test(m.name));
+          if (meshes.some((m) => m.isEnabled() && m.isVisible)) papersSeen = true;
+          const p = probe.player();
+          const moved = Math.hypot(p.x - lastPos.x, p.z - lastPos.z);
+          if (moved < 0.001 && /walk/i.test(String(probe.motion?.()?.clip ?? ''))) walkClipWhileHeld += 1;
+          lastPos = p;
+        }
+        if (d.phase === 'done') { doneAt = now; break; }
+      }
+      t.metric('deskMirrorSeconds', Math.round(mirrorAt));
+      t.metric('deskSceneSeconds', Math.round(sceneAt));
+      t.metric('deskTotalSeconds', Math.round(doneAt));
+      if (mirrorAt < 0) t.problem('bug', 'the mirror beat never ended on its own (no input, no Skip) within 150 s');
+      if (sceneAt < 0) t.problem('bug', 'the desk scene never started on its own');
+      if (sceneAt >= 0 && !papersSeen) t.problem('bug', 'no papers on the desk during the desk scene');
+      if (walkClipWhileHeld > 3) t.problem('bug', 'the walk clip played while Pierce stood still in the desk scene');
+      if (doneAt < 0) t.problem('bug', 'the desk scene did not end on its own within 150 s (only Skip ended it)');
+      t.progress(1);
+      t.finish(doneAt >= 0 && mirrorAt >= 0 ? 'done' : 'error');
       return;
     }
 

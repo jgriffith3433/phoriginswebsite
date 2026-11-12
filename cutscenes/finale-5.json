@@ -39,7 +39,7 @@
       "clip": "/assets/audio/sfx/glass-tick.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.35
+      "volume": 0.3
     },
     {
       "at": 2.6,
@@ -47,7 +47,7 @@
       "clip": "/assets/audio/sfx/glass-tick.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.35
+      "volume": 0.3
     },
     {
       "at": 3.8,
@@ -55,7 +55,7 @@
       "clip": "/assets/audio/sfx/glass-tick.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.35
+      "volume": 0.3
     },
     {
       "at": 5,
@@ -63,7 +63,7 @@
       "clip": "/assets/audio/sfx/flashlight-off.ogg",
       "bus": "sfx",
       "loop": false,
-      "volume": 0.4
+      "volume": 0.3
     },
     {
       "at": 1.2,

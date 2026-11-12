@@ -101,6 +101,12 @@ const LAG_RAMP_FOR = 7.5;
 const TURN_MIN_BEAT = 9;
 const TURN_MIN_WALK = 1.6;
 const TURN_MAX_BEAT = 18;
+/** No beat may hang: each waits this long (seconds of the scene clock) before it moves on by itself. */
+const APPROACH_MAX = 5;
+const WALK_MAX = 45;
+const SWEEP_AUTO = 12;
+const SWEEP_MAX = 24;
+const ARRIVE_MAX = 3;
 const HEAD_TURN = { out: 0.45, hold: 0.9, back: 0.5, angle: 0.95 };
 
 const SHOT = { cx: 50.1, cy: 1.6, cz: 40.6, lx: 48.08, ly: 1.0, lz: 42.38 };
@@ -382,7 +388,7 @@ export const createTheDesk = (host: DeskHost) => {
       minZ = Math.min(minZ, box.minimumWorld.z); maxZ = Math.max(maxZ, box.maximumWorld.z);
       top = Math.max(top, box.maximumWorld.y);
     }
-    if (Number.isFinite(minX) && maxX - minX > 0.8) desk = { minX, maxX, minZ, maxZ, top: Number.isFinite(top) ? top : desk.top };
+    if (Number.isFinite(minX) && maxX - minX > 0.8) desk = { minX, maxX, minZ, maxZ, top: Number.isFinite(top) && top > 0.6 && top < 0.95 ? top : desk.top };
   };
 
   const addProp = (
@@ -415,12 +421,13 @@ export const createTheDesk = (host: DeskHost) => {
       [48.12, 42.28, 0.16, 0.2, 0.15],
     ];
     spots.forEach(([x, z, w, d, yaw], index) => {
-      const mesh = BABYLON.MeshBuilder.CreateBox(`desk-paper-${index}`, { width: w, height: 0.008, depth: d }, host.scene);
+      const mesh = BABYLON.MeshBuilder.CreateBox(`desk-paper-${index}`, { width: w, height: 0.012, depth: d }, host.scene);
       mesh.position.set(x, desk.top + 0.005 + index * 0.004, z);
       mesh.rotation.y = yaw;
       mesh.material = paperMat(`desk-paper-mat-${index}`, new BABYLON.Color3(0.86, 0.84, 0.78));
       mesh.isPickable = false;
       mesh.checkCollisions = false;
+      mesh.alwaysSelectAsActiveMesh = true;
       addProp(`paper-${index}`, mesh, 'paper', { floorY: 0.03 + index * 0.004, need: 0.45, drag: 1.7, maxSpeed: 4.2, tilt: 0, sound: 'land' }, Math.max(w, d) / 2);
     });
     const folder = BABYLON.MeshBuilder.CreateBox('desk-folder', { width: 0.28, height: 0.02, depth: 0.36 }, host.scene);
@@ -816,7 +823,10 @@ export const createTheDesk = (host: DeskHost) => {
       radioSaid += 1;
       if (said) say(said.speaker, said.text, said.url, 0.5, 4.2);
     }
-    if (Math.hypot(here.x - DESK_NEAR.x, here.z - DESK_NEAR.z) < DESK_NEAR.r && queued.length === 0 && (lineUntil === 0 || clock > lineUntil - 1)) {
+    if ((Math.hypot(here.x - DESK_NEAR.x, here.z - DESK_NEAR.z) < DESK_NEAR.r || clock > WALK_MAX) && queued.length === 0 && (lineUntil === 0 || clock > lineUntil - 1 || clock > WALK_MAX + 8)) {
+      host.setWalk(false);
+      host.playClip('rebornidle', true);
+      clip = 'idle';
       phase = 'arrive';
       arriveT = 0;
       host.fade(1, 0.35);
@@ -844,8 +854,19 @@ export const createTheDesk = (host: DeskHost) => {
     heard('paper-slide', DESK_SFX.slide, 0.5, nextRate());
   };
 
+  /** The papers stay on the desk and drawn for the whole scene (until they are pushed off). */
+  const showWork = () => {
+    for (const prop of props) {
+      if (prop.kind !== 'paper' || prop.node.isDisposed()) continue;
+      if (prop.state === 'desk' && !prop.node.isEnabled()) prop.node.setEnabled(true);
+    }
+  };
+
+  let goingT = 0;
   const stepSweep = (dt: number) => {
+    if (phase === 'going') goingT += dt;
     sweepT += dt;
+    showWork();
     host.frameCamera({ x: SHOT.cx, y: SHOT.cy, z: SHOT.cz }, { x: SHOT.lx, y: SHOT.ly, z: SHOT.lz });
     stepProps(dt);
     deskStats.off = countOff();
@@ -862,8 +883,11 @@ export const createTheDesk = (host: DeskHost) => {
         hand.rotation.y = Math.cos(wave) > 0 ? Math.PI / 2 : -Math.PI / 2;
       }
     }
+    // Nobody dragging: he sweeps the desk himself, and a prop that never lands cannot hold the scene.
+    if (phase === 'sweep' && sweptAt < 0 && sweepT > SWEEP_AUTO) sweepAll();
     const papers = props.filter((p) => p.kind === 'paper');
     const cleared = papers.every((p) => p.state === 'floor');
+    if (phase === 'sweep' && goingAt < 0 && sweepT > SWEEP_MAX) goingAt = clock;
     if (cleared && goingAt < 0) {
       goingAt = clock + 1.0;
     }
@@ -873,6 +897,7 @@ export const createTheDesk = (host: DeskHost) => {
       drag.down = false;
       say(lineSpeaker('dialogue.desk.going', 'Pierce Hawkes'), lineText('dialogue.desk.going'), lineAudio('dialogue.desk.going', GOING), 0.92, 4.4);
       goingAt = clock + 4.6;
+      goingT = 0;
     }
   };
 
@@ -972,15 +997,21 @@ export const createTheDesk = (host: DeskHost) => {
         lastPose = pose;
         if (phase === 'approach') {
           if (here.x >= 18.15 && here.z >= 26.9 && here.z <= 29.3) engage();
+          else if (clock > APPROACH_MAX) {
+            // He does not have to find the glass: it starts by itself.
+            host.placePierce(MIRROR.x - 0.25, MIRROR.z, MIRROR.yaw);
+            engage();
+          }
         }
         if (phase === 'mirror') stepMirror(dt, here, yaw);
       }
       if (phase === 'walk') stepWalk(here);
       if (phase === 'arrive') {
         arriveT += dt;
-        if (arriveT >= 0.45 && arriveT < 90) {
+        if (arriveT >= 0.45 && arriveT < 90 || arriveT > ARRIVE_MAX && arriveT < 90) {
           arriveT = 100;
           host.placePierce(DESK.x, DESK.z, DESK.yaw);
+          host.setWalk(false);
           host.playClip('rebornidle', true);
           clip = 'idle';
           host.frameCamera({ x: SHOT.cx, y: SHOT.cy, z: SHOT.cz }, { x: SHOT.lx, y: SHOT.ly, z: SHOT.lz });
@@ -998,7 +1029,7 @@ export const createTheDesk = (host: DeskHost) => {
           lineUntil = 0;
           host.showLine('', '');
         }
-        if (phase === 'going' && clock >= goingAt) finish();
+        if (phase === 'going' && (clock >= goingAt || goingT > 8)) finish();
       } else if (phase !== 'arrive' && lineUntil > 0 && clock > lineUntil) {
         lineUntil = 0;
         host.showLine('', '');

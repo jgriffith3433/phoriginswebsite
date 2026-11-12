@@ -21,6 +21,7 @@ import { callQuestOpen, missionCallId, missionLabel, missionsFor } from './game/
 import { clampPlayerToArena, CLIP_SIZE, createPlayerCollider, createPlayerState, flyPlayer, movePlayerOnGround, PLAYER_STAND_Y, playerMeshY, requestJump, updateVerticalMotion } from './game/player';
 import { createBurst } from './game/physics';
 import { createThirdPersonCamera, lerpAngle } from './game/thirdPersonCamera';
+import { isStructureMesh } from './game/cameraVolumes';
 import { createTitleScene } from './game/titleScene';
 import { installMenuNav, installMenuSounds, menuSoundLog } from './game/menuNav';
 import { lineText } from './game/locale';
@@ -67,7 +68,7 @@ import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/s
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { music } from './game/musicDirector';
 import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcousticsStats, setAcousticsPaused, setListener, setOcclusionRay, setZones, startTestSource, testPing, updateAcoustics, type AcousticZone, type ReverbType, type WorldOptions } from './game/acoustics';
-import { clipLog, holdClips, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import { clearSceneMix, clipLog, holdClips, sceneMix, setSceneMixProbe, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import {
   applyFaces,
   clearFaces,
@@ -2511,6 +2512,7 @@ const scenePlaying = () =>
   || train.playing()
   || morning.playing()
   || morningEnding.active();
+setSceneMixProbe(scenePlaying);
 
 const acidSkippable = () => state.running && act.acidActive() && act.vatSeen() && act.acidTime() > 1;
 const performSkip = () => {
@@ -2917,9 +2919,35 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
 /** The acid in the vat break bends the controls (act1.ts `stepAcid`). Null is normal control. */
 let impair: ImpairState | null = null;
 const impairLog: Array<{ at: number; x: number; y: number }> = [];
+/** The acid sequence's guard rails: floor height at its start and the worst Y / XZ seen (probe `acid()`). */
+const acidGuard = { floorY: 0, set: false, maxY: 0, minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity, clamps: 0 };
+const ACID_BOUNDS = { minX: 0.2, maxX: 18.5, minZ: 30.9, maxZ: 45.1 };
+const ACID_MAX_RISE = 0.35;
 const setImpair = (next: ImpairState | null) => {
+  if (next && !impair) {
+    acidGuard.floorY = state.player.y;
+    acidGuard.set = true;
+    acidGuard.maxY = 0; acidGuard.clamps = 0;
+    acidGuard.minX = acidGuard.minZ = Infinity;
+    acidGuard.maxX = acidGuard.maxZ = -Infinity;
+  }
   impair = next;
   if (!next) impairLog.length = 0;
+};
+/** After movement and gravity: nothing in the acid can carry him up or out of the room. */
+const guardAcid = () => {
+  if (!impair || !acidGuard.set) return;
+  const p = state.player;
+  let hit = false;
+  if (p.y > acidGuard.floorY + ACID_MAX_RISE) { p.y = acidGuard.floorY + ACID_MAX_RISE; p.velocityY = Math.min(p.velocityY, 0); hit = true; }
+  if (p.y < acidGuard.floorY) { p.y = acidGuard.floorY; p.velocityY = 0; p.grounded = true; hit = true; }
+  const cx = Math.min(ACID_BOUNDS.maxX, Math.max(ACID_BOUNDS.minX, p.x));
+  const cz = Math.min(ACID_BOUNDS.maxZ, Math.max(ACID_BOUNDS.minZ, p.z));
+  if (cx !== p.x || cz !== p.z) { p.x = cx; p.z = cz; hit = true; }
+  if (hit) { acidGuard.clamps += 1; playerCollider.position.set(p.x, p.y, p.z); }
+  acidGuard.maxY = Math.max(acidGuard.maxY, p.y - acidGuard.floorY);
+  acidGuard.minX = Math.min(acidGuard.minX, p.x); acidGuard.maxX = Math.max(acidGuard.maxX, p.x);
+  acidGuard.minZ = Math.min(acidGuard.minZ, p.z); acidGuard.maxZ = Math.max(acidGuard.maxZ, p.z);
 };
 /** Delayed input: the stick as it was `lag` seconds ago. */
 const lagInput = (moveX: number, moveZ: number, lag: number) => {
@@ -3388,14 +3416,24 @@ const morning: TheMorning = createTheMorning({
   scene,
   placePierce,
   lie: (on, x, y, z, yaw) => {
-    // Flat on his back, head toward the pillow; standing again restores the upright pose.
-    playerAvatar.group.rotation.x = on ? -Math.PI / 2 : 0;
+    // Standing again restores the upright pose (the bed scene poses the body itself with poseBody).
+    playerAvatar.group.rotation.x = on ? Math.PI / 2 : 0;
+    playerAvatar.group.rotation.z = 0;
     if (on) {
       playerAvatar.group.position.set(x, y, z);
       playerAvatar.group.rotation.y = yaw + Math.PI;
     }
   },
-  playClip: (clip, loop, speed) => { playerAvatar.playClip(clip, loop, speed); },
+  poseBody: (x, y, z, yaw, pitch, roll, pelvis) => {
+    // The avatar's forward is local -z, so a positive rotation.x tips the head to local +z: back onto the bed.
+    const g = playerAvatar.group;
+    g.rotation.set(pitch, yaw + Math.PI, roll);
+    g.position.set(0, 0, 0);
+    g.computeWorldMatrix(true);
+    const w = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(0, pelvis, 0), g.getWorldMatrix());
+    g.position.set(x - w.x, y - w.y, z - w.z);
+  },
+  playClip: (clip, loop, speed) => playerAvatar.playClip(clip, loop, speed),
   frameCamera: (position, lookAt) => followCamera.setCinematic(position, lookAt),
   releaseCamera: () => followCamera.clearCinematic(),
   stepCineScene: (sceneId, atSeconds, dt, opts) => {
@@ -3427,7 +3465,7 @@ const morning: TheMorning = createTheMorning({
   clearMarker: () => objectiveMarker.setTarget(null),
   showObjective: (visible) => objectiveHud?.classList.toggle('visible', visible),
   setObjective,
-  playFile: (url, volume) => { audio.play(url, volume); },
+  playFile: (url, volume, at) => { audio.play(url, volume, undefined, at ? { at, cls: 'effect' } : undefined); },
   setWalk: (moving) => audio.setWalk(moving),
   setCarry: (items) => { storyCarry = items; },
   playerXZ: () => ({ x: state.player.x, z: state.player.z }),
@@ -4314,7 +4352,11 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
+  if (impair?.shove && !state.inCutscene) {
+    movePlayerOnGround(state.player, playerCollider, impair.shove.x * delta, impair.shove.z * delta);
+  }
   if (state.inCutscene || (phone.locksBody() && !callWalk) || retryLeft > 0 || impair?.locked) {
+    if (impair) { updateVerticalMotion(state.player, delta, playerCollider); guardAcid(); }
     state.player.jumpWindup = 0;
     state.input.jump = false;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
@@ -4414,6 +4456,7 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   } else {
     updateVerticalMotion(state.player, delta, playerCollider);
   }
+  guardAcid();
 
   if (!shadowFlying && state.input.jump) {
     if (requestJump(state.player)) {
@@ -6268,6 +6311,7 @@ installPhPlaytest({
       left: view.repliesLeft,
       total: view.repliesTotal,
       log: phone.replyLog(),
+      windows: phone.replyWindows(),
       caption: phonePanel && !phonePanel.hidden ? box(phonePanel) : null,
       stats: { vossTrust: clampStat(save.vossTrust), haleTemper: clampStat(save.haleTemper), min: STAT_MIN, max: STAT_MAX },
       ledger: ledger.get(),
@@ -6402,6 +6446,7 @@ installPhPlaytest({
     drift: impair?.drift ?? 0,
     speed: impair?.speed ?? 1,
     locked: impair?.locked ?? false,
+    guard: { ...acidGuard, bounds: ACID_BOUNDS, maxRise: ACID_MAX_RISE },
     flashlight: phone.flashlightOn(),
     skipShown: Boolean(skipCutsceneBtn && !skipCutsceneBtn.hidden),
     x: state.player.x,
@@ -6418,7 +6463,8 @@ installPhPlaytest({
       const meta = mesh.metadata as { pickup?: unknown; cameraFade?: number } | undefined;
       if (meta?.pickup) return false;
       // Intentionally see-through for the follow camera: do not count as camera-blocked.
-      if (followCamera.isOcclusionFaded(mesh) || (meta?.cameraFade ?? 0) > 0.35) return false;
+      // Architecture never counts as see-through: a lens behind a wall or door is a failure.
+      if (!isStructureMesh(mesh) && (followCamera.isOcclusionFaded(mesh) || (meta?.cameraFade ?? 0) > 0.35)) return false;
       return !FEEL_SKIP.test(mesh.name);
     },
   },
@@ -6565,6 +6611,8 @@ installPhPlaytest({
     title: () => ({ ...titleScene.probe(), menuSounds: menuSoundLog() }),
     titleStrike: () => titleScene.strikeNow(),
     voice: clipLog().filter((c) => c.voice),
+    sceneMix: sceneMix(),
+    sceneMixReset: clearSceneMix,
     acoustics: { ...acousticsProbe(getSharedAudioContext()), door: { closed: boardDoorClosed } },
   }),
   acousticPing: (side: 'left' | 'right' | 'front') => {

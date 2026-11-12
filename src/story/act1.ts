@@ -140,6 +140,8 @@ export type ImpairState = {
   pull: { x: number; z: number };
   /** He cannot get further east than this (keeps the beat from ending in three seconds). */
   maxX: number;
+  /** Knocked back: metres per second along the floor (the acid hit). Optional. */
+  shove?: { x: number; z: number };
 };
 
 const ELEVATOR_DOOR_L_CLOSED = 43.42;
@@ -1234,6 +1236,13 @@ export const createAct1 = (host: ActHost) => {
     host.beginCutscene('elevator-up');
   };
 
+  let mirrorWait = 0;
+  /** The mirror waits this long for him to reach the glass, then starts by itself. */
+  const MIRROR_AUTO = 28;
+  const cineSafe = (fn: () => void) => {
+    try { fn(); } catch { /* a bad shot never holds the scene */ }
+  };
+
   const beginMirror = () => {
     phase = 'mirror';
     elevatorLocked = false;
@@ -1241,6 +1250,7 @@ export const createAct1 = (host: ActHost) => {
     host.resumeLocomotion();
     mountMirror();
     mirrorMarked = false;
+    mirrorWait = 0;
     const line = objective('mirror');
     host.setObjective(line.title, line.text, { x: BATH_DOOR.x, y: 1.55, z: BATH_DOOR.z });
     syncObjective();
@@ -1257,12 +1267,12 @@ export const createAct1 = (host: ActHost) => {
     host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
     host.holdLocomotion();
     host.playClip('rebornidle', true);
-    host.stepCineScene?.('mirror', 0, 0.016, {
+    cineSafe(() => host.stepCineScene?.('mirror', 0, 0.016, {
       applyCamera: true,
       speaker: 'Pierce',
       lineKey: 'dialogue.return.mirror',
       speakerPosOverride: { x: MIRROR_STAND.x, y: 1.46, z: MIRROR_STAND.z },
-    });
+    }));
     host.showLine('Pierce', lineText('dialogue.return.mirror', "That's me. I'm not seeing things."));
     host.playFile(lineAudio('dialogue.return.mirror', '/assets/audio/cutscenes/return-mirror/01-pierce-thats-me.wav'), 0.92);
   };
@@ -2791,7 +2801,7 @@ export const createAct1 = (host: ActHost) => {
     host.showObjective(true);
     host.playFile(lineAudio('dialogue.b3-vat-break.02') || '/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg', 1);
     host.showLine('Pierce', lineText('dialogue.b3-vat-break.02'));
-    host.impair({ lag: 0.05, drift: 0, speed: 0.9, locked: false, pull: { x: 0, z: 0 }, maxX: 14.2 });
+    host.impair({ lag: 0.05, drift: 0, speed: 0.9, locked: true, pull: { x: 0, z: 0 }, maxX: 14.2, shove: { x: 3.2, z: 0 } });
     host.playClip('fallingdown', false, 1.6);
     acidFallEnd = 0.9;
     acidWasDown = true;
@@ -2846,7 +2856,7 @@ export const createAct1 = (host: ActHost) => {
     const doorPull = ramp(t, 11, 20);
     const toDoor = Math.hypot(ACID_EXIT.x - here.x, ACID_EXIT.z - here.z) || 1;
     const toPool = Math.hypot(ACID_POOL.x - here.x, ACID_POOL.z - here.z) || 1;
-    const poolK = 0.55 * (1 - doorPull) * 1;
+    const poolK = 0; // no fumes pulling him toward the vat: he was thrown back from it
     const doorK = 0.2 + 0.9 * doorPull + (t > ACID_MAX - 3 ? 1.5 : 0);
     const pull = {
       x: ((ACID_POOL.x - here.x) / toPool) * poolK + ((ACID_EXIT.x - here.x) / toDoor) * doorK,
@@ -2877,6 +2887,7 @@ export const createAct1 = (host: ActHost) => {
       drift: acidFalls >= 2 ? drift * 0.6 : drift,
       speed,
       locked: t < acidFallEnd || (acidFalls >= 2 && !acidSwapped),
+      shove: t < 0.6 ? { x: 3.2 * (1 - t / 0.6), z: 0 } : undefined,
       pull,
       maxX: 13.2 + 4.4 * clamp01(t / 20),
     });
@@ -3772,17 +3783,20 @@ export const createAct1 = (host: ActHost) => {
           const line = objective('mirror');
           host.setObjective(line.title, line.text, { x: MIRROR_STAND.x, y: 1.5, z: MIRROR_STAND.z });
         }
+        // No button: reaching the glass (or waiting too long) starts the look by itself.
+        mirrorWait += delta;
+        if (host.isReturn() && (Math.hypot(here.x - MIRROR_STAND.x, here.z - MIRROR_STAND.z) < 1.3 || mirrorWait > MIRROR_AUTO)) beginMirrorLook();
       }
       if (host.isReturn() && phase === 'mirror-look') {
         host.placePierce(MIRROR_STAND.x, MIRROR_STAND.z, MIRROR_STAND.yaw);
         mirrorT += delta;
-        host.stepCineScene?.('mirror', mirrorT, delta, {
+        cineSafe(() => host.stepCineScene?.('mirror', mirrorT, delta, {
           applyCamera: true,
           speaker: 'Pierce',
           lineKey: 'dialogue.return.mirror',
           speakerPosOverride: { x: MIRROR_STAND.x, y: 1.46, z: MIRROR_STAND.z },
-        });
-        mirrorLeft -= delta;
+        }));
+        mirrorLeft -= Math.max(delta, 0.016);
         if (mirrorLeft <= 0) {
           host.showLine('', '');
           host.endCineScene?.();
