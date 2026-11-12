@@ -71,21 +71,33 @@ floor to his own bed.
 
 ### 5. The Street (level 5) - `src/story/city/`
 - **Mood:** wet neon downtown at night, a living grid: avenues at z -144, -56, 32, 120, 208, cross streets x -126...294.
+  Kabuki-in-the-rain: wet asphalt with a puddle mask, neon and headlights smeared across the street, rain with ground
+  splashes, steam from manhole vents, headlight/taillight flares on traffic (`src/story/city/rainNight.ts`).
 - **Looks/sounds:** signals, crosswalks, traffic, a plaza with subway globes, Liberty Square fountain, market
   (x 62-72), diner (96-108), news stand (145-156), park and pond NE, 1150 m of suburb edge. Bed `room-tone` 0.12,
-  traffic, sirens, bell on shop doors, footsteps.
+  traffic, sirens, bell on shop doors, footsteps, rain hiss.
+- **Neon landmarks (8 along Pierce's sidewalk, stand-in emissives until Gen WebPs in `assets/textures/city/neon/`):**
+  Hawkes Biomedical billboard, pharmacy cross, noodle bar, pawn shop, Midnight Diner, Voss Capital, Liberty Square,
+  hotel VACANCY. Public Hawkes signage never names B3, the vat or the creature.
+- **Reflections:** High tier tries SSR; Low/Medium use a shared reflection probe on planar puddle plates (+1.8 cm over
+  asphalt). Phone caps rain at ~1/3 and keeps the probe path (≥30 fps at 390x844).
 - **Size:** Pierce's route is ~163 m of sidewalk (about 55 s); the whole generated city is ~2.3 km across.
 - **In/out:** in from the lobby; out down the stairs at x 163.5 to the station.
+- Playtest: `rain-city` (options `phone`).
 
 ### 6. The Station (level 6) - `the-station.json`
-- **Mood:** fluorescent, tiled, humming, one tube failing. HAWKES ST.
+- **Mood:** sodium platform wash over tiled walls, humming, one tube failing. HAWKES ST. Rain still falls at the open
+  stair end (west concourse); the platform itself is covered.
 - Concourse, six turnstiles, platform, track trench, two cars, tunnel mouths. Bed 0.10. Departure board counting
-  down, tunnel wind, PA (`placeVoices.ts`).
+  down (emissive amber matrix), tunnel wind, PA (`placeVoices.ts`). Tile / platform-edge / wall surfaces are procedural
+  until Gen seamless paints land (`assets/textures/station/`).
 - **Size:** ~80 m x 15 m; in by the stairs, out through the open train door.
 
 ### 7. The Train (level 7) - `the-train.json`
 - **Mood:** the rocking dark between stops, amber lamps. Three cars, one set re-entered, then a stop with no name.
-- Car x 0-18, benches, poles, ads, a 6 line map. Bed `train/rumble.ogg` 0.22, lamp rhythm every 11 m of tunnel, sway.
+- Car x 0-18, benches, poles, ads, a 6 line map. Bed `train/rumble.ogg` 0.22. Tunnel lamps every 11 m (~0.8 s at
+  cruise 14 m/s, always ≤ 3 s while moving); one fluorescent tube flickers; dark windows reflect the car's strip lights
+  and seat blue over the tunnel.
 - **In/out:** in from the open door; out the north door at the unnamed stop (End Level).
 
 ### 8. The Morning (level 8) - `the-morning.json`
