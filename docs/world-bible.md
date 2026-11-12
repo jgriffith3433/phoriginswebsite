@@ -206,6 +206,69 @@ Jackson; Hale is Annie; the street shout is Alexandra; Police is Adam; the recep
 
 ---
 
+## Characters
+
+One entry per named character. Voice ids from `locales/voices.json`. Clips are Mixamo tails on the GLB (`Idle` / `Walk` /
+`SitTalk` etc.); the creature has no spoken talk.
+
+### Pierce Hawkes
+- Want: get through the night without anyone naming what he became, then go home.
+- Arc: late chairman on the 58th → the thing that walks out of B3 → the man who lets the old body keep the street.
+- Moment: Shadow on the sidewalk — the city stares, films and flees while he keeps walking to the stairs.
+- Personality: terse, tired, polite.
+- Voice: ZthjuvLPty3kTMaNKVKb (Jackson / `pierce`)
+- Animations: idle (`Idle` / `RebornIdle` as Ch44), walk (`Walk`, stride-matched), talk (`SitTalk` at the board; phone lines while standing)
+
+### Director Hale
+- Want: keep the board calendar and the street clean of any B3 leak.
+- Arc: furious at Pierce walking out → pleased the board held → contained at the unnamed stop.
+- Moment: each threshold call (pipe hall, station stairs, train stop) where she talks and he barely answers.
+- Personality: steel, measured, furious.
+- Voice: XW70ikSsadUbinwLMZ5w (Annie / `hale`)
+- Animations: idle (`SitIdle` at the board), walk (departure after the meeting), talk (`SitTalk` in `room-for-grace`)
+
+### Voss
+- Want: keep Pierce reachable — late call, street text, morning check — and treat B3 as a ward.
+- Arc: the friend who hustles him into the board → the one who texts that police are coming → the morning voice that asks whose voice that is.
+- Moment: answering `voss-late` in the hall while already walking to his seat.
+- Personality: loyal, probing, warm.
+- Voice: XjLkpWUlnhS8i7gGz3lZ (`voss`)
+- Animations: idle (`SitIdle`), walk (board departure), talk (`SitTalk` / phone lines)
+
+### Lang
+- Want: a date for Zurich on the calendar.
+- Arc: seated at the board, calendar first → leaves with the others → never follows Pierce to the street.
+- Moment: the board cutscene where he is present and the Zurich ask lands in the room.
+- Personality: calendar, dry, impatient.
+- Voice: 2UMI2FME0FFUFMlUoRER (`lang`)
+- Animations: idle (`SitIdle`), walk (board departure), talk (`SitTalk`)
+
+### The old body
+- Want: keep the coat and the street without looking back.
+- Arc: boards with the commuter at HAWKES ST → always one car ahead → gets off at a stop with no name.
+- Moment: the train stop door — he says "This is me," walks out facing away, never turns.
+- Personality: owned, calm, closed.
+- Voice: ZthjuvLPty3kTMaNKVKb (same Pierce voice when he speaks)
+- Animations: idle (pole hold / stand), walk (through end doors and off the car), talk (stop line "This is me.")
+
+### The commuter
+- Want: an uptown seat next to the man in the coat.
+- Arc: waits on the platform → boards with the old body → says "Night." and does not look back.
+- Moment: the station opening — shadow-Pierce watches him talk to the other Pierce, then both board.
+- Personality: ordinary, tired, incurious.
+- Voice: TxGEqnHWrfWFTfGW9XjX (`commuter`)
+- Animations: idle (platform wait), walk (into the car and out at the stop), talk (platform exchange + "Night.")
+
+### The creature
+- Want: reach the vat glass and Pierce.
+- Arc: flees the lab reveal → hunts the basement in bursts → lunges the glass that remakes Pierce.
+- Moment: the hunt rush when the flashlight finds it and it commits the last metres.
+- Personality: hungry, silent, sudden.
+- Voice: creature SFX pool (skitter / shriek / hiss / snarl — no spoken Gen line)
+- Animations: idle (`Idle` in decon), walk (`Walk` roam and flee), talk (none — shriek / Attack stand in for voice)
+
+---
+
 ## What happens
 
 Per area: **interactions** (several kinds), **events on their own**, **ambient sound**, **what changes over time**.
