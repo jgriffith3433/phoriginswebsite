@@ -36,6 +36,18 @@ export type GoingHomeHost = {
   resumeLocomotion: () => void;
   frameCamera: (position: { x: number; y: number; z: number }, lookAt: { x: number; y: number; z: number }) => void;
   releaseCamera: () => void;
+  stepCineScene?: (
+    sceneId: 'lobby-scream',
+    atSeconds: number,
+    dt: number,
+    opts?: {
+      speaker?: string;
+      lineKey?: string;
+      speakerPosOverride?: { x: number; y: number; z: number };
+      applyCamera?: boolean;
+    },
+  ) => void;
+  endCineScene?: (clearCam?: boolean) => void;
   fade: (to: number, seconds?: number) => void;
   showLine: (title: string, text: string) => void;
   holdScene: (held: boolean) => void;
@@ -1056,6 +1068,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
     playing = false;
     clip = '';
     host.holdScene(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     host.showLine('', '');
     host.setWalk(false);
@@ -1104,6 +1117,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
     streetTime = 0;
     host.fade(0, 0.4);
     host.holdScene(false);
+    host.endCineScene?.(false);
     host.releaseCamera();
     const nearStairs = new URLSearchParams(location.search).get('at') === 'stairs';
     host.placePierce(nearStairs ? 150 : STREET.x, STREET.z, STREET.yaw);
@@ -1702,11 +1716,31 @@ export const createGoingHome = (host: GoingHomeHost) => {
         const moving = Math.hypot(pb.x - pa.x, pb.z - pa.z) > 0.2 && pt < 0.98 && time > 2.5 && time < 35.2;
         host.placePierce(x, z, yaw);
         setClip(moving ? 'walk' : 'idle', moving);
-        const [sa, sb, st] = sample(SHOTS, time);
-        host.frameCamera(
-          { x: lerp(sa.cx, sb.cx, st), y: lerp(sa.cy, sb.cy, st), z: lerp(sa.cz, sb.cz, st) },
-          { x: lerp(sa.lx, sb.lx, st), y: lerp(sa.ly, sb.ly, st), z: lerp(sa.lz, sb.lz, st) },
-        );
+        if (host.stepCineScene) {
+          const lobbySpeaker = time >= 13.0 ? 'Pierce' : 'Receptionist';
+          const lobbyLine = time >= 13.2
+            ? 'dialogue.home.not-up'
+            : time >= 8.8
+              ? 'dialogue.home.police'
+              : time >= 6.2
+                ? 'dialogue.home.scream'
+                : 'lobby.walk';
+          const lobbySpeakerPos = time >= 13.0
+            ? { x, y: 1.44, z }
+            : { x: 3.8, y: 1.40, z: 4.2 };
+          host.stepCineScene('lobby-scream', time, dt, {
+            applyCamera: true,
+            speaker: lobbySpeaker,
+            lineKey: lobbyLine,
+            speakerPosOverride: lobbySpeakerPos,
+          });
+        } else {
+          const [sa, sb, st] = sample(SHOTS, time);
+          host.frameCamera(
+            { x: lerp(sa.cx, sb.cx, st), y: lerp(sa.cy, sb.cy, st), z: lerp(sa.cz, sb.cz, st) },
+            { x: lerp(sa.lx, sb.lx, st), y: lerp(sa.ly, sb.ly, st), z: lerp(sa.lz, sb.lz, st) },
+          );
+        }
         if (!screamed && time >= 6.2) {
           screamed = true;
           say(lineSpeaker('dialogue.home.scream', 'Receptionist'), lineText('dialogue.home.scream', 'Ah! Oh my god!'), lineAudio('dialogue.home.scream', SCREAM), 0.92, 2.4);
