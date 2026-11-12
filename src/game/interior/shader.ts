@@ -104,6 +104,12 @@ uniform sampler2D tLeather;
 uniform sampler2D tBrass;
 uniform sampler2D tConcrete;
 uniform sampler2D tDrywall;
+/** B3 Gen wet surfaces (optional; mix weights 0 until the WebP loads). */
+uniform sampler2D tEpoxy;
+uniform sampler2D tDiamond;
+uniform sampler2D tLabFloor;
+uniform sampler2D tAlgae;
+uniform vec4 b3Surf; // x epoxy, y diamond, z lab floor, w algae wall — 0..1
 uniform float toGamma;
 /** Flashlight spot shadow (B3): x = strength (0 off), sampler + matrix bound from dress. */
 uniform float flashShadowStrength;
@@ -247,7 +253,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     return;
   }
   if (style < 7.5) {
-    // Lab tile, stained.
+    // Lab tile, stained; Gen algae-streaked wall when b3Surf.w is on.
     vec2 q = p / 0.15;
     vec2 f = fract(q);
     float grout = 1.0 - smoothstep(0.0, 0.07, min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)));
@@ -262,6 +268,11 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     albedo = mix(albedo, vec3(0.12, 0.28, 0.14), algae * 0.55);
     gloss = 0.5 * (1.0 - grout) * (1.0 - stain) + algae * 0.25;
     bump = grout;
+    if (b3Surf.w > 0.01) {
+      vec3 painted = gm(tAlgae, vec2(p.x, y), 1.4);
+      albedo = mix(albedo, painted * (0.92 + variant * 0.06), b3Surf.w * 0.78);
+      gloss = mix(gloss, 0.42 + algae * 0.2, b3Surf.w * 0.55);
+    }
     return;
   }
   if (style < 8.5) {
@@ -352,6 +363,11 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     float wet = smoothstep(0.55, 0.88, fbm(p * 0.22 + 3.0));
     albedo = mix(albedo, albedo * vec3(0.85, 0.92, 0.9), wet * 0.35);
     gloss = 0.35 * (1.0 - wear) + stain * 0.3 + wet * 0.55;
+    if (b3Surf.x > 0.01) {
+      vec3 painted = gm(tEpoxy, p, 1.8);
+      albedo = mix(albedo, painted, b3Surf.x * 0.82);
+      gloss = mix(gloss, 0.55 + wet * 0.35, b3Surf.x * 0.7);
+    }
     return;
   }
   if (style < 25.5) {
@@ -367,6 +383,11 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     float wet = smoothstep(0.6, 0.9, fbm(p * 0.3 + 7.0));
     gloss = 0.5 * (1.0 - rust) + bar * 0.3 + wet * 0.45;
     bump = bar;
+    if (b3Surf.y > 0.01) {
+      vec3 painted = gm(tDiamond, p, 0.9);
+      albedo = mix(albedo, painted, b3Surf.y * 0.8);
+      gloss = mix(gloss, 0.48 + wet * 0.35, b3Surf.y * 0.65);
+    }
     return;
   }
   if (style < 26.5) {
@@ -379,6 +400,11 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     albedo = mix(tile, vec3(0.15), grout) * (1.0 - stain * 0.5);
     float wet = smoothstep(0.58, 0.9, fbm(p * 0.28 + 2.0));
     gloss = 0.4 * (1.0 - grout) * (1.0 - stain) + wet * 0.5;
+    if (b3Surf.z > 0.01) {
+      vec3 painted = gm(tLabFloor, p, 1.2);
+      albedo = mix(albedo, painted, b3Surf.z * 0.8);
+      gloss = mix(gloss, 0.5 + wet * 0.35, b3Surf.z * 0.65);
+    }
     return;
   }
   // ---------- Ceilings ----------

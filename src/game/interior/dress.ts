@@ -129,6 +129,18 @@ const APEX_MATERIALS: Record<string, string> = {
   tDrywall: 'office-drywall',
 };
 
+/**
+ * B3 Gen wet surfaces under `assets/textures/b3/`. Optional: until each WebP
+ * loads, `b3Surf` stays 0 and the procedural stand-in in the shader keeps reading.
+ * Index into b3Surf: 0 epoxy, 1 diamond, 2 lab floor, 3 algae wall.
+ */
+const B3_MATERIALS: { sampler: string; file: string; surf: number }[] = [
+  { sampler: 'tEpoxy', file: 'wet-concrete', surf: 0 },
+  { sampler: 'tDiamond', file: 'rust-grating', surf: 1 },
+  { sampler: 'tLabFloor', file: 'lab-tile', surf: 2 },
+  { sampler: 'tAlgae', file: 'algae-wall', surf: 3 },
+];
+
 /** Atlas art: paintings, signs, labels, screens. Drawn once per mount. */
 const paintAtlas = (scene: BABYLON.Scene) => {
   const size = 2048;
@@ -436,9 +448,15 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
     attributes: ['position', 'normal', 'uv', 'uv2', 'color'],
     uniforms: [
       'worldViewProjection', 'cameraPos', 'lPos', 'lCol', 'spotPos', 'spotDir', 'spotInfo', 'hemiSky', 'hemiGround',
-      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma', 'flashShadowStrength', 'flashLightMatrix', ...keyShadow.uniforms,
+      'fogColor', 'fogInfo', 'time', 'lightGain', 'toGamma', 'b3Surf', 'flashShadowStrength', 'flashLightMatrix', ...keyShadow.uniforms,
     ],
-    samplers: ['atlas', ...Object.keys(APEX_MATERIALS), 'flashShadowMap', ...keyShadow.samplers],
+    samplers: [
+      'atlas',
+      ...Object.keys(APEX_MATERIALS),
+      ...B3_MATERIALS.map((m) => m.sampler),
+      'flashShadowMap',
+      ...keyShadow.samplers,
+    ],
     defines: keyShadow.defines,
   });
   attachKeyShadow(scene, material);
@@ -456,6 +474,45 @@ export const createInteriorDress = (scene: BABYLON.Scene, plan: InteriorPlan) =>
     t.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
     t.anisotropicFilteringLevel = low ? 2 : 8;
     material.setTexture(sampler, t);
+    owned.push(t);
+  }
+  // B3 wet surfaces: 1x1 stub until Gen WebPs land (or 512 on the low tier).
+  const b3Surf = new BABYLON.Vector4(0, 0, 0, 0);
+  material.setVector4('b3Surf', b3Surf);
+  const stub = new BABYLON.DynamicTexture('b3-surf-stub', { width: 4, height: 4 }, scene, false);
+  {
+    const ctx = stub.getContext() as CanvasRenderingContext2D;
+    ctx.fillStyle = '#3a3c3b';
+    ctx.fillRect(0, 0, 4, 4);
+    stub.update();
+  }
+  stub.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+  stub.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+  owned.push(stub);
+  for (const entry of B3_MATERIALS) {
+    material.setTexture(entry.sampler, stub);
+    const path = `/assets/textures/b3/${entry.file}${low ? '-512' : ''}.webp`;
+    const t = new BABYLON.Texture(
+      path,
+      scene,
+      false,
+      true,
+      BABYLON.Texture.TRILINEAR_SAMPLINGMODE,
+      () => {
+        t.wrapU = BABYLON.Texture.WRAP_ADDRESSMODE;
+        t.wrapV = BABYLON.Texture.WRAP_ADDRESSMODE;
+        t.anisotropicFilteringLevel = low ? 2 : 8;
+        material.setTexture(entry.sampler, t);
+        if (entry.surf === 0) b3Surf.x = 1;
+        else if (entry.surf === 1) b3Surf.y = 1;
+        else if (entry.surf === 2) b3Surf.z = 1;
+        else b3Surf.w = 1;
+        material.setVector4('b3Surf', b3Surf);
+      },
+      () => {
+        // Missing file: keep the procedural stand-in (b3Surf channel stays 0).
+      },
+    );
     owned.push(t);
   }
   owned.push(material);
