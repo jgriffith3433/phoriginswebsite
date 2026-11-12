@@ -2918,9 +2918,35 @@ const resetPlayer = (keepLevel = false, fresh = false) => {
 /** The acid in the vat break bends the controls (act1.ts `stepAcid`). Null is normal control. */
 let impair: ImpairState | null = null;
 const impairLog: Array<{ at: number; x: number; y: number }> = [];
+/** The acid sequence's guard rails: floor height at its start and the worst Y / XZ seen (probe `acid()`). */
+const acidGuard = { floorY: 0, set: false, maxY: 0, minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity, clamps: 0 };
+const ACID_BOUNDS = { minX: 0.2, maxX: 18.5, minZ: 30.9, maxZ: 45.1 };
+const ACID_MAX_RISE = 0.35;
 const setImpair = (next: ImpairState | null) => {
+  if (next && !impair) {
+    acidGuard.floorY = state.player.y;
+    acidGuard.set = true;
+    acidGuard.maxY = 0; acidGuard.clamps = 0;
+    acidGuard.minX = acidGuard.minZ = Infinity;
+    acidGuard.maxX = acidGuard.maxZ = -Infinity;
+  }
   impair = next;
   if (!next) impairLog.length = 0;
+};
+/** After movement and gravity: nothing in the acid can carry him up or out of the room. */
+const guardAcid = () => {
+  if (!impair || !acidGuard.set) return;
+  const p = state.player;
+  let hit = false;
+  if (p.y > acidGuard.floorY + ACID_MAX_RISE) { p.y = acidGuard.floorY + ACID_MAX_RISE; p.velocityY = Math.min(p.velocityY, 0); hit = true; }
+  if (p.y < acidGuard.floorY) { p.y = acidGuard.floorY; p.velocityY = 0; p.grounded = true; hit = true; }
+  const cx = Math.min(ACID_BOUNDS.maxX, Math.max(ACID_BOUNDS.minX, p.x));
+  const cz = Math.min(ACID_BOUNDS.maxZ, Math.max(ACID_BOUNDS.minZ, p.z));
+  if (cx !== p.x || cz !== p.z) { p.x = cx; p.z = cz; hit = true; }
+  if (hit) { acidGuard.clamps += 1; playerCollider.position.set(p.x, p.y, p.z); }
+  acidGuard.maxY = Math.max(acidGuard.maxY, p.y - acidGuard.floorY);
+  acidGuard.minX = Math.min(acidGuard.minX, p.x); acidGuard.maxX = Math.max(acidGuard.maxX, p.x);
+  acidGuard.minZ = Math.min(acidGuard.minZ, p.z); acidGuard.maxZ = Math.max(acidGuard.maxZ, p.z);
 };
 /** Delayed input: the stick as it was `lag` seconds ago. */
 const lagInput = (moveX: number, moveZ: number, lag: number) => {
@@ -4315,7 +4341,11 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
     audio.setWalk(false);
     return { moving: false, moveHeading: null };
   }
+  if (impair?.shove && !state.inCutscene) {
+    movePlayerOnGround(state.player, playerCollider, impair.shove.x * delta, impair.shove.z * delta);
+  }
   if (state.inCutscene || (phone.locksBody() && !callWalk) || retryLeft > 0 || impair?.locked) {
+    if (impair) { updateVerticalMotion(state.player, delta, playerCollider); guardAcid(); }
     state.player.jumpWindup = 0;
     state.input.jump = false;
     playerCollider.position.set(state.player.x, state.player.y, state.player.z);
@@ -4415,6 +4445,7 @@ const updatePlayerBody = (delta: number, walkedBefore: number) => {
   } else {
     updateVerticalMotion(state.player, delta, playerCollider);
   }
+  guardAcid();
 
   if (!shadowFlying && state.input.jump) {
     if (requestJump(state.player)) {
@@ -6403,6 +6434,7 @@ installPhPlaytest({
     drift: impair?.drift ?? 0,
     speed: impair?.speed ?? 1,
     locked: impair?.locked ?? false,
+    guard: { ...acidGuard, bounds: ACID_BOUNDS, maxRise: ACID_MAX_RISE },
     flashlight: phone.flashlightOn(),
     skipShown: Boolean(skipCutsceneBtn && !skipCutsceneBtn.hidden),
     x: state.player.x,

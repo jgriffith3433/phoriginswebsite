@@ -140,6 +140,8 @@ export type ImpairState = {
   pull: { x: number; z: number };
   /** He cannot get further east than this (keeps the beat from ending in three seconds). */
   maxX: number;
+  /** Knocked back: metres per second along the floor (the acid hit). Optional. */
+  shove?: { x: number; z: number };
 };
 
 const ELEVATOR_DOOR_L_CLOSED = 43.42;
@@ -2791,7 +2793,7 @@ export const createAct1 = (host: ActHost) => {
     host.showObjective(true);
     host.playFile(lineAudio('dialogue.b3-vat-break.02') || '/assets/audio/cutscenes/b3-vat-break/04-pierce-scream.ogg', 1);
     host.showLine('Pierce', lineText('dialogue.b3-vat-break.02'));
-    host.impair({ lag: 0.05, drift: 0, speed: 0.9, locked: false, pull: { x: 0, z: 0 }, maxX: 14.2 });
+    host.impair({ lag: 0.05, drift: 0, speed: 0.9, locked: true, pull: { x: 0, z: 0 }, maxX: 14.2, shove: { x: 3.2, z: 0 } });
     host.playClip('fallingdown', false, 1.6);
     acidFallEnd = 0.9;
     acidWasDown = true;
@@ -2846,7 +2848,7 @@ export const createAct1 = (host: ActHost) => {
     const doorPull = ramp(t, 11, 20);
     const toDoor = Math.hypot(ACID_EXIT.x - here.x, ACID_EXIT.z - here.z) || 1;
     const toPool = Math.hypot(ACID_POOL.x - here.x, ACID_POOL.z - here.z) || 1;
-    const poolK = 0.55 * (1 - doorPull) * 1;
+    const poolK = 0; // no fumes pulling him toward the vat: he was thrown back from it
     const doorK = 0.2 + 0.9 * doorPull + (t > ACID_MAX - 3 ? 1.5 : 0);
     const pull = {
       x: ((ACID_POOL.x - here.x) / toPool) * poolK + ((ACID_EXIT.x - here.x) / toDoor) * doorK,
@@ -2877,6 +2879,7 @@ export const createAct1 = (host: ActHost) => {
       drift: acidFalls >= 2 ? drift * 0.6 : drift,
       speed,
       locked: t < acidFallEnd || (acidFalls >= 2 && !acidSwapped),
+      shove: t < 0.6 ? { x: 3.2 * (1 - t / 0.6), z: 0 } : undefined,
       pull,
       maxX: 13.2 + 4.4 * clamp01(t / 20),
     });
