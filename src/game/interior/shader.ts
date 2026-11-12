@@ -8,6 +8,8 @@
  * uv2 = (style, variant), color = prop albedo (rgb) and emissive (a).
  */
 
+import { KEY_SHADOW_GLSL } from '../../render/keyShadow';
+
 export const MAX_INTERIOR_LIGHTS = 12;
 
 /** Styles. Keep in sync with the branches below. */
@@ -92,7 +94,18 @@ uniform vec3 fogInfo;
 uniform float time;
 uniform float lightGain;
 uniform sampler2D atlas;
+uniform sampler2D tMarble;
+uniform sampler2D tCarpet;
+uniform sampler2D tWalnut;
+uniform sampler2D tSteel;
+uniform sampler2D tGlass;
+uniform sampler2D tCeil;
+uniform sampler2D tLeather;
+uniform sampler2D tBrass;
+uniform sampler2D tConcrete;
+uniform sampler2D tDrywall;
 uniform float toGamma;
+${KEY_SHADOW_GLSL}
 
 float h21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -108,6 +121,14 @@ float vnoise(vec2 p) {
 float fbm(vec2 p) {
   return vnoise(p) * 0.55 + vnoise(p * 2.1 + 3.7) * 0.3 + vnoise(p * 4.3 + 7.1) * 0.15;
 }
+/** Hawkes Gen material sample at 'per' metres per tile, with a second rotated, offset sample blended by slow noise so the repeat does not show. */
+vec3 gm(sampler2D s, vec2 p, float per) {
+  vec2 q = p / per;
+  vec3 a = texture2D(s, q).rgb;
+  vec3 b = texture2D(s, vec2(-q.y, q.x) * 0.73 + vec2(0.37, 0.61)).rgb;
+  return mix(a, b, smoothstep(0.35, 0.65, vnoise(p * 0.23 + 4.1)) * 0.5);
+}
+float lum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 float gridLine(float v, float w) {
   float f = fract(v);
   return 1.0 - smoothstep(0.0, w, min(f, 1.0 - f));
@@ -129,12 +150,12 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     // Office: plaster, wood wainscot to 0.95 m, chair rail, baseboard.
     vec3 paint = mix(vec3(0.74, 0.72, 0.68), vec3(0.6, 0.64, 0.66), variant);
     float speck = vnoise(p * 40.0) * 0.04 + fbm(p * 1.5) * 0.04;
-    albedo = paint * (0.96 + speck);
+    albedo = paint * (0.8 + lum(gm(tDrywall, p, 1.6)) * 0.42) * (0.97 + speck);
     if (y < 0.95) {
       float panel = fract(p.x / 1.2);
       float frame = 1.0 - smoothstep(0.0, 0.03, min(min(panel, 1.0 - panel) * 1.2, min(y - 0.14, 0.86 - y)));
       vec3 wood = mix(vec3(0.32, 0.2, 0.12), vec3(0.42, 0.27, 0.16), vnoise(vec2(p.x * 1.5, y * 30.0)));
-      albedo = wood * (1.0 - frame * 0.25);
+      albedo = mix(wood, gm(tWalnut, vec2(p.x, y), 1.2) * 0.72, 0.7) * (1.0 - frame * 0.25);
       gloss = 0.3;
     }
     if (abs(y - 0.97) < 0.035) { albedo = vec3(0.26, 0.16, 0.1); gloss = 0.4; }
@@ -147,6 +168,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     float slat = fract(p.x / 0.11);
     float gap = smoothstep(0.08, 0.16, slat) * smoothstep(0.92, 0.84, slat);
     vec3 wood = mix(vec3(0.24, 0.14, 0.08), vec3(0.36, 0.22, 0.13), vnoise(vec2(floor(p.x / 0.11) * 3.1, y * 6.0)));
+    wood = mix(wood, gm(tWalnut, vec2(p.x * 0.5, y), 1.4) * 0.8, 0.75);
     albedo = mix(vec3(0.03, 0.03, 0.032), wood, gap);
     bump = 1.0 - gap;
     gloss = 0.06 * gap;
@@ -158,7 +180,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     if (y < 1.1) {
       float panel = fract(p.x / 0.9);
       float frame = 1.0 - smoothstep(0.0, 0.025, min(min(panel, 1.0 - panel) * 0.9, min(y - 0.16, 1.0 - y)));
-      albedo = mix(vec3(0.18, 0.1, 0.06), vec3(0.26, 0.15, 0.09), vnoise(vec2(p.x * 2.0, y * 25.0))) * (1.0 - frame * 0.3);
+      albedo = gm(tWalnut, vec2(p.x, y), 1.4) * 0.5 * (1.0 - frame * 0.3);
       gloss = 0.35;
     } else {
       vec2 q = vec2(p.x / 0.32, (y - 1.1) / 0.42);
@@ -177,7 +199,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     vec2 f = fract(q);
     float seam = 1.0 - smoothstep(0.0, 0.012, min(min(f.x, 1.0 - f.x) * 1.2, min(f.y, 1.0 - f.y) * 0.6));
     float vein = smoothstep(0.02, 0.0, abs(fbm(p * 1.3 + cell * 7.0) - 0.5 + sin(p.x * 2.0 + p.y) * 0.05));
-    albedo = mix(vec3(0.82, 0.8, 0.76), vec3(0.42, 0.4, 0.38), vein * 0.7) * (1.0 - seam * 0.5);
+    albedo = gm(tMarble, p, 2.0) * 0.92 * (1.0 - seam * 0.5);
     gloss = 0.7;
     return;
   }
@@ -247,7 +269,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     float edge = 1.0 - smoothstep(0.0, 0.03, min(board, 1.0 - board));
     vec2 tie = fract(p / vec2(0.9, 0.6)) - 0.5;
     float hole = smoothstep(0.03, 0.02, length(tie * vec2(0.9, 0.6)));
-    albedo = vec3(0.36, 0.35, 0.33) * (0.8 + fbm(p * vec2(0.4, 3.0)) * 0.35) * (1.0 - edge * 0.2) * (1.0 - hole * 0.6);
+    albedo = mix(vec3(0.36, 0.35, 0.33) * (0.8 + fbm(p * vec2(0.4, 3.0)) * 0.35), gm(tConcrete, p, 2.0) * 0.9, 0.7) * (1.0 - edge * 0.2) * (1.0 - hole * 0.6);
     albedo *= 1.0 - smoothstep(0.65, 0.95, fbm(p * 0.6)) * 0.35;
     bump = edge;
     return;
@@ -259,7 +281,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     vec2 q = p / 0.6;
     vec2 f = fract(q) - 0.5;
     float pat = smoothstep(0.03, 0.0, abs(abs(f.x) + abs(f.y) - 0.35));
-    albedo = base * (0.85 + vnoise(p * 60.0) * 0.25) + pat * 0.035;
+    albedo = gm(tCarpet, p, 1.6) * 1.7 * (base / vec3(0.3)) + pat * 0.03;
     albedo *= 1.0 - smoothstep(0.6, 0.0, fbm(p * 0.3)) * 0.1;
     return;
   }
@@ -282,7 +304,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     float seam = 1.0 - smoothstep(0.0, 0.01, min(min(f.x, 1.0 - f.x), min(f.y, 1.0 - f.y)));
     float vein = smoothstep(0.009, 0.0, abs(fbm(p * 0.8 + cell * 5.0) - 0.5)) + smoothstep(0.005, 0.0, abs(fbm(p * 2.3 + cell * 3.0) - 0.5)) * 0.5;
     float cloud = fbm(p * 0.6 + cell * 2.0);
-    albedo = mix(vec3(0.8, 0.78, 0.74), vec3(0.42, 0.4, 0.38), clamp(vein, 0.0, 1.0) * 0.45) * (0.94 + cloud * 0.08) * (1.0 - seam * 0.6);
+    albedo = gm(tMarble, p + cell * 1.7, 1.8) * 0.9 * (0.96 + cloud * 0.06) * (1.0 - seam * 0.6);
     gloss = 0.85;
     return;
   }
@@ -340,7 +362,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     vec2 f = fract(q);
     float tee = 1.0 - smoothstep(0.0, 0.02, min(min(f.x, 1.0 - f.x) * 0.6, min(f.y, 1.0 - f.y) * 1.2));
     float speck = step(0.7, h21(floor(p * 90.0))) * 0.06;
-    albedo = mix(vec3(0.82, 0.82, 0.8) - speck, vec3(0.92), tee);
+    albedo = mix(gm(tCeil, p, 1.2) * 0.9 - speck, vec3(0.92), tee);
     return;
   }
   if (style < 41.5) {
@@ -357,12 +379,16 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     return;
   }
   if (style < 61.5) {
-    albedo = vColor.rgb * (0.85 + fbm(p * 3.0) * 0.2);
+    // Brushed steel, or brushed brass where the vertex colour is warm (the elevator cab, plaques).
+    bool warm = vColor.r > vColor.b * 1.35;
+    vec3 brushed = warm ? gm(tBrass, p, 0.5) : gm(tSteel, p, 0.5);
+    albedo = vColor.rgb * (0.45 + lum(brushed) * 0.9);
     gloss = 0.6;
     return;
   }
   if (style < 62.5) {
-    albedo = vColor.rgb;
+    // Frosted, lightly etched glass.
+    albedo = vColor.rgb * (0.82 + lum(gm(tGlass, p, 1.0)) * 0.3);
     gloss = 0.95;
     return;
   }
@@ -387,7 +413,7 @@ void surface(float style, float variant, vec2 p, vec3 n, out vec3 albedo, out fl
     return;
   }
   if (style < 65.5) {
-    albedo = vColor.rgb * (0.8 + vnoise(p * 80.0) * 0.3);
+    albedo = vColor.rgb * (0.5 + lum(gm(tLeather, p, 0.6)) * 1.0);
     return;
   }
   if (style < 66.5) {
@@ -456,7 +482,9 @@ void main(void) {
   // Albedos are authored in display space; light in linear like the PBR level materials.
   albedo = pow(max(albedo, vec3(0.0)), vec3(2.2));
   emis = pow(max(emis, vec3(0.0)), vec3(2.2));
-  vec3 color = albedo * diffuse * lightGain + spec * gloss * 0.5 * lightGain + emis;
+  // Contact shadow from the key light (src/render/keyShadow.ts): furniture and Pierce shade the floor under them.
+  float ks = keyShadow(vWorld + n * 0.02);
+  vec3 color = (albedo * diffuse * lightGain + spec * gloss * 0.5 * lightGain) * ks + emis;
   float fogF = clamp((length(vWorld - cameraPos) - fogInfo.x) / max(fogInfo.y - fogInfo.x, 0.01), 0.0, 1.0) * fogInfo.z;
   color = mix(color, pow(fogColor, vec3(2.2)), fogF);
   // No post pipeline (Dev Tools): go to display space here.

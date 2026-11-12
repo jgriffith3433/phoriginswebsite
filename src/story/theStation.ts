@@ -7,10 +7,14 @@ import { carryItems, lineAudio, lineSpeaker, lineText } from '../game/locale';
 import type { StoryCarry } from './act1';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
+import { createWantedPosters } from './wantedPosters';
+import { SIREN_KILLS, SIREN_SFX, type LedgerApi } from '../game/ledger';
 import { lifeStats } from '../game/lifeStats';
 import { createLinePool, PLACE_SFX, STATION_BARKS, STATION_PA, type PlaceLine } from './placeVoices';
 
 export type TheStationHost = {
+  /** The street ledger on the save. Kills here count too; at SIREN_KILLS the gate gets an officer and wanted posters. */
+  ledger: LedgerApi;
   scene: BABYLON.Scene;
   running: () => boolean;
   placePierce: (x: number, z: number, yaw: number) => void;
@@ -100,7 +104,7 @@ const STRIKE_LIMIT = 8;
 type Figure = {
   mesh: BABYLON.Mesh;
   avatar: PlayerAvatar;
-  role: 'man' | 'shade' | 'double';
+  role: 'man' | 'shade' | 'double' | 'cop';
   gone: boolean;
 };
 
@@ -201,6 +205,9 @@ export const createTheStation = (host: TheStationHost) => {
   let callIn = -1;
   let haleRang = false;
   let crowd = false;
+  let copFigure: Figure | null = null;
+  let copBark = -1;
+  let posters: ReturnType<typeof createWantedPosters> | null = null;
   let shadeAlpha = 0.58;
   let shadePhase: 'yell' | 'strike' | 'gone' = 'yell';
   let yelled = false;
@@ -354,9 +361,21 @@ export const createTheStation = (host: TheStationHost) => {
     );
   };
 
+  /** At SIREN_KILLS or more: a siren on the avenue above, an officer at the gate and wanted posters on the south wall. */
+  const gateWatch = () => {
+    if (host.ledger.get().kills < SIREN_KILLS) return;
+    const cop = spawnFigure('station-gate-officer', 'asset-ch23-npc', 10.3, -2.5, Math.PI / 2, 'cop');
+    copFigure = cop;
+    posters?.dispose();
+    posters = createWantedPosters(host.scene, [{ x: 13.4, y: 1.55, z: -7.06 }, { x: 16.6, y: 1.55, z: -7.06 }, { x: 9.6, y: 1.55, z: -7.06 }]);
+    host.playFile(SIREN_SFX, 0.32);
+    copBark = 3;
+  };
+
   const spawnCrowd = () => {
     if (crowd) return;
     crowd = true;
+    gateWatch();
     CROWD.forEach(([x, z, x0, x1], index) => {
       spawn(`station-walk-${index}`, ASSETS[index % ASSETS.length], x, z, x0, x1);
     });
@@ -670,6 +689,7 @@ export const createTheStation = (host: TheStationHost) => {
     person.floorY = floorUnder(host.scene, person.mesh.position.x, person.mesh.position.z, feet, person.avatar.group);
     person.avatar.playClip(shocked ? 'electrocuted' : 'deathforward', false);
     host.playFile(deathScream('man'), 0.72);
+    host.ledger.add('kills');
   };
 
   const bury = (person: Person) => {
@@ -699,6 +719,9 @@ export const createTheStation = (host: TheStationHost) => {
       playing = false;
       releaseLink(false);
       clearFigures();
+      copFigure = null;
+      posters?.dispose();
+      posters = null;
       for (const bead of beads) bead.dispose(false, true);
       beads.length = 0;
       for (const person of people) {
@@ -716,6 +739,9 @@ export const createTheStation = (host: TheStationHost) => {
       linkLeft = 0;
       people.length = 0;
       crowd = false;
+      copFigure = null;
+      posters?.dispose();
+      posters = null;
       haleRang = false;
       callIn = -1;
       playing = false;
@@ -769,6 +795,7 @@ export const createTheStation = (host: TheStationHost) => {
       }
       if (!best) return false;
       tether = best;
+      host.ledger.add('possessions');
       linkLeft = POSSESS_SECONDS;
       best.fleeing = false;
       best.avatar.resumeLocomotion();
@@ -798,6 +825,7 @@ export const createTheStation = (host: TheStationHost) => {
       }
       if (!best) return false;
       tether = best;
+      host.ledger.add('possessions');
       linkLeft = POSSESS_SECONDS;
       best.fleeing = false;
       best.avatar.resumeLocomotion();
@@ -812,6 +840,7 @@ export const createTheStation = (host: TheStationHost) => {
       trailTo.set(best.mesh.position.x, best.mesh.position.y, best.mesh.position.z);
       trailLeft = 0.55;
       ensureBeads();
+      host.ledger.add('consumes');
       layDown(best, false);
       const atX = best.mesh.position.x;
       const atZ = best.mesh.position.z;
@@ -932,6 +961,24 @@ export const createTheStation = (host: TheStationHost) => {
           if (!haleRang) {
             haleRang = true;
             host.ringCall('hale-board');
+          }
+        }
+      }
+      if (copFigure && !copFigure.gone) {
+        const me = host.player();
+        const dx = me.x - copFigure.mesh.position.x;
+        const dz = me.z - copFigure.mesh.position.z;
+        const near = Math.hypot(dx, dz);
+        // He watches the gate: turns to Pierce as he nears, says his piece once.
+        faceFigure(copFigure, near < 9 ? Math.atan2(dx, dz) : Math.PI / 2);
+        if (copBark > 0 && near < 7.5) {
+          copBark -= stepDt;
+          if (copBark <= 0) {
+            copBark = -1;
+            host.showLine(lineSpeaker('bark.station.officer', 'Police'), lineText('bark.station.officer', 'Slow down. Everyone through the gate, one at a time.'));
+            const url = lineAudio('bark.station.officer', '');
+            if (url) host.playFile(url, 0.8);
+            window.setTimeout(() => { if (active) host.showLine('', ''); }, 3200);
           }
         }
       }

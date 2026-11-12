@@ -27,6 +27,7 @@ export const PLACE_SFX = {
   door: '/assets/audio/sfx/home/door-open.ogg',
   bed: '/assets/audio/sfx/home/bed-creak.ogg',
   tvStatic: '/assets/audio/sfx/home/tv-static.ogg',
+  paper: '/assets/audio/sfx/desk/paper-slide.ogg',
   newsSting: '/assets/audio/sfx/home/news-sting.ogg',
 } as const;
 

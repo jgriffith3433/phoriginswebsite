@@ -11,9 +11,13 @@ import { createCityWorld, type CityWorld } from './city/world';
 import { CITY_NEAR } from './city/cityView';
 import { deathScream, SHOP_LINE, STREET_BARKS, STREET_SFX, STREET_TALKS, streetCopy as resolveStreet, type StreetLine } from './streetAudio';
 import { CORPSE_SECONDS, POSSESS_SECONDS, settleCorpse } from './streetRules';
+import { createPoliceCar, type PoliceCar } from './policeCar';
+import { SIREN_KILLS, SIREN_SFX, SIREN_WITHIN, type LedgerApi } from '../game/ledger';
 import { createTutorial, PROMPTS, type Power, type Prompt, type Step } from './streetTutorial';
 
 export type GoingHomeHost = {
+  /** The street ledger on the save: kills, possessions, consumes, witnesses, reported. */
+  ledger: LedgerApi;
   scene: BABYLON.Scene;
   camera: BABYLON.Camera;
   running: () => boolean;
@@ -201,6 +205,15 @@ export const createGoingHome = (host: GoingHomeHost) => {
   let finished = false;
   let policeWaves = 0;
   let policeLine = false;
+  // The city's answer to what the ledger holds (docs/story/ledger.md).
+  let heatClock = 0;
+  let killSeenAt = -1;
+  let sirenAt = -1;
+  let carDueAt = -1;
+  let carSpawnedAt = -1;
+  let carArrivedAt = -1;
+  let policeCar: PoliceCar | null = null;
+  let witnessed = new Set<Person>();
   let shoutLeft = 0;
   let skipStreet = false;
   let tether: Person | null = null;
@@ -772,6 +785,52 @@ export const createGoingHome = (host: GoingHomeHost) => {
     if (backToStreet && !finished) showStreet();
   };
 
+  /** A bystander died by the Shadow's hand: the ledger counts it, anyone close saw it and runs, and past SIREN_KILLS the city answers. */
+  const noteKill = (person: Person) => {
+    if (person.role !== 'walk' && person.role !== 'shop' && person.role !== 'desk') return;
+    const at = person.mesh.position;
+    host.ledger.add('kills');
+    for (const other of people) {
+      if (other === person || other === tether || !other.shown || other.mood === 'down' || witnessed.has(other)) continue;
+      if (other.role !== 'walk' && other.role !== 'shop' && other.role !== 'desk') continue;
+      if (Math.hypot(other.mesh.position.x - at.x, other.mesh.position.z - at.z) > 16) continue;
+      witnessed.add(other);
+      host.ledger.add('witnesses');
+      if (other.mood === 'calm') other.mood = 'flee';
+      if (!other.screamed) {
+        other.screamed = true;
+        host.playFile(lineAudio('shout.street.pedestrian', PEDESTRIAN), 0.6);
+      }
+    }
+    if (killSeenAt < 0) killSeenAt = heatClock;
+    if (sirenAt < 0 && host.ledger.get().kills >= SIREN_KILLS) {
+      sirenAt = heatClock;
+      carDueAt = heatClock + 3;
+      host.playFile(SIREN_SFX, 0.55);
+    }
+  };
+
+  /** Two kills bring the siren, then the car about ten seconds on: it comes in along the avenue and two officers step out. */
+  const stepHeat = (dt: number, here: { x: number; z: number }) => {
+    heatClock += dt;
+    if (carDueAt >= 0 && !policeCar && heatClock >= carDueAt) {
+      carDueAt = -1;
+      carSpawnedAt = heatClock;
+      const stop = { x: here.x + 14, z: 29.2 };
+      policeCar = createPoliceCar(host.scene, { x: here.x - 120, z: 29.2 }, stop, () => {
+        carArrivedAt = heatClock;
+        host.playFile(SIREN_SFX, 0.7);
+        policeWaves += 1;
+        const at = policeCar?.position() ?? stop;
+        spawnPolice(at.x - 3.2, 26.6, 0);
+        spawnPolice(at.x + 3.0, 26.4, 1);
+        host.showLine(lineSpeaker('shout.street.police', 'Police'), lineText('shout.street.police', 'Stop! Stay where you are!'));
+        host.playFile(lineAudio('shout.street.police', POLICE_SHOUT), 0.9);
+      });
+    }
+    policeCar?.step(dt);
+  };
+
   const layDown = (person: Person, shocked: boolean) => {
     if (person.mood === 'down') return;
     person.hp = 0;
@@ -788,6 +847,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
     const kind = person.role === 'police' ? 'police' : person.role === 'desk' || person.role === 'shop' ? 'woman' : 'man';
     host.playFile(deathScream(kind), 0.72);
     if (person.keeperOf) keeperDown(person);
+    noteKill(person);
   };
 
   const bury = (person: Person) => {
@@ -960,6 +1020,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
     person.stagger = 0;
     person.attack = 0;
     ensureBeads();
+    host.ledger.add('possessions');
     host.playFile(STREET_SFX.possess, 0.4);
     if (tut.power() === 'possess' && person.keeperOf === 'tape') logStep('possess', 'safe');
     if (tut.power() === 'consume' && person.keeperOf === 'station') logStep('consume', 'safe');
@@ -1005,6 +1066,24 @@ export const createGoingHome = (host: GoingHomeHost) => {
     setTowerCut: (floors: number) => world?.setTowerCut(floors),
     objectiveKey: () => (tether ? 'link' : shadowOn ? 'shock' : 'home'),
     playing: () => playing,
+    /** Playtest setup shortcut: hand over Shock without its lesson, so a run can reach the ledger's kills. */
+    grantShock: () => {
+      tut.force('shock');
+      host.unlock('shock');
+      host.setAbility('shock');
+      showStreet();
+    },
+    /** What the city did about the ledger, for the playtest probe. Seconds are street time. */
+    heat: () => ({
+      kills: host.ledger.get().kills,
+      sirenAt,
+      carSpawnedAt,
+      carArrivedAt,
+      sirenToCarSeconds: sirenAt >= 0 && carArrivedAt >= 0 ? carArrivedAt - sirenAt : -1,
+      carActive: Boolean(policeCar),
+      witnesses: witnessed.size,
+      withinSeconds: SIREN_WITHIN,
+    }),
     skip: () => {
       if (active && playing && !finished) handoff();
     },
@@ -1017,6 +1096,16 @@ export const createGoingHome = (host: GoingHomeHost) => {
     mount: async () => {
       active = true;
       finished = false;
+      host.ledger.reset();
+      heatClock = 0;
+      killSeenAt = -1;
+      sirenAt = -1;
+      carDueAt = -1;
+      carSpawnedAt = -1;
+      carArrivedAt = -1;
+      witnessed = new Set();
+      policeCar?.dispose();
+      policeCar = null;
       policeWaves = 0;
       policeLine = false;
       resetLesson();
@@ -1089,6 +1178,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
       gates.length = 0;
       for (const node of disposers) node.dispose(false, true);
       disposers.length = 0;
+      policeCar?.dispose();
+      policeCar = null;
       traffic?.dispose();
       traffic = null;
       world?.dispose();
@@ -1182,6 +1273,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
       trailTo.set(best.mesh.position.x, best.mesh.position.y, best.mesh.position.z);
       trailLeft = 0.55;
       ensureBeads();
+      host.ledger.add('consumes');
       layDown(best, false);
       const atX = best.mesh.position.x;
       const atZ = best.mesh.position.z;
@@ -1405,6 +1497,7 @@ export const createGoingHome = (host: GoingHomeHost) => {
         streetTime += dt;
         tut.tick(dt);
         stepLesson(dt, here0);
+        stepHeat(dt, here0);
         refreshPrompt();
         const shopNow = shopHere();
         if (shopNow && shopNow !== insideShop) host.playFile(STREET_SFX.bell, 0.32);
@@ -1511,7 +1604,8 @@ export const createGoingHome = (host: GoingHomeHost) => {
                 : 'calm';
           }
         }
-        if (!shadowOn && seen && person.mood === 'calm' && person.skittish && (person.role === 'walk' || person.role === 'shop') && dist < 2.4) {
+        const nervous = host.ledger.get().kills >= SIREN_KILLS;
+        if (!shadowOn && seen && person.mood === 'calm' && (person.skittish || nervous) && (person.role === 'walk' || person.role === 'shop') && dist < (nervous ? 7 : 2.4)) {
           person.mood = 'flee';
           if (!person.screamed) {
             person.screamed = true;

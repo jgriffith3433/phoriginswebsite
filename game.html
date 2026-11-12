@@ -2663,6 +2663,10 @@
 
       .settings-privacy { margin: 14px 0 0; font-size: 11px; line-height: 1.4; opacity: 0.6; }
 
+      /* Graphics Low / Medium / High: three equal 44 px switches under the label. */
+      .graphics-tiers { display: flex; gap: 8px; }
+      .graphics-tiers .graphics-tier { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 10px 6px; }
+
       @media (max-height: 480px) {
         .overlay-card .panel { padding: 18px 20px; }
         .overlay-card h1 { font-size: 28px; margin-bottom: 6px; }
@@ -3830,6 +3834,15 @@
             <div class="settings-row">
               <label for="touchSens">Touch sensitivity <output id="touchSensOut" for="touchSens">1.0×</output></label>
               <input type="range" id="touchSens" min="50" max="200" step="5" value="100" />
+            </div>
+            <div class="settings-section">Graphics</div>
+            <div class="settings-row graphics-row">
+              <span class="settings-label" id="graphicsLabel">Graphics</span>
+              <div class="graphics-tiers" id="graphicsTiers" role="radiogroup" aria-labelledby="graphicsLabel">
+                <button type="button" class="sound-switch graphics-tier" data-tier="low" role="radio" aria-checked="false">Low</button>
+                <button type="button" class="sound-switch graphics-tier" data-tier="medium" role="radio" aria-checked="false">Medium</button>
+                <button type="button" class="sound-switch graphics-tier" data-tier="high" role="radio" aria-checked="false">High</button>
+              </div>
             </div>
             <div class="settings-section">Subtitles</div>
             <div class="settings-row inline">
