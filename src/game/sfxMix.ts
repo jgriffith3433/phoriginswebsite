@@ -300,6 +300,10 @@ const voiceQueue: LiveClip[] = [];
 let voiceActive: LiveClip | null = null;
 /** Whether a voice line is sounding or waiting its turn. */
 export const voiceBusy = () => voiceActive !== null || voiceQueue.length > 0;
+/** The voice line sounding now and for how long (seconds), for the full-run gate's never-ends check. */
+export const voiceNow = () => (voiceActive && !voiceActive.finished
+  ? { url: voiceActive.url, seconds: performance.now() / 1000 - voiceActive.startedWall }
+  : null);
 
 const liveClips = new Set<LiveClip>();
 let clipsHeld = false;
