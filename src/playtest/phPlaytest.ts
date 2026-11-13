@@ -52,7 +52,7 @@ export type PhProbe = {
     worstRatio: number; worstPop: number; speedSum: number; rateSum: number;
   };
   /** Prop contact for every seated person (hips over seat top, error m, ok when under 3 cm). */
-  seats?: () => ({ id: string; hipsAboveSeat: number; error: number; ok: boolean } | { id: string; phase: string })[];
+  seats?: () => ({ id: string; kind?: string; hipsAboveSeat: number; error: number; ok: boolean; transition?: string } | { id: string; kind?: string; phase: string })[];
   cameraYaw: () => number;
   objective: () => { target: { x: number; z: number } | null; title: string; text: string; visible: boolean };
   action: () => string | null;
@@ -7293,12 +7293,15 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
 
     if (id === 'seat-contact') {
       const phone = Boolean(options.phone);
-      levelsTotal = 2;
+      const levels = [1, 6, 7, 8];
+      levelsTotal = levels.length;
       if (probe.sound().prompt) await tapToPlay();
       if (phone) probe.phoneFrame(true, false, { w: 390, h: 844 });
       let checked = 0;
       let worst = 0;
-      for (const n of [1, 7]) {
+      let slid = 0;
+      const kinds: Record<string, number> = {};
+      for (const n of levels) {
         alive();
         if (n === 7) await probe.setupHidden('the-train');
         else await probe.setupLevel(n);
@@ -7309,12 +7312,20 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (!('error' in seat)) continue;
           checked += 1;
           worst = Math.max(worst, seat.error);
-          t.event('seat-contact', { level: n, id: seat.id, hips: Math.round(seat.hipsAboveSeat * 100), errorCm: Math.round(seat.error * 1000) / 10 });
-          if (!seat.ok) t.problem('bug', `${seat.id} on level ${n}: hips ${(seat.error * 100).toFixed(1)} cm off the seat (limit 3 cm)`);
+          const kind = seat.kind ?? 'seat';
+          kinds[kind] = (kinds[kind] ?? 0) + 1;
+          // A sit-down or get-up must be the baked Sitting_Enter / Sitting_Exit clip, not the eased position slide.
+          if (seat.transition === 'blend') slid += 1;
+          t.event('seat-contact', { level: n, id: seat.id, kind, hips: Math.round(seat.hipsAboveSeat * 100), errorCm: Math.round(seat.error * 1000) / 10, transition: seat.transition ?? 'none' });
+          if (!seat.ok) t.problem('bug', `${seat.id} (${kind}) on level ${n}: hips ${(seat.error * 100).toFixed(1)} cm off the surface (limit 3 cm)`);
         }
-        if (!seats.length) t.problem('bug', `level ${n}: no seated people registered`);
+        // Levels 1 and 7 always seat somebody; the others (Station, Morning) report only while a pose is held.
+        if (!seats.length && (n === 1 || n === 7)) t.problem('bug', `level ${n}: no seated people registered`);
       }
       t.metric('seatsChecked', checked);
+      t.metric('seatsOnBlend', slid);
+      t.metric('seatBeds', kinds.bed ?? 0);
+      t.metric('seatLeans', kinds.lean ?? 0);
       t.metric('seatWorstCm', Math.round(worst * 1000) / 10);
       t.progress(1);
       t.finish('done');

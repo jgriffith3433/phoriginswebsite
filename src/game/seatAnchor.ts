@@ -30,6 +30,16 @@ export const standingGroupY = () => -PLAYER_MESH_Y_OFFSET;
 
 const ease = (k: number) => k * k * (3 - 2 * k);
 
+/**
+ * Baked sit clips (CC0 stock motion:ual1/Sitting_Enter, Sitting_Exit, Sitting_Idle_Loop retargeted onto the rig and
+ * appended with tools/bakeLocoClips.mjs, see .hawkes/pending-gpu.txt). Clip names are matched by exact tail
+ * (`findClip`). While a rig lacks them the eased pelvis blend below stays as the stand-in.
+ */
+export const SIT_CLIPS = { enter: 'SitEnter', exit: 'SitExit', idle: 'SitIdleLoop' } as const;
+
+/** What a sit-down or get-up used last: `clip` (baked Sitting_Enter / Sitting_Exit) or `blend` (eased stand-in). */
+export type SeatTransition = 'clip' | 'blend' | 'none';
+
 export type SeatPhase = 'standing' | 'sitting-down' | 'seated' | 'getting-up';
 
 /** Sit-down and get-up take this long: the pelvis follows the clip change instead of snapping. */
@@ -46,6 +56,8 @@ export type SeatBlend = {
   step: (dt: number) => void;
   /** Hips joint height above the seat top (m), or null before the rig is ready. For the prop-contact probe. */
   hipsAboveSeat: () => number | null;
+  /** How the last sit-down / get-up was played (probe: criterion "plays the clip, not a position slide"). */
+  lastTransition: () => SeatTransition;
 };
 
 /**
@@ -61,6 +73,7 @@ export const createSeatBlend = (avatar: PlayerAvatar): SeatBlend => {
   let to = standingGroupY();
   let seatedClip = 'sit';
   let after: (() => void) | undefined;
+  let last: SeatTransition = 'none';
 
   const apply = (y: number) => {
     avatar.group.position.y = y;
@@ -68,6 +81,7 @@ export const createSeatBlend = (avatar: PlayerAvatar): SeatBlend => {
 
   return {
     phase: () => phase,
+    lastTransition: () => last,
     setSeated(seatTop) {
       top = seatTop;
       phase = 'seated';
@@ -80,6 +94,18 @@ export const createSeatBlend = (avatar: PlayerAvatar): SeatBlend => {
       t = 0;
       from = avatar.group.position.y;
       to = seatedGroupY(seatTop);
+      if (avatar.hasClip(SIT_CLIPS.enter)) {
+        // The clip carries the pelvis down: the rig sits at its seated height from the first frame, no slide.
+        last = 'clip';
+        apply(to);
+        const started = avatar.playClip(SIT_CLIPS.enter, false, 1, () => {
+          if (phase !== 'sitting-down') return;
+          phase = 'seated';
+          avatar.playClip(avatar.hasClip(SIT_CLIPS.idle) ? SIT_CLIPS.idle : seatedClip, true);
+        });
+        if (started) return;
+      }
+      last = 'blend';
       avatar.playClip(clip, true);
     },
     getUp(onStanding) {
@@ -92,9 +118,24 @@ export const createSeatBlend = (avatar: PlayerAvatar): SeatBlend => {
       from = avatar.group.position.y;
       to = standingGroupY();
       after = onStanding;
+      if (avatar.hasClip(SIT_CLIPS.exit)) {
+        last = 'clip';
+        const started = avatar.playClip(SIT_CLIPS.exit, false, 1, () => {
+          if (phase !== 'getting-up') return;
+          apply(standingGroupY());
+          phase = 'standing';
+          avatar.setLocomotion(false, true);
+          const done = after;
+          after = undefined;
+          done?.();
+        });
+        if (started) return;
+      }
+      last = 'blend';
       avatar.setLocomotion(false, true);
     },
     step(dt) {
+      if (last === 'clip') return;
       if (phase !== 'sitting-down' && phase !== 'getting-up') return;
       t += dt / SEAT_TRANSITION_SECONDS;
       const k = ease(Math.min(1, t));
@@ -136,23 +177,71 @@ export const measureSeat = (id: string, blend: SeatBlend): SeatContact | null =>
 
 // ---------- Prop-contact registry (read by the playtest probe) ----------
 
-const registry = new Map<string, { blend: SeatBlend; avatar: PlayerAvatar }>();
+/** What an anchor is: a seat (hips on it), a bed (back on the mattress) or a lean (back on a wall or rail). */
+export type AnchorKind = 'seat' | 'bed' | 'lean';
+
+/** A contact the prop measures itself: metres between where the body part is and where the prop's surface is. */
+export type ContactSample = { value: number; target: number; transition?: SeatTransition };
+
+type Entry = {
+  kind: AnchorKind;
+  blend?: SeatBlend;
+  avatar: PlayerAvatar;
+  measure?: () => ContactSample | null;
+};
+
+const registry = new Map<string, Entry>();
 
 /** Registers a seated person for the prop-contact probe; dead rigs drop out on their own. */
 export const registerSeat = (id: string, blend: SeatBlend, avatar: PlayerAvatar) => {
-  registry.set(id, { blend, avatar });
+  registry.set(id, { kind: 'seat', blend, avatar });
 };
 
-/** Every registered seated person: hips height over the seat and the error from where the clip's hips belong. */
+/**
+ * Registers a bed or lean anchor (or any seat whose rig is not driven by a SeatBlend: Pierce's own chair, the sofa).
+ * `measure` returns the measured value and the one the prop wants (hips joint over the seat top, hips over the
+ * mattress top, back distance from the wall...) while the pose is held, null while he moves or the rig loads.
+ */
+export const registerContact = (id: string, kind: AnchorKind, avatar: PlayerAvatar, measure: () => ContactSample | null) => {
+  registry.set(id, { kind, avatar, measure });
+};
+
+export const unregisterContact = (id: string) => {
+  registry.delete(id);
+};
+
+/** The hips joint height of a rig in world metres, or null while it loads. */
+export const hipsWorldY = (avatar: PlayerAvatar): number | null => {
+  const hips = avatar.findJoint('Hips');
+  if (!hips) return null;
+  hips.computeWorldMatrix(true);
+  return hips.getAbsolutePosition().y;
+};
+
+export type AnchorReport = SeatContact & { kind: AnchorKind; transition: SeatTransition };
+
+/** Every registered anchor: hips height over the seat and the error from where the clip's hips belong. */
 export const seatReport = () => {
-  const out: (SeatContact | { id: string; phase: SeatPhase })[] = [];
+  const out: (AnchorReport | { id: string; kind: AnchorKind; phase: SeatPhase | 'moving' })[] = [];
   for (const [id, entry] of [...registry]) {
     if (entry.avatar.group.isDisposed()) {
       registry.delete(id);
       continue;
     }
-    const c = measureSeat(id, entry.blend);
-    out.push(c ?? { id, phase: entry.blend.phase() });
+    if (entry.measure) {
+      const m = entry.measure();
+      if (!m) {
+        out.push({ id, kind: entry.kind, phase: 'moving' });
+        continue;
+      }
+      const error = Math.abs(m.value - m.target);
+      out.push({ id, kind: entry.kind, hipsAboveSeat: m.value, error, ok: error <= SEAT_CONTACT_LIMIT, transition: m.transition ?? 'none' });
+      continue;
+    }
+    const c = entry.blend ? measureSeat(id, entry.blend) : null;
+    out.push(c && entry.blend
+      ? { ...c, kind: entry.kind, transition: entry.blend.lastTransition() }
+      : { id, kind: entry.kind, phase: entry.blend?.phase() ?? 'moving' });
   }
   return out;
 };
