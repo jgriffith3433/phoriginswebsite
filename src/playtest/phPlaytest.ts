@@ -7292,7 +7292,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
 
     if (id === 'seat-contact') {
-      const phone = Boolean(options.phone);
+      const phone = Boolean(options.phone || options.mobile);
       const levels = [1, 4, 6, 7, 8];
       levelsTotal = levels.length + 2;
       if (probe.sound().prompt) await tapToPlay();

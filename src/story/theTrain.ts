@@ -428,6 +428,7 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const clearRiders = () => {
     for (const rider of riders) {
+      rider.lean?.release();
       rider.avatar.dispose();
       if (!rider.mesh.isDisposed()) rider.mesh.dispose();
     }
@@ -520,6 +521,7 @@ export const createTheTrain = (host: TheTrainHost) => {
   const bury = (rider: Rider) => {
     const index = riders.indexOf(rider);
     if (index >= 0) riders.splice(index, 1);
+    rider.lean?.release();
     rider.avatar.dispose();
     if (!rider.mesh.isDisposed()) rider.mesh.dispose();
   };
