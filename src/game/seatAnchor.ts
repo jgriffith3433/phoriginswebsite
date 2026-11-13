@@ -1,3 +1,5 @@
+import * as BABYLON from '@babylonjs/core';
+
 import type { PlayerAvatar } from './playerAvatar';
 import { PLAYER_MESH_Y_OFFSET } from './player';
 
@@ -19,7 +21,31 @@ export const SEAT_TOPS = {
   trainBench: 0.45,
   sofa: 0.45,
   bed: 0.5,
+  /** Fallback only: `propTopAt` measures the bench's real seat pan under the sitter. */
+  stationBench: 0.45,
 } as const;
+
+/**
+ * The real top surface of a prop under (x, z): a ray straight down through the prop's own meshes, so a seat's height
+ * comes from the model and not from a number somebody remembered. Null while the model has not loaded or the ray
+ * misses; `lo`..`hi` rejects a hit on a backrest or a floor mesh.
+ */
+export const propTopAt = (root: BABYLON.TransformNode | null, x: number, z: number, lo = 0.25, hi = 0.7): number | null => {
+  if (!root || root.isDisposed()) return null;
+  const meshes = root.getChildMeshes(false);
+  if (!meshes.length) return null;
+  const ray = new BABYLON.Ray(new BABYLON.Vector3(x, hi + 0.5, z), new BABYLON.Vector3(0, -1, 0), hi + 0.5);
+  let best: number | null = null;
+  for (const mesh of meshes) {
+    if (!mesh.getTotalVertices()) continue;
+    mesh.computeWorldMatrix(true);
+    const hit = ray.intersectsMesh(mesh as BABYLON.Mesh);
+    if (!hit.hit || !hit.pickedPoint) continue;
+    const y = hit.pickedPoint.y;
+    if (y >= lo && y <= hi && (best === null || y > best)) best = y;
+  }
+  return best;
+};
 
 /** Rig offset (relative to the standing offset) that puts SitIdle's hips on a seat of this height. */
 export const seatLift = (top: number) => SIT_LIFT_REF + (top - SEAT_REF_TOP);
@@ -216,6 +242,87 @@ export const hipsWorldY = (avatar: PlayerAvatar): number | null => {
   if (!hips) return null;
   hips.computeWorldMatrix(true);
   return hips.getAbsolutePosition().y;
+};
+
+// ---------- Lean anchors: a shoulder on a wall or a pole ----------
+
+/** Shoulder joint (the arm's root) to the skin of the deltoid, metres. A leaning body has its joint this far off the surface. */
+export const LEAN_SKIN = 0.055;
+/** A leaner may be nudged at most this far (m) from where the scene put him to meet the surface. */
+const LEAN_REACH = 0.12;
+
+/** A wall plane (a point on the face and the normal pointing into the room) or a vertical pole (axis and radius). */
+export type LeanSurface =
+  | { kind: 'wall'; x: number; z: number; nx: number; nz: number }
+  | { kind: 'pole'; x: number; z: number; r: number };
+
+const shoulderJoint = (avatar: PlayerAvatar, side: 'Left' | 'Right') => avatar.findJoint(`${side}Arm`);
+
+/** Distance (m) from the shoulder joint to the surface, or null while the rig loads. Negative: inside it. */
+export const leanGap = (avatar: PlayerAvatar, surface: LeanSurface, side: 'Left' | 'Right'): number | null => {
+  const joint = shoulderJoint(avatar, side);
+  if (!joint) return null;
+  joint.computeWorldMatrix(true);
+  const p = joint.getAbsolutePosition();
+  if (surface.kind === 'wall') return (p.x - surface.x) * surface.nx + (p.z - surface.z) * surface.nz;
+  return Math.hypot(p.x - surface.x, p.z - surface.z) - surface.r;
+};
+
+/** Which shoulder faces the surface for a person looking along `yaw` (world facing = (sin yaw, cos yaw)). */
+export const leanSide = (yaw: number, from: { x: number; z: number }, surface: LeanSurface): 'Left' | 'Right' => {
+  const toX = surface.kind === 'wall' ? -surface.nx : surface.x - from.x;
+  const toZ = surface.kind === 'wall' ? -surface.nz : surface.z - from.z;
+  // Right-hand vector of a person facing (sin, cos) in Babylon's left-handed frame is (cos, -sin).
+  return Math.cos(yaw) * toX - Math.sin(yaw) * toZ >= 0 ? 'Right' : 'Left';
+};
+
+export type LeanAnchor = {
+  /** Call every frame while the person keeps the pose: eases the body the last centimetres onto the surface. */
+  step: (dt: number) => void;
+  /** Where the person stands so his shoulder lands on the surface (nominal, before the nudge). */
+  side: 'Left' | 'Right';
+  release: () => void;
+};
+
+/**
+ * A person leaning a shoulder on a wall or pole. The scene puts him within a hand of the surface; `step` closes the
+ * measured gap (shoulder joint to surface minus `LEAN_SKIN`) by moving his capsule along the line to the surface, at
+ * most `LEAN_REACH` from where it started. `holding` is false while he walks, flees or is hit: then nothing is measured
+ * and nothing moves. The registered measure is the real gap, so the playtest sees what the pose does, not the nudge.
+ */
+export const createLeanAnchor = (
+  id: string,
+  avatar: PlayerAvatar,
+  body: BABYLON.TransformNode,
+  surface: LeanSurface,
+  yaw: number,
+  holding: () => boolean,
+): LeanAnchor => {
+  const side = leanSide(yaw, { x: body.position.x, z: body.position.z }, surface);
+  const origin = { x: body.position.x, z: body.position.z };
+  registerContact(id, 'lean', avatar, () => {
+    if (!holding()) return null;
+    const gap = leanGap(avatar, surface, side);
+    return gap == null ? null : { value: gap, target: LEAN_SKIN, transition: 'none' };
+  });
+  return {
+    side,
+    step(dt) {
+      if (!holding()) return;
+      const gap = leanGap(avatar, surface, side);
+      if (gap == null) return;
+      const delta = (gap - LEAN_SKIN) * Math.min(1, dt * 8);
+      const dirX = surface.kind === 'wall' ? -surface.nx : surface.x - body.position.x;
+      const dirZ = surface.kind === 'wall' ? -surface.nz : surface.z - body.position.z;
+      const len = Math.hypot(dirX, dirZ) || 1;
+      const nx = body.position.x + (dirX / len) * delta;
+      const nz = body.position.z + (dirZ / len) * delta;
+      if (Math.hypot(nx - origin.x, nz - origin.z) > LEAN_REACH) return;
+      body.position.x = nx;
+      body.position.z = nz;
+    },
+    release: () => unregisterContact(id),
+  };
 };
 
 export type AnchorReport = SeatContact & { kind: AnchorKind; transition: SeatTransition };

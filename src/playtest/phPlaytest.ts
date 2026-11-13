@@ -1127,7 +1127,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       {
         id: 'seat-contact',
         title: 'Seated people: hips on the seat, under 3 cm prop-contact error (Apex hall, board room, The Train)',
-        description: 'Level 1 (Apex Peak: board seats, hall desk, reader and caller) and The Train (riders on the benches): waits for the rigs, then reads probe.seats(): every seated person reports hips height over the seat top and the error from the SitIdle hips offset. Fails on any error over 3 cm. Option phone: 390x844 touch layout. Metrics: seatsChecked, seatWorstCm. Events: seat-contact.',
+        description: 'Levels 1, 4, 6, 7 and 8: waits for the rigs, then reads probe.seats(): every seated person (Apex hall desk, reader, caller; the Station benches; the train benches), every leaner (the Apex cooler analyst on the wall, train riders on their pole) reports the gap between body and prop surface against what the pose wants. Then walks Pierce to the Apex sofa and the Morning bed (stick and Interact; option phone: 390x844 touch only) and reads those. Fails on any error over 3 cm or a missing anchor. Metrics: seatsChecked, seatLeans, seatWorstCm, seatSofaCm, seatBedCm. Events: seat-contact, seat-table.',
         seconds: 240,
         tags: ['level', 'quality', 'characters'],
       },
@@ -7292,41 +7292,145 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     }
 
     if (id === 'seat-contact') {
-      const phone = Boolean(options.phone);
-      const levels = [1, 6, 7, 8];
-      levelsTotal = levels.length;
+      const phone = Boolean(options.phone || options.mobile);
+      const levels = [1, 4, 6, 7, 8];
+      levelsTotal = levels.length + 2;
       if (probe.sound().prompt) await tapToPlay();
-      if (phone) probe.phoneFrame(true, false, { w: 390, h: 844 });
+      if (phone) {
+        touchWalk = true;
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+      }
       let checked = 0;
       let worst = 0;
       let slid = 0;
       const kinds: Record<string, number> = {};
-      for (const n of levels) {
-        alive();
-        if (n === 7) await probe.setupHidden('the-train');
-        else await probe.setupLevel(n);
-        await t.until(() => probe.running() && probe.level().id === n && !probe.chapter().open, 60000, `level ${n} running`);
-        await sleep(4000);
-        const seats = probe.seats?.() ?? [];
-        for (const seat of seats) {
-          if (!('error' in seat)) continue;
+      const worstById = new Map<string, { level: number; kind: string; error: number }>();
+      type SeatRow = { id: string; kind?: string; hipsAboveSeat: number; error: number; ok: boolean; transition?: string };
+      const measured = () => (probe.seats?.() ?? []).filter((seat): seat is SeatRow => 'error' in seat);
+      const record = (n: number, seat: SeatRow) => {
+        const kind = seat.kind ?? 'seat';
+        const prev = worstById.get(seat.id);
+        if (!prev || seat.error > prev.error) worstById.set(seat.id, { level: n, kind, error: seat.error });
+        t.event('seat-contact', { level: n, id: seat.id, kind, hips: Math.round(seat.hipsAboveSeat * 100), errorCm: Math.round(seat.error * 1000) / 10, transition: seat.transition ?? 'none' });
+        if (!seat.ok) t.problem('bug', `${seat.id} (${kind}) on level ${n}: ${(seat.error * 100).toFixed(1)} cm off the surface (limit 3 cm)`);
+      };
+      /** Polls until every wanted id has reported a measurement (a pose is only measured while it is held). */
+      const gather = async (n: number, wanted: RegExp[], ms: number) => {
+        const got = new Map<string, SeatRow>();
+        const until = performance.now() + ms;
+        while (performance.now() < until) {
+          alive();
+          for (const seat of measured()) {
+            const had = got.get(seat.id);
+            if (!had || seat.error > had.error) got.set(seat.id, seat);
+          }
+          if (wanted.every((re) => [...got.keys()].some((k) => re.test(k)))) break;
+          await sleep(300);
+        }
+        for (const seat of got.values()) {
           checked += 1;
           worst = Math.max(worst, seat.error);
           const kind = seat.kind ?? 'seat';
           kinds[kind] = (kinds[kind] ?? 0) + 1;
           // A sit-down or get-up must be the baked Sitting_Enter / Sitting_Exit clip, not the eased position slide.
           if (seat.transition === 'blend') slid += 1;
-          t.event('seat-contact', { level: n, id: seat.id, kind, hips: Math.round(seat.hipsAboveSeat * 100), errorCm: Math.round(seat.error * 1000) / 10, transition: seat.transition ?? 'none' });
-          if (!seat.ok) t.problem('bug', `${seat.id} (${kind}) on level ${n}: hips ${(seat.error * 100).toFixed(1)} cm off the surface (limit 3 cm)`);
+          record(n, seat);
         }
-        // Levels 1 and 7 always seat somebody; the others (Station, Morning) report only while a pose is held.
-        if (!seats.length && (n === 1 || n === 7)) t.problem('bug', `level ${n}: no seated people registered`);
+        for (const re of wanted) {
+          if (![...got.keys()].some((k) => re.test(k))) t.problem('bug', `level ${n}: no anchor matching ${re} was measured within ${Math.round(ms / 1000)} s`);
+        }
+        return got;
+      };
+      const skipScenes = async () => {
+        for (let i = 0; i < 60 && probe.scripted(); i += 1) {
+          if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+          await sleep(350);
+        }
+      };
+      const interact = async (label: string) => {
+        if (phone) await tapAt(document.getElementById('interactBtn'), label);
+        else await tap('e', label);
+      };
+      /** Walks to a spot with the left stick (phone) or keys, until the Interact prompt names `want`; then presses it. */
+      const walkAndUse = async (key: string, goal: Point, want: RegExp, ms = 90000) => {
+        const until = performance.now() + ms;
+        while (performance.now() < until) {
+          alive();
+          await tick();
+          if (probe.cutscene() || probe.scripted()) { releaseAll(); await skipScenes(); continue; }
+          const label = probe.action();
+          if (label && want.test(label)) {
+            releaseAll();
+            await interact(label);
+            t.event('action', `${label} (${phone ? 'Interact button' : 'E'})`);
+            return true;
+          }
+          await walkTo(goal, key, 0.9);
+        }
+        t.problem('bug', `seat-contact: never got the "${want.source}" prompt at ${key}`);
+        return false;
+      };
+
+      for (const [index, n] of levels.entries()) {
+        alive();
+        if (n === 7) await probe.setupHidden('the-train');
+        else await probe.setupLevel(n);
+        await t.until(() => probe.running() && probe.level().id === n && !probe.chapter().open, 60000, `level ${n} running`);
+        await skipScenes();
+        await sleep(3000);
+        const wanted: RegExp[] = [];
+        if (n === 1) wanted.push(/^apex-cooler-lean$/, /^apex-hall-desk$/);
+        if (n === 6) wanted.push(/^station-bench-\d$/);
+        if (n === 7) {
+          // Riders step up to their pole as Pierce comes up the car: walk him forward with the stick.
+          const until = performance.now() + 20000;
+          while (performance.now() < until && probe.player().x < 3.4) {
+            alive();
+            await tick();
+            await walkTo({ x: 3.6, z: 0 }, 'car-1-front', 0.4);
+          }
+          releaseAll();
+          wanted.push(/-pole$/);
+        }
+        await gather(n, wanted, n === 1 || n === 6 || n === 7 ? 14000 : 2500);
+        t.progress((index + 1) / levelsTotal);
       }
+
+      // Touch only: the Apex sofa and the Morning bed, reached with the stick and the Interact button.
+      alive();
+      await probe.setupLevel(1);
+      await t.until(() => probe.running() && probe.level().id === 1 && !probe.chapter().open, 60000, 'level 1 running');
+      await skipScenes();
+      if (await walkAndUse('office-sofa', { x: 44.2, z: 44.2 }, /sit/i)) {
+        await sleep(1500);
+        await gather(1, [/^apex-sofa$/], 6000);
+      }
+      t.progress((levels.length + 1) / levelsTotal);
+      alive();
+      await probe.setupLevel(8);
+      await t.until(() => probe.running() && probe.level().id === 8 && !probe.chapter().open, 60000, 'level 8 running');
+      await skipScenes();
+      await t.until(() => probe.running() && !probe.scripted() && !probe.menu().open, 60000, 'control in the apartment');
+      if (await walkAndUse('morning-bed', { x: 5.9, z: -0.45 }, /sleep/i)) {
+        await gather(8, [/^morning-bed$/], 40000);
+      }
+      releaseAll();
+
+      // Table for the PR: id, kind, worst error in cm.
+      for (const [rowId, row] of [...worstById].sort((x, y) => x[0].localeCompare(y[0]))) {
+        t.event('seat-table', `${rowId} | ${row.kind} | L${row.level} | ${(row.error * 100).toFixed(1)} cm`);
+      }
+      for (const required of ['apex-sofa', 'morning-bed']) {
+        if (!worstById.has(required)) t.problem('bug', `seat-contact: ${required} was never measured after walking to it${phone ? ' by touch' : ''}`);
+      }
+      if (!kinds.lean) t.problem('bug', 'seat-contact: no lean anchor was measured on any level');
       t.metric('seatsChecked', checked);
       t.metric('seatsOnBlend', slid);
       t.metric('seatBeds', kinds.bed ?? 0);
       t.metric('seatLeans', kinds.lean ?? 0);
       t.metric('seatWorstCm', Math.round(worst * 1000) / 10);
+      t.metric('seatSofaCm', Math.round((worstById.get('apex-sofa')?.error ?? 9) * 1000) / 10);
+      t.metric('seatBedCm', Math.round((worstById.get('morning-bed')?.error ?? 9) * 1000) / 10);
       t.progress(1);
       t.finish('done');
       return;
