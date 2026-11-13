@@ -4,8 +4,8 @@ import * as BABYLON from '@babylonjs/core';
 import type { LevelCredits } from './credits';
 import type { ImpairState, StoryCarry } from './act1';
 import type { TrainDress } from './trainDress';
-import { BENCHES, CAR, SEAT_FRONT, SEAT_TOP } from './trainDress';
-import { createSeatBlend, registerSeat, type SeatBlend } from '../game/seatAnchor';
+import { BENCHES, CAR, DOORS_X, SEAT_FRONT, SEAT_TOP } from './trainDress';
+import { createLeanAnchor, createSeatBlend, LEAN_SKIN, registerSeat, type LeanAnchor, type SeatBlend } from '../game/seatAnchor';
 import { PLAYER_ASSET_ID } from '../game/modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
@@ -137,6 +137,10 @@ const RIDERS: [number, number, number, number?][][] = [
   [[2.3, 1.15, Math.PI], [7.4, -0.92, 0, 0.35], [15.7, -1.15, 0], [10.2, 1.1, Math.PI, -0.1]],
   [[4.2, -0.92, 0, 0.3], [15.7, 1.15, Math.PI], [8.2, -1.1, 0]],
 ];
+/** Centre poles are 0.022 m in radius (trainDress `poles`); a standing rider leans a shoulder on the one by his door. */
+const POLE_R = 0.022;
+/** Arm root (shoulder joint) is this far off a person's axis. */
+const SHOULDER_OFF = 0.17;
 /** A rider with an aisle spot steps off the wall into it when Pierce is this close (metres along the car). */
 const AISLE_TRIGGER = 5;
 
@@ -200,6 +204,8 @@ type Rider = {
   /** Staged reaction to Shadow Pierce: notice, film, cower, pull the handle, or hide between cars. */
   react: CrowdStage | null;
   reactLeft: number;
+  /** The shoulder-on-pole anchor of a standing rider once he has stepped up to his pole, else null. */
+  lean: LeanAnchor | null;
 };
 
 type Beat = 'opening' | 'cars' | 'stop' | 'door' | 'closing' | 'done';
@@ -379,6 +385,10 @@ export const createTheTrain = (host: TheTrainHost) => {
       const sits = aisle === undefined;
       let x = spotX;
       let z = spotZ;
+      // A standing rider takes the centre pole by his door with the shoulder that faces it: he stands beside it,
+      // (pole radius + shoulder offset + skin) off its axis, on the side of his own left hand.
+      const pole = DOORS_X.reduce((best, d) => (Math.abs(d - spotX) < Math.abs(best - spotX) ? d : best));
+      if (!sits) x = pole + Math.cos(yaw) * (POLE_R + SHOULDER_OFF + LEAN_SKIN);
       if (sits) {
         const span = BENCHES.reduce((best, b) => (Math.abs((b[0] + b[1]) / 2 - spotX) < Math.abs((best[0] + best[1]) / 2 - spotX) ? b : best));
         x = Math.min(span[1] - 0.35, Math.max(span[0] + 0.35, spotX));
@@ -399,8 +409,12 @@ export const createTheTrain = (host: TheTrainHost) => {
       const rider: Rider = {
         mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0, seat,
         routine: aisle !== undefined ? 'sway' : (['read', 'sleep', 'sway'] as const)[index % 3], phase: Math.random() * 6, notice: 0, cool: 2 + Math.random() * 2,
-        aisleZ: aisle ?? null, shifted: false, react: null, reactLeft: 0,
+        aisleZ: aisle === undefined ? null : 0, shifted: false, react: null, reactLeft: 0, lean: null,
       };
+      if (!sits) {
+        rider.lean = createLeanAnchor(`${id}-pole`, avatar, mesh, { kind: 'pole', x: pole, z: 0, r: POLE_R }, yaw,
+          () => rider.shifted && !rider.moving && !rider.down && !rider.react && rider !== tether && rider.notice <= 0);
+      }
       lifeStats.person(id, 'train', rider.routine);
       face(avatar, yaw);
       avatar.whenReady(() => {
@@ -1100,9 +1114,11 @@ export const createTheTrain = (host: TheTrainHost) => {
     // A seated rider tips from the pelvis, so the lean is small enough to keep the hips on the seat.
     const seatedK = rider.seat ? 0.45 : 1;
     const lean = (rider.routine === 'sleep' ? 0.32 + Math.sin(rider.phase * 0.9) * 0.015 : rider.routine === 'read' ? 0.13 + Math.max(0, Math.sin(rider.phase * 1.3)) * 0.03 : 0) * seatedK;
-    const rock = Math.sin(rider.phase * 1.7) * (rider.routine === 'sway' ? 0.045 : 0.02);
+    // A rider holding his pole keeps his shoulder on it: the car's rock reaches him through the pole, not as a sway.
+    const rock = rider.lean ? 0 : Math.sin(rider.phase * 1.7) * (rider.routine === 'sway' ? 0.045 : 0.02);
     group.rotation.x += (lean - group.rotation.x) * Math.min(1, dt * 4);
     group.rotation.z += (rock - group.rotation.z) * Math.min(1, dt * 4);
+    rider.lean?.step(dt);
     if (rider.routine === 'sleep' || shadowOn) return;
     const at = host.player();
     const dx = at.x - rider.mesh.position.x;
@@ -1115,6 +1131,8 @@ export const createTheTrain = (host: TheTrainHost) => {
     }
     if (rider.notice > 0) {
       rider.notice -= dt;
+      // A leaner turns his head (npcLife does that), never his body off the pole.
+      if (rider.lean) return;
       const want = rider.notice > 0 ? Math.atan2(dx, dz) : rider.yaw;
       face(rider.avatar, want);
     }
