@@ -119,13 +119,17 @@ const PLAYER_CLIP_SPEEDS: Record<string, number> = {
  */
 const CLIP_BLEND_SECONDS = 0.1;
 const CLIP_BLEND_ASSUMED_FPS = 60;
-const CLIP_BLENDING_SPEED = 1 / (CLIP_BLEND_SECONDS * CLIP_BLEND_ASSUMED_FPS);
+let clipBlendingSpeed = 1 / (CLIP_BLEND_SECONDS * CLIP_BLEND_ASSUMED_FPS);
+/** Scene entry/exit use 0.2 s so a gameplay pose eases into a scene's first pose (and back) instead of popping. */
+export const setClipBlendSeconds = (seconds: number) => {
+  clipBlendingSpeed = 1 / (Math.max(0.02, seconds) * CLIP_BLEND_ASSUMED_FPS);
+};
 /** PistolWalk + PistolJump on the same bones while airborne and moving. */
 const ARMED_MOVE_JUMP_WEIGHT = 0.5;
 
 const applyClipBlending = (clip: BABYLON.AnimationGroup) => {
   clip.enableBlending = true;
-  clip.blendingSpeed = CLIP_BLENDING_SPEED;
+  clip.blendingSpeed = clipBlendingSpeed;
 };
 
 const targetName = (target: unknown) => {
