@@ -2,8 +2,8 @@
 // the network nodes and packet links, the token stream, and the rising hearts. Pure data and pure functions: no DOM, no
 // timers, no network.
 
-export const BPM_DEFAULT = 118;
-export const BEAT_OFFSET_DEFAULT = 0.31;
+export const BPM_DEFAULT = 128;
+export const BEAT_OFFSET_DEFAULT = 0.409;
 export const BEAT_SEC_DEFAULT = 60 / BPM_DEFAULT;
 
 export const CORE_EQUATIONS = [

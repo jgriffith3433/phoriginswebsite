@@ -16,8 +16,9 @@ import {
   CENTER,
 } from './dancers.js';
 
-export const BPM = 118; // measured from song.mp3 (onset autocorrelation: 118, steady for the whole file)
-export const BEAT_OFFSET = 0.31; // seconds from the start of the file to the first beat
+export const BPM = 128; // measured from song.mp3 (onset comb fit: 128.00, steady for the whole 228.264 s file)
+export const BEAT_OFFSET = 0.409; // seconds from the start of the file to the first beat (same in each third of the file)
+export const SONG_SECONDS = 228.264; // the length of the song in the repo (the show reads the real length from the file)
 export const BEAT_SEC = 60 / BPM;
 export const BAR_SEC = BEAT_SEC * 4;
 export const SILENT_SECONDS = 60; // how long the show runs when there is no audio (the fixed timer)
@@ -71,7 +72,20 @@ export function buildTimeline(duration, { offset = BEAT_OFFSET } = {}) {
       spare -= 1;
     }
   } else {
-    const scale = barsAvail / NOMINAL;
+    // A long song is not one stretched pass: the middle scenes (everything between the boot and the finale) run again, as
+    // many rounds as fit, each squeezed or stretched so the whole still ends exactly on the song.
+    const ratio = barsAvail / NOMINAL;
+    const rounds = Math.max(1, Math.ceil(ratio - 0.15));
+    if (rounds > 1) {
+      const mid = SCENES.filter((s) => !['boot', 'finale', 'outro'].includes(s.id));
+      const first = SCENES.find((s) => s.id === 'boot');
+      const tail = SCENES.filter((s) => s.id === 'finale' || s.id === 'outro');
+      picked = [{ ...first }];
+      for (let r = 0; r < rounds; r += 1) for (const s of mid) picked.push({ ...s, round: r });
+      picked.push(...tail.map((s) => ({ ...s })));
+    }
+    const nominal = picked.reduce((n, s) => n + s.bars, 0);
+    const scale = barsAvail / nominal;
     for (const s of picked) s.n = Math.max(s.min, Math.floor(s.bars * scale));
     let spare = barsAvail - picked.reduce((n, s) => n + s.n, 0);
     const order = [...picked].sort((a, b) => b.bars - a.bars);
@@ -86,7 +100,7 @@ export function buildTimeline(duration, { offset = BEAT_OFFSET } = {}) {
     const start = i === 0 ? 0 : offset + bar * BAR_SEC;
     bar += s.n;
     const last = i === picked.length - 1;
-    tl.push({ id: s.id, title: s.title, bars: s.n, start, end: last ? total : offset + bar * BAR_SEC });
+    tl.push({ id: s.id, title: s.title, round: s.round || 0, bars: s.n, start, end: last ? total : offset + bar * BAR_SEC });
   });
   return tl;
 }

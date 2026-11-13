@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { CORE_EQUATIONS, EQUATIONS, DEFAULT_VARS, balanceEquation, formatEquation, equationsForDuration } from '../dancers.js';
 import { readdirSync, readFileSync } from 'node:fs';
 import { layoutBanner, BANNER_H } from '../banner.js';
-import { buildTimeline, stageAt, layout, BPM, BEAT_SEC, BAR_SEC, SCENES, SILENT_SECONDS, CALM_SECONDS } from '../choreo.js';
+import { buildTimeline, stageAt, layout, BPM, BEAT_OFFSET, SONG_SECONDS, BEAT_SEC, BAR_SEC, SCENES, SILENT_SECONDS, CALM_SECONDS } from '../choreo.js';
 import { createStage, makeBuffer, drawFrame, bufferText, bannerFor, RAINBOW_AT } from '../stage.js';
 import { createShow, stageMetrics, SONG_FILE } from '../show.js';
 import { createTerminal } from '../ui.js';
@@ -45,7 +45,7 @@ test('equations: J\'s four are in the data exactly as written, each on its own b
 test('equations: at least 20, each with a beat time inside the song, distinct texts, for every song length', () => {
   assert.ok(EQUATIONS.length >= 20, `${EQUATIONS.length}`);
   assert.equal(new Set(EQUATIONS.map((e) => e.text)).size, EQUATIONS.length);
-  for (const dur of [258.1, 120, 60, 48, 20]) {
+  for (const dur of [SONG_SECONDS, 120, 60, 48, 20]) {
     const eqs = equationsForDuration(dur);
     assert.equal(eqs.length, EQUATIONS.length);
     for (const e of eqs) assert.ok(e.time > 0 && e.time < dur, `${e.text} at ${e.time} of ${dur}`);
@@ -72,15 +72,35 @@ test('the show has no Michael Jackson or Michael Jordan anywhere in site/termina
 
 // ---- the timeline
 test('timeline: contiguous scenes include the farm, the net, the fly-through, hearts, rapid equations, the finale and the outro', () => {
-  for (const dur of [258.1, 200, 150, 60]) {
+  for (const dur of [SONG_SECONDS, 200, 150, 60]) {
     const ids = buildTimeline(dur).map((s) => s.id);
     for (const n of ['boot', 'eq1', 'farm', 'net', 'hearts', 'rapid', 'finale', 'outro']) assert.ok(ids.includes(n), `${dur}: missing ${n}`);
   }
-  assert.ok(buildTimeline(258.1).map((s) => s.id).includes('flythrough'));
+  assert.ok(buildTimeline(SONG_SECONDS).map((s) => s.id).includes('flythrough'));
   const short = buildTimeline(30).map((s) => s.id);
   assert.ok(short.includes('outro'));
   assert.ok(buildTimeline(CALM_SECONDS).length >= 5);
   assert.equal(buildTimeline(SILENT_SECONDS).at(-1).end, SILENT_SECONDS);
+});
+
+test('the clock matches the song in the repo: 128 BPM, first beat at 0.409 s, the timeline ends on the song, on bar lines, and a long song varies', () => {
+  assert.equal(BPM, 128);
+  assert.equal(BEAT_OFFSET, 0.409);
+  for (const dur of [SONG_SECONDS, 150, 300, 420]) {
+    const tl = buildTimeline(dur);
+    assert.equal(tl[0].start, 0);
+    assert.equal(tl.at(-1).end, dur);
+    for (let i = 1; i < tl.length; i += 1) {
+      assert.equal(tl[i].start, tl[i - 1].end, 'contiguous');
+      const bars = (tl[i].start - BEAT_OFFSET) / BAR_SEC;
+      assert.ok(Math.abs(bars - Math.round(bars)) < 1e-6, `${dur}: ${tl[i].id} starts on a bar line`);
+    }
+    assert.ok(tl.every((s) => s.end > s.start), 'no empty scene');
+  }
+  const long = buildTimeline(SONG_SECONDS);
+  assert.ok(long.filter((s) => s.id === 'eq1').length >= 2, 'a 3.8 minute song runs the middle scenes more than once');
+  assert.ok(Math.max(...long.map((s) => s.bars)) <= 12, 'no scene drags on');
+  assert.equal(long.at(-1).id, 'outro');
 });
 
 const GRIDS = [[46, 47], [118, 34], [64, 40]];
@@ -89,7 +109,7 @@ const sample = (tl, fn, step = BEAT_SEC / 4) => { const end = tl.at(-1).end; for
 test('choreography: all 20+ equations appear on stage over the song, with a farm of racks and a net of moving packets', () => {
   for (const [C, R] of GRIDS) {
     const L = layout(C, R);
-    const tl = buildTimeline(258.1);
+    const tl = buildTimeline(SONG_SECONDS);
     const seen = new Set();
     let maxPackets = 0; let racks = 0; const packetXY = new Set();
     sample(tl, (t) => {
@@ -111,7 +131,7 @@ test('choreography: all 20+ equations appear on stage over the song, with a farm
 // ---- the stage
 test('stage: a frame is text on a grid that fits (no row wider than the stage), deterministic, and beat effects change on every beat', () => {
   for (const [C, R] of [[46, 47], [118, 34]]) {
-    const tl = buildTimeline(258.1);
+    const tl = buildTimeline(SONG_SECONDS);
     const run = () => {
       const S = createStage({ seed: 58 });
       const buf = makeBuffer(C, R);
@@ -138,7 +158,7 @@ test('stage: a frame is text on a grid that fits (no row wider than the stage), 
 });
 
 test('stage: the title banner is coloured letter by letter, the equalizer, floor, marquee and caption are all drawn', () => {
-  const tl = buildTimeline(258.1);
+  const tl = buildTimeline(SONG_SECONDS);
   const king = tl.find((s) => s.id === 'eq1');
   const S = createStage({ seed: 58 });
   const buf = makeBuffer(118, 34);
