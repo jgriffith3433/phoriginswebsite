@@ -262,7 +262,7 @@ Touch (`body[data-device]` mobile/tablet) controls never overlap and are 44 px o
 
 ## Chapter Select
 
-Title button **Chapter Select** (was Load Level; `#loadModelBtn`): eight cards from the save, see `src/game/chapterSelect.ts` and `docs/story/lore.md` (best time, Lore n of m, three hidden floor pages per chapter, hover cue, a tap starts the chapter). Card art `assets/textures/chapters/NN.webp` is still to be painted (Gen credits ran out); cards draw a gradient until the file exists. Playtest `chapter-select` (option `phone`).
+Title button **Chapter Select** (was Load Level; `#loadModelBtn`): eight cards from the save, see `src/game/chapterSelect.ts` and `docs/story/lore.md` (best time, Lore n of m, three hidden floor pages per chapter, hover cue, a tap starts the chapter). Card art `assets/textures/chapters/NN.webp` is painted (Hawkes Gen, 960x540 WebP, one oversized gold key in chapters 1-5, seeds 1101-1108); a card draws a gradient until its file loads. Playtest `chapter-select` (option `phone`).
 
 ## Lore entries
 
