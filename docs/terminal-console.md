@@ -109,10 +109,10 @@ stalls. `?songlen=N` (a test hook) shortens the song to N seconds.
      links, packets as moving characters, a pulsing core).
    - `banner.js`: a block-letter font (A-Z, 0-9, `+ - = / ( ) x`). A banner is laid out letter by letter, with each letter
      carrying its word, so a term can glow in its own colour and slide.
-   - `choreo.js`: the beat clock (`BPM` 118, `BEAT_OFFSET` 0.31 s), `buildTimeline(duration)` and the scenes: `boot`
+   - `choreo.js`: the beat clock (`BPM` 128, `BEAT_OFFSET` 0.409 s, measured from the song in the repo, 228.264 s), `buildTimeline(duration)` and the scenes: `boot`
      (rack boot), `eq1` (J's four, one per beat slot), `farm`, `eq2`, `net`, `flythrough` (farm to token trunk to the
      gateway core), `hearts` (hearts flood), `rapid` (every equation, one a beat), `finale` (the four stacked, everything lit),
-     `outro` (BUILD SUCCESSFUL, credits). The timeline stretches to the song and squeezes by priority for a short one.
+     `outro` (BUILD SUCCESSFUL, credits). The timeline stretches to the song and squeezes by priority for a short one; a song well over the nominal 82 bars runs the middle scenes (eq1 to rapid) in as many rounds as fit, so a 3+ minute song does not hold one view for long. Boundaries sit on bar lines and the outro ends exactly at the song's end.
    - `stage.js`: one frame into a grid of cells; the live tally row `GPU(..) + Text(..) = Hearts(..) - Credits(..)` comes
      from the farm state; `show.js` paints it. Algebra moves: the term slides across `=` and flips sign, letters glow per
      term, a white flash when both sides tally. Reduced motion keeps all of it and drops the flashes, shake and confetti.
@@ -133,7 +133,7 @@ before: `play song` plays it), a fixed `CALM_SECONDS` (48 s) timeline of the sam
 shake, no falling confetti, no ripple, static marquees. The short normal log prints after it.
 
 **Swapping in the real song.** Replace `song.mp3` at the repo root. The length is read from the file and the timeline
-fits it. The tempo is `BPM` in choreo.js (118 for the song in the repo; `BEAT_OFFSET` is where the first beat falls).
+fits it. The tempo is `BPM` in choreo.js (128 for the song in the repo; `BEAT_OFFSET` 0.409 is where the first beat falls; measure both again after a swap).
 
 **Test hooks.** `?songlen=8` ends the song after 8 s (the playtest does not wait four minutes). `?demo=show` starts the
 show once the boot ends (the phone playtest looks at it this way). Neither is linked from anywhere.
