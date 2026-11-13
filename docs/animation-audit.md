@@ -38,3 +38,8 @@ The audit could not be run in this pass (no browser). Baseline numbers come from
 - **Probe** `seats()` and scenario `seat-contact` (levels 1 and 7, option `phone`): fail when hips are over 3 cm off.
 - Not done: the Morning bed (`stepSleep`), Apex sofa Sit, the Desk, the Station benches and Pierce's own board seat
   still use their own heights; the Level 6 bed is change c_3f0739676f2a's.
+
+## Cutscene characters (first part)
+- **Scene blend 0.2 s**: `playerAvatar.ts` `setClipBlendSeconds`; `main.ts` sets 0.2 at `beginNamedCutscene` and puts 0.1 back 0.4 s after `endCutscene`, so gameplay pose -> scene pose and back ease instead of popping (all rigs, since every `playClip` reads it).
+- **Skip = same final pose**: `skipToEnd` now applies the speaker's rest clip (what `stepCutscene` does when a line's hold ends), where it used to leave the actor in `talk`.
+- **Not done yet**: Stop clip at walk-in marks and travel-speed matched walk-ins in the scripted scenes (lobby, station, train, morning), talk/gesture layer audit per scene, hand-attached props (papers, phone, glass) and a scenario that asserts 0 walk-in-place / 0 T-pose across all 8 chapters. `qa-gate` / `scene-audit` already trace walk-in-place and T-pose; read their numbers on beta first.
