@@ -12,6 +12,7 @@ import {
 } from './game/npcs';
 import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
 import { applyNpcLife, updateNpcLife, npcLifeSnapshot, resetNpcLifeStats, npcStartle } from './game/npcLife';
+import { STRIDE_MPS } from './game/stride';
 import { createJumpPoser } from './game/jumpPose';
 import { createFootIk } from './game/footIk';
 import { createLocoState } from './game/locoState';
@@ -69,7 +70,7 @@ import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/s
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { music } from './game/musicDirector';
 import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcousticsStats, setAcousticsPaused, setListener, setOcclusionRay, setZones, startTestSource, testPing, updateAcoustics, type AcousticZone, type ReverbType, type WorldOptions } from './game/acoustics';
-import { clearSceneMix, clipLog, holdClips, sceneMix, setSceneMixProbe, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import { clearSceneMix, clipLog, holdClips, sceneMix, setSceneMixProbe, liveClipCount, mixVolume, playClip, preloadClips, voiceNow, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import {
   applyFaces,
   isFaceAvatar,
@@ -4280,7 +4281,57 @@ scene.onAfterAnimationsObservable.add(() => {
   const lib = getLevelDefinition(state.level).libraryId;
   const s = footIk.sample();
   footSlideByLevel[lib] = { max: s.maxPlantDrift, mean: s.meanPlantDrift, plants: s.plants };
+  locoAuditFrame(dt, s);
 });
+/** Per-frame locomotion audit for the playtest (docs/animation-audit.md): slide frames and pose-pop frames. */
+const locoAudit = { frames: 0, moving: 0, slide: 0, pop: 0, turnPop: 0, worstRatio: 0, worstPop: 0, speedSum: 0, rateSum: 0 };
+let auditOn = false;
+let auditYaw = 0;
+let auditFoot: { lx: number; lz: number; rx: number; rz: number } | null = null;
+let auditPelvisYaw = 0;
+const locoAuditFrame = (dt: number, s: ReturnType<typeof footIk.sample>) => {
+  if (!auditOn || dt <= 0) { auditFoot = null; return; }
+  const loco = playerAvatar.locomotion();
+  const yaw = state.characterYaw;
+  const dyaw = Math.abs(Math.atan2(Math.sin(yaw - auditYaw), Math.cos(yaw - auditYaw)));
+  auditYaw = yaw;
+  const fx = Math.sin(yaw);
+  const fz = Math.cos(yaw);
+  // Feet relative to the root in the body frame: a pop is a foot jumping across the body in one frame.
+  const px = state.player.x;
+  const pz = state.player.z;
+  const rel = (x: number, z: number) => ({ a: (x - px) * fz - (z - pz) * fx, b: (x - px) * fx + (z - pz) * fz });
+  const l = rel(s.left.x, s.left.z);
+  const r = rel(s.right.x, s.right.z);
+  const cur = { lx: l.a, lz: l.b, rx: r.a, rz: r.b };
+  if (auditFoot) {
+    const jump = Math.max(
+      Math.hypot(cur.lx - auditFoot.lx, cur.lz - auditFoot.lz),
+      Math.hypot(cur.rx - auditFoot.rx, cur.rz - auditFoot.rz),
+    );
+    // A foot may swing about 4 m/s in the body frame; 0.5 m in a 50 ms frame is a pop.
+    const allowed = 4.5 * dt + 0.12;
+    locoAudit.worstPop = Math.max(locoAudit.worstPop, jump - allowed);
+    if (jump > allowed && lastMoving) {
+      locoAudit.pop += 1;
+      if (dyaw > 0.05) locoAudit.turnPop += 1;
+    }
+  }
+  auditFoot = cur;
+  locoAudit.frames += 1;
+  const walking = loco.clip === 'walk' || loco.clip === 'run' || loco.clip === 'pistolwalk';
+  if (lastMoving && groundSpeed > 0.35 && walking) {
+    locoAudit.moving += 1;
+    const clipSpeed = (STRIDE_MPS[loco.clip as string] ?? STRIDE_MPS.walk) * loco.rate;
+    const ratio = Math.abs(clipSpeed - groundSpeed) / groundSpeed;
+    locoAudit.worstRatio = Math.max(locoAudit.worstRatio, ratio);
+    locoAudit.speedSum += groundSpeed;
+    locoAudit.rateSum += loco.rate;
+    if (ratio > 0.3) locoAudit.slide += 1;
+  } else if (!lastMoving && groundSpeed > 0.6 && walking) {
+    locoAudit.slide += 1;
+  }
+};
 /** Last pose and input the avatar was given, for the playtest probe. */
 let lastJumpPose: number | null = null;
 let lastMoving = false;
@@ -6264,6 +6315,14 @@ installPhPlaytest({
     ...playerAvatar.locomotion(),
   }),
   /** Planted-foot drift (m) for the live level and every level visited this run. */
+  locoAudit: (cmd?: 'start' | 'stop') => {
+    if (cmd === 'start') {
+      Object.assign(locoAudit, { frames: 0, moving: 0, slide: 0, pop: 0, turnPop: 0, worstRatio: 0, worstPop: 0, speedSum: 0, rateSum: 0 });
+      auditFoot = null;
+      auditOn = true;
+    } else if (cmd === 'stop') auditOn = false;
+    return { ...locoAudit, on: auditOn };
+  },
   footSlide: () => {
     const live = footIk.sample();
     const lib = getLevelDefinition(state.level).libraryId;
@@ -6620,6 +6679,7 @@ installPhPlaytest({
     title: () => ({ ...titleScene.probe(), menuSounds: menuSoundLog() }),
     titleStrike: () => titleScene.strikeNow(),
     voice: clipLog().filter((c) => c.voice),
+    voiceNow: voiceNow(),
     sceneMix: sceneMix(),
     sceneMixReset: clearSceneMix,
     acoustics: { ...acousticsProbe(getSharedAudioContext()), door: { closed: boardDoorClosed } },

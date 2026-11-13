@@ -46,6 +46,11 @@ export type PhProbe = {
     hipDrop: number;
     byLevel: Record<string, { max: number; mean: number; plants: number }>;
   };
+  /** Per-frame locomotion audit: 'start' zeroes and arms it, 'stop' disarms; returns slide and pose-pop frame counts. */
+  locoAudit?: (cmd?: 'start' | 'stop') => {
+    on: boolean; frames: number; moving: number; slide: number; pop: number; turnPop: number;
+    worstRatio: number; worstPop: number; speedSum: number; rateSum: number;
+  };
   cameraYaw: () => number;
   objective: () => { target: { x: number; z: number } | null; title: string; text: string; visible: boolean };
   action: () => string | null;
@@ -291,6 +296,7 @@ export type PhProbe = {
     /** Every voice clip: start, end, whether a stop cut it short, whether another voice sounded under it. */
     sceneMix?: { maxSfx: number; minVoice: number; sfxToVoiceDb: number | null; capped: number; entries: { url: string; kind: string; asked: number; gain: number; capped: boolean }[] };
     sceneMixReset?: () => void;
+    voiceNow?: { url: string; seconds: number } | null;
     voice?: { url: string; start: number; end: number; waited: number; duration: number; state: string; cut: boolean; overlapped: boolean }[];
     /** Spatial audio: reverb zone, occlusion, panning, loudness, dropouts (src/game/acoustics.ts). */
     acoustics?: AcousticsProbe;
@@ -743,6 +749,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         seconds: 240,
         tags: ['ui', 'phone'],
       },
+      {
+        id: 'full-run',
+        title: 'QA gate: levels 1-8 from the first chapter card to the credits, no Skip; fails with level, time and reason (390x844 touch when options.phone or the viewport is phone-sized)',
+        description: 'The regression gate (docs/qa-gate.md). Starts level 1 from the title Start button and plays levels 1 to 8 with Continue, to the credits of The Morning, pressing Skip never (every Skip press is refused). It fails, naming level, run time and reason, when: a walk-up cutscene (Join meeting, Look outside, Examine monitor, Ride Elevator, Look in mirror, End Level on 1/3/5/6) does not start within 3 s of its press (cutscene-start); a cutscene or scripted scene runs past 1.25x its timeline + 8 s (cutscene-end); a voice line sounds for over 45 s (voice-never-ends); the camera watch sees a frame inside geometry or behind a wall, or a jitter (camera-inside, camera-jitter); the animation trace sees feet slide, a glide, a jump pose on the floor, walking in mid-air, walking in place in a scene, a planted foot drifting over 3 cm, no clip playing (T-pose) or a clip flickering (anim-*); two voice lines overlap or one is cut short (voice-overlap, voice-cut); a console error or uncaught exception (console-error); the player makes no progress for 45 s (stuck). Stuck, a never-ending voice and a cutscene that never ends stop the run; the rest are collected. Publishes a pass/fail table per level as events gate-row / gate-table, a note, and metrics gateFailures, gateL<n>Seconds, gate.<check>. With options.phone (or a 390x844 viewport) the page is laid out as a touch phone and every press goes through the touch controls.',
+        seconds: 3000,
+        tags: ['full', 'gate', 'milestone', 'phone'],
+      },
       { id: 'full', title: 'Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7\'s card Continues into The Morning', seconds: 1400, tags: ['full'] },
       {
         id: 'first-five',
@@ -1103,6 +1116,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         starts: ['board'],
       },
       {
+        id: 'pierce-loco-60',
+        title: 'Pierce walks 60 s per level with stops, 180 turns and 40 percent stick: 0 slide frames, 0 pose pops',
+        description: 'Levels 1-8 (setupLevel / setupHidden for The Train). On each level a real-input walk of about 7.5 s: walk, stop, 180 turn (camera drag then walk back), walk at 40 percent deflection (left stick on touch, W taps on desktop where the half-stick is not available the stick is replaced by short key pulses). probe.locoAudit counts frames where the playing clip speed (STRIDE_MPS x rate) misses the real root speed by over 30 percent (slide) and frames where a foot jumps across the body in one frame (pop). Fails on any slide or pop frame. Option phone: touch stick only at 390x844. Metrics: slideFrames, popFrames, turnPopFrames, pct40Speed, pct40SlideFrames, worstRateError. Events: loco-audit.',
+        seconds: 720,
+        tags: ['level', 'quality', 'feel'],
+      },
+      {
         id: 'pierce-loco',
         title: 'Pierce locomotion: start/stop/turn with planted feet under 3 cm slide; stairs/ramps in L1 and L5; phone half-tilt stride match',
         description: 'Desktop: level 1 start/stop then a standstill look-turn and W so turn-in-place holds translation; hall walk for steps; then a short walk on levels 2–8 (setupHidden for The Train) reporting footSlide.byLevel for every library id. Fails when a planted foot drifts over 0.03 m. Option phone: 390x844 touch only — left stick at half tilt (~0.5) must keep groundSpeed near half walk (~1.5 m/s) with stride rate matching. Metrics: footSlideMaxCm, footSlideMeanCm, footSlideL1Cm, footSlideL5Cm, footSlide.<libraryId>.cm, halfTiltSpeed, halfTiltRate. Events: loco-start, loco-stop, loco-turn, loco-phase, loco-stairs, loco-half-tilt, foot-slide-level.',
@@ -1209,7 +1229,32 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       const until = performance.now() + ms;
       while (performance.now() < until) await frame();
     };
+    /** full-run: no Skip (every press refused), and on a touch phone the keys become taps on the touch controls. */
+    const fullRun = id === 'full-run';
+    let touchKeys = false;
+    const TOUCH_KEY: Record<string, string[]> = {
+      e: ['interactBtn'], q: ['sidearmHint'], g: ['lightHint'], h: ['medkitHint'], f: ['phoneAnswer', 'phoneHint'],
+      r: ['reloadHint'], tab: ['abilityHint'], c: ['shadowHint'],
+    };
+    let cutPending: { label: string; at: number; level: number } | null = null;
+    const CUT_PRESS = /join meeting|look outside|examine monitor|ride elevator|look in mirror|end level/i;
     const tap = async (key: string, label?: string) => {
+      if (fullRun) {
+        const act = probe.action() ?? '';
+        if (key === 'e' && CUT_PRESS.test(act) && !(/end level/i.test(act) && ![1, 3, 5, 6].includes(probe.level().id))) {
+          cutPending = { label: act, at: performance.now(), level: probe.level().id };
+        }
+        if (touchKeys) {
+          for (const bid of TOUCH_KEY[key] ?? []) {
+            const el = document.getElementById(bid) as HTMLElement | null;
+            const r = el?.getBoundingClientRect();
+            if (el && r && r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none' && !(el as HTMLButtonElement).hidden) {
+              await tapAt(el, `${label ?? key} (touch)`);
+              return;
+            }
+          }
+        }
+      }
       sendKey('keydown', key);
       await sleep(70);
       sendKey('keyup', key);
@@ -1217,6 +1262,8 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       if (label) t.log(`press ${key === ' ' ? 'Space' : key.toUpperCase()} (${label})`);
     };
     const press = (button: HTMLButtonElement, label: string) => {
+      if (fullRun && /^skip/i.test(label)) { t.log(`refused ${label} (full-run never skips)`); return; }
+      if (fullRun && /^end level/i.test(label) && [1, 3, 5, 6].includes(probe.level().id)) cutPending = { label, at: performance.now(), level: probe.level().id };
       button.click();
       t.add('interactions');
       t.log(`click ${label}`);
@@ -1263,6 +1310,69 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
     };
     const full = id === 'full';
+    // ---- full-run gate (docs/qa-gate.md): every failure is a row with level, run time and reason.
+    class GateAbort extends Error {}
+    type GateRow = { check: string; level: number; levelName: string; at: number; reason: string };
+    const gateRows: GateRow[] = [];
+    const gateT0 = performance.now();
+    const gateSeen = new Set<string>();
+    const gateFail = (check: string, reason: string, fatal = false) => {
+      if (!fullRun) return;
+      const lvl = probe.level();
+      const key = `${check}|${lvl.id}|${reason.slice(0, 60)}`;
+      if (!gateSeen.has(key)) {
+        gateSeen.add(key);
+        const row = { check, level: lvl.id, levelName: lvl.name, at: Math.round((performance.now() - gateT0) / 100) / 10, reason };
+        gateRows.push(row);
+        t.add(`gate.${check}`);
+        t.event('gate-fail', JSON.stringify(row));
+        t.problem('bug', `full-run FAIL level ${row.level} (${row.levelName}) at ${row.at} s [${check}]: ${reason}`);
+      }
+      if (fatal) throw new GateAbort(`${check}: ${reason}`);
+    };
+    const gateConsole: string[] = [];
+    const voiceDone = new Set<string>();
+    let clipFlips: { at: number; clip: string }[] = [];
+    let lastClip = '';
+    let noClipSince = 0;
+    const gateObserve = () => {
+      if (!fullRun) return;
+      const now = performance.now();
+      // A press that should start a cutscene must show it within 3 s.
+      if (cutPending) {
+        if (probe.cutscene() || probe.scripted()) cutPending = null;
+        else if (now - cutPending.at > 3000) {
+          const c = cutPending; cutPending = null;
+          gateFail('cutscene-start', `"${c.label}" pressed on level ${c.level} and no cutscene started within 3 s`);
+        }
+      }
+      // A voice line that sounds for ever.
+      const vn = probe.sound().voiceNow;
+      if (vn && vn.seconds > 45) gateFail('voice-never-ends', `voice ${vn.url.split('/').pop()} has sounded for ${vn.seconds.toFixed(0)} s`, true);
+      // Voice overlap and cut-off, once a clip has ended.
+      const clips = (probe.sound().voice ?? []).filter((c) => c.state !== 'failed');
+      for (const c of clips) {
+        const k = `${c.url}|${c.start.toFixed(2)}`;
+        if (voiceDone.has(k)) continue;
+        voiceDone.add(k);
+        const name = c.url.split('/').pop();
+        if (c.overlapped) gateFail('voice-overlap', `${name} began while another voice was sounding`);
+        // A caller stopped by a chosen reply is by design; everything else must play to its end.
+        if (c.cut && !/\/audio\/phone\//.test(c.url)) gateFail('voice-cut', `${name} was stopped before its end`);
+      }
+      // Console errors and uncaught exceptions collected since the last tick.
+      while (gateConsole.length) gateFail('console-error', gateConsole.shift()!.slice(0, 200));
+      // T-pose (no clip while he is the player's) and a clip flickering back and forth (a pose pop).
+      const m = probe.motion?.();
+      if (m && !m.cinematic && controllable()) {
+        const clip = m.clip ?? '';
+        noClipSince = clip ? 0 : (noClipSince || now);
+        if (noClipSince && now - noClipSince > 1500) gateFail('anim-tpose', `no animation clip is playing while Pierce is under control (T-pose) at ${probe.player().x.toFixed(1)}, ${probe.player().z.toFixed(1)}`);
+        if (clip !== lastClip) { clipFlips.push({ at: now, clip }); lastClip = clip; }
+        clipFlips = clipFlips.filter((f) => now - f.at < 1000);
+        if (clipFlips.length >= 6) gateFail('anim-pop', `the clip flickered ${clipFlips.length} times in a second (${clipFlips.map((f) => f.clip).join('>')})`);
+      } else { noClipSince = 0; }
+    };
     const smokeN = Number(/^smoke-l([1-8])$/.exec(id)?.[1] ?? 0);
     const smoke = smokeN > 0;
     // Levels 1-6 are walked by playLevel, so their scripted scenes (lobby, desk, station) can be skipped too.
@@ -1368,6 +1478,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           scene.skipped = true;
           t.event('cutscene-skip', `${scene.id} at ${secs.toFixed(0)} s`);
           if (probe.skipButton && !probe.skipButton.hidden) press(probe.skipButton, 'Skip');
+        } else if (fullRun && !scene.skipped && secs > scene.limit) {
+          scene.skipped = true;
+          gateFail('cutscene-end', `cutscene "${scene.id}" did not end in its budget (${secs.toFixed(0)} s, budget ${Math.round(scene.limit)} s)`, true);
         } else if (!scene.skipped && secs > scene.limit) {
           scene.skipped = true;
           t.problem('bug', `cutscene "${scene.id}" never ended (${secs.toFixed(0)} s, expected about ${Math.round(scene.limit)} s)`);
@@ -1418,6 +1531,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         if (animSeen.has(tag)) return;
         animSeen.add(tag);
         t.event('anim', message());
+        gateFail(key === 'slide' ? 'anim-foot-slide' : key === 'idleMoving' ? 'anim-glide' : 'anim-jump-pose', message());
         t.problem('bug', message());
       };
       const where = () => {
@@ -1440,7 +1554,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
     // Smoke runs: no objective progress for 30 s ends the run stuck. Progress is a new objective, a scene or a
     // call playing, a new line, a card up, or Pierce 3 m from where the clock last reset.
     const watchProgress = () => {
-      if (!smoke) return;
+      if (!smoke && !fullRun) return;
       const now = performance.now();
       const obj = probe.objective();
       const p = probe.player();
@@ -1454,9 +1568,9 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         watch.key = key; watch.x = p.x; watch.z = p.z; watch.at = now;
         return;
       }
-      if (now - watch.at > SMOKE_STUCK_MS) {
+      if (now - watch.at > (fullRun ? 45000 : SMOKE_STUCK_MS)) {
         const name = `${obj.title ? `${obj.title}: ` : ''}${obj.text}`.trim() || '(no objective)';
-        throw new SmokeStuck(`stuck: no objective progress for 30 s on ${probe.level().name}, objective "${name}", phase ${probe.phase() || '-'}, at (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
+        throw new SmokeStuck(`stuck: no objective progress for ${fullRun ? 45 : 30} s on ${probe.level().name}, objective "${name}", phase ${probe.phase() || '-'}, at (${p.x.toFixed(1)}, ${p.z.toFixed(1)})`);
       }
     };
 
@@ -1485,6 +1599,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       // The audit's findings, per scene: shown as metrics and, when it matters, as bugs.
       t.metric(`scene:${scene.id}:walkInPlaceFrames`, scene.walkInPlace);
       t.metric(`scene:${scene.id}:slideFrames`, scene.slide);
+      if (scene.walkInPlace > 3) gateFail('anim-walk-in-place', `scene "${scene.id}": the walk clip played with no movement for ${scene.walkInPlace} frames`);
       if (scene.walkInPlace > 3) t.problem('bug', `scene "${scene.id}": the walk clip played with no movement for ${scene.walkInPlace} frames (walking in place)`);
       if (scene.slide > 3) t.problem('warning', `scene "${scene.id}": Pierce moved with no walk clip for ${scene.slide} frames (sliding)`);
       const lastSecs = secs;
@@ -1499,7 +1614,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       mark();
     };
 
-    const tick = async () => { await frame(); observe(); watchProgress(); };
+    const tick = async () => { await frame(); observe(); gateObserve(); watchProgress(); };
 
     // ---- camera and walking
     const measureLook = async () => {
@@ -7167,6 +7282,82 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       return;
     }
 
+    if (id === 'pierce-loco-60') {
+      const phone = Boolean(options.phone);
+      levelsTotal = 8;
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) {
+        touchWalk = true;
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+      }
+      const walk = async (seconds: number, mag: number) => {
+        const until = performance.now() + seconds * 1000;
+        while (performance.now() < until) {
+          alive();
+          if (phone) stickTo(0, -mag);
+          else if (mag >= 0.99) setHeld('w');
+          else {
+            // Desktop has no partial deflection: skip, the 40 percent leg is the phone run's.
+            break;
+          }
+          await sleep(50);
+        }
+        releaseAll();
+        if (phone) stickLift();
+      };
+      let slideAll = 0;
+      let popAll = 0;
+      let turnPopAll = 0;
+      let worstErr = 0;
+      for (let n = 1; n <= 8; n++) {
+        alive();
+        if (n === 7) await probe.setupHidden('the-train');
+        else await probe.setupLevel(n);
+        await t.until(() => probe.running() && probe.level().id === n && !probe.chapter().open, 60000, `level ${n} running`);
+        if (probe.scripted() === 'going-home-lobby') {
+          const skip = document.getElementById('skipBtn') as HTMLButtonElement | null;
+          if (skip && !skip.classList.contains('hidden')) press(skip, 'Skip lobby');
+          await sleep(400);
+        }
+        t.scene(`L${n}-loco60`);
+        probe.locoAudit?.('start');
+        await walk(2.0, 1);
+        await sleep(600);
+        t.event('loco-turn', `L${n}: turn 180 in place`);
+        for (let i = 0; i < 18; i++) { alive(); dragLook(28); await sleep(35); }
+        await sleep(100);
+        await walk(1.6, 1);
+        await sleep(500);
+        const a = probe.locoAudit?.('stop');
+        if (!a) { t.problem('bug', 'locoAudit probe missing'); break; }
+        // 40 percent deflection (phone: the stick; desktop: key walk only has full speed, so measure the same leg with W).
+        probe.locoAudit?.('start');
+        const m0 = performance.now();
+        if (phone) await walk(2.4, 0.4); else await walk(2.4, 1);
+        const b = probe.locoAudit?.('stop');
+        if (!b) break;
+        const avg = b.moving ? b.speedSum / b.moving : 0;
+        slideAll += a.slide + b.slide;
+        popAll += a.pop + b.pop;
+        turnPopAll += a.turnPop + b.turnPop;
+        worstErr = Math.max(worstErr, a.worstRatio, b.worstRatio);
+        t.event('loco-audit', `L${n}: ${a.slide + b.slide} slide / ${a.pop + b.pop} pop frames over ${a.moving + b.moving} moving; 40% leg ${avg.toFixed(2)} m/s in ${((performance.now() - m0) / 1000).toFixed(1)} s`);
+        if (n === 1) t.metric('pct40Speed', Math.round(avg * 100) / 100);
+        t.metric(`pct40SlideFrames.L${n}`, b.slide);
+        t.progress(n / 8);
+      }
+      t.metric('slideFrames', slideAll);
+      t.metric('popFrames', popAll);
+      t.metric('turnPopFrames', turnPopAll);
+      t.metric('worstRateError', Math.round(worstErr * 100) / 100);
+      if (slideAll > 0) t.problem('bug', `quality.anim: ${slideAll} foot-slide frame(s) (clip speed off root speed by over 30 percent)`);
+      if (popAll > 0) t.problem('bug', `quality.anim: ${popAll} pose-pop frame(s), ${turnPopAll} while turning`);
+      touchWalk = false;
+      t.progress(1);
+      t.finish(slideAll + popAll > 0 ? 'lost' : 'done');
+      return;
+    }
+
     if (id === 'pierce-loco') {
       const phone = Boolean(options.phone);
       levelsTotal = phone ? 1 : 2;
@@ -8109,6 +8300,115 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.progress(1);
       const ok = sceneSeen && hitchOk && camOk;
       t.finish(ok ? 'done' : sceneSeen ? 'lost' : 'stuck');
+      return;
+    }
+
+    if (fullRun) {
+      levelsTotal = 8;
+      const phone = Boolean(options.phone) || window.innerWidth <= 500;
+      if (phone) {
+        probe.phoneFrame(true);
+        touchWalk = true;
+        touchKeys = true;
+        t.event('setup', 'phone layout 390x844 (touch): sticks and buttons only, no keyboard');
+        await sleep(500);
+      }
+      // Console errors and uncaught exceptions become gate rows (the asset 404s already file their own problem).
+      const onErr = (e: ErrorEvent) => { if (!(e.target && e.target !== window)) gateConsole.push(`uncaught ${e.message}`); };
+      const onRej = (e: PromiseRejectionEvent) => { gateConsole.push(`unhandled rejection ${e.reason instanceof Error ? e.reason.message : String(e.reason)}`); };
+      window.addEventListener('error', onErr);
+      window.addEventListener('unhandledrejection', onRej);
+      const prevConsoleError = console.error;
+      console.error = (...args: unknown[]) => {
+        try {
+          const text = args.map((a) => (a instanceof Error ? a.message : String(a))).join(' ');
+          if (!/\/assets\/[^\s"'()]+/.test(text) || !/unable to load|failed|error|404/i.test(text)) gateConsole.push(`console.error ${text}`);
+        } catch { /* never break the page */ }
+        prevConsoleError.apply(console, args as []);
+      };
+      const feel = probe.feel;
+      const cw = installCameraWatch({
+        scene: () => probe.scene,
+        player: () => (feel ? feel.collider.getAbsolutePosition().clone() as never : null),
+        isSolid: (m) => (feel ? feel.isSolid(m) : true),
+        active: () => probe.running() && !probe.menu().open && !probe.cutscene() && !probe.scripted(),
+        label: () => `L${probe.level().id}`,
+        emit: (type, detail) => {
+          if (type === 'camera-inside') gateFail('camera-inside', `camera ${detail}`);
+          else if (type === 'camera-behindwall') gateFail('camera-inside', `camera ${detail}`);
+          else if (type === 'camera-jitter') gateFail('camera-jitter', `camera ${detail}`);
+          if (!/^camera-(worst|near|nearwall|blocked)$/.test(type)) t.event(type, detail);
+        },
+      });
+      const seconds: Record<number, number> = {};
+      const outcomes: Record<number, string> = {};
+      let final: Outcome = 'won';
+      try {
+        await enterLevel(1);
+        frameTrace.reset();
+        cw.start();
+        for (let n = 1; n <= 8; n++) {
+          levelIndex = n - 1;
+          const lt0 = performance.now();
+          const before = gateRows.length;
+          const outcome = n === 8 ? await morningRun(true) : n === 7 ? await trainStoryRun(true) : await playLevel(n);
+          seconds[n] = Math.round((performance.now() - lt0) / 100) / 10;
+          const fs = probe.footSlide?.();
+          if (fs && fs.max > 0.03 && fs.plants > 0) gateFail('anim-foot-slide', `a planted foot drifted ${(fs.max * 100).toFixed(1)} cm (limit 3 cm) over ${fs.plants} plants`);
+          gateObserve();
+          if (outcome !== 'won') {
+            gateFail('level', `the level ended ${outcome} instead of finishing`, true);
+          }
+          outcomes[n] = gateRows.length > before ? 'FAIL' : 'PASS';
+          t.event('full-progress', `level ${n} of 8 finished in ${seconds[n]} s`);
+          if (n < 8) {
+            await sleep(2500);
+            const menu = probe.menu();
+            if (!menu.start) throw new Error(`no Continue on the level ${n} card`);
+            press(probe.startButton, menu.start);
+            const until = performance.now() + 90000;
+            while (!(probe.running() && probe.level().id === n + 1)) {
+              if (performance.now() > until) { gateFail('level', `timed out waiting for level ${n + 1} after Continue`, true); }
+              await tick();
+            }
+          }
+        }
+        publishFrameTrace(t, 'full-run');
+      } catch (e) {
+        releaseAll();
+        if (e instanceof SmokeStuck) gateFail('stuck', e.message.replace(/^stuck: /, ''));
+        else if (e instanceof GateAbort) { /* already a row */ }
+        else gateFail('error', String(e instanceof Error ? e.message : e));
+        final = e instanceof SmokeStuck ? 'stuck' : 'lost';
+      } finally {
+        cw.stop();
+        console.error = prevConsoleError;
+        window.removeEventListener('error', onErr);
+        window.removeEventListener('unhandledrejection', onRej);
+      }
+      // Camera and frame summaries, then the table.
+      const sum = cw.summary();
+      lastCam = sum;
+      t.metric('cameraFrames', sum.frames);
+      t.metric('cameraInside', sum.inside);
+      t.metric('cameraJitter', sum.jitter);
+      t.metric('cameraSnaps', sum.snaps);
+      const lines: string[] = ['QA gate: full-run', `${phone ? '390x844 touch' : 'desktop'}; ${gateRows.length} failure${gateRows.length === 1 ? '' : 's'}`];
+      for (let n = 1; n <= 8; n++) {
+        const rows = gateRows.filter((r) => r.level === n);
+        const status = outcomes[n] ?? (rows.length ? 'FAIL' : 'NOT RUN');
+        if (seconds[n] !== undefined) t.metric(`gateL${n}Seconds`, seconds[n]!);
+        const line = `L${n} ${LEVEL_NAMES[n - 1]}: ${rows.length ? 'FAIL' : status} ${seconds[n] !== undefined ? `${seconds[n]} s` : '-'}${rows.length ? ` | ${rows.map((r) => `[${r.check}] ${r.reason} @${r.at}s`).join('; ')}` : ''}`;
+        lines.push(line);
+        t.event('gate-row', JSON.stringify({ level: n, name: LEVEL_NAMES[n - 1], status: rows.length ? 'FAIL' : status, seconds: seconds[n] ?? null, failures: rows }));
+      }
+      const checks = ['cutscene-start', 'cutscene-end', 'camera-inside', 'camera-jitter', 'anim-foot-slide', 'anim-pop', 'anim-tpose', 'anim-walk-in-place', 'voice-overlap', 'voice-cut', 'voice-never-ends', 'console-error', 'stuck'];
+      lines.push(`checks: ${checks.map((c) => `${c} ${gateRows.some((r) => r.check === c) ? 'FAIL' : 'pass'}`).join(', ')}`);
+      t.event('gate-table', lines.join('\n'));
+      t.note(lines.join('\n'));
+      t.metric('gateFailures', gateRows.length);
+      t.progress(1);
+      t.finish(gateRows.length ? (final === 'won' ? 'lost' : final) : 'won');
       return;
     }
 

@@ -23,3 +23,10 @@ export const JUMP_KEYS: Readonly<Record<string, readonly number[]>> = {
 
 /** Metres of ground per foot plant of the walk clip (STRIDE_MPS.walk over about 2.2 steps a second). */
 export const STEP_LENGTH = 0.78;
+
+/**
+ * Walk to run by real ground speed (hysteresis): above RUN_ON_MPS the run clip plays (walk would be time-scaled past
+ * 1.45x), below RUN_OFF_MPS the walk clip returns. Keeps both clips between about 0.6x and 1.45x.
+ */
+export const RUN_ON_MPS = 2.5;
+export const RUN_OFF_MPS = 2.1;
