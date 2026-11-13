@@ -46,6 +46,11 @@ export type PhProbe = {
     hipDrop: number;
     byLevel: Record<string, { max: number; mean: number; plants: number }>;
   };
+  /** Per-frame locomotion audit: 'start' zeroes and arms it, 'stop' disarms; returns slide and pose-pop frame counts. */
+  locoAudit?: (cmd?: 'start' | 'stop') => {
+    on: boolean; frames: number; moving: number; slide: number; pop: number; turnPop: number;
+    worstRatio: number; worstPop: number; speedSum: number; rateSum: number;
+  };
   cameraYaw: () => number;
   objective: () => { target: { x: number; z: number } | null; title: string; text: string; visible: boolean };
   action: () => string | null;
@@ -1091,6 +1096,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         seconds: 180,
         tags: ['level', 'quality', 'characters'],
         starts: ['board'],
+      },
+      {
+        id: 'pierce-loco-60',
+        title: 'Pierce walks 60 s per level with stops, 180 turns and 40 percent stick: 0 slide frames, 0 pose pops',
+        description: 'Levels 1-8 (setupLevel / setupHidden for The Train). On each level a real-input walk of about 7.5 s: walk, stop, 180 turn (camera drag then walk back), walk at 40 percent deflection (left stick on touch, W taps on desktop where the half-stick is not available the stick is replaced by short key pulses). probe.locoAudit counts frames where the playing clip speed (STRIDE_MPS x rate) misses the real root speed by over 30 percent (slide) and frames where a foot jumps across the body in one frame (pop). Fails on any slide or pop frame. Option phone: touch stick only at 390x844. Metrics: slideFrames, popFrames, turnPopFrames, pct40Speed, pct40SlideFrames, worstRateError. Events: loco-audit.',
+        seconds: 720,
+        tags: ['level', 'quality', 'feel'],
       },
       {
         id: 'pierce-loco',
@@ -7249,6 +7261,82 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       });
       t.progress(1);
       t.finish(failOver100 > 0 ? 'lost' : 'done');
+      return;
+    }
+
+    if (id === 'pierce-loco-60') {
+      const phone = Boolean(options.phone);
+      levelsTotal = 8;
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) {
+        touchWalk = true;
+        probe.phoneFrame(true, false, { w: 390, h: 844 });
+      }
+      const walk = async (seconds: number, mag: number) => {
+        const until = performance.now() + seconds * 1000;
+        while (performance.now() < until) {
+          alive();
+          if (phone) stickTo(0, -mag);
+          else if (mag >= 0.99) setHeld('w');
+          else {
+            // Desktop has no partial deflection: skip, the 40 percent leg is the phone run's.
+            break;
+          }
+          await sleep(50);
+        }
+        releaseAll();
+        if (phone) stickLift();
+      };
+      let slideAll = 0;
+      let popAll = 0;
+      let turnPopAll = 0;
+      let worstErr = 0;
+      for (let n = 1; n <= 8; n++) {
+        alive();
+        if (n === 7) await probe.setupHidden('the-train');
+        else await probe.setupLevel(n);
+        await t.until(() => probe.running() && probe.level().id === n && !probe.chapter().open, 60000, `level ${n} running`);
+        if (probe.scripted() === 'going-home-lobby') {
+          const skip = document.getElementById('skipBtn') as HTMLButtonElement | null;
+          if (skip && !skip.classList.contains('hidden')) press(skip, 'Skip lobby');
+          await sleep(400);
+        }
+        t.scene(`L${n}-loco60`);
+        probe.locoAudit?.('start');
+        await walk(2.0, 1);
+        await sleep(600);
+        t.event('loco-turn', `L${n}: turn 180 in place`);
+        for (let i = 0; i < 18; i++) { alive(); dragLook(28); await sleep(35); }
+        await sleep(100);
+        await walk(1.6, 1);
+        await sleep(500);
+        const a = probe.locoAudit?.('stop');
+        if (!a) { t.problem('bug', 'locoAudit probe missing'); break; }
+        // 40 percent deflection (phone: the stick; desktop: key walk only has full speed, so measure the same leg with W).
+        probe.locoAudit?.('start');
+        const m0 = performance.now();
+        if (phone) await walk(2.4, 0.4); else await walk(2.4, 1);
+        const b = probe.locoAudit?.('stop');
+        if (!b) break;
+        const avg = b.moving ? b.speedSum / b.moving : 0;
+        slideAll += a.slide + b.slide;
+        popAll += a.pop + b.pop;
+        turnPopAll += a.turnPop + b.turnPop;
+        worstErr = Math.max(worstErr, a.worstRatio, b.worstRatio);
+        t.event('loco-audit', `L${n}: ${a.slide + b.slide} slide / ${a.pop + b.pop} pop frames over ${a.moving + b.moving} moving; 40% leg ${avg.toFixed(2)} m/s in ${((performance.now() - m0) / 1000).toFixed(1)} s`);
+        if (n === 1) t.metric('pct40Speed', Math.round(avg * 100) / 100);
+        t.metric(`pct40SlideFrames.L${n}`, b.slide);
+        t.progress(n / 8);
+      }
+      t.metric('slideFrames', slideAll);
+      t.metric('popFrames', popAll);
+      t.metric('turnPopFrames', turnPopAll);
+      t.metric('worstRateError', Math.round(worstErr * 100) / 100);
+      if (slideAll > 0) t.problem('bug', `quality.anim: ${slideAll} foot-slide frame(s) (clip speed off root speed by over 30 percent)`);
+      if (popAll > 0) t.problem('bug', `quality.anim: ${popAll} pose-pop frame(s), ${turnPopAll} while turning`);
+      touchWalk = false;
+      t.progress(1);
+      t.finish(slideAll + popAll > 0 ? 'lost' : 'done');
       return;
     }
 

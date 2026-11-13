@@ -8,7 +8,7 @@ import {
   lookupClipTrim,
   type ClipTrimsFile,
 } from './clipTrims';
-import { JUMP_KEYS, strideRatio } from './stride';
+import { JUMP_KEYS, RUN_OFF_MPS, RUN_ON_MPS, strideRatio } from './stride';
 import { PLAYER_ASSET_ID, getAssetLibrary, jointSuffix, loadGlbByAssetId, resolveModelPath } from './modelLoader';
 
 export { JUMP_KEYS, STRIDE_MPS, strideRatio } from './stride';
@@ -224,6 +224,9 @@ export const createCharacterAvatar = (
   let wantsMoving = false;
   let wantsGrounded = true;
   let sprinting = false;
+  /** Ground speed picked the run clip (walk time-scaled past ~1.45x slid; see RUN_ON_MPS). */
+  let speedRun = false;
+  const useRun = () => (sprinting || speedRun) && !!runGroup;
   let armed = false;
   let disposed = false;
   let shown = true;
@@ -264,7 +267,7 @@ export const createCharacterAvatar = (
   const activeIdle = () => (armed ? pistolIdleGroup ?? idleGroup : idleGroup);
   const activeWalk = () => {
     if (armed) return pistolWalkGroup ?? walkGroup;
-    if (sprinting && runGroup) return runGroup;
+    if (useRun()) return runGroup;
     return walkGroup;
   };
   const activeJump = () => (armed ? pistolJumpGroup ?? jumpGroup : jumpGroup);
@@ -538,7 +541,7 @@ export const createCharacterAvatar = (
     if (!wantsGrounded && activeJump()) return armed ? 'pistolJump' : 'jump';
     if (wantsMoving) {
       if (armed) return 'pistolWalk';
-      if (sprinting && runGroup) return 'run';
+      if (useRun()) return 'run';
       return 'walk';
     }
     return armed ? 'pistolIdle' : 'idle';
@@ -550,7 +553,7 @@ export const createCharacterAvatar = (
       playJump();
       return;
     }
-    const movingName = armed ? 'pistolwalk' : sprinting && runGroup ? 'run' : 'walk';
+    const movingName = armed ? 'pistolwalk' : useRun() ? 'run' : 'walk';
     const idleName = armed ? 'pistolidle' : 'idle';
     const walk = activeWalk();
     playLoop(
@@ -616,7 +619,20 @@ export const createCharacterAvatar = (
     if (!cinematic) applyLocomotion();
   };
 
+  /** Blend walk to run by real root speed with hysteresis, so neither clip is time-scaled outside ~0.6-1.45x. */
+  const updateSpeedRun = () => {
+    const next = stride === null ? false : speedRun ? stride > RUN_OFF_MPS : stride > RUN_ON_MPS;
+    if (next === speedRun) return;
+    speedRun = next;
+    if (!runGroup || sprinting || armed || cinematic || !wantsMoving) return;
+    if (current === 'walk' || current === 'run') {
+      current = null;
+      applyLocomotion();
+    }
+  };
+
   const applyStride = () => {
+    updateSpeedRun();
     if (stride === null) return;
     const pairs: [BABYLON.AnimationGroup | null, string][] = [[walkGroup, 'walk'], [runGroup, 'run'], [pistolWalkGroup, 'pistolwalk']];
     for (const [clip, name] of pairs) {
