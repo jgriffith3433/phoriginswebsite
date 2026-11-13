@@ -51,6 +51,8 @@ export type PhProbe = {
     on: boolean; frames: number; moving: number; slide: number; pop: number; turnPop: number;
     worstRatio: number; worstPop: number; speedSum: number; rateSum: number;
   };
+  /** Prop contact for every seated person (hips over seat top, error m, ok when under 3 cm). */
+  seats?: () => ({ id: string; hipsAboveSeat: number; error: number; ok: boolean } | { id: string; phase: string })[];
   cameraYaw: () => number;
   objective: () => { target: { x: number; z: number } | null; title: string; text: string; visible: boolean };
   action: () => string | null;
@@ -1103,6 +1105,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Levels 1-8 (setupLevel / setupHidden for The Train). On each level a real-input walk of about 7.5 s: walk, stop, 180 turn (camera drag then walk back), walk at 40 percent deflection (left stick on touch, W taps on desktop where the half-stick is not available the stick is replaced by short key pulses). probe.locoAudit counts frames where the playing clip speed (STRIDE_MPS x rate) misses the real root speed by over 30 percent (slide) and frames where a foot jumps across the body in one frame (pop). Fails on any slide or pop frame. Option phone: touch stick only at 390x844. Metrics: slideFrames, popFrames, turnPopFrames, pct40Speed, pct40SlideFrames, worstRateError. Events: loco-audit.',
         seconds: 720,
         tags: ['level', 'quality', 'feel'],
+      },
+      {
+        id: 'seat-contact',
+        title: 'Seated people: hips on the seat, under 3 cm prop-contact error (Apex hall, board room, The Train)',
+        description: 'Level 1 (Apex Peak: board seats, hall desk, reader and caller) and The Train (riders on the benches): waits for the rigs, then reads probe.seats(): every seated person reports hips height over the seat top and the error from the SitIdle hips offset. Fails on any error over 3 cm. Option phone: 390x844 touch layout. Metrics: seatsChecked, seatWorstCm. Events: seat-contact.',
+        seconds: 240,
+        tags: ['level', 'quality', 'characters'],
       },
       {
         id: 'pierce-loco',
@@ -7261,6 +7270,36 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       });
       t.progress(1);
       t.finish(failOver100 > 0 ? 'lost' : 'done');
+      return;
+    }
+
+    if (id === 'seat-contact') {
+      const phone = Boolean(options.phone);
+      levelsTotal = 2;
+      if (probe.sound().prompt) await tapToPlay();
+      if (phone) probe.phoneFrame(true, false, { w: 390, h: 844 });
+      let checked = 0;
+      let worst = 0;
+      for (const n of [1, 7]) {
+        alive();
+        if (n === 7) await probe.setupHidden('the-train');
+        else await probe.setupLevel(n);
+        await t.until(() => probe.running() && probe.level().id === n && !probe.chapter().open, 60000, `level ${n} running`);
+        await sleep(4000);
+        const seats = probe.seats?.() ?? [];
+        for (const seat of seats) {
+          if (!('error' in seat)) continue;
+          checked += 1;
+          worst = Math.max(worst, seat.error);
+          t.event('seat-contact', { level: n, id: seat.id, hips: Math.round(seat.hipsAboveSeat * 100), errorCm: Math.round(seat.error * 1000) / 10 });
+          if (!seat.ok) t.problem('bug', `${seat.id} on level ${n}: hips ${(seat.error * 100).toFixed(1)} cm off the seat (limit 3 cm)`);
+        }
+        if (!seats.length) t.problem('bug', `level ${n}: no seated people registered`);
+      }
+      t.metric('seatsChecked', checked);
+      t.metric('seatWorstCm', Math.round(worst * 1000) / 10);
+      t.progress(1);
+      t.finish('done');
       return;
     }
 
