@@ -158,6 +158,17 @@ export type PhProbe = {
     updateMs: number;
   };
   resetFaces?: () => void;
+  /** Background people: idle variants and phases, look-at within 4 m, reactions, bind-pose and restart counts. */
+  npcLife?: () => {
+    count: number; shown: number; variantKinds: number; neighbourPairs: number; syncedPairs: number;
+    near: number; nearLooking: number; maxLookError: number; lookDelays: number[]; maxLookDelay: number;
+    reactions: { glance: number; turn: number; flinch: number; startles: number };
+    bindFrames: number; restarts: number; reshows: number;
+    people: { id: string; x: number; z: number; variant: string; clip: string | null; dist: number; looking: boolean;
+      lookError: number | null; lookDelay: number; shown: boolean; moving: boolean; reaction: string | null }[];
+  };
+  resetNpcLife?: () => void;
+  npcStartle?: () => void;
   /** Board plot through the Apex hall: desk person, locked door, visible threat (null off that level). */
   boardHall?: () => { deskSeen: boolean; doorTried: boolean; threatSeen: boolean; deskAt: { x: number; z: number }; doorAt: { x: number; z: number; r: number }; threatAt: { x: number; z: number; r: number } } | null;
   pickups: () => { x: number; z: number; item: string }[];
@@ -950,6 +961,13 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
         description: 'Reloads once with ?hawkes-analytics-debug=1 when the page was opened without it (the run carries on through ?playtest=analytics). Logs the build, env and product the SDK reports, then plays level 1 as level-1 does and logs each analytics event as it is made and sent (game_ready, screen, level_start, progress, video, feature, death, level_end, stuck, feedback). After the Level Complete card it checks the feedback card ("How was level 1…?") is on screen. Problems: no build, a standard event missing, no feedback card.',
         seconds: 360,
         tags: ['level', 'analytics'],
+      },
+      {
+        id: 'npc-life',
+        title: 'Background people: three idle variants out of step, head turns to Pierce within 4 m, reactions, no bind pose or restart',
+        description: 'Enters Apex Peak, Going Home, The Station and The Train (test shortcuts), skips scripted openings. On each: reads the people npcLife drives (idle variant, start phase, live clip phase), requires at least two variants and no neighbouring pair on the same idle at the same phase; walks up to the nearest standing person through real input (left stick with options.phone: true) and requires the head to be turned to Pierce within 1 s of him coming inside 4 m (lookDelay, lookError) and a glance, turn or flinch inside 1.5 m; fires the monster beat (npcStartle) and requires a reaction; turns the camera away and back and requires 0 bind-pose frames and 0 animation restarts when people are hidden and shown again. Metrics: npcIdleVariants, npcBindFrames, npcRestarts, npcWorstLookDelay, npcCloseUps.',
+        seconds: 420,
+        tags: ['level', 'quality', 'story', 'phone'],
       },
       {
         id: 'living-places',
@@ -9139,6 +9157,110 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       }
       t.metric('analyticsProgress', counts.progress ?? 0);
       t.metric('analyticsVideo', counts.video ?? 0);
+      t.progress(1);
+      t.finish(outcome);
+      return;
+    }
+
+    // ---- npc-life: background people idle in different variants, look at Pierce inside 4 m, react, never pop
+    const npcLifeRun = async (): Promise<Outcome> => {
+      const phone = Boolean(options.phone);
+      levelsTotal = 4;
+      await tapToPlay();
+      if (phone) { probe.phoneFrame(true); touchWalk = true; t.event('setup', 'phone layout 390x844 (touch): walking with the left stick'); await sleep(700); }
+      const places: { name: string; enter: () => Promise<void>; minPeople: number }[] = [
+        { name: 'The Apex Peak', minPeople: 2, enter: async () => { await probe.setupLevel(1); } },
+        { name: 'Going Home', minPeople: 3, enter: async () => { await probe.setupLevel(5); } },
+        { name: 'The Station', minPeople: 3, enter: async () => { await probe.setupLevel(6); } },
+        { name: 'The Train', minPeople: 3, enter: async () => { await probe.setupHidden('the-train'); } },
+      ];
+      let worstDelay = 0;
+      let closeUps = 0;
+      let done = 0;
+      for (const where of places) {
+        t.scene(where.name);
+        await where.enter();
+        const until = performance.now() + 60000;
+        while (performance.now() < until && !(probe.running() && !probe.menu().open && !probe.scripted() && !probe.cutscene())) {
+          if (probe.skipButton && !probe.skipButton.hidden && (probe.scripted() || probe.cutscene())) press(probe.skipButton, 'Skip');
+          const ph = probe.phone();
+          if (ph.incoming) { releaseAll(); await once('f', 1500, 'answer call'); }
+          await tick();
+        }
+        await waitControl(where.name);
+        t.event('level-start', where.name);
+        probe.resetNpcLife?.();
+        await sleep(3500);
+        const first = probe.npcLife?.();
+        if (!first) { t.problem('bug', 'npc-life: npcLife probe missing'); break; }
+        t.event('npc-life', `${where.name}: ${first.count} people, ${first.shown} shown, ${first.variantKinds} idle variants, ${first.syncedPairs}/${first.neighbourPairs} neighbour pairs in step`);
+        if (first.count < where.minPeople) t.problem('bug', `npc-life: ${where.name} has ${first.count} background people, wants ${where.minPeople}+`);
+        if (first.count >= 3 && first.variantKinds < 2) t.problem('bug', `npc-life: ${where.name} people all share one idle variant`);
+        if (first.syncedPairs > 0) t.problem('bug', `npc-life: ${where.name} has ${first.syncedPairs} neighbouring people on the same idle at the same phase`);
+        t.metric(`npcIdleVariants.${where.name}`, first.variantKinds);
+        // Walk up to the nearest standing person, by real input, and watch the head.
+        const here = probe.player();
+        const standing = first.people.filter((p) => p.shown && !p.moving && p.dist < 40)
+          .sort((a, b) => Math.hypot(a.x - here.x, a.z - here.z) - Math.hypot(b.x - here.x, b.z - here.z));
+        const target = standing[0];
+        if (target) {
+          t.event('setup', `walk up to ${target.id} (${target.variant}) at (${target.x}, ${target.z})`);
+          const stop = performance.now() + 40000;
+          while (performance.now() < stop) {
+            const live = probe.npcLife?.()?.people.find((p) => p.id === target.id);
+            if (live && live.dist <= 1.3) break;
+            await walkTo({ x: live?.x ?? target.x, z: live?.z ?? target.z }, `npc-${target.id}`.slice(0, 30), 1.2);
+            await tick();
+          }
+          releaseAll();
+          const watch = performance.now() + 2500;
+          while (performance.now() < watch) await tick();
+          const near = probe.npcLife?.();
+          const me = near?.people.find((p) => p.id === target.id);
+          if (me) {
+            closeUps += 1;
+            t.event('npc-look', `${where.name}: ${me.id} at ${me.dist} m, look error ${me.lookError} rad, delay ${me.lookDelay} s, reaction ${me.reaction ?? 'none'}`);
+            if (me.dist <= 4 && !me.looking) t.problem('bug', `npc-life: ${me.id} within 4 m is not looking at Pierce`);
+          }
+          if (near) {
+            worstDelay = Math.max(worstDelay, near.maxLookDelay);
+            if (near.maxLookDelay > 1) t.problem('bug', `npc-life: ${where.name} head took ${near.maxLookDelay} s to turn to Pierce (wants under 1 s)`);
+            const r = near.reactions;
+            t.event('npc-react', `${where.name}: glance ${r.glance}, turn ${r.turn}, flinch ${r.flinch}`);
+            if (r.glance + r.turn + r.flinch < 1) t.problem('bug', `npc-life: nobody reacted when Pierce passed within 1.5 m on ${where.name}`);
+          }
+        } else {
+          t.event('npc-life', `${where.name}: nobody standing in reach`);
+        }
+        // The monster beat.
+        probe.npcStartle?.();
+        await sleep(600);
+        const hit = probe.npcLife?.();
+        if (hit) {
+          t.event('npc-startle', `${where.name}: ${hit.reactions.startles} startle, ${hit.reactions.flinch} flinch in all`);
+          if (hit.count > 0 && hit.reactions.glance + hit.reactions.turn + hit.reactions.flinch < 1) t.problem('bug', `npc-life: the monster beat moved nobody on ${where.name}`);
+        }
+        // Off screen and back on: no bind pose, no restart.
+        if (phone) dragLook(240);
+        await sleep(1500);
+        const end = probe.npcLife?.();
+        if (end) {
+          t.event('npc-pop', `${where.name}: bind frames ${end.bindFrames}, restarts ${end.restarts} of ${end.reshows} re-shows`);
+          if (end.bindFrames > 0) t.problem('bug', `npc-life: ${end.bindFrames} bind-pose frames on ${where.name}`);
+          if (end.restarts > 0) t.problem('bug', `npc-life: ${end.restarts} animation restarts on ${where.name}`);
+          t.metric(`npcBindFrames.${where.name}`, end.bindFrames);
+          t.metric(`npcRestarts.${where.name}`, end.restarts);
+        }
+        done += 1;
+        t.progress(done / places.length);
+      }
+      t.metric('npcWorstLookDelay', worstDelay);
+      t.metric('npcCloseUps', closeUps);
+      return done === places.length ? 'done' : 'error';
+    };
+
+    if (id === 'npc-life') {
+      const outcome = await npcLifeRun();
       t.progress(1);
       t.finish(outcome);
       return;
