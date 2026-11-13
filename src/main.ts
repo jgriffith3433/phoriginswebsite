@@ -10,7 +10,7 @@ import {
   spawnNpcsFromScene,
   type Npc,
 } from './game/npcs';
-import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
+import { createPlayerAvatar, setClipBlendSeconds, type PlayerAvatar } from './game/playerAvatar';
 import { applyNpcLife, updateNpcLife, npcLifeSnapshot, resetNpcLifeStats, npcStartle } from './game/npcLife';
 import { STRIDE_MPS } from './game/stride';
 import { createJumpPoser } from './game/jumpPose';
@@ -1021,6 +1021,8 @@ const endCutscene = () => {
   }
   const gear = cutsceneGear;
   cutsceneGear = null;
+  // The 0.2 s scene blend stays through the hand-back to gameplay, then the 0.1 s gameplay blend returns.
+  setTimeout(() => setClipBlendSeconds(0.1), 400);
   const reequip = finished ? finished.timeline.reequip !== false : true;
   if (finished) music.cutsceneEnd(finished.id);
   act.releaseSeat();
@@ -1044,6 +1046,7 @@ const endCutscene = () => {
 const beginNamedCutscene = (id: string) => {
   if (state.inCutscene) return;
   state.inCutscene = true;
+  setClipBlendSeconds(0.2);
   // Drop the walk from the frame before, or every idle the scene asks for plays as a walk.
   playerAvatar.setSprinting(false);
   playerAvatar.setLocomotion(false, true);

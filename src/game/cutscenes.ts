@@ -400,6 +400,8 @@ export const skipToEnd = (cutscene: ActiveCutscene) => {
   cutscene.time = cutscene.duration;
   flushDueEvents(cutscene);
   stopAudio(cutscene);
+  // Full playback puts the speaker back on the rest clip when the line ends; Skip must end in the same pose.
+  if (cutscene.lineHold) cutscene.hooks.onAnim(cutscene.lineHold.actor, cutscene.lineHold.restClip, true);
   cutscene.lineHold = null;
 };
 
