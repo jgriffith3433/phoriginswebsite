@@ -4,6 +4,7 @@ import { mountBathroomMirror, type BathroomMirror } from './bathroomMirror';
 import { mixVolume, playClip, type ClipHandle } from '../game/sfxMix';
 import type { CutsceneVec3 } from '../game/cutscenes';
 import { createCharacterAvatar, findClip, strideRatio } from '../game/playerAvatar';
+import { npcStartle } from '../game/npcLife';
 import { TRANSFORM_HERO_ASSET_ID, PLAYER_ASSET_ID } from '../game/modelLoader';
 import {
   remainingDepartingNpcs,
@@ -1440,6 +1441,7 @@ export const createAct1 = (host: ActHost) => {
       node?.position.set(15.6, 0, 38);
       playCreature('walk', 2.4);
       host.playFile(CREATURE_SFX.shriek, 0.8);
+      npcStartle();
       host.playFile(CREATURE_SFX.run, 0.55);
       host.playFile(CREATURE_SFX.heartbeat, 0.5);
     }
@@ -2009,6 +2011,7 @@ export const createAct1 = (host: ActHost) => {
     fearFlash = 0.48;
     host.alarmFlash?.classList.add('visible');
     host.playFile(CREATURE_SFX.shriek, 0.62);
+    npcStartle();
     host.playFile(CREATURE_SFX.run, 0.26);
     host.playFile(CREATURE_SFX.tick, 0.24);
   };
@@ -2461,6 +2464,7 @@ export const createAct1 = (host: ActHost) => {
     if (creatureHp <= 0) {
       host.playFile(CREATURE_SFX.wound, 0.52);
       host.playFile(CREATURE_SFX.shriek, 0.55);
+      npcStartle();
     } else if (hurtSfx <= 0) {
       hurtSfx = 0.22;
       host.playFile(CREATURE_SFX.wound, 0.48);

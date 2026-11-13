@@ -573,3 +573,7 @@ canon beyond public facts (the board, the 58th floor, Hawkes Biomedical, chapter
 the creature. The in-fiction wink: the old pen-test crew wore their hats backwards; the staging gateway's password is
 a staff-list phrase (`roomforgrace58`). `/build` assembles a fictional medical backend (ten modules). Spec:
 `docs/terminal-console.md`.
+
+## Background people (idle life)
+
+Every background person in chapters 1-8 (Apex hall and board, street, station, train riders, commuters) idles in one of three styles (still, shift, scan) from a random start phase, turns the head to Pierce inside 4 m, and glances, turns or flinches when he passes inside 1.5 m or when the creature shrieks. Counts and canon are unchanged; see `src/game/npcLife.ts`.
