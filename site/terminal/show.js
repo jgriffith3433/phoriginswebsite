@@ -1,11 +1,10 @@
-// The /build spectacle, in three acts. The DOM side only; the data lives in build.js (the flood), dancers.js (the hand
-// drawn figures), choreo.js (the beat clock, the timeline and the moves) and stage.js (one frame of text cells). No
+// The /build spectacle, in three acts. The DOM side only; the data lives in build.js (the flood), dancers.js (the equations, farm and network data), choreo.js (the beat clock, the timeline and the moves) and stage.js (one frame of text cells). No
 // fetches, no polling timers: requestAnimationFrame runs only while the show does, and the song is one <audio> element
 // on the site root (/song.mp3, resolved against the page base, so it works under GitHub Pages).
 //
 //   Act 1  the log flood: hundreds to thousands of lines a second, batched per frame, one textContent write per frame.
 //   Act 2  the song starts (or "(song.mp3 not found, playing silent)" and a fixed timer carries on).
-//   Act 3  the performance: Jackson and Jordan in hand drawn ASCII, a timeline of scenes fitted to the length of the
+//   Act 3  the performance: the equations that run the internet, a GPU farm and a network in text, a timeline of scenes fitted to the length of the
 //          song, drawn on ONE <canvas> that is redrawn every frame (the DOM stays a handful of nodes).
 //
 // THE SHOW CANNOT BE SKIPPED. There is no skip function, no key, click or tap handler here that ends it early. It ends
@@ -14,7 +13,6 @@
 import { floodScript } from './build.js';
 import { buildTimeline, SILENT_SECONDS, CALM_SECONDS, BPM, beatAt, BEAT_SEC } from './choreo.js';
 import { createStage, makeBuffer, drawFrame, PALETTE, C } from './stage.js';
-import { JACKSON, JORDAN } from './dancers.js';
 import { rng } from './util.js';
 
 export const SONG_FILE = 'song.mp3';
@@ -35,7 +33,6 @@ const el = (doc, tag, props = {}, ...kids) => {
   e.append(...kids);
   return e;
 };
-const ink = (art) => art.reduce((n, r) => n + [...r].filter((c) => c !== ' ').length, 0);
 const clock = (secs) => `${String(Math.floor(secs / 60)).padStart(2, '0')}:${String(Math.floor(secs % 60)).padStart(2, '0')}`;
 
 /** The text size and grid for a stage of w x h CSS pixels: at least 46 columns wide and 34 rows high, text 9-22 px. */
@@ -100,14 +97,14 @@ export function createShow({ root, doc, muted = false }) {
       const now0 = performance.now();
       const s = {
         script, at: 0, lines: 0, frames: 0, ring: [], act: calm ? 'flip' : 'flood', t0: now0, last: now0, songT0: now0, audio: null,
-        audioState: 'none', done: false, raf: 0, songSeconds, calm, scenesSeen: new Set(), jFrames: new Set(), dFrames: new Set(),
+        audioState: 'none', done: false, raf: 0, songSeconds, calm, scenesSeen: new Set(), eqSeen: new Set(), packetsSeen: 0,
         timeline: null, tlKey: '', stage: createStage({ seed }), lastDraw: 0, drawMs: 0, lowFx: false, fps: FLIP_FPS, ctx2d: null,
         metrics: null, buf: null, spec: null, analyser: null, actx: null, bins: null, lastStat: 0, hardEnd: Infinity, clockT: 0, lastAudioT: -1,
         lastAudioWall: now0, flashes: 0, shakes: 0, beats: 0, lastBeat: -1, text: [], dpr: 1, pxRatio: 0.6, fontFamily: '',
       };
       st = s;
       const d = b.wrap.dataset;
-      Object.assign(d, { act: s.act, lines: '0', frames: '0', audio: 'none', nl: '0', nr: '0', scene: '', scenes: '0', jframes: '0', dframes: '0', flashes: '0', shakes: '0', beats: '0', calm: calm ? '1' : '0' });
+      Object.assign(d, { act: s.act, lines: '0', frames: '0', audio: 'none', scene: '', scenes: '0', equations: '0', packets: '0', flashes: '0', shakes: '0', beats: '0', calm: calm ? '1' : '0' });
       b.stat.textContent = calm ? 'CALM VERSION' : 'BUILDING';
       b.note.textContent = '';
       s.lastText = () => s.text;
@@ -363,26 +360,23 @@ export function createShow({ root, doc, muted = false }) {
         s.lastText = () => { s.text = textOf(); return s.text; };
         // bookkeeping the playtest reads
         s.scenesSeen.add(fx.scene);
-        for (const dn of fx.state.d) (dn.who === 'J' ? s.jFrames : s.dFrames).add(dn.frame);
+        if (fx.state.eq?.text) s.eqSeen.add(fx.state.eq.text);
+        s.packetsSeen = Math.max(s.packetsSeen, fx.state.net?.packets?.length ?? 0);
         if (fx.flash > 0.12) { s.flashes += 1; }
         if (fx.shake > 0.1) { s.shakes += 1; }
         d.frames = String(s.frames);
         d.scene = fx.scene;
         d.scenes = String(s.scenesSeen.size);
-        d.jframes = String(s.jFrames.size);
-        d.dframes = String(s.dFrames.size);
+        d.equations = String(s.eqSeen.size);
+        d.packets = String(s.packetsSeen);
         d.flashes = String(s.flashes);
         d.shakes = String(s.shakes);
         d.beats = String(s.beats);
         d.beat = String(Math.floor(beatAt(t)));
-        const jd = fx.state.d.find((q) => q.who === 'J');
-        const od = fx.state.d.find((q) => q.who === 'D');
-        d.nl = String(jd ? ink(JACKSON[jd.frame] || JACKSON.stand) : 0);
-        d.nr = String(od ? ink(JORDAN[od.frame] || JORDAN.ready) : 0);
         if (now - s.lastStat > 250) {
           s.lastStat = now;
           const total = Math.max(dur, 1);
-          b.stat.textContent = `MJ x MJ  ${clock(t)} / ${clock(total)}   ${BPM} BPM   ${fx.scene.toUpperCase()}`;
+          b.stat.textContent = `INTERNET  ${clock(t)} / ${clock(total)}   ${BPM} BPM   ${fx.scene.toUpperCase()}`;
         }
       };
       if (calm) startSong(); // the reduced-motion version has no flood: straight to the stage

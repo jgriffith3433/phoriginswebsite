@@ -19,6 +19,12 @@
       "root": "assets/splats",
       "skip": ["_*"],
       "slots": [{ "slot": "splat", "current": "{entity}.splat", "takes": "_takes/{entity}-*.splat" }]
+    },
+    {
+      "kind": "video",
+      "root": "assets/video/news",
+      "skip": ["_*"],
+      "slots": [{ "slot": "video", "current": "{entity}.mp4", "takes": "_takes/{entity}-*.mp4" }]
     }
   ]
 }

@@ -97,47 +97,33 @@ stalls. `?songlen=N` (a test hook) shortens the song to N seconds.
    error. The clock is the audio's `currentTime` (extrapolated between its updates). If the browser lets us (an audio
    context that is really running) an `AnalyserNode` taps the element and the equalizer follows the real spectrum;
    otherwise the beat clock drives it. It never wires the element into a suspended context, which would silence it.
-3. **The dance.** One `<canvas id="showCanvas">`, redrawn every frame (the DOM is a handful of nodes, so a phone holds
+3. **The algorithms.** One `<canvas id="showCanvas">`, redrawn every frame (the DOM is a handful of nodes, so a phone holds
    60 fps; if drawing takes over 12 ms the glow turns off and the canvas drops to 1x, over 24 ms it drops to 30 fps).
    Four modules, all plain data and pure functions with tests:
-   - `dancers.js`: 17 hand-drawn ASCII frames for **Jackson** (stand, point, hat tip, four moonwalk frames, four spin
-     frames, toe stand, the 45 degree lean (two), sparkle glove (two), freeze, hip) and 14 for **Jordan** (ready, dribble,
-     crossover, drive, gather, jump shot, release, leap, dunk, hang time with the tongue out, land, shrug, Jumpman,
-     pivot), 16 rows tall, plus the hoop and backboard in three wobble frames. `flip()` mirrors a frame (the jersey number
-     keeps reading 23).
-   - `banner.js`: a 4x5 block-letter font (A-Z, x, !). A banner is laid out letter by letter, on double-width pixels when
-     the stage is wide enough (square pixels), single when not, wrapped to the stage width.
-   - `choreo.js`: the beat clock (`BPM` 118, `BEAT_OFFSET` 0.31 s, both measured from the song with onset
-     autocorrelation), `buildTimeline(duration)` and the scenes. The timeline stretches every scene in proportion to the
-     song (258 s is 127 bars; the solos run their sequence again from the other side) and squeezes by priority for a short
-     song (8 s keeps intro, Jackson, the outro...). Scene boundaries sit on bar lines.
-   - `stage.js`: one frame into a grid of cells (character, colour, glow flag); `show.js` paints it. Banner pixels and the
-     spotlight's shading are block characters that the painter draws as translucent or solid cell rectangles, the way a
-     terminal does; everything else is ASCII text.
+   - `dancers.js` (the name is kept so imports stay put): `EQUATIONS`, 24 equations that run the internet as data (`id`,
+     `beat`, `left` / `right` term lists with `sign` and `coeff`, the `moved` term that slides across `=`, a caption).
+     `CORE_EQUATIONS` are J's four, exactly as written: `GPU + Text = Hearts - Credits`, `Hearts = GPU + Text + Credits`,
+     `Credits = Hearts - GPU - Text`, `Hearts + Credits = GPU + Text + 2(Credits)`. `balanceEquation` checks each against
+     `DEFAULT_VARS` (and symbolically under Hearts = GPU + Text + Credits for the core four). `buildFarmState` draws the GPU
+     farm (racks, blinking lights, fans, heat, utilisation bars, a credits meter); `buildNetState` the network (nodes,
+     links, packets as moving characters, a pulsing core).
+   - `banner.js`: a block-letter font (A-Z, 0-9, `+ - = / ( ) x`). A banner is laid out letter by letter, with each letter
+     carrying its word, so a term can glow in its own colour and slide.
+   - `choreo.js`: the beat clock (`BPM` 128, `BEAT_OFFSET` 0.409 s, measured from the song in the repo, 228.264 s), `buildTimeline(duration)` and the scenes: `boot`
+     (rack boot), `eq1` (J's four, one per beat slot), `farm`, `eq2`, `net`, `flythrough` (farm to token trunk to the
+     gateway core), `hearts` (hearts flood), `rapid` (every equation, one a beat), `finale` (the four stacked, everything lit),
+     `outro` (BUILD SUCCESSFUL, credits). The timeline stretches to the song and squeezes by priority for a short one; a song well over the nominal 82 bars runs the middle scenes (eq1 to rapid) in as many rounds as fit, so a 3+ minute song does not hold one view for long. Boundaries sit on bar lines and the outro ends exactly at the song's end.
+   - `stage.js`: one frame into a grid of cells; the live tally row `GPU(..) + Text(..) = Hearts(..) - Credits(..)` comes
+     from the farm state; `show.js` paints it. Algebra moves: the term slides across `=` and flips sign, letters glow per
+     term, a white flash when both sides tally. Reduced motion keeps all of it and drops the flashes, shake and confetti.
 
-   Scenes (nominal bars at 118 BPM, about 2 s a bar): `intro` SHOWTIME (2, countdown, both walk on), `king` THE KING OF
-   POP (4, Jackson solo under the banner), `jackson` (12: moonwalk glide, spin, toe stand, hat tip, 45 degree lean,
-   sparkle glove wave, freeze), `air` AIR JORDAN (4), `jordan` (12: dribble crossover, jump shot with a SWISH, slam dunk
-   with a leap across the screen to the backboard and hoop and a shaking rim, hang time with the tongue out, shrug),
-   `mirror` (8: eight mirrored pairs of poses), `callresponse` (8: OW! / SWISH!), `battle` (8: the floor changes hands every
-   two beats, a spotlight follows whoever has it, a score), `names` JACKSON x JORDAN (4), `finale` (6: a run to centre,
-   the last pose together held for the last bar and a half, confetti), `outro` (4: the credits scroll, BUILD SUCCESSFUL).
+   Layout: at least 46 columns by 34 rows (a 390 px phone gets 14 px text); the farm and net use fewer racks and nodes on
+   narrow stages, the equations wrap, and there is no horizontal scroll.
 
-   Text effects, all in time with the beat: a per-letter colour that cycles round the rainbow, a ripple that bounces a few
-   letters on every beat and a white flash of the whole banner on the beat; a screen flash (a tint, at most 0.35 alpha, under
-   3 Hz) and a shake on the beat and harder on a hit (the dunk, the freeze, the finale pose); falling sparkles and confetti
-   characters; two sweeping spotlights; an equalizer row; two scrolling marquees; the stage floor, a row of tiles that
-   step with the beat, with the dancers' reflections shimmering under it; speech bubbles; a caption naming the move; a
-   credits-style outro.
+   `#termShow` carries `data-act` (flood, flip), `data-lines`, `data-frames`, `data-audio`, `data-scene`, `data-scenes`,
+   `data-equations` (distinct equations shown), `data-packets` (most packets in flight), `data-flashes`, `data-shakes`,
+   `data-beats`, `data-cols`, `data-rows`, `data-px` and `data-calm` for the playtest.
 
-   Layout: the text size is chosen so the stage is at least 46 columns by 34 rows (a 390 px phone gets 14 px text, 46
-   columns; a laptop gets 18 px, 118 columns), so the figures keep their size and the choreography spreads around them.
-   Left alone on a phone there is no horizontal scroll.
-
-   `#termShow` carries `data-act` (flood, flip), `data-lines`, `data-frames`, `data-audio` (pending, playing, silent,
-   ended), `data-scene`, `data-scenes` (distinct scenes drawn), `data-jframes` / `data-dframes` (distinct frames drawn per
-   dancer), `data-flashes`, `data-shakes`, `data-beats`, `data-nl` / `data-nr` (marks in each dancer's current frame),
-   `data-cols`, `data-rows`, `data-px` and `data-calm` for the playtest.
 
 When the song ends the show hides and the real log prints at once (stages, bars, counters, table, banner) ending in BUILD
 SUCCESSFUL, and `/opt/hawkes-biomedical` is there (the build is recorded when `/build` starts).
@@ -147,7 +133,7 @@ before: `play song` plays it), a fixed `CALM_SECONDS` (48 s) timeline of the sam
 shake, no falling confetti, no ripple, static marquees. The short normal log prints after it.
 
 **Swapping in the real song.** Replace `song.mp3` at the repo root. The length is read from the file and the timeline
-fits it. The tempo is `BPM` in choreo.js (118 for the song in the repo; `BEAT_OFFSET` is where the first beat falls).
+fits it. The tempo is `BPM` in choreo.js (128 for the song in the repo; `BEAT_OFFSET` 0.409 is where the first beat falls; measure both again after a swap).
 
 **Test hooks.** `?songlen=8` ends the song after 8 s (the playtest does not wait four minutes). `?demo=show` starts the
 show once the boot ends (the phone playtest looks at it this way). Neither is linked from anywhere.
@@ -184,4 +170,4 @@ by hand.
 ## Root-only login and the /build show (current)
 
 - `root` is the only account that can be logged into. `su`/`login`/`ssh` to any other user (guest, admin, kali...) fail in-world; root is reached only through the three GUIDE steps (hat, scan, root), or `hint`. Root commands (`/build /status /deploy /logs /services /rollback`) refuse in one line that names the guide's next step.
-- `/build`: log flood (1,600+ lines/s) -> `song.mp3` -> a choreographed hand-drawn ASCII dance for Jackson and Jordan on one canvas, synced to the song; it cannot be skipped. Screenshots: `docs/terminal-shots/`.
+- `/build`: log flood (1,600+ lines/s) -> `song.mp3` -> the equations that run the internet over a text GPU farm and network on one canvas, synced to the song; it cannot be skipped. Screenshots: `docs/terminal-shots/`.
