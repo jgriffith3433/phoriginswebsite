@@ -54,8 +54,8 @@ export const CAR = { x0: 0, x1: 18, halfWidth: 1.5, ceiling: 2.42 };
 export const DOORS_X = [2.3, 6.8, 11.2, 15.7];
 const DOOR_HALF = 0.65;
 /** Seat front edge, distance from the car's center line. */
-const SEAT_FRONT = 1.04;
-const SEAT_TOP = 0.45;
+export const SEAT_FRONT = 1.04;
+export const SEAT_TOP = 0.45;
 /** Tunnel lamp spacing, meters. */
 const LAMP_GAP = 11;
 /** Cruising speed through the tunnel, m/s. */
@@ -64,7 +64,7 @@ const CRUISE = 14;
 const SURF = { SOLID: 0, FLOOR: 1, WALL: 2, SEAT: 3, WINDOW: 4, TEX: 5, CEIL: 6, STEEL: 7, LAMP: 8, DOOR: 9 };
 
 /** Bench spans along x, between the doors and the end walls. */
-const BENCHES: [number, number][] = (() => {
+export const BENCHES: [number, number][] = (() => {
   const out: [number, number][] = [];
   let from = CAR.x0 + 0.25;
   for (const d of DOORS_X) {

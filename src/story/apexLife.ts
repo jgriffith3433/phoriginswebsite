@@ -2,8 +2,8 @@ import * as BABYLON from '@babylonjs/core';
 
 import { faceSpeak, registerFace, unregisterFace } from '../game/faceTalk';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
-import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
-import { SIT_LIFT } from '../game/npcs';
+import { PLAYER_STAND_Y } from '../game/player';
+import { createLeanAnchor, createSeatBlend, LEAN_SKIN, registerSeat, SEAT_TOPS, standingGroupY, type LeanAnchor, type LeanSurface } from '../game/seatAnchor';
 import { lifeStats } from '../game/lifeStats';
 import { APEX_STAFF, createLinePool } from './placeVoices';
 
@@ -34,6 +34,8 @@ type Person = {
   glance: number;
   cool: number;
   moving: boolean;
+  /** A person leaning on the wall: his shoulder is measured against it while he holds the pose. */
+  lean?: LeanAnchor;
 };
 
 const ASSETS = { guard: 'asset-ch31-npc', reader: 'asset-ch08-npc', caller: 'asset-ch28-npc', cooler: 'asset-ch37-npc' } as const;
@@ -43,7 +45,11 @@ export const GUARD = { x: 1.0, z0: 4.5, z1: 24, speed: 0.95, stops: [6, 14, 22],
 /** Waiting chairs in hall 2 face +z. The levels place them at x 27.2 and 28.0, z 30.4. */
 export const SEATS = { reader: { x: 27.2, z: 30.35 }, caller: { x: 28.0, z: 30.35 } };
 /** The cooler stands on the west wall of hall 1 and faces +x. */
-export const COOLER = { x: -1.3, z: 12.5 };
+export const COOLER = { x: -2.0, z: 12.5 };
+/** Hall 1's west wall: `h1-wall-w` is centred on x -2.32, 0.24 thick, so its room face is at x -2.20 and faces +x. */
+export const WEST_WALL: LeanSurface = { kind: 'wall', x: -2.2, z: 0, nx: 1, nz: 0 };
+/** The analyst stands just north of the cooler facing it, the shoulder toward the wall on the wall (arm root 0.17 m off his axis). */
+export const ANALYST = { x: WEST_WALL.x + LEAN_SKIN + 0.17, z: 13.2, yaw: Math.PI };
 
 /** Footprints (x, z, radius) of the furniture and people these routes pass, so the routine route can be audited. */
 export const CLEARANCES: { name: string; x: number; z: number; r: number }[] = [
@@ -52,8 +58,6 @@ export const CLEARANCES: { name: string; x: number; z: number; r: number }[] = [
   { name: 'hall-bin-south', x: 1.9, z: 1.6, r: 0.2 },
   { name: 'hall-bin-north', x: -1.9, z: 23, r: 0.2 },
 ];
-
-const ANALYST_LEAN = 0.1;
 
 export const createApexLife = (host: ApexLifeHost) => {
   const people: Person[] = [];
@@ -74,7 +78,12 @@ export const createApexLife = (host: ApexLifeHost) => {
     mesh.checkCollisions = false;
     const avatar = createCharacterAvatar(host.scene, `apex-life-${id}`, assetId);
     avatar.group.parent = mesh;
-    avatar.group.position.y = -PLAYER_MESH_Y_OFFSET + (seated ? SIT_LIFT : 0);
+    avatar.group.position.y = standingGroupY();
+    if (seated) {
+      const seat = createSeatBlend(avatar);
+      seat.setSeated(SEAT_TOPS.officeChair);
+      registerSeat(`apex-${id}`, seat, avatar);
+    }
     mesh.rotation.y = yaw + Math.PI;
     const person: Person = { id, mesh, avatar, routine, baseYaw: yaw, yaw, seated, glance: 0, cool: 3 + Math.random() * 3, moving: false };
     avatar.whenReady(() => {
@@ -82,6 +91,9 @@ export const createApexLife = (host: ApexLifeHost) => {
       if (seated) avatar.playClip(routine === 'on-the-phone' ? 'talk' : 'sit', true);
       else avatar.setLocomotion(routine === 'rounds', true);
     });
+    if (routine === 'at-the-cooler') {
+      person.lean = createLeanAnchor(`apex-${id}-lean`, avatar, mesh, WEST_WALL, yaw, () => !person.moving);
+    }
     registerFace(`apex-life-${id}`, avatar);
     lifeStats.person(`apex-${id}`, 'apex', routine);
     people.push(person);
@@ -108,12 +120,13 @@ export const createApexLife = (host: ApexLifeHost) => {
     barkIn = 6;
     spawn('guard', ASSETS.guard, GUARD.x, GUARD.z0, 0, 'rounds', false).mesh.position.x = GUARD.x;
     spawn('reader', ASSETS.reader, SEATS.reader.x, SEATS.reader.z, 0, 'reading', true);
-    spawn('cooler', ASSETS.cooler, COOLER.x, COOLER.z, -Math.PI / 2, 'at-the-cooler', false);
+    spawn('cooler', ASSETS.cooler, ANALYST.x, ANALYST.z, ANALYST.yaw, 'at-the-cooler', false);
     if (!host.lowPower()) spawn('caller', ASSETS.caller, SEATS.caller.x, SEATS.caller.z, 0, 'on-the-phone', true);
   };
 
   const dispose = () => {
     for (const p of people) {
+      p.lean?.release();
       lifeStats.forget(`apex-${p.id}`);
       unregisterFace(`apex-life-${p.id}`);
       p.avatar.dispose();
@@ -175,6 +188,7 @@ export const createApexLife = (host: ApexLifeHost) => {
         p.moving = false;
       } else if (p.glance > 0) {
         p.glance -= dt;
+        if (p.lean) continue;
         const want = Math.atan2(dx, dz);
         let d = want - p.baseYaw;
         while (d > Math.PI) d -= Math.PI * 2;
@@ -185,9 +199,11 @@ export const createApexLife = (host: ApexLifeHost) => {
         turnToward(p, p.baseYaw, dt);
       }
 
-      // Routine posture: the reader bends over the page, the cooler drinker leans on the wall.
-      const lean = p.routine === 'reading' ? 0.16 + Math.max(0, Math.sin(clock * 1.1 + 1)) * 0.03 : p.routine === 'at-the-cooler' ? ANALYST_LEAN : 0;
+      // Routine posture: the reader bends over the page; the cooler drinker keeps his shoulder on the wall (upright,
+      // the anchor closes the last centimetres), and only turns his head when Pierce passes.
+      const lean = p.routine === 'reading' ? 0.16 + Math.max(0, Math.sin(clock * 1.1 + 1)) * 0.03 : 0;
       p.avatar.group.rotation.x += (lean - p.avatar.group.rotation.x) * Math.min(1, dt * 4);
+      p.lean?.step(dt);
 
     }
     // One short remark when Pierce is close to someone: voiced lines only, never one heard in the last 5 minutes.

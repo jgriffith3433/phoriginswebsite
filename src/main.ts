@@ -10,7 +10,9 @@ import {
   spawnNpcsFromScene,
   type Npc,
 } from './game/npcs';
-import { createPlayerAvatar, type PlayerAvatar } from './game/playerAvatar';
+import { createPlayerAvatar, setClipBlendSeconds, type PlayerAvatar } from './game/playerAvatar';
+import { applyNpcLife, updateNpcLife, npcLifeSnapshot, resetNpcLifeStats, npcStartle } from './game/npcLife';
+import { STRIDE_MPS } from './game/stride';
 import { createJumpPoser } from './game/jumpPose';
 import { createFootIk } from './game/footIk';
 import { createLocoState } from './game/locoState';
@@ -57,6 +59,7 @@ import { createApexLife } from './story/apexLife';
 import { createApexBoardHall } from './story/apexBoardHall';
 import { createTouchables, TOUCH_SOUNDS } from './game/touchables';
 import { lifeStats } from './game/lifeStats';
+import { hipsWorldY, registerContact, SEAT_HIPS_RISE, SEAT_TOPS, seatLift, seatReport, unregisterContact } from './game/seatAnchor';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
@@ -68,9 +71,10 @@ import { POSSESS_SECONDS, SHADOW_RUN_SECONDS, SHADOW_RUN_SPEED } from './story/s
 import { audioContextState, busInput, createUnlockedAudio, getSharedAudioContext, holdAllAudio, installAudioUnlock, liveAudioElementCount, releaseAllAudio, releaseUnlockedAudio, routedAudioElementCount, unlockAudio } from './game/audioUnlock';
 import { music } from './game/musicDirector';
 import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcousticsStats, setAcousticsPaused, setListener, setOcclusionRay, setZones, startTestSource, testPing, updateAcoustics, type AcousticZone, type ReverbType, type WorldOptions } from './game/acoustics';
-import { clearSceneMix, clipLog, holdClips, sceneMix, setSceneMixProbe, liveClipCount, mixVolume, playClip, preloadClips, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
+import { clearSceneMix, clipLog, holdClips, sceneMix, setSceneMixProbe, liveClipCount, mixVolume, playClip, preloadClips, voiceNow, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import {
   applyFaces,
+  isFaceAvatar,
   clearFaces,
   faceSilence,
   faceSpeak,
@@ -357,7 +361,7 @@ const shadowVeil = createShadowVeil(scene);
 scene.collisionsEnabled = true;
 scene.gravity = BABYLON.Vector3.Zero();
 // Mouth / look / gesture after Mixamo sit-talk, or the clip would wipe the jaw.
-scene.onAfterAnimationsObservable.add(() => { applyFaces(); });
+scene.onAfterAnimationsObservable.add(() => { applyFaces(); applyNpcLife(isFaceAvatar); });
 
 const followCamera = createThirdPersonCamera(scene);
 const camera = followCamera.camera;
@@ -892,6 +896,14 @@ const syncBoardFaces = () => {
   for (const npc of npcs) registerFace(npc.seatId, npc.avatar);
 };
 
+/** Pierce's own seat / sofa for the prop-contact probe (his rig is not parented to a capsule, so no SeatBlend). */
+const registerPierceContact = (id: string, kind: 'seat' | 'bed' | 'lean', top: number) => {
+  registerContact(id, kind, playerAvatar, () => {
+    const y = hipsWorldY(playerAvatar);
+    return y == null ? null : { value: y - top, target: SEAT_HIPS_RISE, transition: 'none' };
+  });
+};
+
 const seatPlayerAtHeadChair = () => {
   const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
   if (!pose) return;
@@ -905,9 +917,11 @@ const seatPlayerAtHeadChair = () => {
   playerAvatar.group.position.set(pose.x, pose.visualY, pose.z);
   playerAvatar.group.rotation.y = pose.facingYaw + Math.PI;
   playerAvatar.playClip('sit', true);
+  registerPierceContact('pierce-board-seat', 'seat', SEAT_TOPS.officeChair);
 };
 
 const leavePlayerAtHeadChair = () => {
+  unregisterContact('pierce-board-seat');
   const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
   if (!pose) return;
   const x = pose.x - 0.55;
@@ -1017,6 +1031,8 @@ const endCutscene = () => {
   }
   const gear = cutsceneGear;
   cutsceneGear = null;
+  // The 0.2 s scene blend stays through the hand-back to gameplay, then the 0.1 s gameplay blend returns.
+  setTimeout(() => setClipBlendSeconds(0.1), 400);
   const reequip = finished ? finished.timeline.reequip !== false : true;
   if (finished) music.cutsceneEnd(finished.id);
   act.releaseSeat();
@@ -1040,6 +1056,7 @@ const endCutscene = () => {
 const beginNamedCutscene = (id: string) => {
   if (state.inCutscene) return;
   state.inCutscene = true;
+  setClipBlendSeconds(0.2);
   // Drop the walk from the frame before, or every idle the scene asks for plays as a walk.
   playerAvatar.setSprinting(false);
   playerAvatar.setLocomotion(false, true);
@@ -3155,12 +3172,24 @@ const apex: ApexSlice = createApexSlice({
   showLine: (title, text) => showCineHud(title, text),
   playFile: (url, volume) => audio.play(url, volume),
   clearInput: () => clearInputState(),
-  seatVisual: (y) => {
-    playerAvatar.group.position.y = y;
+  seatVisual: () => {
+    // The sofa cushion is 0.45 m: lift the rig by the same rule every other seat uses, so SitIdle's hips land on it.
+    playerAvatar.group.position.y = playerMeshY(PLAYER_STAND_Y) + seatLift(SEAT_TOPS.sofa);
+    registerPierceContact('apex-sofa', 'seat', SEAT_TOPS.sofa);
   },
   standVisual: () => {
+    unregisterContact('apex-sofa');
     playerAvatar.group.position.y = playerMeshY(PLAYER_STAND_Y);
   },
+});
+
+// The Morning bed for the prop-contact probe: hips joint against where the scripted pelvis sits on the mattress
+// (lying on the pillow, or sitting on the edge). A limb in the mattress shows as `minOverMattress` on morning().pose.
+registerContact('morning-bed', 'bed', playerAvatar, () => {
+  const s = morning.story();
+  if (!(s.lying || (s.pose.phase === 'sit' && s.beat === 'sleep'))) return null;
+  const y = hipsWorldY(playerAvatar);
+  return y == null ? null : { value: y, target: s.pose.y, transition: 'none' };
 });
 
 const apexLife = createApexLife({
@@ -4278,7 +4307,57 @@ scene.onAfterAnimationsObservable.add(() => {
   const lib = getLevelDefinition(state.level).libraryId;
   const s = footIk.sample();
   footSlideByLevel[lib] = { max: s.maxPlantDrift, mean: s.meanPlantDrift, plants: s.plants };
+  locoAuditFrame(dt, s);
 });
+/** Per-frame locomotion audit for the playtest (docs/animation-audit.md): slide frames and pose-pop frames. */
+const locoAudit = { frames: 0, moving: 0, slide: 0, pop: 0, turnPop: 0, worstRatio: 0, worstPop: 0, speedSum: 0, rateSum: 0 };
+let auditOn = false;
+let auditYaw = 0;
+let auditFoot: { lx: number; lz: number; rx: number; rz: number } | null = null;
+let auditPelvisYaw = 0;
+const locoAuditFrame = (dt: number, s: ReturnType<typeof footIk.sample>) => {
+  if (!auditOn || dt <= 0) { auditFoot = null; return; }
+  const loco = playerAvatar.locomotion();
+  const yaw = state.characterYaw;
+  const dyaw = Math.abs(Math.atan2(Math.sin(yaw - auditYaw), Math.cos(yaw - auditYaw)));
+  auditYaw = yaw;
+  const fx = Math.sin(yaw);
+  const fz = Math.cos(yaw);
+  // Feet relative to the root in the body frame: a pop is a foot jumping across the body in one frame.
+  const px = state.player.x;
+  const pz = state.player.z;
+  const rel = (x: number, z: number) => ({ a: (x - px) * fz - (z - pz) * fx, b: (x - px) * fx + (z - pz) * fz });
+  const l = rel(s.left.x, s.left.z);
+  const r = rel(s.right.x, s.right.z);
+  const cur = { lx: l.a, lz: l.b, rx: r.a, rz: r.b };
+  if (auditFoot) {
+    const jump = Math.max(
+      Math.hypot(cur.lx - auditFoot.lx, cur.lz - auditFoot.lz),
+      Math.hypot(cur.rx - auditFoot.rx, cur.rz - auditFoot.rz),
+    );
+    // A foot may swing about 4 m/s in the body frame; 0.5 m in a 50 ms frame is a pop.
+    const allowed = 4.5 * dt + 0.12;
+    locoAudit.worstPop = Math.max(locoAudit.worstPop, jump - allowed);
+    if (jump > allowed && lastMoving) {
+      locoAudit.pop += 1;
+      if (dyaw > 0.05) locoAudit.turnPop += 1;
+    }
+  }
+  auditFoot = cur;
+  locoAudit.frames += 1;
+  const walking = loco.clip === 'walk' || loco.clip === 'run' || loco.clip === 'pistolwalk';
+  if (lastMoving && groundSpeed > 0.35 && walking) {
+    locoAudit.moving += 1;
+    const clipSpeed = (STRIDE_MPS[loco.clip as string] ?? STRIDE_MPS.walk) * loco.rate;
+    const ratio = Math.abs(clipSpeed - groundSpeed) / groundSpeed;
+    locoAudit.worstRatio = Math.max(locoAudit.worstRatio, ratio);
+    locoAudit.speedSum += groundSpeed;
+    locoAudit.rateSum += loco.rate;
+    if (ratio > 0.3) locoAudit.slide += 1;
+  } else if (!lastMoving && groundSpeed > 0.6 && walking) {
+    locoAudit.slide += 1;
+  }
+};
 /** Last pose and input the avatar was given, for the playtest probe. */
 let lastJumpPose: number | null = null;
 let lastMoving = false;
@@ -5817,6 +5896,7 @@ const renderLoop = () => {
       }
       if (!playing) endCutscene();
       syncBoardFaces();
+      updateNpcLife(delta, { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z });
       updateFaces(delta, {
         pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
         boardMeeting: activeCutscene?.id === 'room-for-grace',
@@ -5886,6 +5966,7 @@ const renderLoop = () => {
     boardHall.step(delta);
     if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
     loreObjects.step(delta);
+    updateNpcLife(delta, { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z });
     updateFaces(delta, {
       pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
       boardMeeting: false,
@@ -6260,6 +6341,14 @@ installPhPlaytest({
     ...playerAvatar.locomotion(),
   }),
   /** Planted-foot drift (m) for the live level and every level visited this run. */
+  locoAudit: (cmd?: 'start' | 'stop') => {
+    if (cmd === 'start') {
+      Object.assign(locoAudit, { frames: 0, moving: 0, slide: 0, pop: 0, turnPop: 0, worstRatio: 0, worstPop: 0, speedSum: 0, rateSum: 0 });
+      auditFoot = null;
+      auditOn = true;
+    } else if (cmd === 'stop') auditOn = false;
+    return { ...locoAudit, on: auditOn };
+  },
   footSlide: () => {
     const live = footIk.sample();
     const lib = getLevelDefinition(state.level).libraryId;
@@ -6412,6 +6501,8 @@ installPhPlaytest({
   stationRain: () => dressing.station(),
   /** Playtest setup shortcut (named): Going Home hands over Shock without its lesson. */
   grantShock: () => { if (isHomeLevel()) home.grantShock(); },
+  /** Prop contact of every seated person: hips height over the seat top and the error from the clip's own hips offset. */
+  seats: () => seatReport(),
   life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }
@@ -6419,6 +6510,11 @@ installPhPlaytest({
   /** Lip sync, blinks, look-at and dialogue gestures on every registered on-screen speaker. */
   faces: () => facesSnapshot(),
   resetFaces: () => resetFaceStats(),
+  /** Background people: idle variants and phases, look-at within 4 m, reactions, bind-pose and restart counts. */
+  npcLife: () => npcLifeSnapshot(),
+  resetNpcLife: () => resetNpcLifeStats(),
+  /** Playtest/monster beat: everyone nearby flinches and looks. */
+  npcStartle: () => npcStartle(),
   /** Board plot through the Apex hall (desk, locked door, Hale threat) — no call required. */
   boardHall: () => (isApexPeakLevel() ? boardHall.snapshot() : null),
   pickups: () => pickups
@@ -6611,6 +6707,7 @@ installPhPlaytest({
     title: () => ({ ...titleScene.probe(), menuSounds: menuSoundLog() }),
     titleStrike: () => titleScene.strikeNow(),
     voice: clipLog().filter((c) => c.voice),
+    voiceNow: voiceNow(),
     sceneMix: sceneMix(),
     sceneMixReset: clearSceneMix,
     acoustics: { ...acousticsProbe(getSharedAudioContext()), door: { closed: boardDoorClosed } },

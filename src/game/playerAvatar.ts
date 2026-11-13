@@ -8,7 +8,8 @@ import {
   lookupClipTrim,
   type ClipTrimsFile,
 } from './clipTrims';
-import { JUMP_KEYS, strideRatio } from './stride';
+import { JUMP_KEYS, RUN_OFF_MPS, RUN_ON_MPS, strideRatio } from './stride';
+import { registerNpcLife, unregisterNpcLife, nextIdleStyle, type IdleStyle } from './npcLife';
 import { PLAYER_ASSET_ID, getAssetLibrary, jointSuffix, loadGlbByAssetId, resolveModelPath } from './modelLoader';
 
 export { JUMP_KEYS, STRIDE_MPS, strideRatio } from './stride';
@@ -52,7 +53,27 @@ export type PlayerAvatar = {
   findBone: (suffix: string) => BABYLON.Bone | null;
   getSkinnedMesh: () => BABYLON.AbstractMesh | null;
   isReady: () => boolean;
+  /**
+   * Idle life (background people): the idle style this rig was given at creation (variant, random
+   * start phase, rate), and what its clip is doing now. Null for Pierce, doubles and enemies.
+   */
+  idleStyle: () => IdleStyle | null;
+  animState: () => AvatarAnimState;
   dispose: () => void;
+};
+
+export type AvatarAnimState = {
+  ready: boolean;
+  shown: boolean;
+  /** At least one clip is evaluating. A shown, ready rig with this false would draw the bind pose. */
+  playing: boolean;
+  clip: string | null;
+  /** Play position 0..1 of the looping clip now driving, or -1. */
+  phase: number;
+  rate: number;
+  /** Times the rig was hidden and shown again, and how many of those restarted a loop from its first frame. */
+  reshows: number;
+  restarts: number;
 };
 
 const compact = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -119,13 +140,17 @@ const PLAYER_CLIP_SPEEDS: Record<string, number> = {
  */
 const CLIP_BLEND_SECONDS = 0.1;
 const CLIP_BLEND_ASSUMED_FPS = 60;
-const CLIP_BLENDING_SPEED = 1 / (CLIP_BLEND_SECONDS * CLIP_BLEND_ASSUMED_FPS);
+let clipBlendingSpeed = 1 / (CLIP_BLEND_SECONDS * CLIP_BLEND_ASSUMED_FPS);
+/** Scene entry/exit use 0.2 s so a gameplay pose eases into a scene's first pose (and back) instead of popping. */
+export const setClipBlendSeconds = (seconds: number) => {
+  clipBlendingSpeed = 1 / (Math.max(0.02, seconds) * CLIP_BLEND_ASSUMED_FPS);
+};
 /** PistolWalk + PistolJump on the same bones while airborne and moving. */
 const ARMED_MOVE_JUMP_WEIGHT = 0.5;
 
 const applyClipBlending = (clip: BABYLON.AnimationGroup) => {
   clip.enableBlending = true;
-  clip.blendingSpeed = CLIP_BLENDING_SPEED;
+  clip.blendingSpeed = clipBlendingSpeed;
 };
 
 const targetName = (target: unknown) => {
@@ -224,6 +249,9 @@ export const createCharacterAvatar = (
   let wantsMoving = false;
   let wantsGrounded = true;
   let sprinting = false;
+  /** Ground speed picked the run clip (walk time-scaled past ~1.45x slid; see RUN_ON_MPS). */
+  let speedRun = false;
+  const useRun = () => (sprinting || speedRun) && !!runGroup;
   let armed = false;
   let disposed = false;
   let shown = true;
@@ -253,6 +281,14 @@ export const createCharacterAvatar = (
     onEnded?: () => void;
     lockCinematic: boolean;
   } | null = null;
+  // Background people get an idle style (variant, start phase, rate) so neighbours never idle in step.
+  const isBackgroundPerson = name !== 'playerAvatar' && !/(^enemy-|Double$|creature|^deskDouble|^morningDouble)/.test(name)
+    && assetId !== PLAYER_ASSET_ID && !assetId.includes('parasite');
+  const idleStyleValue: IdleStyle | null = isBackgroundPerson ? nextIdleStyle() : null;
+  let resumeFrame: { clip: BABYLON.AnimationGroup; frame: number } | null = null;
+  let reshows = 0;
+  let restarts = 0;
+  let reshowPending = false;
   let clipTrims: ClipTrimsFile | null = null;
   let modelPath = '';
   let modelReady = false;
@@ -261,10 +297,37 @@ export const createCharacterAvatar = (
   const rangeFor = (clip: BABYLON.AnimationGroup) =>
     clipPlayRange(clip, lookupClipTrim(clipTrims ?? { version: 1, clips: {} }, clipTail(clip.name), modelPath));
 
+  const IDLE_LIKE = new Set(['idle', 'rebornidle', 'sit', 'sitidle', 'pistolidle']);
+  const clipFrame = (clip: BABYLON.AnimationGroup) => {
+    const a = clip.animatables[0];
+    return a ? a.masterFrame : null;
+  };
+  /**
+   * After a loop starts: a hidden-then-shown rig carries on from where it was (no restart, and goToFrame
+   * evaluates the pose at once, so no bind-pose frame); a fresh background person starts at its own phase
+   * and rate so two neighbours are never in step.
+   */
+  const lifeStart = (clip: BABYLON.AnimationGroup, token: string) => {
+    if (!isBackgroundPerson || !clip.isPlaying) {
+      reshowPending = false;
+      return;
+    }
+    const { from, to } = rangeFor(clip);
+    const idleLike = IDLE_LIKE.has(token);
+    if (idleLike && idleStyleValue) clip.speedRatio = idleStyleValue.rate;
+    let frame: number | null = null;
+    if (resumeFrame && resumeFrame.clip === clip) frame = resumeFrame.frame;
+    else if (idleLike && idleStyleValue) frame = from + idleStyleValue.phase * (to - from);
+    if (reshowPending && !(resumeFrame && resumeFrame.clip === clip)) restarts += 1;
+    resumeFrame = null;
+    reshowPending = false;
+    if (frame !== null) clip.goToFrame(Math.min(to, Math.max(from, frame)));
+  };
+
   const activeIdle = () => (armed ? pistolIdleGroup ?? idleGroup : idleGroup);
   const activeWalk = () => {
     if (armed) return pistolWalkGroup ?? walkGroup;
-    if (sprinting && runGroup) return runGroup;
+    if (useRun()) return runGroup;
     return walkGroup;
   };
   const activeJump = () => (armed ? pistolJumpGroup ?? jumpGroup : jumpGroup);
@@ -422,7 +485,7 @@ export const createCharacterAvatar = (
     return false;
   };
 
-  const startFresh = (target: BABYLON.AnimationGroup, loop: boolean, speed: number) => {
+  const startFresh = (target: BABYLON.AnimationGroup, loop: boolean, speed: number, token = '') => {
     target.mask = null;
     target.stop(true);
     applyClipBlending(target);
@@ -430,6 +493,7 @@ export const createCharacterAvatar = (
     const { from, to } = rangeFor(target);
     target.start(loop, speed, from, to, false);
     resetTrackWeights(target, 1);
+    if (token) lifeStart(target, token);
   };
 
   const playLoop = (target: BABYLON.AnimationGroup | null, clipName: string, forceRestart = false) => {
@@ -455,7 +519,7 @@ export const createCharacterAvatar = (
     animationGroups.forEach((clip) => {
       if (clip !== target) hardStop(clip, 1);
     });
-    startFresh(target, true, 1);
+    startFresh(target, true, 1, clipName);
     current = clipName;
   };
 
@@ -538,7 +602,7 @@ export const createCharacterAvatar = (
     if (!wantsGrounded && activeJump()) return armed ? 'pistolJump' : 'jump';
     if (wantsMoving) {
       if (armed) return 'pistolWalk';
-      if (sprinting && runGroup) return 'run';
+      if (useRun()) return 'run';
       return 'walk';
     }
     return armed ? 'pistolIdle' : 'idle';
@@ -550,7 +614,7 @@ export const createCharacterAvatar = (
       playJump();
       return;
     }
-    const movingName = armed ? 'pistolwalk' : sprinting && runGroup ? 'run' : 'walk';
+    const movingName = armed ? 'pistolwalk' : useRun() ? 'run' : 'walk';
     const idleName = armed ? 'pistolidle' : 'idle';
     const walk = activeWalk();
     playLoop(
@@ -616,7 +680,20 @@ export const createCharacterAvatar = (
     if (!cinematic) applyLocomotion();
   };
 
+  /** Blend walk to run by real root speed with hysteresis, so neither clip is time-scaled outside ~0.6-1.45x. */
+  const updateSpeedRun = () => {
+    const next = stride === null ? false : speedRun ? stride > RUN_OFF_MPS : stride > RUN_ON_MPS;
+    if (next === speedRun) return;
+    speedRun = next;
+    if (!runGroup || sprinting || armed || cinematic || !wantsMoving) return;
+    if (current === 'walk' || current === 'run') {
+      current = null;
+      applyLocomotion();
+    }
+  };
+
   const applyStride = () => {
+    updateSpeedRun();
     if (stride === null) return;
     const pairs: [BABYLON.AnimationGroup | null, string][] = [[walkGroup, 'walk'], [runGroup, 'run'], [pistolWalkGroup, 'pistolwalk']];
     for (const [clip, name] of pairs) {
@@ -782,6 +859,7 @@ export const createCharacterAvatar = (
       overlayEndTimer = window.setTimeout(finish, clipDurationMs(clip, speed, from, to) + 40);
     }
     clip.start(loop, speed, from, to, false);
+    if (loop && !isOverlay) lifeStart(clip, token);
     if (!loop && !onEnded && !isOverlay) {
       const held = overlaySeq;
       clip.onAnimationGroupEndObservable.addOnce(() => {
@@ -935,7 +1013,7 @@ export const createCharacterAvatar = (
     return clipDurationMs(clip, speed, from, to) / 1000;
   };
 
-  return {
+  const api: PlayerAvatar = {
     group,
     setLocomotion,
     setPace,
@@ -986,15 +1064,23 @@ export const createCharacterAvatar = (
         if (!on) group.setEnabled(false);
         return;
       }
-      group.setEnabled(on);
       if (!on) {
-        animationGroups.forEach((clip) => {
-          if (clip.isPlaying) clip.stop();
-        });
+        group.setEnabled(false);
+        resumeFrame = null;
+        for (const clip of animationGroups) {
+          if (!clip.isPlaying) continue;
+          const frame = clipFrame(clip);
+          if (!resumeFrame && frame !== null && clip.loopAnimation) resumeFrame = { clip, frame };
+          clip.stop();
+        }
         return;
       }
+      reshows += 1;
+      reshowPending = isBackgroundPerson;
       current = null;
+      // Start the loop (and put it back where it was) before the rig is drawn again.
       applyLocomotion();
+      group.setEnabled(true);
     },
     whenReady: (callback) => {
       if (modelReady && !disposed) {
@@ -1004,11 +1090,39 @@ export const createCharacterAvatar = (
       readyWaiters.push(callback);
     },
     isReady: () => modelReady && !disposed,
+    idleStyle: () => idleStyleValue,
+    animState: () => {
+      let playing = false;
+      let driving: BABYLON.AnimationGroup | null = null;
+      for (const clip of animationGroups) {
+        if (clip.isPlaying) {
+          playing = true;
+          if (!driving || (!clip.mask && driving.mask)) driving = clip;
+        }
+      }
+      let phase = -1;
+      if (driving) {
+        const frame = clipFrame(driving);
+        const { from, to } = rangeFor(driving);
+        if (frame !== null && to > from) phase = Math.min(1, Math.max(0, (frame - from) / (to - from)));
+      }
+      return {
+        ready: modelReady && !disposed,
+        shown,
+        playing,
+        clip: current,
+        phase,
+        rate: driving?.speedRatio ?? 1,
+        reshows,
+        restarts,
+      };
+    },
     findJoint,
     findBone,
     getSkinnedMesh,
     dispose: () => {
       disposed = true;
+      unregisterNpcLife(api);
       readyWaiters.length = 0;
       clearOverlayEndTimer();
       clearFaceGestureTimer();
@@ -1018,6 +1132,8 @@ export const createCharacterAvatar = (
       group.dispose();
     },
   };
+  if (idleStyleValue) registerNpcLife(name, api, idleStyleValue);
+  return api;
 };
 
 export const createPlayerAvatar = (scene: BABYLON.Scene, assetId = PLAYER_ASSET_ID): PlayerAvatar =>

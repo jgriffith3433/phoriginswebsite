@@ -8,6 +8,7 @@ import type { StoryCarry } from './act1';
 import { CORPSE_SECONDS, POSSESS_SECONDS, floorUnder, settleCorpse } from './streetRules';
 import { deathScream, STREET_BARKS, STREET_SFX, streetCopy } from './streetAudio';
 import { createWantedPosters } from './wantedPosters';
+import { createStationBenches } from './stationBenches';
 import { SIREN_KILLS, SIREN_SFX, type LedgerApi } from '../game/ledger';
 import { lifeStats } from '../game/lifeStats';
 import { createLinePool, PLACE_SFX, STATION_BARKS, STATION_PA, type PlaceLine } from './placeVoices';
@@ -195,6 +196,7 @@ const clamp = (value: number, min: number, max: number) => Math.max(min, Math.mi
 
 export const createTheStation = (host: TheStationHost) => {
   const people: Person[] = [];
+  const benches = createStationBenches({ scene: host.scene });
   const beads: BABYLON.Mesh[] = [];
   let active = false;
   let finished = false;
@@ -906,6 +908,7 @@ export const createTheStation = (host: TheStationHost) => {
     dispose: () => {
       active = false;
       playing = false;
+      benches.dispose();
       releaseLink(false);
       clearFigures();
       copFigure = null;
@@ -921,6 +924,7 @@ export const createTheStation = (host: TheStationHost) => {
     },
     mount: async () => {
       active = true;
+      benches.mount();
       shadowCrowd.reset();
       finished = false;
       shadowOn = false;
@@ -1159,6 +1163,7 @@ export const createTheStation = (host: TheStationHost) => {
     step: (dt: number) => {
       if (!active || finished) return;
       const stepDt = Math.min(0.05, Math.max(0, dt));
+      benches.step();
       if (playing) {
         stepEncounter(stepDt);
         return;

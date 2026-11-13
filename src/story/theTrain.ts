@@ -4,7 +4,8 @@ import * as BABYLON from '@babylonjs/core';
 import type { LevelCredits } from './credits';
 import type { ImpairState, StoryCarry } from './act1';
 import type { TrainDress } from './trainDress';
-import { CAR } from './trainDress';
+import { BENCHES, CAR, DOORS_X, SEAT_FRONT, SEAT_TOP } from './trainDress';
+import { createLeanAnchor, createSeatBlend, LEAN_SKIN, registerSeat, type LeanAnchor, type SeatBlend } from '../game/seatAnchor';
 import { PLAYER_ASSET_ID } from '../game/modelLoader';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
@@ -136,6 +137,10 @@ const RIDERS: [number, number, number, number?][][] = [
   [[2.3, 1.15, Math.PI], [7.4, -0.92, 0, 0.35], [15.7, -1.15, 0], [10.2, 1.1, Math.PI, -0.1]],
   [[4.2, -0.92, 0, 0.3], [15.7, 1.15, Math.PI], [8.2, -1.1, 0]],
 ];
+/** Centre poles are 0.022 m in radius (trainDress `poles`); a standing rider leans a shoulder on the one by his door. */
+const POLE_R = 0.022;
+/** Arm root (shoulder joint) is this far off a person's axis. */
+const SHOULDER_OFF = 0.17;
 /** A rider with an aisle spot steps off the wall into it when Pierce is this close (metres along the car). */
 const AISLE_TRIGGER = 5;
 
@@ -186,6 +191,8 @@ type Rider = {
   resting: boolean;
   poseHold: number;
   floorY: number;
+  /** Seat anchor on a bench (seat top from the car kit), or null for a rider standing at a pole. */
+  seat: SeatBlend | null;
   /** What the rider is doing while the car rolls: reading, asleep, or just swaying on the pole. */
   routine: 'read' | 'sleep' | 'sway';
   phase: number;
@@ -197,6 +204,8 @@ type Rider = {
   /** Staged reaction to Shadow Pierce: notice, film, cower, pull the handle, or hide between cars. */
   react: CrowdStage | null;
   reactLeft: number;
+  /** The shoulder-on-pole anchor of a standing rider once he has stepped up to his pole, else null. */
+  lean: LeanAnchor | null;
 };
 
 type Beat = 'opening' | 'cars' | 'stop' | 'door' | 'closing' | 'done';
@@ -371,7 +380,20 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const spawnRiders = (car: number) => {
     const spots = RIDERS[(car - 1) % RIDERS.length];
-    spots.forEach(([x, z, yaw, aisle], index) => {
+    spots.forEach(([spotX, spotZ, yaw, aisle], index) => {
+      // A rider without an aisle spot sits: on the nearest bench span, hips on the seat top, back toward the wall.
+      const sits = aisle === undefined;
+      let x = spotX;
+      let z = spotZ;
+      // A standing rider takes the centre pole by his door with the shoulder that faces it: he stands beside it,
+      // (pole radius + shoulder offset + skin) off its axis, on the side of his own left hand.
+      const pole = DOORS_X.reduce((best, d) => (Math.abs(d - spotX) < Math.abs(best - spotX) ? d : best));
+      if (!sits) x = pole + Math.cos(yaw) * (POLE_R + SHOULDER_OFF + LEAN_SKIN);
+      if (sits) {
+        const span = BENCHES.reduce((best, b) => (Math.abs((b[0] + b[1]) / 2 - spotX) < Math.abs((best[0] + best[1]) / 2 - spotX) ? b : best));
+        x = Math.min(span[1] - 0.35, Math.max(span[0] + 0.35, spotX));
+        z = Math.sign(spotZ) * (SEAT_FRONT + 0.24);
+      }
       const id = `train-rider-${car}-${index}`;
       const mesh = BABYLON.MeshBuilder.CreateCapsule(id, { radius: 0.38, height: 1.55 }, host.scene);
       mesh.position.set(x, PLAYER_STAND_Y, z);
@@ -381,15 +403,24 @@ export const createTheTrain = (host: TheTrainHost) => {
       const avatar = createCharacterAvatar(host.scene, id, RIDER_ASSETS[(car + index) % RIDER_ASSETS.length]);
       avatar.group.parent = mesh;
       avatar.group.position.y = -PLAYER_MESH_Y_OFFSET;
+      const seat = sits ? createSeatBlend(avatar) : null;
+      seat?.setSeated(SEAT_TOP);
+      if (seat) registerSeat(id, seat, avatar);
       const rider: Rider = {
-        mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0,
+        mesh, avatar, yaw, moving: false, down: false, shocked: false, corpse: 0, resting: false, poseHold: 0, floorY: 0, seat,
         routine: aisle !== undefined ? 'sway' : (['read', 'sleep', 'sway'] as const)[index % 3], phase: Math.random() * 6, notice: 0, cool: 2 + Math.random() * 2,
-        aisleZ: aisle ?? null, shifted: false, react: null, reactLeft: 0,
+        aisleZ: aisle === undefined ? null : 0, shifted: false, react: null, reactLeft: 0, lean: null,
       };
+      if (!sits) {
+        rider.lean = createLeanAnchor(`${id}-pole`, avatar, mesh, { kind: 'pole', x: pole, z: 0, r: POLE_R }, yaw,
+          () => rider.shifted && !rider.moving && !rider.down && !rider.react && rider !== tether && rider.notice <= 0);
+      }
       lifeStats.person(id, 'train', rider.routine);
       face(avatar, yaw);
       avatar.whenReady(() => {
-        if (!rider.down && rider !== tether) avatar.setLocomotion(false, true);
+        if (rider.down || rider === tether) return;
+        if (rider.seat) avatar.playClip('sit', true);
+        else avatar.setLocomotion(false, true);
       });
       riders.push(rider);
     });
@@ -397,6 +428,7 @@ export const createTheTrain = (host: TheTrainHost) => {
 
   const clearRiders = () => {
     for (const rider of riders) {
+      rider.lean?.release();
       rider.avatar.dispose();
       if (!rider.mesh.isDisposed()) rider.mesh.dispose();
     }
@@ -479,6 +511,9 @@ export const createTheTrain = (host: TheTrainHost) => {
     rider.poseHold = 0;
     // The car floor is flat at y 0. A ray down from a rider by the bench hits the seat pan (0.45) and the body floated there.
     rider.floorY = 0;
+    rider.seat = null;
+    rider.avatar.group.position.y = -PLAYER_MESH_Y_OFFSET;
+    rider.avatar.group.rotation.x = 0;
     rider.avatar.playClip(shocked ? 'electrocuted' : 'deathforward', false);
     host.playFile(deathScream('man'), 0.72);
   };
@@ -486,6 +521,7 @@ export const createTheTrain = (host: TheTrainHost) => {
   const bury = (rider: Rider) => {
     const index = riders.indexOf(rider);
     if (index >= 0) riders.splice(index, 1);
+    rider.lean?.release();
     rider.avatar.dispose();
     if (!rider.mesh.isDisposed()) rider.mesh.dispose();
   };
@@ -537,12 +573,31 @@ export const createTheTrain = (host: TheTrainHost) => {
     face(best.avatar, Math.atan2(victim.mesh.position.x - best.mesh.position.x, victim.mesh.position.z - best.mesh.position.z));
   };
 
+  /** A seated rider gets up off the bench (the pelvis eases up, no snap), then carries on with what he was doing. */
+  const standRider = (rider: Rider) => {
+    const seat = rider.seat;
+    if (!seat || seat.phase() === 'getting-up') return;
+    seat.getUp(() => {
+      rider.seat = null;
+      if (rider.down) return;
+      if (rider.react) shadowCrowd.playStageClip(rider.avatar, rider.react, rider.moving);
+      else rider.avatar.resumeLocomotion();
+    });
+  };
+
+  /** A stage clip is a standing pose; a rider still on the bench keeps SitIdle under it. */
+  const stageClip = (rider: Rider, stage: CrowdStage, moving: boolean) => {
+    if (rider.seat) return;
+    shadowCrowd.playStageClip(rider.avatar, stage, moving);
+  };
+
   const link = (rider: Rider) => {
+    standRider(rider);
     tether = rider;
     linkLeft = POSSESS_SECONDS;
     rider.react = null;
     shadowCrowd.dropPhone(rider.mesh.name);
-    rider.avatar.resumeLocomotion();
+    if (!rider.seat) rider.avatar.resumeLocomotion();
     host.playFile(STREET_SFX.possess, 0.4);
     callTrainCompanion(rider);
     showGoal();
@@ -553,6 +608,7 @@ export const createTheTrain = (host: TheTrainHost) => {
     if (rider.down || rider === tether) return;
     if (!shadowCrowd.canAnimate() && !rider.react) return;
     const id = rider.mesh.name;
+    if (stage === 'handle' || stage === 'hide' || stage === 'panic') standRider(rider);
     const fresh = shadowCrowd.noteWitness(id, t);
     rider.react = stage;
     if (stage === 'notice') {
@@ -560,7 +616,7 @@ export const createTheTrain = (host: TheTrainHost) => {
       rider.moving = false;
       face(rider.avatar, Math.atan2(host.player().x - rider.mesh.position.x, host.player().z - rider.mesh.position.z));
       if (fresh && shadowCrowd.say('notice', 0.7)) shadowCrowd.noteVoicedInWindow(t);
-      shadowCrowd.playStageClip(rider.avatar, 'notice', false);
+      stageClip(rider, 'notice', false);
     } else if (stage === 'handle') {
       rider.reactLeft = 2.4;
       rider.moving = true;
@@ -577,33 +633,33 @@ export const createTheTrain = (host: TheTrainHost) => {
         window.setTimeout(() => { if (active && !finished) host.car()?.setSpeed(was); }, 2200);
       }
       host.playFile(SFX.brakes, 0.35);
-      shadowCrowd.playStageClip(rider.avatar, 'handle', false);
+      stageClip(rider, 'handle', false);
     } else if (stage === 'hide') {
       rider.reactLeft = 4;
       rider.moving = true;
       hiderSent = true;
       shadowCrowd.markHide();
       if (shadowCrowd.say('train', 0.75)) shadowCrowd.noteVoicedInWindow(t);
-      shadowCrowd.playStageClip(rider.avatar, 'hide', true);
+      stageClip(rider, 'hide', true);
     } else if (stage === 'film') {
       rider.reactLeft = 4;
       rider.moving = false;
       shadowCrowd.raisePhone(id, rider.avatar);
       if (shadowCrowd.say('film', 0.68)) shadowCrowd.noteVoicedInWindow(t);
-      shadowCrowd.playStageClip(rider.avatar, 'film', false);
+      stageClip(rider, 'film', false);
     } else if (stage === 'cower') {
       rider.reactLeft = 5;
       rider.moving = false;
       shadowCrowd.markCower();
       if (shadowCrowd.say('cower', 0.62)) shadowCrowd.noteVoicedInWindow(t);
-      shadowCrowd.playStageClip(rider.avatar, 'cower', false);
+      stageClip(rider, 'cower', false);
     } else if (stage === 'panic') {
       rider.reactLeft = 3;
       rider.moving = true;
       shadowCrowd.markPanic();
       if (shadowCrowd.say('panic', 0.78)) shadowCrowd.noteVoicedInWindow(t);
       shadowCrowd.dropCarry(id, rider.mesh.position.x, 0, rider.mesh.position.z);
-      shadowCrowd.playStageClip(rider.avatar, 'panic', true);
+      stageClip(rider, 'panic', true);
     }
   };
 
@@ -640,7 +696,7 @@ export const createTheTrain = (host: TheTrainHost) => {
         beginTrainReact(rider, next, t);
         continue;
       }
-      if (rider.react === 'handle') {
+      if (rider.react === 'handle' && !rider.seat) {
         // Walk toward the emergency handle at the back of the car (x≈1, z≈-0.7).
         const tx = 1.0 - rider.mesh.position.x;
         const tz = -0.7 - rider.mesh.position.z;
@@ -649,7 +705,7 @@ export const createTheTrain = (host: TheTrainHost) => {
         rider.mesh.position.z += (tz / d) * Math.min(d, 2.4 * dt);
         face(rider.avatar, Math.atan2(tx, tz));
       }
-      if (rider.react === 'hide') {
+      if (rider.react === 'hide' && !rider.seat) {
         // Toward the front end door gap (between cars).
         const tx = 17.4 - rider.mesh.position.x;
         const d = Math.abs(tx) || 1;
@@ -667,7 +723,8 @@ export const createTheTrain = (host: TheTrainHost) => {
         shadowCrowd.dropPhone(rider.mesh.name);
         rider.react = null;
         rider.moving = false;
-        rider.avatar.resumeLocomotion();
+        if (rider.seat) rider.avatar.playClip('sit', true);
+        else rider.avatar.resumeLocomotion();
       }
     }
   };
@@ -1023,7 +1080,8 @@ export const createTheTrain = (host: TheTrainHost) => {
         if (!rider.react) continue;
         shadowCrowd.dropPhone(rider.mesh.name);
         rider.react = null;
-        rider.avatar.resumeLocomotion();
+        if (rider.seat) rider.avatar.playClip('sit', true);
+        else rider.avatar.resumeLocomotion();
       }
     }
     showGoal();
@@ -1055,10 +1113,14 @@ export const createTheTrain = (host: TheTrainHost) => {
   const routineStep = (rider: Rider, dt: number) => {
     rider.phase += dt;
     const group = rider.avatar.group;
-    const lean = rider.routine === 'sleep' ? 0.32 + Math.sin(rider.phase * 0.9) * 0.015 : rider.routine === 'read' ? 0.13 + Math.max(0, Math.sin(rider.phase * 1.3)) * 0.03 : 0;
-    const rock = Math.sin(rider.phase * 1.7) * (rider.routine === 'sway' ? 0.045 : 0.02);
+    // A seated rider tips from the pelvis, so the lean is small enough to keep the hips on the seat.
+    const seatedK = rider.seat ? 0.45 : 1;
+    const lean = (rider.routine === 'sleep' ? 0.32 + Math.sin(rider.phase * 0.9) * 0.015 : rider.routine === 'read' ? 0.13 + Math.max(0, Math.sin(rider.phase * 1.3)) * 0.03 : 0) * seatedK;
+    // A rider holding his pole keeps his shoulder on it: the car's rock reaches him through the pole, not as a sway.
+    const rock = rider.lean ? 0 : Math.sin(rider.phase * 1.7) * (rider.routine === 'sway' ? 0.045 : 0.02);
     group.rotation.x += (lean - group.rotation.x) * Math.min(1, dt * 4);
     group.rotation.z += (rock - group.rotation.z) * Math.min(1, dt * 4);
+    rider.lean?.step(dt);
     if (rider.routine === 'sleep' || shadowOn) return;
     const at = host.player();
     const dx = at.x - rider.mesh.position.x;
@@ -1071,6 +1133,8 @@ export const createTheTrain = (host: TheTrainHost) => {
     }
     if (rider.notice > 0) {
       rider.notice -= dt;
+      // A leaner turns his head (npcLife does that), never his body off the pole.
+      if (rider.lean) return;
       const want = rider.notice > 0 ? Math.atan2(dx, dz) : rider.yaw;
       face(rider.avatar, want);
     }
@@ -1091,8 +1155,9 @@ export const createTheTrain = (host: TheTrainHost) => {
         continue;
       }
       if (rider === tether) {
-        const mx = tetherMove.x;
-        const mz = tetherMove.z;
+        rider.seat?.step(dt);
+        const mx = rider.seat ? 0 : tetherMove.x;
+        const mz = rider.seat ? 0 : tetherMove.z;
         rider.moving = Math.hypot(mx, mz) > 0.002;
         if (rider.moving) {
           rider.mesh.position.x = clamp(rider.mesh.position.x + mx, CAR.x0 + 0.4, CAR.x1 - 0.4);
@@ -1104,6 +1169,7 @@ export const createTheTrain = (host: TheTrainHost) => {
         tetherMove = { x: 0, z: 0 };
         continue;
       }
+      rider.seat?.step(dt);
       if (rider.aisleZ !== null && !rider.shifted) {
         // He steps off the wall into the aisle as Pierce comes up the car, and stands there swaying.
         const at = host.player();
