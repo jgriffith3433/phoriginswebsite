@@ -27,7 +27,7 @@ export type ApexSliceHost = {
   playFile: (url: string, volume: number) => void;
   clearInput: () => void;
   /** Soft seat: raises the avatar group onto a sofa / chair (capsule stays standing). */
-  seatVisual: (y: number) => void;
+  seatVisual: () => void;
   standVisual: () => void;
 };
 
@@ -45,7 +45,7 @@ const SFX = {
 
 /** Hall 2 centerline: cleaner walks west → east once. */
 const HALL2 = { z: 32, x0: 4.2, x1: 33.6, speed: 0.85, pauseAt: 18.5, pauseFor: 2.4 };
-const SOFA_SIT = { duration: 4, visualY: 0.52 };
+const SOFA_SIT = { duration: 4 };
 const CHART = { x: 36.0, y: 1.9, z: 27.2 };
 const PAPERS = { x: 48.0, z: 42.45 };
 const FLICKER_EVERY = 11;
@@ -273,7 +273,7 @@ export const createApexSlice = (host: ApexSliceHost) => {
     host.clearInput();
     host.holdScene(true);
     host.placePierce(pose.x, pose.z, pose.yaw);
-    host.seatVisual(SOFA_SIT.visualY);
+    host.seatVisual();
     host.playClip('sit', true);
     host.playFile(SFX.sofa, 0.55);
     sitLeft = SOFA_SIT.duration;

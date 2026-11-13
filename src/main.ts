@@ -59,7 +59,7 @@ import { createApexLife } from './story/apexLife';
 import { createApexBoardHall } from './story/apexBoardHall';
 import { createTouchables, TOUCH_SOUNDS } from './game/touchables';
 import { lifeStats } from './game/lifeStats';
-import { seatReport } from './game/seatAnchor';
+import { hipsWorldY, registerContact, SEAT_HIPS_RISE, SEAT_TOPS, seatLift, seatReport, unregisterContact } from './game/seatAnchor';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
@@ -896,6 +896,14 @@ const syncBoardFaces = () => {
   for (const npc of npcs) registerFace(npc.seatId, npc.avatar);
 };
 
+/** Pierce's own seat / sofa for the prop-contact probe (his rig is not parented to a capsule, so no SeatBlend). */
+const registerPierceContact = (id: string, kind: 'seat' | 'bed' | 'lean', top: number) => {
+  registerContact(id, kind, playerAvatar, () => {
+    const y = hipsWorldY(playerAvatar);
+    return y == null ? null : { value: y - top, target: SEAT_HIPS_RISE, transition: 'none' };
+  });
+};
+
 const seatPlayerAtHeadChair = () => {
   const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
   if (!pose) return;
@@ -909,9 +917,11 @@ const seatPlayerAtHeadChair = () => {
   playerAvatar.group.position.set(pose.x, pose.visualY, pose.z);
   playerAvatar.group.rotation.y = pose.facingYaw + Math.PI;
   playerAvatar.playClip('sit', true);
+  registerPierceContact('pierce-board-seat', 'seat', SEAT_TOPS.officeChair);
 };
 
 const leavePlayerAtHeadChair = () => {
+  unregisterContact('pierce-board-seat');
   const pose = missionScene ? resolveBoardSeatPose(missionScene, PLAYER_HEAD_CHAIR_ID) : null;
   if (!pose) return;
   const x = pose.x - 0.55;
@@ -3159,12 +3169,24 @@ const apex: ApexSlice = createApexSlice({
   showLine: (title, text) => showCineHud(title, text),
   playFile: (url, volume) => audio.play(url, volume),
   clearInput: () => clearInputState(),
-  seatVisual: (y) => {
-    playerAvatar.group.position.y = y;
+  seatVisual: () => {
+    // The sofa cushion is 0.45 m: lift the rig by the same rule every other seat uses, so SitIdle's hips land on it.
+    playerAvatar.group.position.y = playerMeshY(PLAYER_STAND_Y) + seatLift(SEAT_TOPS.sofa);
+    registerPierceContact('apex-sofa', 'seat', SEAT_TOPS.sofa);
   },
   standVisual: () => {
+    unregisterContact('apex-sofa');
     playerAvatar.group.position.y = playerMeshY(PLAYER_STAND_Y);
   },
+});
+
+// The Morning bed for the prop-contact probe: hips joint against where the scripted pelvis sits on the mattress
+// (lying on the pillow, or sitting on the edge). A limb in the mattress shows as `minOverMattress` on morning().pose.
+registerContact('morning-bed', 'bed', playerAvatar, () => {
+  const s = morning.story();
+  if (!(s.lying || (s.pose.phase === 'sit' && s.beat === 'sleep'))) return null;
+  const y = hipsWorldY(playerAvatar);
+  return y == null ? null : { value: y, target: s.pose.y, transition: 'none' };
 });
 
 const apexLife = createApexLife({
