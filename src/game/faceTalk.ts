@@ -217,6 +217,12 @@ export const registerFace = (id: string, avatar: PlayerAvatar) => {
   ensure(id, avatar);
 };
 
+/** True when faceTalk drives this rig's head (npcLife then leaves look-at to it). */
+export const isFaceAvatar = (avatar: PlayerAvatar) => {
+  for (const rig of rigs.values()) if (rig.avatar === avatar) return true;
+  return false;
+};
+
 export const unregisterFace = (id: string) => {
   const rig = rigs.get(id);
   if (!rig) return;

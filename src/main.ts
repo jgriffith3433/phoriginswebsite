@@ -11,6 +11,7 @@ import {
   type Npc,
 } from './game/npcs';
 import { createPlayerAvatar, setClipBlendSeconds, type PlayerAvatar } from './game/playerAvatar';
+import { applyNpcLife, updateNpcLife, npcLifeSnapshot, resetNpcLifeStats, npcStartle } from './game/npcLife';
 import { STRIDE_MPS } from './game/stride';
 import { createJumpPoser } from './game/jumpPose';
 import { createFootIk } from './game/footIk';
@@ -73,6 +74,7 @@ import { acousticsProbe, configureTier, ensureRig, markOcclusionDirty, resetAcou
 import { clearSceneMix, clipLog, holdClips, sceneMix, setSceneMixProbe, liveClipCount, mixVolume, playClip, preloadClips, voiceNow, releaseClips, startGaplessLoop, type ClipHandle, type LoopHandle } from './game/sfxMix';
 import {
   applyFaces,
+  isFaceAvatar,
   clearFaces,
   faceSilence,
   faceSpeak,
@@ -359,7 +361,7 @@ const shadowVeil = createShadowVeil(scene);
 scene.collisionsEnabled = true;
 scene.gravity = BABYLON.Vector3.Zero();
 // Mouth / look / gesture after Mixamo sit-talk, or the clip would wipe the jaw.
-scene.onAfterAnimationsObservable.add(() => { applyFaces(); });
+scene.onAfterAnimationsObservable.add(() => { applyFaces(); applyNpcLife(isFaceAvatar); });
 
 const followCamera = createThirdPersonCamera(scene);
 const camera = followCamera.camera;
@@ -5872,6 +5874,7 @@ const renderLoop = () => {
       }
       if (!playing) endCutscene();
       syncBoardFaces();
+      updateNpcLife(delta, { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z });
       updateFaces(delta, {
         pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
         boardMeeting: activeCutscene?.id === 'room-for-grace',
@@ -5941,6 +5944,7 @@ const renderLoop = () => {
     boardHall.step(delta);
     if (state.running && !state.inCutscene) { apexLife.step(delta); touch.step(delta); }
     loreObjects.step(delta);
+    updateNpcLife(delta, { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z });
     updateFaces(delta, {
       pierce: { x: state.player.x, y: PLAYER_STAND_Y + 1.55, z: state.player.z },
       boardMeeting: false,
@@ -6484,6 +6488,11 @@ installPhPlaytest({
   /** Lip sync, blinks, look-at and dialogue gestures on every registered on-screen speaker. */
   faces: () => facesSnapshot(),
   resetFaces: () => resetFaceStats(),
+  /** Background people: idle variants and phases, look-at within 4 m, reactions, bind-pose and restart counts. */
+  npcLife: () => npcLifeSnapshot(),
+  resetNpcLife: () => resetNpcLifeStats(),
+  /** Playtest/monster beat: everyone nearby flinches and looks. */
+  npcStartle: () => npcStartle(),
   /** Board plot through the Apex hall (desk, locked door, Hale threat) — no call required. */
   boardHall: () => (isApexPeakLevel() ? boardHall.snapshot() : null),
   pickups: () => pickups

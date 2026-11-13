@@ -9,6 +9,7 @@ import {
   type ClipTrimsFile,
 } from './clipTrims';
 import { JUMP_KEYS, RUN_OFF_MPS, RUN_ON_MPS, strideRatio } from './stride';
+import { registerNpcLife, unregisterNpcLife, nextIdleStyle, type IdleStyle } from './npcLife';
 import { PLAYER_ASSET_ID, getAssetLibrary, jointSuffix, loadGlbByAssetId, resolveModelPath } from './modelLoader';
 
 export { JUMP_KEYS, STRIDE_MPS, strideRatio } from './stride';
@@ -52,7 +53,27 @@ export type PlayerAvatar = {
   findBone: (suffix: string) => BABYLON.Bone | null;
   getSkinnedMesh: () => BABYLON.AbstractMesh | null;
   isReady: () => boolean;
+  /**
+   * Idle life (background people): the idle style this rig was given at creation (variant, random
+   * start phase, rate), and what its clip is doing now. Null for Pierce, doubles and enemies.
+   */
+  idleStyle: () => IdleStyle | null;
+  animState: () => AvatarAnimState;
   dispose: () => void;
+};
+
+export type AvatarAnimState = {
+  ready: boolean;
+  shown: boolean;
+  /** At least one clip is evaluating. A shown, ready rig with this false would draw the bind pose. */
+  playing: boolean;
+  clip: string | null;
+  /** Play position 0..1 of the looping clip now driving, or -1. */
+  phase: number;
+  rate: number;
+  /** Times the rig was hidden and shown again, and how many of those restarted a loop from its first frame. */
+  reshows: number;
+  restarts: number;
 };
 
 const compact = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -260,6 +281,14 @@ export const createCharacterAvatar = (
     onEnded?: () => void;
     lockCinematic: boolean;
   } | null = null;
+  // Background people get an idle style (variant, start phase, rate) so neighbours never idle in step.
+  const isBackgroundPerson = name !== 'playerAvatar' && !/(^enemy-|Double$|creature|^deskDouble|^morningDouble)/.test(name)
+    && assetId !== PLAYER_ASSET_ID && !assetId.includes('parasite');
+  const idleStyleValue: IdleStyle | null = isBackgroundPerson ? nextIdleStyle() : null;
+  let resumeFrame: { clip: BABYLON.AnimationGroup; frame: number } | null = null;
+  let reshows = 0;
+  let restarts = 0;
+  let reshowPending = false;
   let clipTrims: ClipTrimsFile | null = null;
   let modelPath = '';
   let modelReady = false;
@@ -267,6 +296,33 @@ export const createCharacterAvatar = (
 
   const rangeFor = (clip: BABYLON.AnimationGroup) =>
     clipPlayRange(clip, lookupClipTrim(clipTrims ?? { version: 1, clips: {} }, clipTail(clip.name), modelPath));
+
+  const IDLE_LIKE = new Set(['idle', 'rebornidle', 'sit', 'sitidle', 'pistolidle']);
+  const clipFrame = (clip: BABYLON.AnimationGroup) => {
+    const a = clip.animatables[0];
+    return a ? a.masterFrame : null;
+  };
+  /**
+   * After a loop starts: a hidden-then-shown rig carries on from where it was (no restart, and goToFrame
+   * evaluates the pose at once, so no bind-pose frame); a fresh background person starts at its own phase
+   * and rate so two neighbours are never in step.
+   */
+  const lifeStart = (clip: BABYLON.AnimationGroup, token: string) => {
+    if (!isBackgroundPerson || !clip.isPlaying) {
+      reshowPending = false;
+      return;
+    }
+    const { from, to } = rangeFor(clip);
+    const idleLike = IDLE_LIKE.has(token);
+    if (idleLike && idleStyleValue) clip.speedRatio = idleStyleValue.rate;
+    let frame: number | null = null;
+    if (resumeFrame && resumeFrame.clip === clip) frame = resumeFrame.frame;
+    else if (idleLike && idleStyleValue) frame = from + idleStyleValue.phase * (to - from);
+    if (reshowPending && !(resumeFrame && resumeFrame.clip === clip)) restarts += 1;
+    resumeFrame = null;
+    reshowPending = false;
+    if (frame !== null) clip.goToFrame(Math.min(to, Math.max(from, frame)));
+  };
 
   const activeIdle = () => (armed ? pistolIdleGroup ?? idleGroup : idleGroup);
   const activeWalk = () => {
@@ -429,7 +485,7 @@ export const createCharacterAvatar = (
     return false;
   };
 
-  const startFresh = (target: BABYLON.AnimationGroup, loop: boolean, speed: number) => {
+  const startFresh = (target: BABYLON.AnimationGroup, loop: boolean, speed: number, token = '') => {
     target.mask = null;
     target.stop(true);
     applyClipBlending(target);
@@ -437,6 +493,7 @@ export const createCharacterAvatar = (
     const { from, to } = rangeFor(target);
     target.start(loop, speed, from, to, false);
     resetTrackWeights(target, 1);
+    if (token) lifeStart(target, token);
   };
 
   const playLoop = (target: BABYLON.AnimationGroup | null, clipName: string, forceRestart = false) => {
@@ -462,7 +519,7 @@ export const createCharacterAvatar = (
     animationGroups.forEach((clip) => {
       if (clip !== target) hardStop(clip, 1);
     });
-    startFresh(target, true, 1);
+    startFresh(target, true, 1, clipName);
     current = clipName;
   };
 
@@ -802,6 +859,7 @@ export const createCharacterAvatar = (
       overlayEndTimer = window.setTimeout(finish, clipDurationMs(clip, speed, from, to) + 40);
     }
     clip.start(loop, speed, from, to, false);
+    if (loop && !isOverlay) lifeStart(clip, token);
     if (!loop && !onEnded && !isOverlay) {
       const held = overlaySeq;
       clip.onAnimationGroupEndObservable.addOnce(() => {
@@ -955,7 +1013,7 @@ export const createCharacterAvatar = (
     return clipDurationMs(clip, speed, from, to) / 1000;
   };
 
-  return {
+  const api: PlayerAvatar = {
     group,
     setLocomotion,
     setPace,
@@ -1006,15 +1064,23 @@ export const createCharacterAvatar = (
         if (!on) group.setEnabled(false);
         return;
       }
-      group.setEnabled(on);
       if (!on) {
-        animationGroups.forEach((clip) => {
-          if (clip.isPlaying) clip.stop();
-        });
+        group.setEnabled(false);
+        resumeFrame = null;
+        for (const clip of animationGroups) {
+          if (!clip.isPlaying) continue;
+          const frame = clipFrame(clip);
+          if (!resumeFrame && frame !== null && clip.loopAnimation) resumeFrame = { clip, frame };
+          clip.stop();
+        }
         return;
       }
+      reshows += 1;
+      reshowPending = isBackgroundPerson;
       current = null;
+      // Start the loop (and put it back where it was) before the rig is drawn again.
       applyLocomotion();
+      group.setEnabled(true);
     },
     whenReady: (callback) => {
       if (modelReady && !disposed) {
@@ -1024,11 +1090,39 @@ export const createCharacterAvatar = (
       readyWaiters.push(callback);
     },
     isReady: () => modelReady && !disposed,
+    idleStyle: () => idleStyleValue,
+    animState: () => {
+      let playing = false;
+      let driving: BABYLON.AnimationGroup | null = null;
+      for (const clip of animationGroups) {
+        if (clip.isPlaying) {
+          playing = true;
+          if (!driving || (!clip.mask && driving.mask)) driving = clip;
+        }
+      }
+      let phase = -1;
+      if (driving) {
+        const frame = clipFrame(driving);
+        const { from, to } = rangeFor(driving);
+        if (frame !== null && to > from) phase = Math.min(1, Math.max(0, (frame - from) / (to - from)));
+      }
+      return {
+        ready: modelReady && !disposed,
+        shown,
+        playing,
+        clip: current,
+        phase,
+        rate: driving?.speedRatio ?? 1,
+        reshows,
+        restarts,
+      };
+    },
     findJoint,
     findBone,
     getSkinnedMesh,
     dispose: () => {
       disposed = true;
+      unregisterNpcLife(api);
       readyWaiters.length = 0;
       clearOverlayEndTimer();
       clearFaceGestureTimer();
@@ -1038,6 +1132,8 @@ export const createCharacterAvatar = (
       group.dispose();
     },
   };
+  if (idleStyleValue) registerNpcLife(name, api, idleStyleValue);
+  return api;
 };
 
 export const createPlayerAvatar = (scene: BABYLON.Scene, assetId = PLAYER_ASSET_ID): PlayerAvatar =>
