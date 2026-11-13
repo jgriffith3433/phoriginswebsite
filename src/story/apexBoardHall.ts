@@ -2,8 +2,8 @@ import * as BABYLON from '@babylonjs/core';
 
 import { faceSpeak, registerFace, unregisterFace } from '../game/faceTalk';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
-import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
-import { SIT_LIFT } from '../game/npcs';
+import { PLAYER_STAND_Y } from '../game/player';
+import { createSeatBlend, registerSeat, SEAT_TOPS } from '../game/seatAnchor';
 import { lineAudio, lineText, storyLine } from '../game/locale';
 import { barkFresh, barkSpoken, placeLine } from './placeVoices';
 import { lifeStats } from '../game/lifeStats';
@@ -140,7 +140,9 @@ export const createApexBoardHall = (host: ApexBoardHallHost) => {
     own.push(mesh);
     const avatar = createCharacterAvatar(host.scene, 'apex-hall-desk', DESK_ASSET);
     avatar.group.parent = mesh;
-    avatar.group.position.y = -PLAYER_MESH_Y_OFFSET + SIT_LIFT;
+    const seat = createSeatBlend(avatar);
+    seat.setSeated(SEAT_TOPS.officeChair);
+    registerSeat('apex-hall-desk', seat, avatar);
     avatar.whenReady(() => {
       if (!deskAvatar) return;
       avatar.playClip('sit', true);
