@@ -59,6 +59,7 @@ import { createApexLife } from './story/apexLife';
 import { createApexBoardHall } from './story/apexBoardHall';
 import { createTouchables, TOUCH_SOUNDS } from './game/touchables';
 import { lifeStats } from './game/lifeStats';
+import { seatReport } from './game/seatAnchor';
 import { createGoingHome, type GoingHome } from './story/goingHome';
 import { createTheDesk, type TheDesk } from './story/theDesk';
 import { createTheStation, type TheStation } from './story/theStation';
@@ -6475,6 +6476,8 @@ installPhPlaytest({
   stationRain: () => dressing.station(),
   /** Playtest setup shortcut (named): Going Home hands over Shock without its lesson. */
   grantShock: () => { if (isHomeLevel()) home.grantShock(); },
+  /** Prop contact of every seated person: hips height over the seat top and the error from the clip's own hips offset. */
+  seats: () => seatReport(),
   life: () => ({ ...lifeStats.snapshot(), touchables: touch.list(), interactShown: Boolean(interactBtn && !interactBtn.hidden), interactLabel: interactBtn?.getAttribute('aria-label') ?? '' }),
   apexSlice: () => (isApexPeakLevel()
     ? { maxQuietSeconds: Math.min(apex.maxQuietSeconds(), lifeStats.maxQuietSeconds()), textOnlyBeats: apex.textOnlyBeats(), events: apex.events().length }

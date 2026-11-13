@@ -3,6 +3,7 @@ import * as BABYLON from '@babylonjs/core';
 import { createCharacterAvatar, type PlayerAvatar } from './playerAvatar';
 import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from './player';
 import type { SceneData } from './sceneData';
+import { createSeatBlend, registerSeat, SEAT_TOPS, type SeatBlend } from './seatAnchor';
 
 export type NpcType = 'professional_npc';
 
@@ -11,6 +12,8 @@ export type Npc = {
   seatId: string;
   mesh: BABYLON.Mesh;
   avatar: PlayerAvatar;
+  /** Seat anchor: the chair top the hips sit on, and the sit-down / get-up ease. */
+  seat: SeatBlend;
   assetId: string;
   departing: boolean;
   left: boolean;
@@ -105,7 +108,9 @@ export const spawnProfessionalNpc = (
 
   const avatar = createCharacterAvatar(scene, `professional-npc-${seatId}`, assetId);
   avatar.group.parent = mesh;
-  avatar.group.position.y = -PLAYER_MESH_Y_OFFSET + SIT_LIFT;
+  const seat = createSeatBlend(avatar);
+  seat.setSeated(SEAT_TOPS.officeChair);
+  registerSeat(`board-${seatId}`, seat, avatar);
   avatar.playClip('sit', true);
 
   return {
@@ -113,6 +118,7 @@ export const spawnProfessionalNpc = (
     seatId,
     mesh,
     avatar,
+    seat,
     assetId,
     departing: false,
     left: false,
@@ -188,9 +194,13 @@ export const updateNpcDeparture = (npcs: Npc[], delta: number, speed = 2.35) => 
       continue;
     }
     if (!npc.standing) {
-      npc.standing = true;
-      npc.avatar.group.position.y = -PLAYER_MESH_Y_OFFSET;
-      npc.avatar.playClip('walk', true);
+      // Get up with the pelvis easing off the seat (no snap to the floor), then walk.
+      if (npc.seat.phase() === 'seated') npc.seat.getUp(() => {
+        npc.standing = true;
+        npc.avatar.playClip('walk', true);
+      });
+      npc.seat.step(delta);
+      continue;
     }
     const target = npc.waypoints[npc.waypointIndex];
     if (!target) {

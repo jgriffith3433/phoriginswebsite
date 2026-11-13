@@ -25,3 +25,16 @@ Foot IK on stairs and slopes (`footIk.ts`), clip speed matched to the root's smo
 
 ## Not measured here
 The audit could not be run in this pass (no browser). Baseline numbers come from beta's first run of `pierce-loco-60`.
+
+## Prop contact: seated poses (seat anchors)
+`docs/animation-audit.md` had no prop-contact results when this pass began, so the measure was added (`seatAnchor.ts`).
+- **Seat anchor** (`src/game/seatAnchor.ts`): each seated person has a seat top from the prop's real top (`SEAT_TOPS`:
+  office chair 0.50, train bench 0.45 from `trainDress` `SEAT_TOP`) and the rig is lifted by `seatLift(top)` so SitIdle's
+  hips joint sits `SEAT_HIPS_RISE` (0.15 m) above it. The old shared `SIT_LIFT` was only right for 0.50 m.
+- **Sit-down / get-up**: `createSeatBlend` eases the pelvis over 0.9 s with the clip change (no snap). Board departure
+  now gets up that way before walking; a possessed or panicking train rider stands first. The rigs have no baked
+  sit-down/stand-up clips (only SitIdle / SitTalk), so the ease is procedural until Mixamo ones are baked.
+- **Train riders without an aisle spot now sit** on the nearest bench span (they stood through the bench before).
+- **Probe** `seats()` and scenario `seat-contact` (levels 1 and 7, option `phone`): fail when hips are over 3 cm off.
+- Not done: the Morning bed (`stepSleep`), Apex sofa Sit, the Desk, the Station benches and Pierce's own board seat
+  still use their own heights; the Level 6 bed is change c_3f0739676f2a's.

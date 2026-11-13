@@ -2,8 +2,8 @@ import * as BABYLON from '@babylonjs/core';
 
 import { faceSpeak, registerFace, unregisterFace } from '../game/faceTalk';
 import { createCharacterAvatar, type PlayerAvatar } from '../game/playerAvatar';
-import { PLAYER_MESH_Y_OFFSET, PLAYER_STAND_Y } from '../game/player';
-import { SIT_LIFT } from '../game/npcs';
+import { PLAYER_STAND_Y } from '../game/player';
+import { createSeatBlend, registerSeat, SEAT_TOPS, standingGroupY } from '../game/seatAnchor';
 import { lifeStats } from '../game/lifeStats';
 import { APEX_STAFF, createLinePool } from './placeVoices';
 
@@ -74,7 +74,12 @@ export const createApexLife = (host: ApexLifeHost) => {
     mesh.checkCollisions = false;
     const avatar = createCharacterAvatar(host.scene, `apex-life-${id}`, assetId);
     avatar.group.parent = mesh;
-    avatar.group.position.y = -PLAYER_MESH_Y_OFFSET + (seated ? SIT_LIFT : 0);
+    avatar.group.position.y = standingGroupY();
+    if (seated) {
+      const seat = createSeatBlend(avatar);
+      seat.setSeated(SEAT_TOPS.officeChair);
+      registerSeat(`apex-${id}`, seat, avatar);
+    }
     mesh.rotation.y = yaw + Math.PI;
     const person: Person = { id, mesh, avatar, routine, baseYaw: yaw, yaw, seated, glance: 0, cool: 3 + Math.random() * 3, moving: false };
     avatar.whenReady(() => {
