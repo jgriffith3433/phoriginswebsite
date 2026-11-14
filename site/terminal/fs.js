@@ -60,10 +60,10 @@ export function buildTree() {
       }, { owner: 'ops' }),
     }),
     root: d({
-      'flag.txt': f('You found the root flag. There was never a flag. Go /build something.\n', { mode: '-rw-------' }),
+      'flag.txt': f('You found the root flag. There was never a flag. Go /feed and look at home.\n', { mode: '-rw-------' }),
     }, { mode: 'drwx------' }),
     opt: d({
-      '.build-me': f('root-only: run /build to assemble the medical backend framework.\n(nothing in here is real. the build is a performance.)\n', { mode: '-rw-r-----' }),
+      '.feed-me': f('root-only: run /feed. LUNA-1, the first live camera on the Moon, is pointed at the Earth.\n(the backend comes online to carry it.)\n', { mode: '-rw-r-----' }),
     }),
     srv: d({
       lore: d({
@@ -127,7 +127,7 @@ export class VFS {
     return cur || null;
   }
 
-  /** The built backend lives at /opt/hawkes-biomedical once /build has run. */
+  /** The backend lives at /opt/hawkes-biomedical once /feed has brought it online. */
   mounted(abs, i, parts) {
     if (this.built && i === 1 && parts[0] === 'opt' && parts[1] === 'hawkes-biomedical') return this.builtTree();
     return null;

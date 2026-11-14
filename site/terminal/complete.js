@@ -1,7 +1,6 @@
 // Tab completion for commands and paths. Pure: (shell, line) -> { line, options }.
 
 import { COMMANDS, THEMES } from './shell.js';
-import { MODULES } from './build.js';
 import { GUIDE } from './content.js';
 
 const PATH_CMDS = new Set(['ls', 'cd', 'cat', 'less', 'more', 'tree', 'grep', 'head', 'tail', 'wc', 'sort', 'strings', 'rev', 'john', 'open']);
@@ -58,7 +57,6 @@ export function complete(sh, line) {
   if (cmd === 'man' || cmd === 'help') opts = Object.keys(COMMANDS).filter((n) => n.startsWith(last) && !COMMANDS[n].hidden);
   else if (cmd === 'theme') opts = THEMES.filter((t) => t.startsWith(last));
   else if (cmd === 'sound') opts = ['on', 'off'].filter((t) => t.startsWith(last));
-  else if (cmd === 'build') opts = [...MODULES.map((x) => x.id), 'status', '--verbose'].filter((t) => t.startsWith(last));
   else if (cmd === 'cd') opts = completePath(sh, last, true);
   else if (cmd === 'open') opts = ['about', 'characters', 'lore', 'whatsnew', 'game'].filter((t) => t.startsWith(last));
   else if (PATH_CMDS.has(cmd) || words.length > 1) opts = completePath(sh, last, false);
