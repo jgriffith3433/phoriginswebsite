@@ -28,10 +28,8 @@ if (window.visualViewport) { window.visualViewport.addEventListener('resize', fi
 window.addEventListener('resize', fit);
 fit();
 
-// ?songlen=8 ends the song after 8 s (the playtest's fast-forward); the real length is the file's own.
-const songlen = Number((location.search.match(/[?&]songlen=(\d+(?:\.\d+)?)/) || [])[1]) || null;
-const term = createTerminal(document.getElementById('app'), { storage: store, reduced, gameUrl, songSeconds: songlen });
-// ?demo=show starts the three acts straight away on a throw-away seed (the phone playtest looks at the flipbook this way).
-if (/[?&]demo=show\b/.test(location.search)) {
-  import('./build.js').then(({ runBuild }) => setTimeout(() => term.runShow(runBuild({ seed: 58 }).events, { seed: 58 }, () => {}), 1500)); // after the boot
-}
+// ?feedlen=8 closes the feed by itself after 8 s (the playtest's hook); a visitor's feed runs until they disconnect.
+const feedlen = Number((location.search.match(/[?&]feedlen=(\d+(?:\.\d+)?)/) || [])[1]) || null;
+const term = createTerminal(document.getElementById('app'), { storage: store, reduced, gameUrl, feedSeconds: feedlen });
+// ?demo=feed opens the Moon camera once the boot ends (the phone playtest looks at it this way).
+if (/[?&]demo=feed\b/.test(location.search)) setTimeout(() => term.openFeed(() => {}), 1500);

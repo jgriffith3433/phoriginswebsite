@@ -1062,15 +1062,15 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       },
       {
         id: 'terminal',
-        title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the three-step chain from the on-screen clues, root, /build to BUILD SUCCESSFUL, game opens the game, no console errors',
-        description: 'Loads index.html in an overlay (the page is the gateway terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), /help lists at least 15 commands, /build as guest is refused, su root with a wrong password fails and throttles, then follows only the LOGIN GUIDE (/help prints Step N of 5 and the exact command): rev ~/.hat_backwards, nmap the named host, curl the backup, john with the staff wordlist, ssh as ops. The prompt must turn root@ph-origins:/# (red). /build (page loaded with ?songlen=8, an 8 s song) prints more than 300 log lines in its first 3 s (terminalFloodLines3s), then the song starts or the silent fallback line shows, the dance (one canvas, a timeline of scenes) draws at least 10 frames in 2 s with both dancers on the stage every sample (terminalFlipFrames2s); then Esc, Enter, letters, Ctrl+C, clicks and soft-keyboard text are hammered at it and none may end it or reach the prompt (terminalShowInputs, terminalShowLeaked), it ends by itself on BUILD SUCCESSFUL; a second /build left alone ends by itself with at least 8 named stages with progress bars and test counters to BUILD SUCCESSFUL and a summary table (metric terminalBuildSeconds), ls /opt/hawkes-biomedical lists the modules, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
+        title: 'Terminal landing page: boot to prompt within 3 s, /help, solve the three-step chain from the on-screen clues, root, /feed opens the live Moon camera (no song), Esc closes it, /build sends you to /feed, game opens the game, no console errors',
+        description: 'Loads index.html?feedlen=8 in an overlay (the page is the gateway terminal) with a clean terminal save. Types real keystrokes into its input: waits for the boot and the guest prompt (3 s bound), guest /help shows the LOGIN GUIDE with at most 4 commands, /build as guest is refused, sudo and su root fail in-world, then follows only the guide: rev ~/.hat_backwards, nmap the named host, ssh as ops. The prompt must turn root@ph-origins:/# (red). /feed prints the patch-in lines, then the LUNA-1 camera covers the console: the feed must draw at least 10 frames in 2 s (terminalFeedFrames2s), its canvas fills the screen, its textures load, no <audio> or <video> element exists and no Audio object is made (terminalFeedAudio, must be 0). Enter, letters, Tab, the arrows, clicks and soft-keyboard text are hammered at it: none may close it or reach the prompt (terminalFeedInputs, terminalFeedLeaked). Esc closes it and the log prints "feed closed after". /build prints that it was renamed and opens the same feed; the disconnect button closes it. A third /feed left alone closes by itself after its 8 s (terminalFeedSeconds). ls /opt/hawkes-biomedical/modules lists the backend the first /feed brought online, hint as root points at /feed, and game navigates to play/game.html. Zero page errors. The visitor\'s own terminal save is put back.',
         seconds: 150,
         tags: ['site', 'first-minute', 'ui'],
       },
       {
         id: 'terminal-phone',
-        title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot',
-        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours, Then a second page (?demo=show&songlen=6, motion on) shows the /build dance show at 390x844: the canvas inside the screen, at least 46 columns, text at least 9 px, both dancers drawn, a tap does not skip it, mute button 44 px, no horizontal scroll. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command) and ^C (cancels a half-typed line).',
+        title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot, the /feed Moon camera fits portrait and landscape',
+        description: 'Shows index.html at 390x844 with ?motion=off (the reduced-motion path): the boot must be on screen at once. No horizontal scroll, text at least 14 px, every quick-key button at least 44 px with 8 px between neighbours. Shrinks the frame to 480 px tall (a soft keyboard) and checks the prompt and the button row stay inside it. Taps help (prints the list), Tab (completes "hel"), the up arrow (recalls the last command), ^C (cancels a half-typed line) and ls. Then a second page (?demo=feed, motion on) opens the /feed Moon camera at 390x844: the feed canvas fills the screen, it draws frames, the disconnect button is at least 44 px and on screen, no horizontal scroll, no audio element, and a tap on the picture does not close it. Turns the frame to 844x390 (landscape) and checks the canvas and the button again, then taps disconnect and checks the feed closes.',
         seconds: 60,
         tags: ['site', 'phone', 'ui'],
       },
@@ -2656,7 +2656,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
       t.scene(phone ? 'Terminal on a phone' : 'Terminal');
       const frame = document.createElement('iframe');
       frame.title = 'terminal';
-      frame.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html' + (phone ? '?motion=off' : '?songlen=8'), location.href).href;
+      frame.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html' + (phone ? '?motion=off' : '?feedlen=8'), location.href).href;
       Object.assign(frame.style, phone
         ? { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '9999', border: '0', background: '#000' }
         : { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: '9999', border: '0', background: '#000' });
@@ -2738,7 +2738,7 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (form.bottom > 481 || form.top < 0) t.problem('bug', `terminal phone: the prompt is off screen with the keyboard up (top ${Math.round(form.top)}, bottom ${Math.round(form.bottom)} of 480)`);
           if (barRect.bottom > 481) t.problem('bug', `terminal phone: the quick-key row is under the keyboard (bottom ${Math.round(barRect.bottom)} of 480)`);
           const guide = await runLine('/help');
-          if (!/LOGIN GUIDE[\s\S]*Step 1 of 5/.test(guide)) t.problem('bug', 'terminal phone: /help shows no LOGIN GUIDE');
+          if (!/LOGIN GUIDE[\s\S]*Step 1 of 3/.test(guide)) t.problem('bug', 'terminal phone: /help shows no LOGIN GUIDE');
           if (doc.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: the LOGIN GUIDE scrolls sideways (${doc.documentElement.scrollWidth}px)`);
           const form2 = (doc.getElementById('termForm') as HTMLElement).getBoundingClientRect();
           if (form2.bottom > 481 || form2.top < 0) t.problem('bug', `terminal phone: the prompt left the screen after /help with the keyboard up (top ${Math.round(form2.top)}, bottom ${Math.round(form2.bottom)})`);
@@ -2762,41 +2762,47 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (input.value !== '' || !/\^C/.test(log())) t.problem('bug', 'terminal phone: the ^C button did not cancel the line');
           await tap('ls'); await t.until(idle, 5000, 'ls');
           expect(log(), /README\.txt/, 'the ls button did not list the home directory');
-          // ---- the dance show at 390x844 (a second page with the show started at once; the phone page above is motion off)
+          // ---- the /feed Moon camera at 390x844, then 844x390 (a second page that opens the feed at once; the page above is motion off)
           const f2 = document.createElement('iframe');
-          f2.title = 'terminal show';
-          f2.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html?demo=show&songlen=6', location.href).href;
+          f2.title = 'terminal feed';
+          f2.src = new URL((location.pathname.includes('/play/') ? '../' : './') + 'index.html?demo=feed', location.href).href;
           Object.assign(f2.style, { position: 'fixed', left: '0', top: '0', width: '390px', height: '844px', zIndex: '10000', border: '0', background: '#000' });
           frame.style.display = 'none';
           document.body.appendChild(f2);
           try {
             const d2 = () => f2.contentDocument as Document | null;
-            await t.until(() => d2()?.getElementById('termShow')?.dataset.act === 'flip', 20000, 'the phone show to start');
-            await t.until(() => Number(d2()?.getElementById('termShow')?.dataset.frames ?? 0) >= 6, 5000, 'the phone show to draw frames');
+            const fe = () => d2()?.getElementById('termFeed') as HTMLElement | null;
+            await t.until(() => fe()?.dataset.state === 'live', 20000, 'the phone feed to open');
+            await t.until(() => Number(fe()?.dataset.frames ?? 0) >= 6, 8000, 'the phone feed to draw frames');
             const w2 = f2.contentWindow as any;
-            const sh = d2()!.getElementById('termShow') as HTMLElement;
-            const cv = d2()!.getElementById('showCanvas') as HTMLCanvasElement;
-            const cr = cv.getBoundingClientRect();
-            const px = Number(sh.dataset.px);
-            const cols = Number(sh.dataset.cols);
-            t.metric('terminalShowFontPx', px);
-            t.metric('terminalShowCols', cols);
-            t.metric('terminalShowScrollWidth', d2()!.documentElement.scrollWidth);
-            if (px < 9) t.problem('bug', `terminal phone: the show's text is ${px}px, under 9px`);
-            if (cols < 46) t.problem('bug', `terminal phone: the show grid is ${cols} columns wide (want 46 or more)`);
-            if (!(cr.left >= 0 && cr.right <= 391 && cr.width > 300)) t.problem('bug', `terminal phone: the show canvas is not inside the screen (${Math.round(cr.left)}-${Math.round(cr.right)})`);
-            if (Number(sh.dataset.nl) < 40 || Number(sh.dataset.nr) < 40) t.problem('bug', `terminal phone: a dancer is missing from the stage (Jackson ${sh.dataset.nl} marks, Jordan ${sh.dataset.nr})`);
-            if (d2()!.documentElement.scrollWidth > 391) t.problem('bug', `terminal phone: horizontal scroll in the show (${d2()!.documentElement.scrollWidth}px)`);
-            // a tap does not skip it
-            const frames0 = Number(sh.dataset.frames);
+            t.event('terminal-feed-phone', `mode ${fe()!.dataset.mode}, textures ${fe()!.dataset.textures ?? 'loading'}, Earth ${fe()!.dataset.lit ?? '?'} lit`);
+            const fits = (W: number, H: number, label: string) => {
+              const cr = d2()!.getElementById('feedCanvas')!.getBoundingClientRect();
+              const br = d2()!.getElementById('feedClose')!.getBoundingClientRect();
+              if (!(cr.left >= -0.5 && cr.right <= W + 0.5 && cr.top >= -0.5 && cr.width > W * 0.9 && cr.height > H * 0.6)) t.problem('bug', `terminal phone ${label}: the feed canvas does not fill the screen (${Math.round(cr.left)},${Math.round(cr.top)} ${Math.round(cr.width)}x${Math.round(cr.height)})`);
+              if (br.width < 44 || br.height < 44) t.problem('bug', `terminal phone ${label}: the disconnect button is ${Math.round(br.width)}x${Math.round(br.height)}, under 44 px`);
+              if (br.bottom > H + 0.5 || br.right > W + 0.5 || br.top < 0) t.problem('bug', `terminal phone ${label}: the disconnect button is off screen`);
+              if (d2()!.documentElement.scrollWidth > W + 1) t.problem('bug', `terminal phone ${label}: horizontal scroll under the feed (${d2()!.documentElement.scrollWidth}px)`);
+            };
+            fits(390, 844, 'portrait');
+            t.metric('terminalFeedPhoneScrollWidth', d2()!.documentElement.scrollWidth);
+            if (d2()!.querySelectorAll('audio, video').length) t.problem('bug', 'terminal phone: an <audio> or <video> element is on the feed page (there is no song any more)');
+            // a tap on the picture does not close it
+            const frames0 = Number(fe()!.dataset.frames);
+            const cv = d2()!.getElementById('feedCanvas')!;
             cv.dispatchEvent(new w2.PointerEvent('pointerdown', { bubbles: true }));
-            d2()!.getElementById('app')!.dispatchEvent(new w2.PointerEvent('pointerdown', { bubbles: true }));
-            await sleep(600);
-            if (sh.hidden || Number(sh.dataset.frames) <= frames0) t.problem('bug', 'terminal phone: a tap stopped the show');
-            const mute = d2()!.getElementById('showMute')!.getBoundingClientRect();
-            if (mute.width < 44 || mute.height < 44) t.problem('bug', `terminal phone: the mute button is ${Math.round(mute.width)}x${Math.round(mute.height)}, under 44 px`);
+            cv.dispatchEvent(new w2.MouseEvent('click', { bubbles: true }));
+            await sleep(800);
+            if (fe()!.dataset.state !== 'live' || Number(fe()!.dataset.frames) <= frames0) t.problem('bug', 'terminal phone: a tap on the picture stopped the feed');
+            f2.style.width = '844px'; f2.style.height = '390px'; // landscape
+            await sleep(800);
+            fits(844, 390, 'landscape');
+            (d2()!.getElementById('feedClose') as HTMLButtonElement).click();
+            await sleep(300);
+            if (fe()!.dataset.state !== 'closed') t.problem('bug', 'terminal phone: the disconnect button did not close the feed');
+            if (!/feed closed after/.test((d2()!.getElementById('termLog') as HTMLElement).innerText)) t.problem('bug', 'terminal phone: no "feed closed" line after disconnect');
             const e2: string[] = w2.__termErrors ?? [];
-            if (e2.length) t.problem('bug', `terminal phone show: ${e2.length} page error(s): ${e2.slice(0, 3).join(' | ')}`);
+            if (e2.length) t.problem('bug', `terminal phone feed: ${e2.length} page error(s): ${e2.slice(0, 3).join(' | ')}`);
           } finally { f2.remove(); frame.style.display = ''; }
         } else {
           // ---- /help and the permission wall
@@ -2823,85 +2829,78 @@ export const installPhPlaytest = (probeIn: Omit<PhProbe, 'frames'> & { frames?: 
           if (!appEl.classList.contains('is-root')) t.problem('bug', 'terminal: the prompt did not turn red after root');
           t.event('milestone', 'terminal root reached');
 
-          // ---- /build: three acts. Run 1 looks at the flood, the song and the dance, then hammers every kind of input at it: none may end it.
-          const showEl = () => doc.getElementById('termShow') as HTMLElement | null;
-          const startBuild = async () => {
+          // ---- /feed: the LUNA-1 camera over the console. No song: count every Audio the page makes from here on.
+          let audioMade = 0;
+          const RealAudio = win.Audio;
+          win.Audio = function (...a: unknown[]) { audioMade += 1; return new RealAudio(...a); };
+          const feedEl = () => doc.getElementById('termFeed') as HTMLElement | null;
+          const live = () => feedEl()?.dataset.state === 'live';
+          const startLine = async (line: string) => {
             await t.until(idle, 60000, 'the previous output to finish');
-            await type('/build');
+            await type(line);
             input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
             (doc.getElementById('termForm') as HTMLFormElement).requestSubmit();
             await sleep(40);
           };
-          await startBuild();
-          const s0 = performance.now();
-          await t.until(() => !!showEl() && !showEl()!.hidden, 4000, 'the build show to appear');
-          await sleep(Math.max(0, 3000 - (performance.now() - s0)));
-          const floodLines = Number(showEl()?.dataset.lines ?? 0);
-          t.metric('terminalFloodLines3s', floodLines);
-          if (floodLines <= 300) t.problem('bug', `terminal: /build printed ${floodLines} log lines in its first 3 s (want more than 300)`);
-          await t.until(() => showEl()?.dataset.act === 'flip', 15000, 'the flood to hand over to the song');
-          await t.until(() => showEl()?.dataset.audio === 'playing' || showEl()?.dataset.audio === 'silent', 20000, 'the song to start or fall back to silent');
-          const audioState = showEl()?.dataset.audio ?? '';
-          t.event('terminal-song', audioState);
-          if (audioState === 'silent' && !/song\.mp3 not found, playing silent/.test(showEl()?.textContent ?? '')) t.problem('bug', 'terminal: the silent fallback line is missing');
-          const f0 = Number(showEl()?.dataset.frames ?? 0);
-          let bothFull = 0;
-          let samples = 0;
-          const fs0 = performance.now();
-          while (performance.now() - fs0 < 2000) {
-            samples += 1;
-            if (Number(showEl()?.dataset.nl) > 0 && Number(showEl()?.dataset.nr) > 0) bothFull += 1;
-            await sleep(100);
-          }
-          const frames2s = Number(showEl()?.dataset.frames ?? 0) - f0;
-          t.metric('terminalFlipFrames2s', frames2s);
-          t.metric('terminalFlipBothHalves', Math.round((100 * bothFull) / Math.max(1, samples)));
-          if (frames2s < 10) t.problem('bug', `terminal: the show drew ${frames2s} frames in 2 s (want 10 or more)`);
-          if (bothFull < samples) t.problem('bug', `terminal: a dancer was missing from the stage in ${samples - bothFull} of ${samples} samples`);
-          // No key, click or tap ends the show: hammer them until it ends by itself.
-          const songStart = performance.now();
+          const key = (k: string, extra: Record<string, unknown> = {}) => doc.body.dispatchEvent(new win.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...extra }));
+          // Run 1: open, look, hammer, Esc.
+          await startLine('/feed');
+          await t.until(live, 6000, 'the feed to open after the patch-in lines');
+          expect(log(), /patching into LUNA-1[\s\S]*signal acquired/, '/feed should print the patch-in lines first');
+          await t.until(() => Number(feedEl()?.dataset.frames ?? 0) >= 3, 6000, 'the feed to draw');
+          const f0 = Number(feedEl()?.dataset.frames ?? 0);
+          await sleep(2000);
+          const frames2s = Number(feedEl()?.dataset.frames ?? 0) - f0;
+          t.metric('terminalFeedFrames2s', frames2s);
+          t.event('terminal-feed', `mode ${feedEl()?.dataset.mode}, textures ${feedEl()?.dataset.textures ?? 'loading'}, Earth ${feedEl()?.dataset.lit ?? '?'} lit, ${frames2s} frames in 2 s, slow ${feedEl()?.dataset.slow ?? '0'}`);
+          if (frames2s < 10) t.problem('bug', `terminal: the feed drew ${frames2s} frames in 2 s (want 10 or more)`);
+          if (feedEl()?.dataset.mode === 'webgl' && feedEl()?.dataset.textures !== 'ok') t.problem('bug', `terminal: the feed's Earth textures did not load (${feedEl()?.dataset.textures ?? 'still loading'})`);
+          const cr = doc.getElementById('feedCanvas')!.getBoundingClientRect();
+          if (cr.width < win.innerWidth * 0.9 || cr.height < win.innerHeight * 0.6) t.problem('bug', `terminal: the feed canvas does not fill the screen (${Math.round(cr.width)}x${Math.round(cr.height)})`);
           let inputs = 0;
           let leaked = 0;
-          const hammer = () => {
-            for (const key of ['Escape', 'Enter', ' ', 'a', 'Tab', 'ArrowUp', 'Backspace']) { input.dispatchEvent(new win.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); inputs += 1; }
-            input.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true })); inputs += 1;
+          const hs = performance.now();
+          while (performance.now() - hs < 2500) {
+            for (const k of ['Enter', ' ', 'a', 'Tab', 'ArrowUp', 'Backspace']) { input.dispatchEvent(new win.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); key(k); inputs += 2; }
             input.value = 'zz';
             input.dispatchEvent(new win.Event('input', { bubbles: true }));
-            for (const type of ['pointerdown', 'pointerup', 'click']) { doc.getElementById('app')!.dispatchEvent(new win.MouseEvent(type, { bubbles: true, cancelable: true })); inputs += 1; }
+            for (const type of ['pointerdown', 'pointerup', 'click']) { doc.getElementById('feedCanvas')!.dispatchEvent(new win.MouseEvent(type, { bubbles: true, cancelable: true })); inputs += 1; }
             if (input.value !== '') leaked += 1;
-          };
-          while (showEl() && !showEl()!.hidden && performance.now() - songStart < 60000) { hammer(); await sleep(150); }
-          const songSeconds = (performance.now() - songStart) / 1000 + 2;
-          t.metric('terminalShowInputs', inputs);
-          t.metric('terminalShowLeaked', leaked);
-          if (songSeconds < 7.5) t.problem('bug', `terminal: an input ended the /build show after ${songSeconds.toFixed(1)} s of its 8 s song`);
-          if (leaked) t.problem('bug', `terminal: typed text reached the prompt ${leaked} time(s) while the show played`);
-          await t.until(() => idle() && /BUILD SUCCESSFUL/.test(log()), 8000, 'the show to end by itself on BUILD SUCCESSFUL');
-          if (input.value !== '') t.problem('bug', `terminal: the prompt was not clean when the show ended ("${input.value}")`);
+            await sleep(150);
+          }
+          t.metric('terminalFeedInputs', inputs);
+          t.metric('terminalFeedLeaked', leaked);
+          if (!live()) t.problem('bug', 'terminal: a key, tap or typed text closed the feed (only Esc, q, Ctrl+C and disconnect should)');
+          if (leaked) t.problem('bug', `terminal: typed text reached the prompt ${leaked} time(s) under the feed`);
+          key('Escape');
+          await t.until(() => !live() && idle(), 3000, 'Esc to close the feed');
+          expect(log(), /feed closed after \d\d:\d\d:\d\d\. the Earth turned/, 'closing the feed should print how long it ran');
+          if (input.value !== '') t.problem('bug', `terminal: the prompt was not clean after the feed ("${input.value}")`);
           t.add('interactions');
-          // Run 2: left alone, the show ends with the (short, 8 s) song and lands on the same summary.
+          // Run 2: /build was renamed; it says so and opens the same feed. The disconnect button closes it.
+          await startLine('/build');
+          await t.until(live, 6000, '/build to open the feed');
+          expect(log(), /build: renamed[\s\S]*\/feed/, '/build should say it is /feed now');
+          await sleep(1000);
+          (doc.getElementById('feedClose') as HTMLButtonElement).click();
+          await t.until(() => !live() && idle(), 3000, 'disconnect to close the feed');
+          // Run 3: left alone, it closes by itself after the page's ?feedlen=8.
           const b0 = performance.now();
-          await startBuild();
-          await t.until(idle, 60000, '/build to finish on its own');
+          await startLine('/feed');
+          await t.until(live, 6000, 'the third feed to open');
+          await t.until(() => !live() && idle(), 20000, 'the feed to close by itself (feedlen 8)');
           const seconds = (performance.now() - b0) / 1000;
-          t.metric('terminalBuildSeconds', Math.round(seconds * 10) / 10);
-          const text = log();
-          const stages = doc.querySelectorAll('#termLog .line.head').length;
-          t.metric('terminalBuildStages', stages);
-          if (stages < 8) t.problem('bug', `terminal: /build showed ${stages} stages, under 8`);
-          if (seconds < 8 || seconds > 40) t.problem('bug', `terminal: /build ran ${seconds.toFixed(1)} s (want the flood, then the 8 s test song)`);
-          expect(text, /BUILD SUCCESSFUL/, '/build should end in BUILD SUCCESSFUL');
-          expect(text, /TOTAL\s+\d+\s+\d+/, '/build should end with a summary table');
-          expect(text, /\[#+-*\]\s+\d+%/, '/build should draw progress bars');
-          expect(text, /\d+\/\d+ passed/, '/build should count tests');
-          const ls = await runLine('ls /opt/hawkes-biomedical');
-          expect(ls, /modules/, 'ls /opt/hawkes-biomedical should list modules');
-          expect(await runLine('ls /opt/hawkes-biomedical/modules'), /patient-intake[\s\S]*billing/, 'the built modules should be listed');
-          expect(await runLine('cat /opt/hawkes-biomedical/README.md'), /medical backend framework/, 'the built README should read');
-          expect(await runLine('/build status'), /COMPLETE/, '/build status should say COMPLETE');
+          t.metric('terminalFeedSeconds', Math.round(seconds * 10) / 10);
+          if (seconds < 8) t.problem('bug', `terminal: the feed closed after ${seconds.toFixed(1)} s, before its 8 s`);
+          const sounds = audioMade + doc.querySelectorAll('audio, video').length;
+          t.metric('terminalFeedAudio', sounds);
+          if (sounds) t.problem('bug', `terminal: /feed or /build made ${audioMade} Audio object(s) and the page has ${doc.querySelectorAll('audio, video').length} audio/video element(s); the song should be gone`);
+          win.Audio = RealAudio;
+          expect(await runLine('ls /opt/hawkes-biomedical/modules'), /patient-intake[\s\S]*billing/, 'the backend /feed brought online should be listed');
+          expect(await runLine('cat /opt/hawkes-biomedical/README.md'), /medical backend framework/, 'the backend README should read');
 
           // ---- the game
-          expect(await runLine('hint'), /root|build/i, 'hint as root should point at /build');
+          expect(await runLine('hint'), /\/feed/, 'hint as root should point at /feed');
           await runLine('game');
           await t.until(() => /game\.html/.test(String(win.location?.pathname ?? '')) || /game\.html/.test(frame.contentWindow?.location.href ?? ''), 6000, 'game to open the game page').catch(() => {});
           const where = frame.contentWindow?.location.href ?? '';

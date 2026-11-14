@@ -7,7 +7,7 @@ site pages (`about`, `characters`, `lore`, `whatsnew`, `lore/*`), `site/marketin
 unchanged.
 
 **Player goal:** feel like a hacker who earned root: poke around, follow the backwards-hat breadcrumbs, crack in, then
-watch `/build` assemble the whole medical backend. Reference: Hackers / Mr. Robot, Hacknet's first root.
+patch into LUNA-1 with `/feed`: the first live camera on the Moon, pointed at the Earth. Reference: Hackers / Mr. Robot, Hacknet's first root.
 
 ## Where it lives and why
 
@@ -44,7 +44,7 @@ but ops, fail in-world; there is no password prompt anywhere. `curl` of the back
 
 `GUIDE` / `STEPS` in `content.js` are the single source. Guest `/help` is the **LOGIN GUIDE** (`guideLines`:
 `Step N of 3`, `Type:  <command>`, what it does) plus `hint`, `ls`, `cat`, `help all`. Root `/help` and `help` print
-exactly `/build`; `help all` still lists everything. Every step's output ends with `Next: <command>` (`nextPointer`),
+exactly `/feed`; `help all` still lists everything. Every step's output ends with `Next: <command>` (`nextPointer`),
 and Tab on an empty line completes the next command (`complete.js`). Root-only commands refuse until root. Banned in output: "simulation", "no real system",
 "BACKWARDS (as expected)", "ground truth" (unit test).
 
@@ -59,91 +59,54 @@ Up/down history, Ctrl+L, Ctrl+C. A pipe works into `grep head tail wc sort rev c
 - Network toys (all simulated): `ping nmap curl ssh strings rev su sudo`
 - Console: `hint progress man theme sound about credits reset`; site: `game`/`play`, `open <page>` (about, characters,
   lore, whatsnew, lore/&lt;chapter&gt;), and `~/site/*.html` stubs
-- Root only: `/build /status /services /logs /deploy /rollback /whoami --root` (guests: permission denied + `hint` nudge)
+- Root only: `/feed /status /services /logs /deploy /rollback /whoami --root` (guests: permission denied + `hint` nudge)
 - Eggs: `sl cowsay fortune matrix`, `sudo make me a sandwich`, `rm -rf /`, `hack the planet`, Konami code at the prompt
   (works during boot; prints a joke and an achievement)
 
 `theme green|amber|white`; `sound on|off` is a tiny WebAudio keyclick, off by default, the context is only created
 after a key press.
 
-## `/build`: a show in three acts
+## `/feed`: the first live camera on the Moon
 
-`build.js` is a pure function `runBuild({ seed, only, verbose })` returning timed events (no timers), so tests run it
-with a seeded clock: resolve dependencies (a scripted TLS warning, auto-fixed), ten module stages each with compile and
-test progress bars and counters (a second warning, a duplicate LOINC code, auto-fixed), integration suites, packaging,
-then a summary table, build hash and the BUILD SUCCESSFUL banner. The result mounts `/opt/hawkes-biomedical/`
-(`README.md`, `BUILD.txt`, `manifest.json`, `bin/`, `modules/<id>/`); `game` then notes "backend online". Fully
-fictional: no PHI, no network, no real build. `/deploy` and `/rollback` ask `[y/N]` and do nothing real.
-`/build status` reports; `/build <module>` builds one module the quiet way (about 5 s, no show).
+Jaycee, 2026-11-13: "Change /build cmd to /feed. Remove the song, make it a crt style video feed of the earth from
+PHOrigins." The song, its files and the three-act show (`show.js`, `dancers.js`, `banner.js`, `choreo.js`, `stage.js`,
+`song.mp3`) are gone. `/build` stays as a hidden redirect: it prints that it was renamed and opens the feed.
 
-A **full** `/build` is played by `show.js` (the shell marks the `seq` effect with `show`). Everything is client-side:
-`requestAnimationFrame` only while the show runs, no fetches, no polling timers.
+`/feed` (root) brings the backend online the first time (`runBuild` is still the pure record of it, so
+`/opt/hawkes-biomedical/` mounts as before), prints the patch-in lines (`connectScript` in `lunar.js`: camera, relay,
+range and light time, site, how much of the Earth is lit, how to get back), then `ui.js` calls `openFeed` and `feed.js`
+covers the console with one canvas.
 
-**The show cannot be skipped** (J, 2026-11-12). No key, click, tap, Escape or Ctrl+C ends it: there is no skip function in
-`show.js`, the only listener on the show is the 44 px `sound: on/off` button (M also mutes), and `ui.js` swallows every
-key while it plays, clears anything a soft keyboard or paste puts in the prompt (`input.readOnly` too), ignores taps and
-the quick-key buttons, and prints nothing under the show. The prompt comes back, clean, only when the show ends. It ends
-when `song.mp3` ends (the `ended` event), or on its own fixed timer when there is no song: `SILENT_SECONDS` (60 s) if the
-file fails, errors, never loads in 15 s or autoplay is blocked, and a wall-clock cap of the song's length plus 30 s if it
-stalls. `?songlen=N` (a test hook) shortens the song to N seconds.
+- **The sky is real.** `lunar.js` (pure, tested against known dates) works out where the Sun and the Moon are at this
+  minute (Astronomical Almanac low-precision formulas), so the Earth on the feed is lit and phased the way it is from
+  the Moon right now, with the sub-camera point turning under it. Full Earth at a new Moon, dark at a full Moon.
+- **The picture.** Raw WebGL1, two passes. Pass 1 draws the scene into a video-sized framebuffer (960 px on the long
+  side): the Earth from NASA day, night-lights, cloud and water maps (`assets/feed/`, public domain, sources in
+  `SOURCES.md`, fetched only when the feed opens), with sunglint on water, cloud shadows, city lights on the night side,
+  a terminator band, limb haze and the thin air glow; the lunar horizon in front (a perspective height field with
+  craters and rocks, lit by the same Sun); the burned-in OSD (camera id, LIVE dot, REC clock, a UTC stamp one light-time
+  behind the wall clock, sub-camera point, range, delay and signal numbers). Pass 2 is the CRT: barrel curve, rounded
+  corners, roll and a tear band now and then, line jitter, chromatic fringe, bloom, scanlines, aperture grille, grain,
+  hum bar, flicker and vignette.
+- **Closing.** Esc, q, Ctrl+C or the 44 px `disconnect` button (focused on open). Every other key, typed text and taps are
+  kept from the prompt. On close the log prints how long it ran and how far the Earth turned; the GL context is
+  released. No audio anywhere.
+- **Phones and slow machines.** The layout (`feedLayout`) keeps the whole Earth and the horizon on screen in portrait and
+  landscape, the bar sits inside the safe areas, and the OSD drops to short lines under 560 x 480. A slow device (frames
+  over 24 ms) drops to 30 fps, a lower monitor resolution and a 640 px video. Reduced motion is 2 fps with no roll,
+  tear or flicker. No WebGL: one still drawn on the CPU from the day map, with CSS scanlines.
+- `#termFeed` carries `data-state`, `data-frames`, `data-mode` (webgl or 2d), `data-textures`, `data-lit`,
+  `data-subcam`, `data-slow` and `data-calm` for the playtest.
 
-1. **Log flood** (unchanged). `floodScript(events, seed)` (build.js) puts a burst of filler lines (`cc`, `LD`, `PASS`, `lint`,
-   `sign`, `stage ... %`, across all ten modules) in front of every real event, about 5,000 lines. They play at
-   `FLOOD_RATE` 1,600 lines a second, batched per frame (capped at 2,500 a frame), so over 300 lines show in the first
-   3 s even on a slow frame rate. One `<pre>`, the visible rows only, one `textContent` write a frame.
-2. **The song.** After the flood an `<audio>` plays `song.mp3` from the site root, resolved against `document.baseURI`
-   (works under GitHub Pages). If the file is missing, errors, or `play()` is rejected, the show runs on its own clock for
-   `SILENT_SECONDS` and the HUD prints `(song.mp3 not found, playing silent)` (also in the log afterwards), with no thrown
-   error. The clock is the audio's `currentTime` (extrapolated between its updates). If the browser lets us (an audio
-   context that is really running) an `AnalyserNode` taps the element and the equalizer follows the real spectrum;
-   otherwise the beat clock drives it. It never wires the element into a suspended context, which would silence it.
-3. **The algorithms.** One `<canvas id="showCanvas">`, redrawn every frame (the DOM is a handful of nodes, so a phone holds
-   60 fps; if drawing takes over 12 ms the glow turns off and the canvas drops to 1x, over 24 ms it drops to 30 fps).
-   Four modules, all plain data and pure functions with tests:
-   - `dancers.js` (the name is kept so imports stay put): `EQUATIONS`, 24 equations that run the internet as data (`id`,
-     `beat`, `left` / `right` term lists with `sign` and `coeff`, the `moved` term that slides across `=`, a caption).
-     `CORE_EQUATIONS` are J's four, exactly as written: `GPU + Text = Hearts - Credits`, `Hearts = GPU + Text + Credits`,
-     `Credits = Hearts - GPU - Text`, `Hearts + Credits = GPU + Text + 2(Credits)`. `balanceEquation` checks each against
-     `DEFAULT_VARS` (and symbolically under Hearts = GPU + Text + Credits for the core four). `buildFarmState` draws the GPU
-     farm (racks, blinking lights, fans, heat, utilisation bars, a credits meter); `buildNetState` the network (nodes,
-     links, packets as moving characters, a pulsing core).
-   - `banner.js`: a block-letter font (A-Z, 0-9, `+ - = / ( ) x`). A banner is laid out letter by letter, with each letter
-     carrying its word, so a term can glow in its own colour and slide.
-   - `choreo.js`: the beat clock (`BPM` 128, `BEAT_OFFSET` 0.409 s, measured from the song in the repo, 228.264 s), `buildTimeline(duration)` and the scenes: `boot`
-     (rack boot), `eq1` (J's four, one per beat slot), `farm`, `eq2`, `net`, `flythrough` (farm to token trunk to the
-     gateway core), `hearts` (hearts flood), `rapid` (every equation, one a beat), `finale` (the four stacked, everything lit),
-     `outro` (BUILD SUCCESSFUL, credits). The timeline stretches to the song and squeezes by priority for a short one; a song well over the nominal 82 bars runs the middle scenes (eq1 to rapid) in as many rounds as fit, so a 3+ minute song does not hold one view for long. Boundaries sit on bar lines and the outro ends exactly at the song's end.
-   - `stage.js`: one frame into a grid of cells; the live tally row `GPU(..) + Text(..) = Hearts(..) - Credits(..)` comes
-     from the farm state; `show.js` paints it. Algebra moves: the term slides across `=` and flips sign, letters glow per
-     term, a white flash when both sides tally. Reduced motion keeps all of it and drops the flashes, shake and confetti.
-
-   Layout: at least 46 columns by 34 rows (a 390 px phone gets 14 px text); the farm and net use fewer racks and nodes on
-   narrow stages, the equations wrap, and there is no horizontal scroll.
-
-   `#termShow` carries `data-act` (flood, flip), `data-lines`, `data-frames`, `data-audio`, `data-scene`, `data-scenes`,
-   `data-equations` (distinct equations shown), `data-packets` (most packets in flight), `data-flashes`, `data-shakes`,
-   `data-beats`, `data-cols`, `data-rows`, `data-px` and `data-calm` for the playtest.
-
-
-When the song ends the show hides and the real log prints at once (stages, bars, counters, table, banner) ending in BUILD
-SUCCESSFUL, and `/opt/hawkes-biomedical` is there (the build is recorded when `/build` starts).
-
-**Reduced motion** (`prefers-reduced-motion` or `?motion=off`): the calm version, also unskippable. No flood, no sound (as
-before: `play song` plays it), a fixed `CALM_SECONDS` (48 s) timeline of the same scenes at 5 frames a second, no flash, no
-shake, no falling confetti, no ripple, static marquees. The short normal log prints after it.
-
-**Swapping in the real song.** Replace `song.mp3` at the repo root. The length is read from the file and the timeline
-fits it. The tempo is `BPM` in choreo.js (128 for the song in the repo; `BEAT_OFFSET` 0.409 is where the first beat falls; measure both again after a swap).
-
-**Test hooks.** `?songlen=8` ends the song after 8 s (the playtest does not wait four minutes). `?demo=show` starts the
-show once the boot ends (the phone playtest looks at it this way). Neither is linked from anywhere.
+**Test hooks.** `?feedlen=8` closes the feed by itself after 8 s; `?demo=feed` opens it once the boot ends (the phone
+playtest). Neither is linked from anywhere. Gen video was not needed: it is all drawn in code.
 
 ## File tree (virtual)
 
 `/home/guest` (README.txt, .hat_backwards, .plan, .bash_history, .achievements, notes/, loot/, site/ with page stubs
 and `lore/`), `/home/ops`, `/root` (root only), `/etc` (motd, hosts, passwd, shadow and sudoers unreadable), `/srv/lore`
 (board, Hawkes Biomedical, Apex Peak notes), `/usr/share/wordlists` (rockyou-lite, hawkes-staff), `/var/log`
-(syslog, auth.log for ops, build.log for root), `/opt` (`.build-me`, then `hawkes-biomedical/` after a build).
+(syslog, auth.log for ops, build.log for root), `/opt` (`.feed-me`, then `hawkes-biomedical/` after the first `/feed`).
 
 ## Canon
 
@@ -156,18 +119,21 @@ Zurich, the chapter titles, "Room for Grace".
 CRT phosphor (themes via CSS variables), scanlines and vignette as non-interactive overlays, blinking block cursor
 (mirror span over a transparent real `<input>`, so keyboards, IME and paste work). Output is `role="log"
 aria-live="polite"`; text is selectable; a tap anywhere refocuses the input unless text is selected. Reduced motion
-(`prefers-reduced-motion`, or `?motion=off` for the playtest) prints the boot and build instantly, no flicker or blink.
+(`prefers-reduced-motion`, or `?motion=off` for the playtest) prints the boot instantly, no flicker or blink.
 Phone (390x844): `100dvh` plus `visualViewport` sizing when a keyboard is up, 15 px text, a tap row (help, ls, hint,
 Tab, up, down, ^C, each 44 px, 8 px gap), no horizontal scroll (ASCII art hidden under 700 px, tables 36 columns).
 
 ## Checks
 
 `npm run test:terminal` (parser, completion, filesystem permissions, puzzle order and hint monotonicity, no-root
-without earlier steps, the whole documented chain, throttle, root commands, build determinism and timing, the flood, eggs) and `show.test.mjs` (the ASCII frames, the banner font, the timeline for songs from 3 s to 10 min, the choreography on phone and desktop grids, beat effects, the calm version, and a fake browser that proves no key, tap, soft-keyboard text or button ends the show).
+without earlier steps, the whole documented chain, throttle, root commands, build determinism, eggs) and `feed.test.mjs`
+(the Sun and Moon against known dates, the OSD and patch-in text, the layout on phone and desktop sizes, the textures and
+their sources, `/feed` and the `/build` redirect with no audio, and a fake browser that runs the 2D feed and proves keys
+and typed text never reach the prompt while Esc and q close it).
 Playtest `terminal` and `terminal-phone` (see `src/playtest/phPlaytest.ts`); Studio runs them, nobody starts a browser
 by hand.
 
-## Root-only login and the /build show (current)
+## Root-only login and /feed (current)
 
-- `root` is the only account that can be logged into. `su`/`login`/`ssh` to any other user (guest, admin, kali...) fail in-world; root is reached only through the three GUIDE steps (hat, scan, root), or `hint`. Root commands (`/build /status /deploy /logs /services /rollback`) refuse in one line that names the guide's next step.
-- `/build`: log flood (1,600+ lines/s) -> `song.mp3` -> the equations that run the internet over a text GPU farm and network on one canvas, synced to the song; it cannot be skipped. Screenshots: `docs/terminal-shots/`.
+- `root` is the only account that can be logged into. `su`/`login`/`ssh` to any other user (guest, admin, kali...) fail in-world; root is reached only through the three GUIDE steps (hat, scan, root), or `hint`. Root commands (`/feed /status /deploy /logs /services /rollback`) refuse in one line that names the guide's next step.
+- `/feed`: the LUNA-1 camera's CRT feed of the Earth, lit as it is right now. `/build` redirects to it. No song.
