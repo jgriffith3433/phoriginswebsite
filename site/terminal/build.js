@@ -1,4 +1,4 @@
-// The /build runner: a pure function from (seed, options) to a timed list of output events. No timers here: the
+// The backend runner (the first /feed brings the backend online with it): a pure function from (seed, options) to a timed list of output events. No timers here: the
 // UI plays the events on its own clock, tests read them directly. Same seed, same log.
 
 import { rng, hex, pad, lpad, bar } from './util.js';
@@ -142,40 +142,3 @@ export function mergeBuilt(prev, summary) {
 
 const slim = (m) => ({ id: m.id, title: m.title, port: m.port, files: m.files, tests: m.tests });
 export const isComplete = (built) => !!built && MODULES.every((m) => built.modules.some((x) => x.id === m.id));
-
-// ---- Act 1: the log flood. A pure list of lines: the real build events (stages, bars, counters, warnings, fixes)
-// each preceded by a burst of filler compile / test / link / deploy lines across every module. The UI plays it at a
-// rate of its own (hundreds to thousands of lines a second); nothing here touches a timer.
-
-const FILE_WORDS = ['schema', 'routes', 'validators', 'adapters', 'migrations', 'fixtures', 'handlers', 'policies', 'codec', 'index', 'audit', 'session'];
-const STAGES_FLOOD = ['cc', 'ld', 'ar', 'lint', 'tsc', 'pack', 'sign'];
-
-/** One filler line of build noise. Deterministic for a given generator `r`. */
-export function fillerLine(r) {
-  const m = r.pick(MODULES).id;
-  const f = `${r.pick(FILE_WORDS)}-${r.int(1, 9)}`;
-  switch (r.int(0, 9)) {
-    case 0: return `PASS ${m}/${f}.test.ts (${r.int(2, 90)} ms)`;
-    case 1: return `  LD   ${m}.so  ${r.int(40, 900)}K  ${hex(f + m, 8)}`;
-    case 2: return `[${m}] ${hex(f, 8)} typecheck ok  ${r.int(120, 9000)} symbols`;
-    case 3: return `  AR   lib${m}.a  ${r.int(8, 80)} objects`;
-    case 4: return `lint ${m}/src/${f}.ts  0 problems`;
-    case 5: return `  CHK  ${hex(m + f, 12)}  ${m}/src/${f}.ts`;
-    case 6: return `stage ${m} -> staging  ${lpad(r.int(1, 100), 3)}%`;
-    case 7: return `sign  ${m}.pkg  sha256:${hex(m + r.int(0, 999), 16)}`;
-    case 8: return `  ${r.pick(STAGES_FLOOD)}  ${m}/src/${f}.ts -> ${m}/out/${f}.js  ${r.int(1, 40)} ms`;
-    default: return `cc ${m}/src/${f}.ts`;
-  }
-}
-
-/** @returns {{text:string, cls?:string}[]} the whole flood, same seed same lines. */
-export function floodScript(events, seed = 58, { perEvent = [22, 50] } = {}) {
-  const r = rng(seed * 7919 + 11);
-  const out = [];
-  for (const e of events) {
-    const n = r.int(perEvent[0], perEvent[1]);
-    for (let i = 0; i < n; i += 1) out.push({ text: fillerLine(r) });
-    for (const l of e.text.split('\n')) out.push({ text: l, cls: e.cls });
-  }
-  return out;
-}

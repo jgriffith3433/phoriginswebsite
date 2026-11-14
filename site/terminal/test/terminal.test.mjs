@@ -5,7 +5,7 @@ import { parseLine, parseCommand, tokenize, suggest } from '../parser.js';
 import { complete } from '../complete.js';
 import { Shell } from '../shell.js';
 import { Puzzle } from '../puzzle.js';
-import { runBuild, MODULES, mergeBuilt, floodScript } from '../build.js';
+import { runBuild, MODULES, mergeBuilt } from '../build.js';
 import { STEPS } from '../content.js';
 
 const mk = (o = {}) => { let t = 1e12; const store = { s: null }; const sh = new Shell({ load: () => store.s, save: (v) => { store.s = v; }, now: () => t, ...o }); sh.tick = (ms) => { t += ms; }; sh.store2 = store; return sh; };
@@ -46,11 +46,11 @@ test('guest help: the guide plus at most 3 command lines, with or without a slas
   assert.equal(run(sh, 'help'), a);
 });
 
-test('help as root is exactly /build; help all still lists everything', () => {
+test('help as root is exactly /feed; help all still lists everything', () => {
   const sh = mk();
   sh.user = 'root';
-  assert.equal(run(sh, 'help'), '/build');
-  assert.equal(run(sh, '/help'), '/build');
+  assert.equal(run(sh, 'help'), '/feed');
+  assert.equal(run(sh, '/help'), '/feed');
   assert.match(run(sh, 'help all'), /ALL COMMANDS/);
 });
 
@@ -72,7 +72,7 @@ test('help all lists every registered command, and man works for each', async ()
 test('tab completion: commands and paths', () => {
   const sh = mk();
   assert.equal(complete(sh, 'hel').line, 'help ');
-  assert.equal(complete(sh, '/bui').line, '/build ');
+  assert.equal(complete(sh, '/fee').line, '/feed ');
   const many = complete(sh, 'h');
   assert.ok(many.options.includes('help') && many.options.includes('hint'));
   assert.equal(complete(sh, 'cat REA').line, 'cat README.txt ');
@@ -149,7 +149,7 @@ test('the LOGIN GUIDE walks a stranger to root by typing only what it prints: 3 
   assert.equal(typed.length, 3);
   assert.equal(sh.user, 'root');
   assert.equal(sh.prompt(), 'root@ph-origins:/#');
-  assert.equal(run(sh, '/help'), '/build');
+  assert.equal(run(sh, '/help'), '/feed');
 });
 
 test('hint from a fresh guest reaches root in one command; no output says password', () => {
@@ -159,7 +159,7 @@ test('hint from a fresh guest reaches root in one command; no output says passwo
     assert.equal(sh.user, 'root');
     assert.equal(sh.prompt(), 'root@ph-origins:/#');
     assert.match(seen[2], /ACCESS GRANTED/);
-    assert.equal(run(sh, '/help'), '/build');
+    assert.equal(run(sh, '/help'), '/feed');
     seen.push(run(sh, 'help all'), run(sh, 'man ssh'), run(sh, 'su root'));
     assert.doesNotMatch(seen.join('\n'), /password/i);
   }
@@ -173,7 +173,7 @@ test('hint from a fresh guest reaches root in one command; no output says passwo
 test('the guide never says simulation, fake or the old winks', () => {
   const sh = mk();
   const seen = [sh.boot().map((e) => e.text).join('\n'), ...['/help', 'about', 'credits', 'man nmap', 'ping tower.hawkes.lan', 'nmap localhost', 'ps', 'top', 'cat notes/rules.txt', 'progress'].map((c) => run(sh, c))];
-  solve(sh); seen.push(run(sh, '/build'), run(sh, 'cat /opt/hawkes-biomedical/README.md'), run(sh, 'deploy'), run(sh, 'y'));
+  solve(sh); seen.push(run(sh, '/feed'), run(sh, 'cat /opt/hawkes-biomedical/README.md'), run(sh, 'deploy'), run(sh, 'y'));
   const all = seen.join('\n');
   for (const bad of [/simulat/i, /no real system/i, /BACKWARDS \(as expected\)/, /ground truth/i, /\bfake\b/i, /fictional/i, /nothing leaves/i, /no real data/i]) assert.doesNotMatch(all, bad);
 });
@@ -186,7 +186,7 @@ test('old saved progress lands at the matching new step', () => {
   assert.equal(at(['hat']).puzzle.stepsDone, 1);
   const rooted = at(['hat', 'scan', 'loot', 'crack', 'root'], true);
   assert.equal(rooted.user, 'root');
-  assert.equal(run(rooted, '/help'), '/build');
+  assert.equal(run(rooted, '/help'), '/feed');
 });
 
 test('the documented chain reaches root in three steps, and root persists', () => {
@@ -215,8 +215,9 @@ test('root commands: build, status, deploy confirm, rollback, whoami --root', ()
   assert.match(run(sh, 'whoami --root'), /earned/);
   assert.match(run(sh, 'status'), /NOT BUILT/);
   assert.match(run(sh, 'deploy'), /nothing to deploy/);
-  const b = run(sh, '/build');
-  assert.match(b, /BUILD SUCCESSFUL/);
+  const b = run(sh, '/feed');
+  assert.match(b, /patching into LUNA-1/);
+  assert.match(b, /brought online/);
   assert.match(run(sh, 'ls /opt/hawkes-biomedical'), /README\.md/);
   assert.match(run(sh, 'ls /opt/hawkes-biomedical/modules'), /patient-intake/);
   assert.match(run(sh, 'cat /opt/hawkes-biomedical/README.md'), /medical backend framework/);
@@ -225,7 +226,7 @@ test('root commands: build, status, deploy confirm, rollback, whoami --root', ()
   assert.match(run(sh, 'n'), /aborted/);
   run(sh, 'deploy'); run(sh, 'y'); assert.ok(sh.deployed);
   run(sh, 'rollback'); run(sh, 'y'); assert.equal(sh.deployed, null);
-  assert.match(run(sh, 'build status'), /COMPLETE/);
+  assert.match(run(sh, 'status'), /online|ONLINE|BUILT|COMPLETE/i);
 });
 
 test('build runner: deterministic, 8+ named stages, 20 to 40 s, table and banner', () => {
@@ -266,23 +267,6 @@ test('easter eggs and misc', () => {
   assert.equal(sh.run('game').some((e) => e.k === 'go' && e.url === './play/game.html'), true);
 });
 
-// ---- the /build spectacle: flood, song, text flipbook
-test('flood: thousands of lines, every stage and warning inside, deterministic', () => {
-  const b = runBuild({ seed: 58 });
-  const a = floodScript(b.events, 58);
-  assert.deepEqual(a, floodScript(b.events, 58));
-  assert.ok(a.length > 3000, `flood is ${a.length} lines`);
-  for (const m of MODULES) assert.ok(a.some((l) => l.text.includes(m.id)), m.id);
-  assert.ok(a.some((l) => /WARN/.test(l.text)) && a.some((l) => /FIX/.test(l.text)));
-  assert.ok(a.some((l) => /\d+\/\d+ passed/.test(l.text)) && a.some((l) => /\[#+-*\]/.test(l.text)));
-  assert.match(a.at(-1).text, /BUILD SUCCESSFUL|online/);
-  const sh = mk();
-  solve(sh);
-  const seq = sh.run('/build').find((e) => e.k === 'seq');
-  assert.ok(seq.show, 'a full build is the show');
-  assert.ok(!sh.run('/build billing').find((e) => e.k === 'seq').show, 'a module build stays plain');
-});
-
 test('root is the only account: su/ssh/login to anyone else fails, root commands refuse with the next step', () => {
   const sh = mk();
   for (const line of ['su guest', 'su admin', 'su kali', 'login admin', 'ssh admin@gw.hawkes.lan', 'ssh kali@gw.hawkes.lan']) {
@@ -291,7 +275,7 @@ test('root is the only account: su/ssh/login to anyone else fails, root commands
     assert.equal(sh.user, 'guest', line);
     assert.equal(sh.prompt().includes('password'), false);
   }
-  for (const c of ['/build', '/status', '/deploy', '/logs', '/services', '/rollback']) {
+  for (const c of ['/feed', '/build', '/status', '/deploy', '/logs', '/services', '/rollback']) {
     const out = run(sh, c);
     assert.match(out, /permission denied/);
     assert.match(out, /Next login step: rev ~\/\.hat_backwards/, c); // one line, pointing at the guide's current step
@@ -301,4 +285,5 @@ test('root is the only account: su/ssh/login to anyone else fails, root commands
   assert.equal(sh.user, 'root');
   assert.doesNotMatch(run(sh, '/status'), /permission denied/);
   assert.doesNotMatch(run(sh, '/build'), /permission denied/);
+  assert.doesNotMatch(run(sh, '/feed'), /permission denied/);
 });

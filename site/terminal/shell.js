@@ -5,6 +5,7 @@ import { parseLine, suggest } from './parser.js';
 import { VFS, USERS, modeOf } from './fs.js';
 import { Puzzle } from './puzzle.js';
 import { runBuild, mergeBuilt, isComplete, MODULES, VERSION } from './build.js';
+import { connectScript } from './lunar.js';
 import { STEPS, GUIDE, MOTD, MOTD_ART, MOTD_TEXT, FORTUNES, TARGET_HOST, GW_STRINGS, GW_BACKUP_NAME } from './content.js';
 import { rng, pad, lpad, bar, reverse, hex } from './util.js';
 
@@ -13,7 +14,7 @@ const SEQ = (steps) => ({ k: 'seq', steps });
 const text = (effects) => effects.filter((e) => e.k === 'print').map((e) => e.text).join('\n');
 
 export const THEMES = ['green', 'amber', 'white'];
-export const ROOT_ONLY = ['build', 'status', 'deploy', 'logs', 'services', 'rollback'];
+export const ROOT_ONLY = ['feed', 'status', 'deploy', 'logs', 'services', 'rollback'];
 const SITE_PAGES = { about: './about.html', characters: './characters.html', lore: './lore.html', whatsnew: './whatsnew.html', game: './play/game.html' };
 const LORE_SLUGS = ['the-apex-peak', 'b3', 'the-return', 'the-desk', 'going-home', 'the-station', 'the-train', 'the-morning'];
 
@@ -166,8 +167,8 @@ export class Shell {
     add('ACCESS GRANTED', 'banner big', 260);
     add('', '', 80);
     add('Welcome, root. The prompt is red now. It suits you.', 'ok', 380);
-    add('New commands:  /build  /status  /services  /logs  /deploy  /rollback  /whoami --root', 'ok', 220);
-    add('Start with  /build  - the medical backend is waiting for its first assembly.', 'ok', 220);
+    add('New commands:  /feed  /status  /services  /logs  /deploy  /rollback  /whoami --root', 'ok', 220);
+    add('Start with  /feed  - the first live camera on the Moon is pointed at home.', 'ok', 220);
     return [{ k: 'granted' }, SEQ(steps)];
   }
 
@@ -243,7 +244,7 @@ function achievements(sh) {
   const p = sh.puzzle;
   const lines = ['ACHIEVEMENTS', ''];
   for (const s of STEPS) lines.push(`  [${p.has(s.id) ? 'x' : ' '}] ${s.title}`);
-  const extra = { konami: 'Thirty lives (konami)', sandwich: 'Make it yourself (sandwich)', planet: 'Hack the planet', rmrf: 'Famous last words (rm -rf /)', built: 'It is online (first /build)' };
+  const extra = { konami: 'Thirty lives (konami)', sandwich: 'Make it yourself (sandwich)', planet: 'Hack the planet', rmrf: 'Famous last words (rm -rf /)', built: 'Eyes on home (first /feed)' };
   lines.push('');
   for (const [k, v] of Object.entries(extra)) lines.push(`  [${p.extra.includes(k) ? 'x' : ' '}] ${v}`);
   lines.push('', `  hints used: ${p.hintsUsed}`);
@@ -346,13 +347,13 @@ const FAKE_TOP = [
 /** The LOGIN GUIDE block: which step, the exact next command, what it does. */
 export function guideLines(sh) {
   const cur = sh.puzzle.current;
-  if (!cur) return ['LOGIN GUIDE', `  All ${STEPS.length} steps done. You are root.`, '  Next: /build', ''];
+  if (!cur) return ['LOGIN GUIDE', `  All ${STEPS.length} steps done. You are root.`, '  Next: /feed', ''];
   const n = STEPS.findIndex((s) => s.id === cur) + 1;
   const g = GUIDE[cur];
   return ['LOGIN GUIDE', `  Step ${n} of ${STEPS.length}: ${STEPS[n - 1].title}`, `  Type:  ${g.cmd}`, `  It ${g.what}`, '  (copy it, or press Tab. Or type  hint  and skip ahead.)', ''];
 }
 /** The one-line pointer that ends every step's output. */
-export const nextPointer = (sh) => (sh.puzzle.current ? P(`Next: ${GUIDE[sh.puzzle.current].cmd}`, 'hint') : P('Next: /build', 'hint'));
+export const nextPointer = (sh) => (sh.puzzle.current ? P(`Next: ${GUIDE[sh.puzzle.current].cmd}`, 'hint') : P('Next: /feed', 'hint'));
 
 const resolveHost = (h) => {
   const host = h.replace(/^[a-z]+:\/\//, '').split(/[/:]/)[0].toLowerCase();
@@ -372,10 +373,10 @@ function helpAll(sh, row) {
     ...g('Look around', ['ls', 'cd', 'pwd', 'cat', 'less', 'tree', 'grep', 'head', 'tail', 'wc', 'sort', 'echo']),
     ...g('System', ['whoami', 'id', 'uname', 'hostname', 'date', 'ps', 'top', 'history', 'clear', 'exit', 'su', 'sudo', 'login']),
     ...g('Network tools', ['ping', 'nmap', 'curl', 'ssh', 'strings', 'rev', 'john']),
-    ...g('Console', ['hint', 'progress', 'man', 'help', 'theme', 'sound', 'song', 'about', 'credits', 'reset']),
+    ...g('Console', ['hint', 'progress', 'man', 'help', 'theme', 'sound', 'about', 'credits', 'reset']),
     ...g('Site', ['game', 'open']),
     `Root only ${sh.isRoot ? '(unlocked)' : '(locked: earn root)'}`,
-    ...['build', 'status', 'services', 'logs', 'deploy', 'rollback'].map((n) => { listed.add(n); return row(n); }),
+    ...['feed', 'status', 'services', 'logs', 'deploy', 'rollback'].map((n) => { listed.add(n); return row(n); }),
     '',
   ];
   const rest = Object.keys(COMMANDS).filter((n) => !listed.has(n) && !COMMANDS[n].secret);
@@ -391,7 +392,7 @@ const COMMANDS = {
       if (args[0] && args[0].replace(/^\//, '').toLowerCase() !== 'all') return COMMANDS.man.run(sh, args);
       const row = (n) => `  ${pad(COMMANDS[n].root ? '/' + n : n, 11)}${COMMANDS[n].desc}`;
       if (args[0]) return [P(helpAll(sh, row).join('\n'))];
-      if (sh.isRoot) return [P('/build')];
+      if (sh.isRoot) return [P('/feed')];
       const short = { hint: 'log in as root for you', ls: 'list files', cat: 'read a file' };
       const line = (n) => `  ${pad(n, 11)}${short[n]}`;
       const lines = [...guideLines(sh), 'COMMANDS', ...['hint', 'ls', 'cat'].map(line), `  ${pad('help all', 11)}every command`];
@@ -563,7 +564,7 @@ const COMMANDS = {
   },
   about: {
     desc: 'what is this place', usage: 'about',
-    run: () => [P('PH Origins: a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark.\n\nThis console is the Hawkes gateway: a way in, and a backend that builds itself.\nThe game is one command away:  game', '')],
+    run: () => [P('PH Origins: a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark.\n\nThis console is the Hawkes gateway: a way in, and a camera on the Moon pointed at home.\nThe game is one command away:  game', '')],
   },
   credits: {
     desc: 'who made this', usage: 'credits',
@@ -597,17 +598,9 @@ const COMMANDS = {
       return [];
     },
   },
-  song: {
-    desc: 'play or stop song.mp3 (the one from /build)', usage: 'song [stop]',
-    run(sh, args) {
-      if ((args[0] || '').toLowerCase() === 'stop') return [{ k: 'song', on: false }, P('song stopped.', 'dim')];
-      return [{ k: 'song', on: true }, P('playing song.mp3 ...  (song stop)', 'ok')];
-    },
-  },
   game: {
     desc: 'open the game (also: play)', usage: 'game',
-    run(sh, args) {
-      if ((args[0] || '').toLowerCase() === 'song') return COMMANDS.song.run(sh, []);
+    run(sh) {
       const note = sh.vfs.built ? ' [backend online: build ' + sh.vfs.built.hash + ']' : '';
       return [P(`launching PH Origins...${note}`, 'ok'), { k: 'go', url: SITE_PAGES.game }];
     },
@@ -799,36 +792,28 @@ const COMMANDS = {
     },
   },
   // ---- root only
-  build: {
-    root: true, desc: 'build the medical backend framework (--verbose, <module>, status)', usage: 'build [--verbose] [<module>|status]',
-    man: 'Assembles the medical backend. A full build is a show: the log floods past, song.mp3 plays and the equations that run the internet play out over a GPU farm and a network, in text. The show cannot be skipped (M mutes the song); the log and BUILD SUCCESSFUL follow when it ends. /build <module> is the quiet version.',
-    run(sh, args) {
-      const { flags, rest } = flagsOf(args);
-      const b = sh.vfs.built;
-      if (rest[0] === 'status') {
-        if (!b) return [P('build status: not built. run  /build', 'warn')];
-        return [P(`build status: ${isComplete(b) ? 'COMPLETE' : 'PARTIAL'}  hash ${b.hash}  ${b.modules.length}/${MODULES.length} modules  ${b.tests} tests\n  ${b.modules.map((m) => m.id).join(', ')}`, 'ok')];
-      }
-      let only = null;
-      if (rest[0]) {
-        if (!MODULES.some((m) => m.id === rest[0])) return [P(`build: unknown module "${rest[0]}". modules:\n  ${MODULES.map((m) => m.id).join('\n  ')}`, 'err')];
-        only = rest[0];
-      }
-      const seed = 58 + (b ? 1 : 0) + (only ? only.length : 0);
-      const res = runBuild({ seed, only, verbose: !!(flags.verbose || flags.v) });
-      sh.vfs.built = mergeBuilt(b, res.summary);
+  feed: {
+    root: true, desc: 'the first live camera on the Moon, pointed at the Earth', usage: 'feed',
+    man: 'Patches into LUNA-1, the first live camera on the Moon, and puts it on a CRT monitor: the Earth as it is lit right now (the day side, the night side and the cities, the clouds), the lunar horizon below it, and the camera\'s own stamp, delay and signal. Esc, q, Ctrl+C or the disconnect button come back to the prompt. The first /feed brings the backend online to carry it (/status, /services).',
+    run(sh) {
+      const fresh = !sh.vfs.built;
+      if (fresh) sh.vfs.built = mergeBuilt(null, runBuild({ seed: 58 }).summary); // the backend carries the feed; it comes online quietly
       sh.puzzle.award('built');
       sh.save();
-      const seq = SEQ(res.events.map((e) => ({ at: e.at, text: e.text, cls: e.cls, key: e.key })));
-      if (!only) seq.show = { seed }; // a full build is the three-act show (log flood, song, text flipbook); a module build stays plain
+      const seq = SEQ(connectScript(sh.now(), { backendHash: sh.vfs.built.hash, fresh }));
+      seq.feed = true; // the UI opens the camera when these lines are out
       return [seq];
     },
+  },
+  build: {
+    root: true, hidden: true, desc: 'renamed: the camera is /feed now', usage: 'feed',
+    run(sh) { return [P('build: renamed. the backend builds itself now; the camera is  /feed .', 'dim'), ...COMMANDS.feed.run(sh)]; },
   },
   status: {
     root: true, desc: 'backend status', usage: 'status',
     run(sh) {
       const b = sh.vfs.built;
-      if (!b) return [P('backend: NOT BUILT. run  /build', 'warn')];
+      if (!b) return [P('backend: NOT BUILT. run  /feed', 'warn')];
       const rows = b.modules.map((m) => `  ${pad(m.id, 16)} ${pad('UP', 4)} :${m.port}  ${lpad(m.tests, 4)} tests`);
       return [P(`backend: ${isComplete(b) ? 'ONLINE' : 'PARTIAL'}  build ${b.hash}  v${b.version}  deployed: ${sh.deployed ?? 'no'}\n${rows.join('\n')}`, 'ok')];
     },
@@ -849,7 +834,7 @@ const COMMANDS = {
     root: true, desc: 'deploy the build (asks first)', usage: 'deploy',
     run(sh) {
       const b = sh.vfs.built;
-      if (!b) return [P('deploy: nothing to deploy. run  /build  first.', 'warn')];
+      if (!b) return [P('deploy: nothing to deploy. run  /feed  first.', 'warn')];
       sh.ask(`deploy build ${b.hash} to staging? [y/N]`, (ans, s) => {
         if (!/^y(es)?$/i.test(ans)) return [P('deploy: aborted.', 'dim')];
         s.deployed = b.hash;

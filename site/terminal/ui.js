@@ -1,10 +1,11 @@
 // The DOM side: output log, streaming player, input mirror, history, tap buttons. No network, no eval, no polling:
-// timers only chain the lines of one command's output, and any key flushes them. The /build show is the exception: it
-// cannot be skipped, and while it plays every key, tap and click is swallowed.
+// timers only chain the lines of one command's output, and any key flushes them. /feed puts the Moon camera over the
+// console: while it is up, Esc, q, Ctrl+C or its disconnect button close it and every other key is kept from the prompt.
 
 import { Shell } from './shell.js';
 import { complete } from './complete.js';
-import { createShow, SILENT_NOTE, SONG_FILE } from './show.js';
+import { createFeed } from './feed.js';
+import { closingLines } from './lunar.js';
 
 const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
 const STORE_KEY = 'ph-origins-terminal';
@@ -23,7 +24,7 @@ const BOOT = [
   [960, '[  ok  ] Reached target: Login Prompt', 'ok'],
 ];
 
-export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = null }) {
+export function createTerminal(root, { storage, reduced, gameUrl, feedSeconds = null }) {
   const $ = (id) => root.querySelector(id);
   const logEl = $('#termLog');
   const input = $('#termInput');
@@ -38,15 +39,14 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   });
 
   let busy = false;
-  let showing = false; // the /build show is on screen: nothing ends it early, and nothing typed reaches the prompt
+  let feeding = false; // the /feed camera is on screen: nothing typed reaches the prompt
   let flush = null; // call to finish the running output at once
   let histPos = -1;
   let draft = '';
   let konamiAt = 0;
   let pending = [];
-  let audio = null;
-  let plainSong = null;
-  const show = createShow({ root, doc });
+  let audio = null; // the keyclick's context (sound on), nothing else: the console plays no music
+  const feed = createFeed({ root, doc });
 
   // ---- drawing
   const scroll = () => { screen.scrollTop = screen.scrollHeight; };
@@ -87,10 +87,9 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
         const e = effects[i++];
         if (e.k === 'print') { if (e.text !== '') for (const l of e.text.split('\n')) addLine(l, e.cls); else addLine(''); } else if (e.k === 'clear') logEl.replaceChildren();
         else if (e.k === 'theme') setTheme(e.name);
-        else if (e.k === 'song') songCommand(e.on);
         else if (e.k === 'sound') { if (e.on) ensureAudio(); } else if (e.k === 'granted') root.classList.add('is-root');
         else if (e.k === 'reset') { setTheme('green'); root.classList.remove('is-root'); } else if (e.k === 'go') { navigate(e.url); } else if (e.k === 'seq') {
-          if (e.show) runShow(e.steps, e.show, step); else play(e.steps, step);
+          if (e.feed) play(e.steps, () => openFeed(step)); else play(e.steps, step);
           return;
         }
       }
@@ -144,42 +143,32 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
     timer = setTimeout(next, Math.max(0, steps[0].at));
   }
 
-  // ---- /build: the three-act spectacle (flood, song, the dance). It cannot be skipped: it ends when the song ends, or on its
-  // fixed timer if there is no song. Reduced motion gets the calm version (no flood, no sound, slow, no flashes), also
-  // unskippable. Everything typed while it plays is swallowed; the root prompt comes back when it is over.
-  function runShow(steps, meta, then) {
+  // ---- /feed: the Moon camera over the whole console, until Esc, q, Ctrl+C or the disconnect button
+  function openFeed(then) {
     busy = true;
-    showing = true;
-    flush = null; // nothing to flush: there is no way to cut the show short
+    feeding = true;
+    flush = null;
     input.setAttribute('aria-busy', 'true');
-    input.readOnly = true;
     input.value = '';
     renderMirror();
-    root.classList.add('is-showing');
-    show.start({
-      events: steps, seed: meta.seed, songSeconds, calm: reduced,
+    input.blur?.(); // a phone's keyboard goes down so the picture has the screen
+    root.classList.add('is-feeding');
+    feed.start({
+      seconds: feedSeconds, calm: reduced,
       onDone: (info) => {
-        root.classList.remove('is-showing');
-        showing = false;
-        input.readOnly = false;
-        input.value = ''; // whatever was typed into the show is gone
+        root.classList.remove('is-feeding');
+        feeding = false;
+        busy = false;
+        input.removeAttribute('aria-busy');
+        input.value = '';
         histPos = -1;
         renderMirror();
-        flush = null;
-        play(steps, () => { if (info.note) addLine(info.note, 'dim'); scroll(); input.focus({ preventScroll: true }); then?.(); }, true);
+        for (const l of closingLines(info)) addLine(l.text, l.cls);
+        scroll();
+        input.focus({ preventScroll: true });
+        then?.();
       },
     });
-  }
-
-  function songCommand(on) {
-    if (plainSong) { try { plainSong.pause(); } catch { /* ignore */ } plainSong = null; }
-    if (!on) return;
-    try {
-      const a = new doc.defaultView.Audio(new URL(SONG_FILE, doc.baseURI).href);
-      plainSong = a;
-      a.addEventListener('error', () => { addLine(SILENT_NOTE, 'dim'); plainSong = null; });
-      a.play()?.catch(() => { addLine(SILENT_NOTE, 'dim'); plainSong = null; });
-    } catch { addLine(SILENT_NOTE, 'dim'); }
   }
 
   // ---- commands
@@ -222,7 +211,7 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   }
 
   function tab() {
-    if (showing) return;
+    if (feeding) return;
     if (busy) { flush?.(); return; }
     const before = input.value;
     const r = complete(shell, before);
@@ -235,7 +224,7 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   }
 
   function ctrlC() {
-    if (showing) return;
+    if (feeding) { feed.stop('key'); return; }
     if (busy) { flush?.(); addLine('^C', 'dim'); scroll(); return; }
     addLine(`${shell.prompt()} ${shell.mode?.mask ? '' : input.value}^C`, 'echo');
     shell.mode = null;
@@ -248,9 +237,11 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   function clearScreen() { logEl.replaceChildren(); scroll(); }
 
   function onKey(e) {
-    // While the show plays: M mutes the song (it does not skip) and every other key is swallowed, Esc and Ctrl+C included.
-    if (showing) {
-      if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'm') show.toggleMute();
+    // While the feed is up: Esc, q or Ctrl+C disconnect; every other key is kept from the prompt.
+    if (feeding) {
+      const k = (e.key || '').toLowerCase();
+      if (k === 'escape' || (k === 'q' && !e.ctrlKey && !e.metaKey && !e.altKey) || (k === 'c' && e.ctrlKey)) { e.preventDefault(); feed.stop('key'); return; }
+      if (e.target?.closest?.('button')) return; // Enter or Space on the disconnect button is the button's
       if (e.key !== 'F5' && !(e.ctrlKey && /^[rwtn]$/i.test(e.key))) e.preventDefault(); // browser chrome (reload, close the tab) is not ours to block
       return;
     }
@@ -293,30 +284,31 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
   doc.addEventListener('keydown', (e) => {
     if (e.target === input) return;
     // Typing anywhere goes to the prompt.
-    if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1 && !e.target.closest?.('a, button')) input.focus({ preventScroll: true });
+    if (!feeding && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.length === 1 && !e.target.closest?.('a, button')) input.focus({ preventScroll: true });
     onKey(e);
   });
   for (const ev of ['input', 'keyup', 'click', 'select', 'focus']) input.addEventListener(ev, renderMirror);
   // A soft keyboard (or an IME, or a paste) can put text in the field without a keydown the page can cancel: empty it.
-  for (const ev of ['input', 'beforeinput', 'paste', 'compositionend', 'drop']) input.addEventListener(ev, (e) => { if (showing) { e.preventDefault?.(); input.value = ''; renderMirror(); } });
+  for (const ev of ['input', 'beforeinput', 'paste', 'compositionend', 'drop']) input.addEventListener(ev, (e) => { if (feeding) { e.preventDefault?.(); input.value = ''; renderMirror(); } });
   doc.addEventListener('selectionchange', () => { if (doc.activeElement === input) renderMirror(); });
   input.addEventListener('blur', () => root.classList.add('is-blurred'));
   input.addEventListener('focus', () => root.classList.remove('is-blurred'));
-  $('#termForm').addEventListener('submit', (e) => { e.preventDefault(); if (showing) { input.value = ''; return; } submit(input.value); });
+  $('#termForm').addEventListener('submit', (e) => { e.preventDefault(); if (feeding) { input.value = ''; return; } submit(input.value); });
 
   // Tapping anywhere puts focus back in the input (unless the visitor is selecting text to copy).
   root.addEventListener('pointerup', (e) => {
-    if (e.target.closest('a, button')) return;
+    if (feeding) return; // no keyboard over the picture
+    if (e.target.closest?.('a, button')) return;
     if (doc.getSelection()?.toString()) return;
     input.focus({ preventScroll: true });
   });
-  // A tap during ordinary streamed output finishes it at once. A tap during the show does nothing at all.
-  root.addEventListener('pointerdown', () => { if (busy && !showing) flush?.(); });
+  // A tap during ordinary streamed output finishes it at once. A tap on the feed's picture does nothing.
+  root.addEventListener('pointerdown', () => { if (busy && !feeding) flush?.(); });
 
   for (const b of root.querySelectorAll('[data-act]')) {
     b.addEventListener('pointerdown', (e) => e.preventDefault()); // keep the keyboard up
     b.addEventListener('click', () => {
-      if (showing) return;
+      if (feeding) return;
       const act = b.dataset.act;
       if (shell.sound) click();
       if (act === 'tab') tab();
@@ -331,5 +323,5 @@ export function createTerminal(root, { storage, reduced, gameUrl, songSeconds = 
 
   startBoot();
   input.focus({ preventScroll: true });
-  return { shell, submit, input, show, runShow };
+  return { shell, submit, input, feed, openFeed };
 }

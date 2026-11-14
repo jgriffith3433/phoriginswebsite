@@ -41,7 +41,7 @@ export const GUIDE = {
 /** Step ids saved by the old five-step chain, mapped to where they land now. */
 export const OLD_STEP_MAP = { hat: 'hat', scan: 'scan', loot: 'scan', crack: 'scan', root: 'root' };
 
-export const SOLVED_HINT = 'You are root. Next: /build';
+export const SOLVED_HINT = 'You are root. Next: /feed';
 
 export const MOTD_ART = [
   '  ____  _   _    ___       _       _',
