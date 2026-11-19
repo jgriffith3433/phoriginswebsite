@@ -302,7 +302,10 @@ function resize() {
   var dpr = Math.min(devicePixelRatio || 1, small ? 1.25 : 1.6), w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
   if (w === W && h === H) return; W = w; H = h; cv.width = w; cv.height = h;
   Object.keys(T).forEach(function (k) { gl.deleteTexture(T[k].t); gl.deleteFramebuffer(T[k].f); });
+  if (T.hdr && T.hdr.rb) gl.deleteRenderbuffer(T.hdr.rb);
   T = { hdr: tex(w, h), a1: tex(w >> 2, h >> 2), b1: tex(w >> 2, h >> 2), a2: tex(w >> 4, h >> 4), b2: tex(w >> 4, h >> 4) };
+  var rb = gl.createRenderbuffer(); gl.bindRenderbuffer(gl.RENDERBUFFER, rb); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, w, h);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, T.hdr.f); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, rb); T.hdr.rb = rb;
 }
 addEventListener('resize', resize); resize();
 
@@ -316,6 +319,85 @@ function lookDir(fw, up) { // view matrix (rotation only; the camera sits at the
 function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
 function norm(a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
 function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+
+
+// ---------------------------------------------------------------- the dance: two asteroids riding along with us
+// Every so often two asteroids fall together, swing round each other and part: an exact two-body gravitational
+// encounter. The relative orbit is a hyperbola (eccentricity e just over 1) with periapsis q; in time it obeys
+// Kepler's hyperbolic equation  M = e sinh H - H,  M = n t,  n = sqrt(mu / a^3),  a = q / (e - 1),
+// with  r = a (e cosh H - 1),  x = a (e - cosh H),  y = a sqrt(e^2 - 1) sinh H.
+// Each body moves about the shared centre of mass in inverse proportion to its mass (m ~ radius^3, equal density):
+//   r1 = -m2/(m1+m2) r,   r2 = +m1/(m1+m2) r.   The swept angle is 2 arccos(-1/e): close to a full turn.
+// They tumble as free rigid bodies (a constant spin about a fixed axis).
+var AST_VS = '#version 300 es\nlayout(location=0) in vec3 p; uniform mat4 uP; uniform mat3 uR; uniform vec3 uPos; uniform float uS; out vec3 vP;\n' +
+'void main(){ vec3 q = uR*(p*uS) + uPos; vP = q; gl_Position = uP*vec4(q, 1.0); }';
+var AST_FS = '#version 300 es\nprecision highp float; in vec3 vP; uniform vec3 uKey, uKeyCol, uAlb; uniform float uFade; out vec4 o;\n' +
+'void main(){ vec3 n = normalize(cross(dFdx(vP), dFdy(vP))); vec3 v = normalize(-vP);\n' +
+'  float d = max(dot(n, uKey), 0.0); float rim = pow(1.0 - max(dot(n, v), 0.0), 3.0);\n' +
+'  vec3 c = uAlb*(uKeyCol*d*2.2 + vec3(0.05,0.06,0.09)) + vec3(0.35,0.5,0.8)*rim*0.25;\n' +
+'  o = vec4(c*uFade, uFade); }';
+P.ast = prog(AST_VS, AST_FS);
+function rock(seed) { // a lumpy icosphere: subdivided three times, pushed in and out by smooth waves, squashed
+  var r = rng(seed), t = (1 + Math.sqrt(5)) / 2;
+  var V = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]].map(norm);
+  var F = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+  for (var s = 0; s < 3; s++) {
+    var nf = [], cache = {};
+    var mid = function (a, b) { var k = a < b ? a + '_' + b : b + '_' + a; if (cache[k] == null) { V.push(norm([(V[a][0] + V[b][0]) / 2, (V[a][1] + V[b][1]) / 2, (V[a][2] + V[b][2]) / 2])); cache[k] = V.length - 1; } return cache[k]; };
+    F.forEach(function (f) { var a = mid(f[0], f[1]), b = mid(f[1], f[2]), c = mid(f[2], f[0]); nf.push([f[0], a, c], [f[1], b, a], [f[2], c, b], [a, b, c]); });
+    F = nf;
+  }
+  var waves = []; for (var w = 0; w < 7; w++) waves.push([norm([gauss(r), gauss(r), gauss(r)]), 1.5 + r() * 4, r() * 6.28, 0.12 / (1 + w * 0.5)]);
+  var squash = [0.8 + r() * 0.4, 0.7 + r() * 0.3, 0.6 + r() * 0.3];
+  var D = V.map(function (v) { var h = 1; waves.forEach(function (q) { h += Math.sin(dot(v, q[0]) * q[1] + q[2]) * q[3]; }); return [v[0] * h * squash[0], v[1] * h * squash[1], v[2] * h * squash[2]]; });
+  var out = new Float32Array(F.length * 9), o = 0;
+  F.forEach(function (f) { for (var k = 0; k < 3; k++) { var p = D[f[k]]; out[o++] = p[0]; out[o++] = p[1]; out[o++] = p[2]; } });
+  var vao = gl.createVertexArray(), b = gl.createBuffer(); gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, out, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0); gl.bindVertexArray(null);
+  return { vao: vao, buf: b, n: F.length * 3 };
+}
+function axisRot(ax, ang) {
+  var c = Math.cos(ang), s = Math.sin(ang), x = ax[0], y = ax[1], z = ax[2], C = 1 - c;
+  return new Float32Array([c + x * x * C, y * x * C + z * s, z * x * C - y * s, x * y * C - z * s, c + y * y * C, z * y * C + x * s, x * z * C + y * s, y * z * C - x * s, c + z * z * C]);
+}
+var dance = null, danceNo = 0, nextDance = +(new URLSearchParams(location.search).get('t') || 0) + 14;
+function newDance(t0) {
+  var r = rng(900 + danceNo++), side = danceNo % 2 ? 1 : -1;
+  var R1 = 0.15 + r() * 0.05, R2 = 0.08 + r() * 0.04, m1 = R1 * R1 * R1, m2 = R2 * R2 * R2;
+  var e = 1.03 + r() * 0.07, q = (R1 + R2) * (1.5 + r() * 0.5), a = q / (e - 1), D = 26 + r() * 6;
+  var Hm = Math.acosh((9 * q / a + 1) / e), Mm = e * Math.sinh(Hm) - Hm; // from r = 9q, through periapsis, out to r = 9q
+  var tilt = 0.9 + r() * 0.35, spin = r() * 6.28;                          // the orbital plane, tipped toward us
+  var u = norm([Math.cos(spin), Math.sin(spin) * Math.cos(tilt), Math.sin(spin) * Math.sin(tilt)]), nrm = norm([0, -Math.sin(tilt), Math.cos(tilt)]);
+  u = norm([u[0] - nrm[0] * dot(u, nrm), u[1] - nrm[1] * dot(u, nrm), u[2] - nrm[2] * dot(u, nrm)]);
+  var v = cross(nrm, u);
+  return { t0: t0, D: D, e: e, a: a, Mm: Mm, n: 2 * Mm / D, m1: m1, m2: m2, R1: R1, R2: R2, u: u, v: v,
+    side: side, fx: 0.5 + r() * 0.12, fy: 0.36 + r() * 0.08, z: 3.6 + r() * 0.6, drift: [side * -0.012, 0.004, 0.01],
+    rock1: rock(31 + danceNo * 7), rock2: rock(57 + danceNo * 11), ax1: norm([gauss(r), gauss(r), gauss(r)]), ax2: norm([gauss(r), gauss(r), gauss(r)]),
+    w1: 0.25 + r() * 0.4, w2: 0.4 + r() * 0.6, alb1: [0.42, 0.38, 0.34], alb2: [0.36, 0.34, 0.33] };
+}
+function kepH(M, e) { var H = Math.asinh(M / e); for (var i = 0; i < 40; i++) { var s = (e * Math.sinh(H) - H - M) / (e * Math.cosh(H) - 1); H -= s; if (Math.abs(s) < 1e-12) break; } return H; }
+function dropRock(k) { gl.deleteBuffer(k.buf); gl.deleteVertexArray(k.vao); }
+function drawDance(t, fov, asp, keyCam) {
+  if (!dance && t >= nextDance) dance = newDance(t);
+  if (!dance) return;
+  var d = dance, tt = t - d.t0;
+  if (tt > d.D || tt < 0) { dropRock(d.rock1); dropRock(d.rock2); dance = null; nextDance = t + 38 + Math.random() * 30; return; }
+  var M = -d.Mm + d.n * tt, H = kepH(M, d.e), x = d.a * (d.e - Math.cosh(H)), y = d.a * Math.sqrt(d.e * d.e - 1) * Math.sinh(H);
+  var rel = [x * d.u[0] + y * d.v[0], x * d.u[1] + y * d.v[1], x * d.u[2] + y * d.v[2]], mt = d.m1 + d.m2;
+  // the pair sits low and to one side, as a fraction of what is visible at its depth (further away on tall screens)
+  var z = d.z * Math.max(1, 1.3 / asp), th = Math.tan(fov / 2) * z;
+  var B = [d.side * d.fx * th * asp + d.drift[0] * tt, -d.fy * th + d.drift[1] * tt, -z + d.drift[2] * tt];
+  var p1 = [B[0] - rel[0] * d.m2 / mt, B[1] - rel[1] * d.m2 / mt, B[2] - rel[2] * d.m2 / mt], p2 = [B[0] + rel[0] * d.m1 / mt, B[1] + rel[1] * d.m1 / mt, B[2] + rel[2] * d.m1 / mt];
+  var f = tt / d.D, fade = Math.max(0, Math.min(1, f / 0.16, (1 - f) / 0.16)); fade = fade * fade * (3 - 2 * fade);
+  var u = P.ast.u;
+  gl.useProgram(P.ast.p); gl.enable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.uniformMatrix4fv(u.uP, false, persp(fov, asp, 0.05, 50)); gl.uniform3fv(u.uKey, keyCam); gl.uniform3fv(u.uKeyCol, [1.0, 0.93, 0.85]); gl.uniform1f(u.uFade, fade);
+  [[d.rock1, p1, d.R1, d.ax1, d.w1, d.alb1], [d.rock2, p2, d.R2, d.ax2, d.w2, d.alb2]].forEach(function (b) {
+    gl.uniformMatrix3fv(u.uR, false, axisRot(b[3], b[4] * tt)); gl.uniform3fv(u.uPos, b[1]); gl.uniform1f(u.uS, b[2]); gl.uniform3fv(u.uAlb, b[5]);
+    gl.bindVertexArray(b[0].vao); gl.drawArrays(gl.TRIANGLES, 0, b[0].n);
+  });
+  gl.bindVertexArray(null); gl.disable(gl.DEPTH_TEST); gl.disable(gl.BLEND);
+}
 
 // ---------------------------------------------------------------- the route
 // The camera flies along +x. Each galaxy is placed so the line crosses its disk at a shallow angle (alpha) a little
@@ -432,7 +514,7 @@ function frame(now) {
   var focal = H / 2 / Math.tan(fov / 2);
 
   // ---- scene into the HDR target
-  gl.bindFramebuffer(gl.FRAMEBUFFER, T.hdr.f); gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, T.hdr.f); gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.disable(gl.DEPTH_TEST);
   gl.useProgram(P.star.p); var u = P.star.u;
   gl.uniformMatrix4fv(u.uVP, false, VP); gl.uniformMatrix4fv(u.uPVP, false, prevVP); gl.uniform2f(u.uRes, W, H); gl.uniform1f(u.uFocal, focal);
@@ -448,6 +530,7 @@ function frame(now) {
     drawCloud(voidStars, sc, [mid - cam[0], 0, 0], [mid - prevCam[0], 0, 0], VP, prevVP, 3 + G * 0.01, Math.sin(Math.PI * st.u));
   }
   gl.disable(gl.BLEND);
+  drawDance(t, fov, asp, norm([0.55, 0.45, -0.7]));
 
   // ---- bloom: two levels
   pass(P.down, T.a1, function (u) { bind(0, T.hdr.t, u.t); gl.uniform2f(u.px, 1 / W, 1 / H); gl.uniform1f(u.thr, 0.35); });
