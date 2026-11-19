@@ -1,135 +1,485 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#020a04" />
-    <meta
-      name="description"
-      content="PH Origins is a third-person story set on the 58th floor of Hawkes Tower, and in the lab the board keeps dark. This front page is the Hawkes gateway terminal: follow the guide, get root, then watch the Earth live from the first camera on the Moon."
-    />
-    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
-    <title>PH Origins</title>
-    <link rel="stylesheet" href="./site/terminal/terminal.css" />
-    <!-- Hawkes Analytics (anonymous, no cookies): the build from the last game build, then the SDK from Hawkes Gen. -->
-    <script src="./play/hawkes-build.js" defer></script>
-    <script src="https://hawkesgen.ai/sdk/analytics@1.js" data-product="phorigins" defer></script>
-  </head>
-  <body data-page="home">
-    <a class="skip" href="#termInput">Skip to the terminal</a>
-    <div id="app">
-      <h1 class="sr-only">PH Origins: gateway console</h1>
-      <main id="screen" aria-label="Terminal">
-        <div id="termLog" role="log" aria-live="polite" aria-relevant="additions" aria-label="Terminal output"></div>
-        <form id="termForm" class="promptrow" autocomplete="off">
-          <label id="termPrompt" class="prompt" for="termInput">guest@ph-origins:~$</label>
-          <div class="inputwrap">
-            <span id="termMirror" aria-hidden="true"></span>
-            <input id="termInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text" aria-label="Terminal command" />
-          </div>
-        </form>
-        <noscript>
-          <p class="line">The Hawkes gateway terminal lives here and needs JavaScript. Without it: <a href="./play/game.html">play the game</a>, read <a href="./about.html">about</a>, meet <a href="./characters.html">the cast</a>, or read <a href="./lore.html">the lore</a>.</p>
-        </noscript>
-      </main>
-      <div class="tapbar" role="toolbar" aria-label="Quick keys">
-        <button type="button" data-act="help">help</button>
-        <button type="button" data-act="ls">ls</button>
-        <button type="button" data-act="hint">hint</button>
-        <button type="button" data-act="tab" aria-label="Tab (complete)">Tab</button>
-        <button type="button" data-act="up" aria-label="Previous command">&uarr;</button>
-        <button type="button" data-act="down" aria-label="Next command">&darr;</button>
-        <button type="button" data-act="ctrlc" aria-label="Control C (cancel)">^C</button>
-      </div>
-    </div>
-    <script type="module" src="./site/terminal/main.js"></script>
-    <script src="./site/hawkes-release.js" data-releases="./releases.json" defer></script>
-    <script>
-      // Hawkes Studio's playtest bot opens the site's front page and waits for window.hawkesPlaytest. The game (and
-      // its real contract, src/playtest/phPlaytest.ts) lives at play/game.html, so this hand-off sends a started
-      // scenario there; the game picks it up from ?playtest= and installs the real window.hawkesPlaytest. Visitors
-      // never call it. Site-only playtests don't call start() and keep reviewing this page.
-      (function () {
-        var going = null;
-        var scenarios = [
-          { id: 'smoke', title: 'Boot, title, start level 1, answer the call, walk to the board; hitchFailOver100; chapter-card black-frame check on levels 1-8 desktop and 844x390; short L1 explore-cam (cameraInside/blocked/snaps + worst screenshots)', seconds: 840, tags: ['smoke', 'perf', 'ui', 'camera'] },
-          { id: 'level-1', title: 'Level 1: The Apex Peak to its exit', seconds: 330, tags: ['level'] },
-          { id: 'level-2', title: 'Level 2: B3 to its exit (starts at level 2)', seconds: 170, tags: ['level'] },
-          { id: 'level-3', title: 'Level 3: The Return to its exit (starts at level 3)', seconds: 200, tags: ['level'] },
-          { id: 'level-4', title: 'Level 4: The Desk to its exit (starts at level 4)', seconds: 100, tags: ['level'] },
-          { id: 'level-5', title: 'Level 5: Going Home to its exit (starts at level 5)', seconds: 200, tags: ['level'] },
-          { id: 'level-6', title: 'Level 6: The Station to its exit (starts at level 6)', seconds: 110, tags: ['level'] },
-          { id: 'explore-cam-l1', title: 'Explore camera, level 1 (The Apex Peak): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'explore-cam-l2', title: 'Explore camera, level 2 (B3): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'explore-cam-l3', title: 'Explore camera, level 3 (The Return): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'explore-cam-l4', title: 'Explore camera, level 4 (The Desk): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'explore-cam-l5', title: 'Explore camera, level 5 (Going Home): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'explore-cam-l6', title: 'Explore camera, level 6 (The Station): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'explore-cam-l7', title: 'Explore camera, level 7 (The Train): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'explore-cam-l8', title: 'Explore camera, level 8 (The Morning): wall-hugs hallways, turns in doorways, backs into corners; camera inside/blocked/snaps vs docs/camera.md baseline', seconds: 300, tags: ['smoke', 'camera', 'level'] },
-          { id: 'interior-cam', title: 'Interior camera volumes: Level 1 halls (hallway profile, occlusion fade) and Level 8 apartment on desktop and 844x390', seconds: 420, tags: ['smoke', 'camera', 'level'] },
-          { id: 'smoke-l1', title: 'Smoke, level 1 (The Apex Peak): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'smoke-l2', title: 'Smoke, level 2 (B3): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'smoke-l3', title: 'Smoke, level 3 (The Return): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'smoke-l4', title: 'Smoke, level 4 (The Desk): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'smoke-l5', title: 'Smoke, level 5 (Going Home): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'smoke-l6', title: 'Smoke, level 6 (The Station): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'smoke-l7', title: 'Smoke, level 7 (The Train): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'smoke-l8', title: 'Smoke, level 8 (The Morning): starts it directly, plays the objectives in order, long scenes skipped early, ends at its end card; stuck after 30 s with no objective progress', seconds: 240, tags: ['smoke', 'level'] },
-          { id: 'stuck-recovery', title: 'Idle 60 s in level 1: "Lost? Return to objective" shows and puts Pierce beside the objective; Pause always offers it; tappable at 390x844 and 844x390', seconds: 420, tags: ['menus', 'ui'] },
-          { id: 'full', title: "Levels 1–8 in order, cutscenes included (long rides skipped after 16 s); Level 7's card Continues into The Morning", seconds: 1400, tags: ['full'] },
-          { id: 'sound-settings', title: 'Tap to play unlocks sound, Settings from the title and from Pause, a setting that survives a reload', seconds: 120, tags: ['menus', 'sound'] },
-          { id: 'cutscene-ui', title: 'Cinematic HUD/letterbox/Skip clear of health; Settings invert Y, sensitivity and subtitles persist; phone layouts', seconds: 360, tags: ['menus', 'ui'] },
-          { id: 'feel-audio', title: 'Each level has its own bed, a strike gives sound and a screen pulse, volume sliders persist', seconds: 200, tags: ['sound'] },
-          { id: 'ui-style', title: 'Menu, HUD, pause, settings and end cards share fonts and colours, nothing is clipped, and no touch control overlaps another or is under 44 px at 390x844, 844x390 and 667x375', seconds: 170, tags: ['menus'] },
-          { id: 'screen-mode', title: 'Turn your phone sideways in portrait (dismissable), Start asks for fullscreen and the landscape lock, Pause has a Fullscreen switch, desktop is unchanged', seconds: 90, tags: ['menus', 'ui'] },
-          { id: 'objective-marker', title: 'The objective waypoint shows name and distance, clamps to the screen edge with an arrow, hides in scenes and menus, and stays clear of the touch controls', seconds: 240, tags: ['hud'] },
-          { id: 'load-error', title: "A level that fails to load shows Couldn't start the game and Retry; Retry reloads to START", seconds: 90, tags: ['menus'] },
-          { id: 'phone-b3', title: 'Phone title card and buttons, About beat 01, then B3 with the creature downed before decon', seconds: 260, tags: ['menus'] },
-          { id: 'chapters', title: 'Chapter title cards: levels 1 to 8 each open on their own card; one press skips it; no placeholder text', seconds: 420, tags: ['level', 'ui'] },
-          { id: 'transition', title: 'Chapter card to world: card held until the world has rendered, crossfade, HUD only after; no black frames (levels 1-8, desktop and 844x390)', seconds: 600, tags: ['level', 'ui'] },
-          { id: 'hitch-board', title: 'Level 1 spawn to board table with named hitch causes; phone sample of levels 1, 4 and 8', seconds: 240, tags: ['smoke', 'perf', 'level'] },
-          { id: 'board-faces', title: 'Board meeting faces: lip sync, blinks, head look-at and three dialogue gestures', seconds: 180, tags: ['level', 'quality', 'characters'] },
-          { id: 'context-loss', title: 'Level 1: lose the WebGL context, Recovering shows, the level resumes; memory tier and level change counts', seconds: 300, tags: ['graphics', 'level'] },
-          { id: 'b3-retry', title: 'B3: die and press Start five times; meshes, materials, textures, skeletons, clips and lights stay flat', seconds: 420, tags: ['level', 'perf'] },
-          { id: 'analytics', title: 'Hawkes Analytics: level 1 played to its card, the events going out (debug log), the feedback card after the level', seconds: 360, tags: ['level', 'analytics'] },
-          { id: 'apex-slice', title: 'Apex Peak vertical slice: hall life, cleaner, sofa, papers, valuation screen; quality.maxQuietSeconds and quality.textOnlyBeats', seconds: 240, tags: ['level', 'quality', 'story'] },
-          { id: 'train', title: 'Level 7: the subway car. Seats, poles, ads, tunnel lights, sway; seats and poles block; listed on Load Level; fps vs The Station', seconds: 200, tags: ['level', 'perf'] },
-          { id: 'level-8', title: "Level 8, The Morning: the 7 scenes in order (ride, walk up, threshold), bed, the wake-up, the news naming Hawkes Tower and Pierce, Voss's call in full, the door, End Level", seconds: 240, tags: ['level', 'story'] },
-          { id: 'level-8-ending', title: "Level 8's ending on a phone: walk to the door by touch, coat, white dawn, black, PH ORIGINS, credits over 6+ places, the Act II call and end card", seconds: 420, tags: ['level', 'story', 'phone'] },
-          { id: 'level-8-release', title: 'The Train Continue enters The Morning; the whole of level 8 follows', seconds: 520, tags: ['level'] },
-          { id: 'level-7-release', title: 'The Station Continue enters The Train; End Level only after the story, then the station song and level 7 credits; Continue and Exit; Load Level lists it', seconds: 480, tags: ['level'] },
-          { id: 'level-7', title: 'Level 7, The Train: the opening scene voiced and in order, Skip, the old body one car ahead, the stop, Shadow mode, the door, then the end song and credits', seconds: 240, tags: ['level'] },
-          { id: 'lore-link', title: 'Finish level 4 and unlock its lore entry, open its Read more page, check every lore page has Play this level', seconds: 200, tags: ['level', 'site'] },
-          { id: 'site-links', title: 'Hawkes Gen credit on every site page except the terminal home, About lists levels 1-7 playable, the game screen unchanged', seconds: 60, tags: ['menus', 'site'] },
-          { id: 'terminal', title: 'Terminal landing page: boot to prompt, /help, solve the three-step chain from the clues, root, /feed opens the live Moon camera on the Earth (CRT, no song; Esc closes it), /build sends you to /feed, game opens the game; no console errors', seconds: 150, tags: ['site', 'first-minute', 'ui'] },
-          { id: 'terminal-phone', title: 'Terminal on a 390x844 phone: prompt above the keyboard, tap buttons (help, Tab, history, Ctrl+C), 44 px targets, 14 px text, no sideways scroll, reduced-motion boot, the /feed Moon camera filling the screen in portrait and landscape', seconds: 60, tags: ['site', 'phone', 'ui'] },
-          { id: 'frame-trace', title: 'Frame-time trace on all eight levels (desktop and phone): hitch counts, worst causes, no post-grace frame over 100 ms', seconds: 420, tags: ['smoke', 'perf'] },
-          { id: 'first-five', title: 'First five: Tap to play goes straight into a playable B3 hall (flashlight on, creature on screen), then "Six hours earlier." and the title; warm under Tap to play; hitchFailOver100', seconds: 120, tags: ['ftue', 'first-minute', 'perf'] },
-          { id: 'quiet-light', title: 'Quiet chapters light: Morning sun shafts + TV spill, Desk lamp long shadows + mirror text, Return buzzing tube (options.phone: 390x844 Low shafts ≥30 fps)', seconds: 420, tags: ['level', 'feel', 'phone', 'quality'] }
-        ];
-        window.hawkesPlaytest = {
-          version: 1,
-          product: 'phorigins',
-          scenarios: function () { return scenarios.map(function (s) { return Object.assign({}, s); }); },
-          start: function (id, options) {
-            if (!scenarios.some(function (s) { return s.id === id; })) {
-              return Promise.reject(new Error('no playtest scenario "' + id + '" (have: ' + scenarios.map(function (s) { return s.id; }).join(', ') + ')'));
-            }
-            options = options || {};
-            var q = new URLSearchParams({ playtest: String(id), seed: String(options.seed || 1), speed: String(options.speed || 1) });
-            // a start point and a feel replay's spot (a place the feel sensor flagged) go along to the game
-            if (options.at != null && options.at !== '') q.set('at', String(options.at));
-            if (options.spot) q.set('spot', String(options.spot));
-            going = { id: String(id) };
-            location.assign('./play/game.html?' + q.toString());
-            return Promise.resolve();
-          },
-          stop: function () {},
-          state: function () { return going ? { ready: true, status: 'running', progress: 0, scene: 'Opening the game' } : { ready: true, status: 'idle' }; },
-          report: function () { return null; },
-        };
-      })();
-    </script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Through the Galaxies</title>
+<meta name="description" content="Fly through real galaxies at their real sizes and real separations, fast enough to cross each one in two minutes.">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#eaf2ff;--dim:rgba(220,232,255,.62);--line:rgba(160,200,255,.28);--glow:rgba(120,180,255,.55)}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;color:var(--ink);font-family:"Space Grotesk",system-ui,sans-serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#hud{position:fixed;left:0;right:0;top:0;pointer-events:none;text-align:center;padding:max(14px,env(safe-area-inset-top)) 16px 34px;background:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.28) 65%,transparent);text-shadow:0 0 18px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9)}
+#bar{position:fixed;left:0;top:0;height:2px;width:0;background:linear-gradient(90deg,transparent,#9cc8ff 40%,#fff);box-shadow:0 0 12px var(--glow)}
+.now{font:600 11px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.42em;color:var(--dim);text-transform:uppercase}
+.name{font-weight:700;font-size:clamp(30px,6.2vw,76px);line-height:1.02;letter-spacing:.06em;text-transform:uppercase;margin:.18em 0 .12em;color:#fff;text-shadow:0 0 28px rgba(110,165,255,.75),0 0 6px rgba(160,200,255,.6),0 2px 14px rgba(0,0,0,.9);animation:rise .9s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;letter-spacing:.3em;filter:blur(6px)}to{opacity:1;letter-spacing:.06em;filter:blur(0)}}
+.sub{font:400 clamp(11px,1.35vw,14px)/1.5 "JetBrains Mono",ui-monospace,monospace;color:var(--dim);letter-spacing:.06em;max-width:960px;margin:0 auto}
+.sub b{color:var(--ink);font-weight:600}
+#side,#left{background:radial-gradient(closest-side,rgba(0,0,0,.5),transparent);padding:10px 12px}
+#side{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));text-align:right;font:400 11px/1.6 "JetBrains Mono",ui-monospace,monospace;color:var(--dim);letter-spacing:.06em;pointer-events:none;text-shadow:0 0 10px #000}
+#side .v{font:600 clamp(15px,2vw,22px)/1.2 "JetBrains Mono",ui-monospace,monospace;color:var(--ink);letter-spacing:.02em}
+#left{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));font:400 11px/1.6 "JetBrains Mono",ui-monospace,monospace;color:var(--dim);letter-spacing:.06em;pointer-events:none;text-shadow:0 0 10px #000;max-width:46vw}
+#left .v{font:600 clamp(13px,1.6vw,17px)/1.2 "JetBrains Mono",ui-monospace,monospace;color:var(--ink)}
+#nogl{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:24px;font:400 15px/1.6 "JetBrains Mono",monospace;color:var(--dim)}
+@media (max-width:640px){#left{max-width:44vw}.sub{font-size:11px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="bar"></div>
+<div id="hud" aria-live="polite">
+  <div class="now" id="now">Now crossing</div>
+  <div class="name" id="name">The Milky Way</div>
+  <div class="sub" id="sub"></div>
+</div>
+<div id="left"><div>Crossed so far</div><div class="v" id="dist">0 ly</div><div id="left2"></div></div>
+<div id="side"><div>Speed</div><div class="v" id="speed">0 c</div><div id="side2"></div></div>
+<div id="nogl">This flight needs WebGL 2. Try a current Chrome, Edge, Firefox or Safari.</div>
+<script>
+(function () {
+'use strict';
+// ---------------------------------------------------------------------------------------------------------------
+// Through the Galaxies. Real galaxies at their catalog sizes, in the order below, each crossed in two minutes.
+// Units in the scene: 1 = 1,000 light-years (kly). Positions are drawn relative to the camera (double precision on
+// the CPU), so float precision on the GPU is never stretched. Between galaxies the void is crossed quickly (the
+// distance shown is the true 3D separation from the catalog positions; only the time is compressed).
+//
+// The physics kept honest:
+//  * stars are point sources: received flux = L / d^2 (inverse square); nebulae and dust are extended: surface
+//    brightness does not change with distance, only their angular size (= physical size / distance)
+//  * disks: exponential surface density, Sigma(r) ~ exp(-r/h)  =>  r ~ Gamma(2, h) = -h ln(U1 U2)
+//  * vertical: sech^2 layers (isothermal sheet), z = h_z * atanh(2U-1)
+//  * spiral arms: logarithmic spirals, theta(r) = ln(r/r0) / tan(pitch)
+//  * bulges and ellipticals: Hernquist profiles, M(<r) = M r^2/(r+a)^2  =>  r = a sqrt(u) / (1 - sqrt(u))
+//  * star colours: blackbody temperature -> RGB
+//  * speed = (distance crossed) / (time), shown in multiples of c (1 c = 1 light-year per year)
+// ---------------------------------------------------------------------------------------------------------------
+
+var YEAR_S = 31557600; // seconds in a Julian year: v/c = (light-years per second) * YEAR_S
+var CROSS_S = 120;     // seconds to cross each galaxy
+var GAP_S = 6.5;       // seconds through each intergalactic void
+
+// RA in hours, Dec in degrees, distance in light-years (to the galaxy's centre), diameter in light-years.
+var CAT = [
+  { key: 'mw', name: 'The Milky Way', id: 'Our galaxy', type: 'SBbc barred spiral', ra: 17.7611, dec: -29.0078, dist: 26000, diam: 100000, kind: 'barred', arms: 4, pitch: 12, h: 0.17, bulge: 0.12, bar: 0.27, note: 'You start at the Sun, 26,000 ly from the centre, in the Orion Arm' },
+  { key: 'lmc', name: 'Large Magellanic Cloud', id: 'LMC', type: 'SB(s)m Magellanic spiral', ra: 5.3931, dec: -69.7561, dist: 163000, diam: 32200, kind: 'irregular', note: 'The Tarantula Nebula is the brightest star-forming region in the Local Group' },
+  { key: 'm33', name: 'Triangulum', id: 'M33 · NGC 598', type: 'SA(s)cd flocculent spiral', ra: 1.5639, dec: 30.6603, dist: 2730000, diam: 61100, kind: 'spiral', arms: 6, pitch: 24, h: 0.2, bulge: 0.03, flocculent: 1, note: 'NGC 604, one of the largest HII regions known, lies in an outer arm' },
+  { key: 'm31', name: 'Andromeda', id: 'M31 · NGC 224', type: 'SA(s)b spiral', ra: 0.7123, dec: 41.2692, dist: 2537000, diam: 152000, kind: 'spiral', arms: 2, pitch: 8, h: 0.24, bulge: 0.16, ring: 0.44, sats: 1, note: 'With M32 and M110, two of its satellite galaxies' },
+  { key: 'm101', name: 'Pinwheel', id: 'M101 · NGC 5457', type: 'SAB(rs)cd spiral', ra: 14.0535, dec: 54.3492, dist: 20900000, diam: 170000, kind: 'spiral', arms: 4, pitch: 26, h: 0.2, bulge: 0.04, lopsided: 1, note: 'Lopsided arms studded with giant HII regions' },
+  { key: 'm51', name: 'Whirlpool', id: 'M51a · NGC 5194', type: 'SA(s)bc pec grand-design spiral', ra: 13.4980, dec: 47.1953, dist: 31000000, diam: 76000, kind: 'spiral', arms: 2, pitch: 18, h: 0.2, bulge: 0.07, companion: 1, note: 'Its companion NGC 5195 is pulling on the end of an arm' },
+  { key: 'm104', name: 'Sombrero', id: 'M104 · NGC 4594', type: 'SA(s)a spiral', ra: 12.6665, dec: -11.6231, dist: 31100000, diam: 49000, kind: 'sombrero', note: 'A huge bulge, about 2,000 globular clusters and a dark ring of dust' },
+  { key: 'm87', name: 'Messier 87', id: 'Virgo A · NGC 4486', type: 'E0p cD supergiant elliptical', ra: 12.5137, dec: 12.3911, dist: 53500000, diam: 132000, kind: 'elliptical', axis: [1, 0.95, 0.9], globs: 1, jet: 1, note: 'A 4,900 ly jet from its 6.5-billion-solar-mass black hole; about 12,000 globular clusters' },
+  { key: 'n1300', name: 'NGC 1300', id: 'NGC 1300', type: '(R′)SB(s)bc barred spiral', ra: 3.3281, dec: -19.4114, dist: 61000000, diam: 110000, kind: 'barred', arms: 2, pitch: 14, h: 0.22, bulge: 0.06, bar: 0.5, note: 'A textbook bar, with a grand-design spiral at each end' },
+  { key: 'cart', name: 'Cartwheel', id: 'ESO 350-40', type: 'S pec ring galaxy', ra: 0.6281, dec: -33.7164, dist: 500000000, diam: 144000, kind: 'ringg', note: 'A smaller galaxy punched through it; the ring is a wave of new stars still spreading out' },
+  { key: 'ic1101', name: 'IC 1101', id: 'Abell 2029 BCG', type: 'cD supergiant lenticular', ra: 15.1823, dec: 5.7447, dist: 1045000000, diam: 4000000, kind: 'elliptical', axis: [1, 0.7, 0.55], globs: 1, note: 'One of the largest galaxies known: a diffuse halo about 4 million ly across' }
+];
+
+// Catalog position of each galaxy (light-years, Earth-centred, equatorial x/y/z)
+CAT.forEach(function (g) {
+  var a = g.ra / 24 * Math.PI * 2, d = g.dec * Math.PI / 180;
+  g.pos = [g.dist * Math.cos(d) * Math.cos(a), g.dist * Math.cos(d) * Math.sin(a), g.dist * Math.sin(d)];
+  g.R = g.diam / 2000; // radius in kly
+});
+function sep(a, b) { var x = a.pos[0] - b.pos[0], y = a.pos[1] - b.pos[1], z = a.pos[2] - b.pos[2]; return Math.sqrt(x * x + y * y + z * z); }
+
+// ---------------------------------------------------------------- formatting
+var SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+function sci(v) {
+  if (!isFinite(v) || v <= 0) return '0';
+  var e = Math.floor(Math.log10(v)), m = v / Math.pow(10, e);
+  if (m >= 9.995) { m /= 10; e += 1; }
+  if (e < 4) return Math.round(v).toLocaleString('en-US');
+  return m.toFixed(2) + ' × 10' + String(e).split('').map(function (c) { return SUP[c]; }).join('');
+}
+function ly(v) {
+  if (v < 1e6) return Math.round(v).toLocaleString('en-US') + ' ly';
+  if (v < 1e9) return (v / 1e6).toFixed(v < 1e7 ? 2 : 1) + ' million ly';
+  return (v / 1e9).toFixed(2) + ' billion ly';
+}
+function mmss(s) { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+
+// ---------------------------------------------------------------- random
+function rng(seed) { var a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { var u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(6.283185307 * v); }
+function sech2(r) { var u = r() * 1.998 - 0.999; return 0.5 * Math.log((1 + u) / (1 - u)); } // atanh(2U-1): sech^2 layer
+function hern(r, a) { var s = Math.sqrt(r() * 0.985); return a * s / (1 - s); }               // Hernquist radius
+function sphere(r) { var z = r() * 2 - 1, t = r() * 6.283185307, q = Math.sqrt(1 - z * z); return [q * Math.cos(t), q * Math.sin(t), z]; }
+
+// Blackbody colour (Tanner Helland's fit), normalised so the brightest channel is 1
+function kelvin(T) {
+  var t = T / 100, r, g, b;
+  if (t <= 66) { r = 255; g = 99.4708025861 * Math.log(t) - 161.1195681661; } else { r = 329.698727446 * Math.pow(t - 60, -0.1332047592); g = 288.1221695283 * Math.pow(t - 60, -0.0755148492); }
+  if (t >= 66) b = 255; else if (t <= 19) b = 0; else b = 138.5177312231 * Math.log(t - 10) - 305.0447927307;
+  r = Math.min(255, Math.max(0, r)); g = Math.min(255, Math.max(0, g)); b = Math.min(255, Math.max(0, b));
+  var m = Math.max(r, g, b); return [r / m, g / m, b / m];
+}
+var POP = { // temperature ranges (K) and luminosities for the stellar populations
+  old: function (r) { return 3300 + Math.pow(r(), 1.6) * 2600; },
+  disk: function (r) { return 3800 + Math.pow(r(), 1.3) * 4200; },
+  young: function (r) { return 7500 + Math.pow(r(), 0.7) * 22000; }
+};
+
+// ---------------------------------------------------------------- galaxy builder
+// Each particle: x, y, z (kly, galaxy frame: disk in x-y), r, g, b, s
+//   s > 0: point source of luminosity s;  s < 0: extended object of radius -s kly (r,g,b = surface brightness;
+//   negative = dust absorbing light)
+var STRIDE = 7;
+function Builder(n) { this.a = new Float32Array(n * STRIDE); this.n = 0; this.cap = n; }
+Builder.prototype.put = function (x, y, z, c, k, s) {
+  if (this.n >= this.cap) return; var o = this.n++ * STRIDE, a = this.a;
+  a[o] = x; a[o + 1] = y; a[o + 2] = z; a[o + 3] = c[0] * k; a[o + 4] = c[1] * k; a[o + 5] = c[2] * k; a[o + 6] = s;
+};
+var HII = [1.0, 0.42, 0.62], OIII = [0.4, 0.9, 0.9], DUST = [-0.55, -0.5, -0.42];
+
+function build(g, N, seed) {
+  var r = rng(seed), B = new Builder(N), R = g.R, L = Math.pow(R / 50, 2) * 50000 / N * (g.key === 'ic1101' ? 0.3 : 1); // luminosity per particle scales with area (IC 1101: its diffuse halo is faint)
+  function star(x, y, z, pop, lum) { var T = POP[pop](r); B.put(x, y, z, kelvin(T), 1, lum * L * (0.4 + r() * 1.2)); }
+  function nebula(x, y, z, rad, col, k) { B.put(x, y, z, col, k, -rad); }
+  function hernBlob(n, a, ax, pop, lum, cx, cy, cz) {
+    for (var i = 0; i < n; i++) { var rr = hern(r, a), d = sphere(r); if (rr > R * 1.4) { i--; continue; } star(cx + d[0] * rr * ax[0], cy + d[1] * rr * ax[1], cz + d[2] * rr * ax[2], pop, lum); }
+  }
+  function disk(n, h, hz, pop, lum, rmax) {
+    for (var i = 0; i < n; i++) { var rr = -h * Math.log(r() * r() + 1e-9); if (rr > rmax) { i--; continue; } var t = r() * 6.2832; star(rr * Math.cos(t), rr * Math.sin(t), sech2(r) * hz, pop, lum); }
+  }
+  // logarithmic-spiral arms: young stars, HII regions on the arms, dust on their inner (trailing) edge
+  function arms(n, m, pitch, h, r0, spread, rmax, opt) {
+    var k = 1 / Math.tan(pitch * Math.PI / 180);
+    for (var i = 0; i < n; i++) {
+      var rr = -h * Math.log(r() * r() + 1e-9); if (rr < r0 * 0.6 || rr > rmax) { i--; continue; }
+      var arm = Math.floor(r() * m), th = Math.log(rr / r0) * k + arm * 6.2832 / m;
+      if (opt && opt.lopsided && arm % 2) th += 0.35 * Math.sin(rr / R * 4);
+      var sp = spread * (0.6 + rr / R) * (opt && opt.flocculent ? 2.2 : 1), off = gauss(r) * sp;
+      var x = rr * Math.cos(th + off), y = rr * Math.sin(th + off), u = r();
+      if (u < 0.03) nebula(x, y, sech2(r) * 0.08, 0.12 + Math.pow(r(), 3) * 0.5, r() < 0.12 ? OIII : HII, 0.008 + r() * 0.012);
+      else if (u < 0.07) { var td = th - 0.22 * (0.6 + rr / R) + gauss(r) * spread * 0.3; nebula(rr * Math.cos(td), rr * Math.sin(td), sech2(r) * 0.12, 0.6 + r() * 1.4, DUST, 0.05 + r() * 0.05); }
+      else star(x, y, sech2(r) * 0.18, 'young', 3.2);
+    }
+  }
+  var k = g.kind;
+  if (k === 'spiral' || k === 'barred') {
+    var h = g.h * R, nb = Math.round(N * g.bulge), na = Math.round(N * 0.36), nd = N - nb - na - 2600;
+    if (g.sats) nd -= Math.round(N * 0.06);
+    if (g.companion) nd -= Math.round(N * 0.08);
+    hernBlob(nb, R * 0.05, [1, 1, 0.62], 'old', 1.4, 0, 0, 0);
+    if (k === 'barred') { // bar: a prolate block of old stars along x
+      var nbar = Math.round(N * 0.07); nd -= nbar;
+      for (var i = 0; i < nbar; i++) { var t = gauss(r) * 0.42, w = gauss(r) * 0.12; star(t * R * g.bar, w * R * g.bar, sech2(r) * 0.25, 'old', 1.3); }
+    }
+    disk(Math.max(0, nd), h, 0.33 * (R / 50), 'disk', 1, R * 1.05);
+    arms(na, g.arms, g.pitch, h * 1.1, k === 'barred' ? R * g.bar * 0.55 : R * 0.12, 0.16, R * 1.0, g);
+    if (g.ring) { for (var j = 0; j < 2600; j++) { var t2 = r() * 6.2832, rr2 = R * g.ring + gauss(r) * R * 0.03; if (r() < 0.25) nebula(rr2 * Math.cos(t2), rr2 * Math.sin(t2), sech2(r) * 0.1, 0.2 + r() * 0.6, HII, 0.06); else star(rr2 * Math.cos(t2), rr2 * Math.sin(t2), sech2(r) * 0.2, 'young', 3); } }
+    else { for (var q = 0; q < 2600; q++) { var t3 = r() * 6.2832, rr3 = -h * Math.log(r() * r() + 1e-9); nebula(rr3 * Math.cos(t3), rr3 * Math.sin(t3), sech2(r) * 0.2, 0.5 + r() * 1.2, r() < 0.6 ? DUST : HII, 0.008); } }
+    if (g.sats) { // M32 (compact, 6,500 ly) and M110 (17,000 ly), at their projected offsets
+      hernBlob(Math.round(N * 0.025), 0.35, [1, 0.8, 0.8], 'old', 1.5, R * 0.3, -R * 0.12, R * 0.05);
+      hernBlob(Math.round(N * 0.035), 2.2, [1, 0.6, 0.6], 'old', 1.1, -R * 0.55, R * 0.45, -R * 0.06);
+    }
+    if (g.companion) hernBlob(Math.round(N * 0.08), 3.5, [1, 0.85, 0.75], 'old', 1.3, R * 0.98, R * 0.62, -R * 0.08); // NGC 5195
+    if (g.key === 'm33') for (var p = 0; p < 160; p++) nebula(R * 0.42 + gauss(r) * 0.6, R * 0.2 + gauss(r) * 0.6, gauss(r) * 0.1, 0.15 + r() * 0.5, HII, 0.03); // NGC 604
+  } else if (k === 'irregular') { // LMC: off-centre bar, clumpy disk, the Tarantula
+    var nbar2 = Math.round(N * 0.22);
+    for (var b = 0; b < nbar2; b++) star(gauss(r) * R * 0.32 + R * 0.08, gauss(r) * R * 0.08, gauss(r) * 0.25, 'disk', 1.4);
+    disk(Math.round(N * 0.4), R * 0.3, 0.35, 'disk', 1, R);
+    for (var cl = 0; cl < 60; cl++) { var cx = gauss(r) * R * 0.45, cy = gauss(r) * R * 0.45, nn = Math.round(N * 0.0055); for (var s = 0; s < nn; s++) star(cx + gauss(r) * 0.8, cy + gauss(r) * 0.8, gauss(r) * 0.15, 'young', 3); }
+    for (var tq = 0; tq < 900; tq++) nebula(R * 0.28 + gauss(r) * 0.9, R * 0.3 + gauss(r) * 0.7, gauss(r) * 0.2, 0.12 + Math.pow(r(), 2) * 0.8, tq % 5 ? HII : OIII, 0.022); // 30 Doradus
+    for (var hh = 0; hh < 1800; hh++) nebula(gauss(r) * R * 0.5, gauss(r) * R * 0.5, gauss(r) * 0.2, 0.2 + r() * 0.7, r() < 0.6 ? HII : DUST, 0.012);
+    disk(Math.max(0, N - B.n), R * 0.35, 0.3, 'young', 1.5, R);
+  } else if (k === 'sombrero') {
+    hernBlob(Math.round(N * 0.5), R * 0.09, [1, 1, 0.72], 'old', 1.6, 0, 0, 0);
+    disk(Math.round(N * 0.22), R * 0.3, 0.15, 'disk', 1, R * 1.0);
+    for (var dr = 0; dr < 6000; dr++) { var t4 = r() * 6.2832, rr4 = R * 0.62 + gauss(r) * R * 0.05; nebula(rr4 * Math.cos(t4), rr4 * Math.sin(t4), gauss(r) * 0.12, 0.5 + r() * 0.9, DUST, 0.09); }
+    for (var gc = 0; gc < 2000; gc++) { var d2 = sphere(r), rr5 = hern(r, R * 0.3); star(d2[0] * rr5, d2[1] * rr5, d2[2] * rr5, 'old', 9); } // globular clusters
+    hernBlob(Math.max(0, N - B.n), R * 0.2, [1, 1, 0.8], 'old', 0.8, 0, 0, 0);
+  } else if (k === 'ringg') { // Cartwheel: outer ring of new stars, inner ring, spokes, nucleus
+    for (var c1 = 0; c1 < N * 0.4; c1++) { var t5 = r() * 6.2832, rr6 = R * 0.9 + gauss(r) * R * 0.045; if (r() < 0.06) nebula(rr6 * Math.cos(t5), rr6 * Math.sin(t5), gauss(r) * 0.3, 0.4 + r() * 1.4, HII, 0.07); else star(rr6 * Math.cos(t5), rr6 * Math.sin(t5), gauss(r) * 0.4, 'young', 3.4); }
+    for (var c2 = 0; c2 < N * 0.12; c2++) { var t6 = r() * 6.2832, rr7 = R * 0.26 + gauss(r) * R * 0.03; star(rr7 * Math.cos(t6), rr7 * Math.sin(t6), gauss(r) * 0.3, 'disk', 1.6); }
+    for (var c3 = 0; c3 < N * 0.12; c3++) { var sp2 = Math.floor(r() * 14), t7 = sp2 * 0.4488 + gauss(r) * 0.03, rr8 = R * (0.3 + r() * 0.58); star(rr8 * Math.cos(t7), rr8 * Math.sin(t7), gauss(r) * 0.3, 'disk', 0.9); }
+    hernBlob(Math.round(N * 0.08), R * 0.04, [1, 1, 0.8], 'old', 1.4, 0, 0, 0);
+    disk(Math.max(0, N - B.n), R * 0.45, 0.4, 'disk', 0.4, R);
+  } else { // elliptical
+    var ax = g.axis || [1, 1, 1];
+    if (g.globs) { var ng = Math.round(N * 0.03); for (var gg = 0; gg < ng; gg++) { var d3 = sphere(r), rr9 = hern(r, R * 0.35); star(d3[0] * rr9, d3[1] * rr9 * ax[1], d3[2] * rr9 * ax[2], 'old', 7); } }
+    if (g.jet) { // M87's jet: 4,900 ly, knots, relativistic blue synchrotron light
+      for (var jt = 0; jt < 4000; jt++) { var u2 = Math.pow(r(), 0.8), knot = Math.floor(u2 * 9), along = 4.9 * (u2 + (knot % 2 ? 0.01 : 0)); B.put(along * 0.8, along * 0.5, along * 0.33, [0.6, 0.8, 1], 1, (1.5 + (knot === 8 ? 6 : 0)) * L * 8); }
+    }
+    hernBlob(Math.max(0, N - B.n), R * 0.12, ax, 'old', 1.2, 0, 0, 0);
+  }
+  return { data: B.a, count: B.n };
+}
+
+// ---------------------------------------------------------------- WebGL
+var cv = document.getElementById('c'), gl = cv.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+if (!gl) { document.getElementById('nogl').style.display = 'grid'; return; }
+var FLOAT = !!gl.getExtension('EXT_color_buffer_float'); gl.getExtension('OES_texture_float_linear');
+var small = Math.min(innerWidth, innerHeight) < 700 || (navigator.hardwareConcurrency || 8) <= 4;
+var NSTARS = small ? 110000 : 240000;
+
+function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+function prog(vs, fs) { var p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); var u = {}; var n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); for (var i = 0; i < n; i++) { var a = gl.getActiveUniform(p, i); u[a.name] = gl.getUniformLocation(p, a.name); } return { p: p, u: u }; }
+
+// Every star is a quad stretched from where it was last frame to where it is now (a motion streak); its energy is
+// spread over the streak so a streaked star is as bright in total as a still one.
+var STAR_VS = '#version 300 es\n' +
+'layout(location=0) in vec2 corner; layout(location=1) in vec3 pos; layout(location=2) in vec3 col; layout(location=3) in float s;\n' +
+'uniform mat4 uVP, uPVP; uniform mat3 uRot; uniform vec3 uOff, uOffP; uniform vec2 uRes; uniform float uLum, uFocal, uFade;\n' +
+'out vec3 vCol; out vec2 vUV; out float vHalf, vR;\n' +
+'void main(){\n' +
+'  vec3 lp = uRot*pos; vec3 w = lp + uOff; vec3 wp = lp + uOffP;\n' +
+'  vec4 c = uVP*vec4(w,1.0); vec4 p = uPVP*vec4(wp,1.0);\n' +
+'  if (c.w < 0.002) { gl_Position = vec4(2.0,2.0,2.0,1.0); return; }\n' +
+'  vec2 sc = c.xy/c.w*0.5*uRes; vec2 sp = p.w > 0.002 ? p.xy/p.w*0.5*uRes : sc;\n' +
+'  float d = length(w); float r; vec3 I;\n' +
+'  if (s > 0.0) { float E = s*uLum/(d*d + 1e-4); r = clamp(1.05 + 0.45*sqrt(E), 1.05, 9.0); I = col*E/(r*r)*1.25; }\n' +
+'  else { float rp = -s/d*uFocal; r = max(rp, 1.0); I = col*min(1.0, rp*rp)*smoothstep(uRes.y*1.1, uRes.y*0.2, rp); }\n' +
+'  vec2 v = sc - sp; float L = length(v); float maxL = uRes.y*0.35; if (L > maxL) { v *= maxL/L; L = maxL; }\n' +
+'  vec2 ax = L > 0.01 ? v/L : vec2(1.0,0.0); vec2 pe = vec2(-ax.y, ax.x);\n' +
+'  float half_ = L*0.5 + r*2.0; vec2 ctr = sc - v*0.5;\n' +
+'  vec2 q = ctr + ax*corner.x*half_ + pe*corner.y*r*2.0;\n' +
+'  I *= r/(r + L*0.55); I *= uFade;\n' +
+'  vCol = I; vUV = vec2(corner.x*half_, corner.y*r*2.0); vHalf = L*0.5; vR = r;\n' +
+'  gl_Position = vec4(q/(0.5*uRes)*c.w, c.z, c.w);\n' +
+'}';
+var STAR_FS = '#version 300 es\nprecision highp float;\nin vec3 vCol; in vec2 vUV; in float vHalf, vR; out vec4 o;\n' +
+'void main(){ float dx = max(abs(vUV.x) - vHalf, 0.0); float q = (dx*dx + vUV.y*vUV.y)/(vR*vR); float a = exp(-q*2.6); if (a < 0.003) discard; o = vec4(vCol*a, 1.0); }';
+var QUAD_VS = '#version 300 es\nout vec2 vUv; void main(){ vec2 p = vec2(float((gl_VertexID<<1)&2), float(gl_VertexID&2)); vUv = p; gl_Position = vec4(p*2.0-1.0, 0.0, 1.0); }';
+var DOWN_FS = '#version 300 es\nprecision highp float; in vec2 vUv; uniform sampler2D t; uniform vec2 px; uniform float thr; out vec4 o;\n' +
+'void main(){ vec3 c = texture(t, vUv + px*vec2(-1,-1)).rgb + texture(t, vUv + px*vec2(1,-1)).rgb + texture(t, vUv + px*vec2(-1,1)).rgb + texture(t, vUv + px*vec2(1,1)).rgb; c *= 0.25; c = max(c, 0.0);\n' +
+'  float l = max(max(c.r,c.g),c.b); float k = max(l - thr, 0.0); k = k*k/(4.0*thr + 1e-4)*step(0.0,thr) + max(l - 2.0*thr, 0.0); o = vec4(thr > 0.0 ? c*(k/max(l,1e-4)) : c, 1.0); }';
+var BLUR_FS = '#version 300 es\nprecision highp float; in vec2 vUv; uniform sampler2D t; uniform vec2 dir; out vec4 o;\n' +
+'void main(){ float w[5] = float[](0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216); vec3 c = texture(t, vUv).rgb*w[0];\n' +
+'  for (int i = 1; i < 5; i++) { c += texture(t, vUv + dir*float(i)).rgb*w[i]; c += texture(t, vUv - dir*float(i)).rgb*w[i]; } o = vec4(c, 1.0); }';
+var COMP_FS = '#version 300 es\nprecision highp float; in vec2 vUv; uniform sampler2D tHdr, tB1, tB2; uniform float uTime, uExp, uWarp; uniform vec2 uRes; out vec4 o;\n' +
+'vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0); }\n' +
+'float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }\n' +
+'void main(){ vec2 d = vUv - 0.5; float r2 = dot(d,d); vec2 ca = d*(0.0035 + 0.006*uWarp)*r2*4.0;\n' +
+'  vec3 c; c.r = texture(tHdr, vUv - ca).r; c.g = texture(tHdr, vUv).g; c.b = texture(tHdr, vUv + ca).b; c = max(c, 0.0);\n' +
+'  c += texture(tB1, vUv).rgb*0.55 + texture(tB2, vUv).rgb*0.9;\n' +
+'  c *= uExp; c = aces(c); c *= 1.0 - smoothstep(0.18, 0.9, r2*1.6)*0.55;\n' +
+'  c = pow(c, vec3(1.0/2.2)); c += (hash(vUv*uRes + uTime*60.0) - 0.5)*0.018; o = vec4(c, 1.0); }';
+var P = { star: prog(STAR_VS, STAR_FS), down: prog(QUAD_VS, DOWN_FS), blur: prog(QUAD_VS, BLUR_FS), comp: prog(QUAD_VS, COMP_FS) };
+
+// geometry: one quad, instanced per particle
+var corners = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, corners); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+function makeCloud(data, count) {
+  var vao = gl.createVertexArray(), buf = gl.createBuffer(); gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, corners); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, data.subarray(0, count * STRIDE), gl.STATIC_DRAW);
+  [[1, 3, 0], [2, 3, 12], [3, 1, 24]].forEach(function (a) { gl.enableVertexAttribArray(a[0]); gl.vertexAttribPointer(a[0], a[1], gl.FLOAT, false, STRIDE * 4, a[2]); gl.vertexAttribDivisor(a[0], 1); });
+  gl.bindVertexArray(null); return { vao: vao, buf: buf, count: count };
+}
+function freeCloud(c) { if (!c) return; gl.deleteBuffer(c.buf); gl.deleteVertexArray(c.vao); }
+
+// the deep field: distant galaxies all around, at effectively infinite distance
+var field = (function () {
+  var r = rng(7), n = 5000, B = new Builder(n);
+  for (var i = 0; i < n; i++) { var d = sphere(r), D = 4e5, cc = kelvin(3800 + r() * 9000); B.put(d[0] * D, d[1] * D, d[2] * D, cc, 1, Math.pow(r(), 3) * 2.4e9 + 2e7); }
+  return makeCloud(B.a, B.n);
+})();
+// stars in the void (intergalactic stars are real: ~10% of the light in clusters), a tube along the path
+var voidStars = (function () {
+  var r = rng(11), n = 9000, B = new Builder(n);
+  for (var i = 0; i < n; i++) { var t = r() * 6.2832, rr = Math.sqrt(r()) * 0.5; B.put(r() - 0.5, rr * Math.cos(t), rr * Math.sin(t), kelvin(3500 + r() * 7000), 1, 1); }
+  return makeCloud(B.a, B.n);
+})();
+
+// render targets
+var W = 0, H = 0, T = {};
+function tex(w, h) {
+  var t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, FLOAT ? gl.RGBA16F : gl.RGBA8, w, h, 0, gl.RGBA, FLOAT ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  var f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+  return { t: t, f: f, w: w, h: h };
+}
+function resize() {
+  var dpr = Math.min(devicePixelRatio || 1, small ? 1.25 : 1.6), w = Math.round(innerWidth * dpr), h = Math.round(innerHeight * dpr);
+  if (w === W && h === H) return; W = w; H = h; cv.width = w; cv.height = h;
+  Object.keys(T).forEach(function (k) { gl.deleteTexture(T[k].t); gl.deleteFramebuffer(T[k].f); });
+  T = { hdr: tex(w, h), a1: tex(w >> 2, h >> 2), b1: tex(w >> 2, h >> 2), a2: tex(w >> 4, h >> 4), b2: tex(w >> 4, h >> 4) };
+}
+addEventListener('resize', resize); resize();
+
+// ---------------------------------------------------------------- math
+function mul(a, b) { var o = new Float32Array(16); for (var i = 0; i < 4; i++) for (var j = 0; j < 4; j++) { var s = 0; for (var k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; }
+function persp(fov, asp, n, f) { var t = 1 / Math.tan(fov / 2); return new Float32Array([t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, 2 * f * n / (n - f), 0]); }
+function lookDir(fw, up) { // view matrix (rotation only; the camera sits at the origin)
+  var z = norm([-fw[0], -fw[1], -fw[2]]), x = norm(cross(up, z)), y = cross(z, x);
+  return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, 0, 0, 0, 1]);
+}
+function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+function norm(a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; }
+function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+
+// ---------------------------------------------------------------- the route
+// The camera flies along +x. Each galaxy is placed so the line crosses its disk at a shallow angle (alpha) a little
+// off its centre (impact b), so the 2-minute crossing dives through the arms past the bulge. Chord length ~2.1 R.
+var route = [], X = 0;
+function place(i) {
+  var g = CAT[i % CAT.length], r = rng(1000 + i * 77), R = g.R, mw = g.key === 'mw' && i === 0;
+  var alpha = (mw ? 2.2 : 8 + r() * 6) * Math.PI / 180, psi = r() * 6.2832, phi = r() * 6.2832;
+  var n = [Math.sin(alpha), Math.cos(alpha) * Math.cos(psi), Math.cos(alpha) * Math.sin(psi)];
+  var e1 = norm([1 - n[0] * n[0], -n[0] * n[1], -n[0] * n[2]]), e2 = cross(n, e1);
+  var c = Math.cos(phi), s = Math.sin(phi), a1 = [e1[0] * c + e2[0] * s, e1[1] * c + e2[1] * s, e1[2] * c + e2[2] * s], a2 = cross(n, a1);
+  var half = R * 1.05, impact = R * (mw ? 0.12 : 0.06 + r() * 0.05);
+  var chord = 2 * half, start = mw ? -(26 * Math.cos(alpha)) : -half; // the Milky Way starts at the Sun, 26 kly from the centre
+  var cx = X - start, centre = [cx, e2[1] * impact, e2[2] * impact];
+  var cross_s = (half - start) / (chord / CROSS_S);
+  var seg = { i: i, g: g, centre: centre, rot: new Float32Array([a1[0], a1[1], a1[2], a2[0], a2[1], a2[2], n[0], n[1], n[2]]), x0: X, x1: cx + half, t: cross_s, speed: chord / CROSS_S, cloud: null, ready: false };
+  X = seg.x1; route.push(seg);
+  return seg;
+}
+function gapAfter(seg) { var nx = CAT[(seg.i + 1) % CAT.length]; return 4.5 * (seg.g.R + nx.R) + 60; } // the void, compressed (render length)
+place(0);
+
+// clocks: absolute time in the route; each galaxy segment, then a void
+var timeline = []; // [{kind, seg, t0, t1, x0, x1}]
+function extend() {
+  var last = route[route.length - 1], t0 = timeline.length ? timeline[timeline.length - 1].t1 : 0;
+  timeline.push({ kind: 'in', seg: last, t0: t0, t1: t0 + last.t, x0: last.x0, x1: last.x1 });
+  var G = gapAfter(last), x0 = last.x1; X = x0 + G;
+  var next = place(route.length);
+  var nxStart = next.x0; // place() has set it to the end of the gap
+  timeline.push({ kind: 'gap', seg: last, next: next, t0: t0 + last.t, t1: t0 + last.t + GAP_S, x0: x0, x1: nxStart, sep: sep(last.g, next.g) });
+}
+extend();
+
+// galaxies are built a slice per frame, so nothing stalls
+var queue = [];
+function want(seg) { if (!seg.cloud && !seg.building) { seg.building = true; queue.push(seg); } }
+var building = null;
+function work(budgetMs) {
+  var t0 = performance.now();
+  while (queue.length && performance.now() - t0 < budgetMs) {
+    var seg = queue.shift(), g = seg.g, n = g.key === 'ic1101' ? Math.round(NSTARS * 1.1) : NSTARS;
+    var res = build(g, n, 4242 + seg.i * 31); seg.cloud = makeCloud(res.data, res.count); seg.ready = true; seg.building = false;
+  }
+}
+want(route[0]); work(1e9);
+
+// camera position at time t (x along the route) and the derivative (speed, render units per s)
+function hermite(p0, p1, m0, m1, u) { var u2 = u * u, u3 = u2 * u; return (2 * u3 - 3 * u2 + 1) * p0 + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * p1 + (u3 - u2) * m1; }
+function at(t) {
+  while (timeline[timeline.length - 1].t1 < t + 30) extend();
+  for (var k = 0; k < timeline.length; k++) { var s = timeline[k]; if (t < s.t1) {
+    var u = (t - s.t0) / (s.t1 - s.t0);
+    if (s.kind === 'in') return { x: s.x0 + (s.x1 - s.x0) * u, v: (s.x1 - s.x0) / (s.t1 - s.t0), span: s, u: u };
+    var D = s.t1 - s.t0, m0 = s.seg.speed * D, m1 = s.next.speed * D;
+    var x = hermite(s.x0, s.x1, m0, m1, u), dx = hermite(s.x0, s.x1, m0, m1, Math.min(1, u + 1e-3)) - x;
+    return { x: x, v: dx / (1e-3 * D), span: s, u: u };
+  } }
+}
+
+// ---------------------------------------------------------------- HUD
+var $ = function (id) { return document.getElementById(id); };
+var hud = { now: $('now'), name: $('name'), sub: $('sub'), bar: $('bar'), dist: $('dist'), left2: $('left2'), speed: $('speed'), side2: $('side2') }, shownKey = '', crossed = 0, lastSpan = null;
+function setHud(state) {
+  var s = state.span, key = s.kind + s.seg.i;
+  if (key !== shownKey) {
+    shownKey = key; var g = s.seg.g;
+    {
+      if (s.kind === 'in') {
+        hud.now.textContent = s.seg.i === 0 ? 'You are in' : 'Now crossing';
+        hud.name.textContent = g.name;
+        hud.sub.innerHTML = '<b>' + g.id + '</b> · ' + g.type + ' · <b>' + g.diam.toLocaleString('en-US') + ' ly</b> across · ' + (g.key === 'mw' ? 'home' : '<b>' + ly(g.dist) + '</b> from Earth') + '<br>' + g.note;
+      } else {
+        var nx = s.next.g;
+        hud.now.textContent = 'Intergalactic space';
+        hud.name.textContent = '→ ' + nx.name;
+        hud.sub.innerHTML = 'Leaving ' + g.name + ' · <b>' + ly(s.sep) + '</b> to ' + nx.name + ' (' + nx.id + ')';
+      }
+      var nm = hud.name; nm.style.animation = 'none'; void nm.offsetWidth; nm.style.animation = '';
+    }
+  }
+}
+
+// ---------------------------------------------------------------- frame
+var jump = +(new URLSearchParams(location.search).get("t") || 0), start = performance.now() - jump * 1000, last = start, prevVP = null, prevCam = null, steer = [0, 0], steerT = [0, 0];
+addEventListener('pointermove', function (e) { steerT = [(e.clientX / innerWidth - 0.5) * 2, (e.clientY / innerHeight - 0.5) * 2]; }, { passive: true });
+var V = new Float32Array(16);
+function drawCloud(cloud, rot, off, offP, VP, PVP, lum, fade) {
+  var u = P.star.u; gl.uniformMatrix3fv(u.uRot, false, rot); gl.uniform3fv(u.uOff, off); gl.uniform3fv(u.uOffP, offP); gl.uniform1f(u.uLum, lum); gl.uniform1f(u.uFade, fade);
+  gl.bindVertexArray(cloud.vao); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, cloud.count);
+}
+function pass(prg, target, setup) { gl.useProgram(prg.p); gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.f : null); gl.viewport(0, 0, target ? target.w : W, target ? target.h : H); setup(prg.u); gl.drawArrays(gl.TRIANGLES, 0, 3); }
+function bind(unit, t, loc) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(loc, unit); }
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  resize();
+  var t = (now - start) / 1000, dt = Math.min(0.05, (now - last) / 1000); last = now;
+  var st = at(t), span = st.span;
+  // build the next galaxy early in the crossing, so it is ready long before the void
+  for (var q = 0; q < route.length; q++) { var sg = route[q]; if (sg.i >= span.seg.i && sg.i <= span.seg.i + 1) want(sg); }
+  work(6);
+  // free galaxies far behind
+  route.forEach(function (sg) { if (sg.cloud && sg.i < span.seg.i - 1) { freeCloud(sg.cloud); sg.cloud = null; } });
+
+  // camera: along +x, a slow drift and a little steering from the pointer; a gentle roll
+  steer[0] += (steerT[0] - steer[0]) * Math.min(1, dt * 1.5); steer[1] += (steerT[1] - steer[1]) * Math.min(1, dt * 1.5);
+  var yaw = 0.07 * Math.sin(t * 0.061) + steer[0] * 0.16, pitch = 0.05 * Math.sin(t * 0.047 + 1) - steer[1] * 0.1, roll = 0.08 * Math.sin(t * 0.033);
+  var fw = norm([Math.cos(yaw) * Math.cos(pitch), Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch)]), up = norm([-Math.sin(roll) * 0.0 + 0, Math.sin(roll), Math.cos(roll)]);
+  var cam = [st.x, 0, 0];
+  var fov = 1.2 + (span.kind === 'gap' ? Math.sin(Math.PI * st.u) * 0.28 : 0), asp = W / H;
+  var VP = mul(persp(fov, asp, 0.0005, 1e7), lookDir(fw, up));
+  if (!prevVP) { prevVP = VP; prevCam = cam; }
+  var focal = H / 2 / Math.tan(fov / 2);
+
+  // ---- scene into the HDR target
+  gl.bindFramebuffer(gl.FRAMEBUFFER, T.hdr.f); gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE); gl.disable(gl.DEPTH_TEST);
+  gl.useProgram(P.star.p); var u = P.star.u;
+  gl.uniformMatrix4fv(u.uVP, false, VP); gl.uniformMatrix4fv(u.uPVP, false, prevVP); gl.uniform2f(u.uRes, W, H); gl.uniform1f(u.uFocal, focal);
+  var I3 = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
+  drawCloud(field, I3, [0, 0, 0], [0, 0, 0], VP, prevVP, 1, 1);
+  route.forEach(function (sg) {
+    if (!sg.cloud) return; var dx = sg.centre[0] - cam[0]; if (Math.abs(dx) > sg.g.R * 30 + 400) return;
+    var off = [sg.centre[0] - cam[0], sg.centre[1] - cam[1], sg.centre[2] - cam[2]], offP = [sg.centre[0] - prevCam[0], sg.centre[1] - prevCam[1], sg.centre[2] - prevCam[2]];
+    drawCloud(sg.cloud, sg.rot, off, offP, VP, prevVP, 140, 1);
+  });
+  if (span.kind === 'gap') { // the void's stars, stretched over the compressed gap
+    var G = span.x1 - span.x0, mid = (span.x0 + span.x1) / 2, sc = new Float32Array([G, 0, 0, 0, G * 0.06 + 20, 0, 0, 0, G * 0.06 + 20]);
+    drawCloud(voidStars, sc, [mid - cam[0], 0, 0], [mid - prevCam[0], 0, 0], VP, prevVP, 3 + G * 0.01, Math.sin(Math.PI * st.u));
+  }
+  gl.disable(gl.BLEND);
+
+  // ---- bloom: two levels
+  pass(P.down, T.a1, function (u) { bind(0, T.hdr.t, u.t); gl.uniform2f(u.px, 1 / W, 1 / H); gl.uniform1f(u.thr, 0.35); });
+  pass(P.blur, T.b1, function (u) { bind(0, T.a1.t, u.t); gl.uniform2f(u.dir, 1.6 / T.a1.w, 0); });
+  pass(P.blur, T.a1, function (u) { bind(0, T.b1.t, u.t); gl.uniform2f(u.dir, 0, 1.6 / T.a1.h); });
+  pass(P.down, T.a2, function (u) { bind(0, T.a1.t, u.t); gl.uniform2f(u.px, 1 / T.a1.w, 1 / T.a1.h); gl.uniform1f(u.thr, 0); });
+  pass(P.blur, T.b2, function (u) { bind(0, T.a2.t, u.t); gl.uniform2f(u.dir, 1.8 / T.a2.w, 0); });
+  pass(P.blur, T.a2, function (u) { bind(0, T.b2.t, u.t); gl.uniform2f(u.dir, 0, 1.8 / T.a2.h); });
+  pass(P.comp, null, function (u) { bind(0, T.hdr.t, u.tHdr); bind(1, T.a1.t, u.tB1); bind(2, T.a2.t, u.tB2); gl.uniform1f(u.uTime, t); gl.uniform1f(u.uExp, 1.6); gl.uniform1f(u.uWarp, span.kind === 'gap' ? Math.sin(Math.PI * st.u) : 0); gl.uniform2f(u.uRes, W, H); });
+  prevVP = VP; prevCam = cam;
+
+  // ---- numbers (real units: the render unit is 1,000 ly, so the real speed is v_render * 1000 ly per second)
+  setHud(st);
+  var lyPerS, crossedNow;
+  if (span.kind === 'in') {
+    lyPerS = st.v * 1000;
+    hud.bar.style.width = (st.u * 100).toFixed(2) + '%';
+    hud.left2.textContent = 'Crossing ' + mmss(t - span.t0) + ' / ' + mmss(span.t1 - span.t0) + ' · 1 s = ' + Math.round(lyPerS).toLocaleString('en-US') + ' ly';
+  } else {
+    var real = span.sep, frac = (st.x - span.x0) / (span.x1 - span.x0);
+    lyPerS = st.v / (span.x1 - span.x0) * real; // the same fraction of the true separation per second
+    hud.bar.style.width = (frac * 100).toFixed(2) + '%';
+    hud.left2.textContent = ly(real * (1 - frac)) + ' to go';
+  }
+  crossed = 0; for (var k2 = 0; k2 < timeline.length && timeline[k2] !== span; k2++) crossed += timeline[k2].kind === 'in' ? (timeline[k2].x1 - timeline[k2].x0) * 1000 : timeline[k2].sep;
+  crossedNow = crossed + (span.kind === 'in' ? (st.x - span.x0) * 1000 : span.sep * (st.x - span.x0) / (span.x1 - span.x0));
+  hud.dist.textContent = ly(crossedNow);
+  hud.speed.textContent = sci(lyPerS * YEAR_S) + ' c';
+  hud.side2.textContent = ly(lyPerS) + ' per second';
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
 </html>
