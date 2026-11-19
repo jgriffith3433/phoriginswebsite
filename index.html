@@ -29,6 +29,36 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 #left .v{font:600 clamp(13px,1.6vw,17px)/1.2 "JetBrains Mono",ui-monospace,monospace;color:var(--ink)}
 #nogl{position:fixed;inset:0;display:none;place-items:center;text-align:center;padding:24px;font:400 15px/1.6 "JetBrains Mono",monospace;color:var(--dim)}
 @media (max-width:640px){#left{max-width:44vw}.sub{font-size:11px}}
+:root{--acc:#8fc2ff}
+#cc{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(12px,env(safe-area-inset-bottom)) + 74px);width:max-content;max-width:min(92vw,820px);text-align:center;pointer-events:none}
+#cc span{display:inline-block;font:500 clamp(16px,2.2vw,25px)/1.4 "Space Grotesk",system-ui,sans-serif;color:#fff;background:rgba(3,6,14,.74);padding:.34em .8em;border-radius:10px;box-shadow:0 0 0 1px rgba(143,194,255,.22),0 8px 30px rgba(0,0,0,.5)}
+#cc span:empty{display:none}
+#snd{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(12px,env(safe-area-inset-bottom)) + 132px);font:600 clamp(12px,1.5vw,15px)/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#03050b;background:linear-gradient(180deg,#d7e9ff,#8fc2ff);padding:.8em 1.2em;border-radius:999px;box-shadow:0 0 30px rgba(143,194,255,.6);cursor:pointer;user-select:none;-webkit-user-select:none;animation:pulse 1.6s ease-in-out infinite;white-space:nowrap}
+#snd.on{left:auto;right:max(14px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));bottom:auto;transform:none;animation:none;background:rgba(3,6,14,.7);color:var(--acc);box-shadow:0 0 0 1px rgba(143,194,255,.4);font-size:11px;padding:.7em 1em}
+@keyframes pulse{50%{box-shadow:0 0 54px rgba(143,194,255,.95)}}
+#ruler{position:fixed;left:max(52px,env(safe-area-inset-left));right:max(52px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));height:56px}
+#ruler:before{content:"";position:absolute;left:0;right:0;top:20px;height:1px;background:linear-gradient(90deg,transparent,rgba(143,194,255,.55) 6%,rgba(143,194,255,.55) 94%,transparent)}
+#ruler a{position:absolute;top:0;transform:translateX(-50%);text-decoration:none;color:var(--dim);font:400 10px/1.25 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.04em;text-align:center;white-space:nowrap;padding-top:30px;outline:none}
+#ruler a:before{content:"";position:absolute;left:50%;top:15px;width:9px;height:9px;margin-left:-5px;border-radius:50%;background:#0b1326;box-shadow:0 0 0 1.5px rgba(143,194,255,.75);transition:transform .2s,background .2s}
+#ruler a:hover,#ruler a:focus-visible{color:#fff}
+#ruler a:hover:before,#ruler a:focus-visible:before{transform:scale(1.5);background:var(--acc)}
+#ruler a.up{padding-top:0;top:-14px}
+#ruler a.up:before{top:29px}
+#ruler a.me{color:#fff;font-weight:600}
+#ruler a.me:before{background:#fff;box-shadow:0 0 0 2px var(--acc),0 0 18px 4px rgba(143,194,255,.9);transform:scale(1.35)}
+#ruler a b{display:block;font-weight:600;color:var(--acc)}
+#ruler .cap{position:absolute;top:-30px;font:400 10px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:rgba(214,228,255,.4)}
+#ruler .cap.l{left:-30px}#ruler .cap.r{right:-30px}
+@media (max-width:760px){#ruler a:not(.me) span{display:none}#ruler a:not(.me) b{font-size:9px}#ruler .cap{display:none}#cc{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 70px)}}
+.nav{position:fixed;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;align-items:center;gap:7px;text-decoration:none;color:rgba(214,228,255,.7);font:400 10px/1.25 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.08em;text-align:center;text-transform:uppercase;padding:14px 8px;outline:none;text-shadow:0 0 8px #000}
+.nav i{display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:rgba(3,6,14,.62);box-shadow:0 0 0 1.5px rgba(143,194,255,.55);font:300 28px/1 system-ui,sans-serif;font-style:normal;color:#fff;padding-bottom:3px;box-sizing:border-box;transition:transform .2s,box-shadow .2s,background .2s}
+.nav:hover i,.nav:focus-visible i{transform:scale(1.12);background:rgba(143,194,255,.25);box-shadow:0 0 0 2px #8fc2ff,0 0 24px rgba(143,194,255,.75)}
+.nav.l{left:max(6px,env(safe-area-inset-left))}
+.nav.r{right:max(6px,env(safe-area-inset-right))}
+.nav b{display:block;color:#8fc2ff;font-weight:600}
+@media (max-width:760px){.nav span{display:none}.nav i{width:40px;height:40px;font-size:23px}}
+#cc{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 150px)}#snd{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 210px)}
+#left,#side{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 62px)}
 </style>
 </head>
 <body>
@@ -41,6 +71,10 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 </div>
 <div id="left"><div>Crossed so far</div><div class="v" id="dist">0 ly</div><div id="left2"></div></div>
 <div id="side"><div>Speed</div><div class="v" id="speed">0 c</div><div id="side2"></div></div>
+<div id="cc" aria-live="polite"><span id="cap"></span></div>
+<div id="snd" role="button" tabindex="0" aria-label="Turn the narration sound on">&#128266; Tap anywhere to hear it explained</div>
+<nav id="ruler" aria-label="The nine scales, from the nucleus to the universe"></nav>
+<audio id="au" src="./narration.mp3" preload="auto" loop muted autoplay playsinline></audio>
 <div id="nogl">This flight needs WebGL 2. Try a current Chrome, Edge, Firefox or Safari.</div>
 <script>
 (function () {
@@ -562,6 +596,31 @@ function frame(now) {
   hud.side2.textContent = ly(lyPerS) + ' per second';
 }
 requestAnimationFrame(frame);
+})();
+
+// ---------------------------------------------------------------- the narrator, captions and the nine-scale ruler
+// (the same voice and ruler as the other eight scale pages; this page is scale 8 of 9: the galaxy)
+(function () {
+  var D = {"i":7,"scales":[{"exp":-15,"name":"The Nucleus","short":"nucleus","size":"10⁻¹⁵ m","sub":"the heart of an atom · a millionth of a billionth of a meter · uranium-235: 92 protons, 143 neutrons","domain":"doseofdestruction.com"},{"exp":-10,"name":"The Atom","short":"atom","size":"10⁻¹⁰ m","sub":"the building brick of everything · one ten-billionth of a meter · hydrogen's electron clouds, drawn from the real equations","domain":"hawkesgames.com"},{"exp":-5,"name":"The Cell","short":"cell","size":"10⁻⁵ m","sub":"the smallest living thing · a hundredth of a millimeter · you are about 37 trillion of these","domain":"hawkesbiomedical.com"},{"exp":0,"name":"You","short":"you","size":"10⁰ m","sub":"the human scale · about a meter and a bit · 7 × 10²⁷ atoms, 37 trillion cells, 86 billion neurons","domain":"icanbe.ai"},{"exp":7,"name":"The Planet","short":"planet","size":"10⁷ m","sub":"Earth · 12,742 km across · a thin skin of rock and air around a ball of hot stone and metal","domain":"yoobalandgame.com"},{"exp":9,"name":"The Star","short":"star","size":"10⁹ m","sub":"the Sun · 1.39 million km across · a million Earths would fit inside","domain":"imaginelivetv.com"},{"exp":13,"name":"The Solar System","short":"solar system","size":"10¹³ m","sub":"the Sun's neighborhood · 9 billion km across at Neptune · real orbits and real speeds, distances squeezed to fit","domain":"theplacedepartment.com"},{"exp":21,"name":"The Galaxy","short":"galaxy","size":"10²¹ m","sub":"","domain":"phorigins.com"},{"exp":27,"name":"The Universe","short":"universe","size":"10²⁷ m","sub":"everything we could ever see · 93 billion light-years across · 13.8 billion years old","domain":"hawkesgen.ai"}],"cues":[[0,1.08,"Hello."],[1.08,5.8,"I'm the AI that lives in this page, and you are flying through a galaxy."],[5.8,8.86,"A galaxy is a giant city of stars."],[8.86,11.31,"Ours is called the Milky Way."],[11.31,13.77,"If you counted one of its stars every second,"],[13.77,17.59,"it would take you more than three thousand years to count them all."],[17.59,21.8,"The stars swirl around the middle, like water going down a drain,"],[21.8,27.24,"but so slowly that our Sun has only been around about twenty times since it was born."],[27.24,30.99,"A galaxy is so big that light, the fastest thing there is,"],[30.99,33.53,"takes a hundred thousand years to cross it."],[33.53,34.98,"So we are cheating."],[34.98,37.95,"We are going billions of times faster than light,"],[37.95,40.16,"so you can cross it in two minutes."],[40.16,43.18,"When we leave, we will jump to the next galaxy."],[43.18,44.85,"They are very far apart."],[44.85,46.67,"If galaxies were dinner plates,"],[46.67,49.67,"the next big one would be all the way across the room."],[49.67,53.65,"And every one of those lights could have worlds around it."]],"dur":53.65};
+  var ruler = document.getElementById('ruler'), lo = D.scales[0].exp, hi = D.scales[D.scales.length - 1].exp;
+  ruler.innerHTML = '<span class="cap l">← smaller</span><span class="cap r">bigger →</span>' + D.scales.map(function (s, i) {
+    return '<a href="https://' + s.domain + '/" class="' + (i === D.i ? 'me ' : '') + (i % 2 ? 'up' : '') + '" style="left:' + ((s.exp - lo) / (hi - lo) * 100).toFixed(2) + '%"' + (i === D.i ? ' aria-current="page"' : '') + ' title="' + s.name + ' · ' + s.size + ' · ' + s.domain + '"><b>' + s.size + '</b><span>' + s.short + '</span></a>';
+  }).join('');
+  // the arrows at the sides: one scale smaller, one scale bigger (they wrap round at the ends); the arrow keys do the same
+  (function () { var n = D.scales.length, pv = D.scales[(D.i - 1 + n) % n], nx = D.scales[(D.i + 1) % n];
+    function nav(cls, s, arrow, word) { var a = document.createElement('a'); a.className = 'nav ' + cls; a.href = 'https://' + s.domain + '/'; a.title = word + ': ' + s.name + ' (' + s.size + ')'; a.setAttribute('aria-label', word + ': ' + s.name); a.innerHTML = '<i>' + arrow + '</i><span>' + word + '<b>' + s.short + '</b></span>'; document.body.appendChild(a); return a; }
+    var L = nav('l', pv, '‹', D.i === 0 ? 'biggest' : 'smaller'), R = nav('r', nx, '›', D.i === n - 1 ? 'smallest' : 'bigger');
+    addEventListener('keydown', function (e) { if (e.altKey || e.ctrlKey || e.metaKey) return; if (e.key === 'ArrowLeft') location.href = L.href; else if (e.key === 'ArrowRight') location.href = R.href; });
+  })();
+  var au = document.getElementById('au'), snd = document.getElementById('snd'), cap = document.getElementById('cap'), started = false, t0 = performance.now(), shown = -2;
+  function nt() { return (!au.paused && au.readyState > 1 && isFinite(au.currentTime)) ? au.currentTime : ((performance.now() - t0) / 1000) % (D.dur + 2); }
+  function setSnd() { snd.classList.add('on'); snd.innerHTML = au.muted ? '&#128263; Sound off' : '&#128266; Sound on'; snd.setAttribute('aria-label', au.muted ? 'Turn the sound on' : 'Turn the sound off'); }
+  function begin() { if (started) return; started = true; au.muted = false; au.currentTime = 0; t0 = performance.now(); var p = au.play(); if (p && p.catch) p.catch(function () {}); setSnd(); }
+  addEventListener('pointerdown', function (e) { if (!started) { begin(); return; } if (e.target === snd) { au.muted = !au.muted; setSnd(); } }, { passive: true });
+  addEventListener('keydown', function (e) { if (!started) begin(); else if (e.target === snd && (e.key === 'Enter' || e.key === ' ')) { au.muted = !au.muted; setSnd(); } });
+  var pp = au.play(); if (pp && pp.catch) pp.catch(function () {});
+  function tick() { requestAnimationFrame(tick); var n = nt(), q = -1; for (var j = 0; j < D.cues.length; j++) { if (n >= D.cues[j][0] && n < D.cues[j][1]) { q = j; break; } } if (q !== shown) { shown = q; cap.textContent = q < 0 ? '' : D.cues[q][2]; } }
+  requestAnimationFrame(tick);
 })();
 </script>
 </body>
