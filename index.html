@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>What It Knows · How an A.I. works, part 8 of 9</title>
-<meta name="description" content="What It Knows: everything it learned, baked in · not one number changes while you talk to it · and it can't always tell knowing from guessing. Part 8 of nine on how a large language model works, drawn from real numbers and explained simply by an A.I. narrator, with captions. Flip the page for its opposite: what it sees.">
+<title>Light · The rules of physics, level 8 of 9</title>
+<meta name="description" content="Light: a ripple in the electric and magnetic field · always the same speed in empty space: 299,792,458 meters a second · nothing with any weight can catch it. Level 8 of nine on the rules of physics, from the quark to the universe, drawn from measured numbers and explained simply by an A.I. narrator, with captions. Flip the page for its reverse: slow time.">
 <meta name="theme-color" content="#03050b">
-<meta property="og:title" content="What It Knows · How an A.I. works, part 8 of 9">
-<meta property="og:description" content="What It Knows: everything it learned, baked in · not one number changes while you talk to it · and it can't always tell knowing from guessing. Part 8 of nine on how a large language model works, drawn from real numbers and explained simply by an A.I. narrator, with captions. Flip the page for its opposite: what it sees.">
+<meta property="og:title" content="Light · The rules of physics, level 8 of 9">
+<meta property="og:description" content="Light: a ripple in the electric and magnetic field · always the same speed in empty space: 299,792,458 meters a second · nothing with any weight can catch it. Level 8 of nine on the rules of physics, from the quark to the universe, drawn from measured numbers and explained simply by an A.I. narrator, with captions. Flip the page for its reverse: slow time.">
 <meta name="color-scheme" content="dark">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -82,7 +82,7 @@ body.flip .nav{color:rgba(40,28,16,.75);text-shadow:none;font-family:Georgia,ser
 body.flip .nav i{background:rgba(255,252,244,.82);color:#17110a;box-shadow:0 0 0 1.5px rgba(70,45,20,.6)}
 body.flip .nav:hover i,body.flip .nav:focus-visible i{background:#17110a;color:#f1eadc;box-shadow:0 0 0 2px #7a3d0e}
 body.flip .nav b{color:#7a3d0e}
-@media (max-width:760px){.nav{top:auto;bottom:calc(max(12px,env(safe-area-inset-bottom)) - 4px);transform:none;padding:4px 2px}.nav.l{left:max(4px,env(safe-area-inset-left))}.nav.r{right:max(4px,env(safe-area-inset-right))}#hud,#hud2{padding-top:calc(max(14px,env(safe-area-inset-top)) + 42px)}.sub,.bsub{font-size:11px;line-height:1.4}#ruler a:not(.me) span{display:none}#ruler a:not(.me) b{font-size:9px}#ruler .cap{display:none}#cc{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 70px)}.nav span{display:none}.nav i{width:40px;height:40px;font-size:23px}#flip{font-size:10px;padding:.8em .9em}}
+@media (max-width:760px){.nav{top:auto;bottom:calc(max(12px,env(safe-area-inset-bottom)) - 4px);transform:none;padding:4px 2px}.nav.l{left:max(4px,env(safe-area-inset-left))}.nav.r{right:max(4px,env(safe-area-inset-right))}#hud,#hud2{padding-top:calc(max(14px,env(safe-area-inset-top)) + 84px)}.sub,.bsub{font-size:11px;line-height:1.4}#ruler a:not(.me) span{display:none}#ruler a:not(.me) b{font-size:9px}#ruler .cap{display:none}#cc{bottom:calc(max(12px,env(safe-area-inset-bottom)) + 70px)}.nav span{display:none}.nav i{width:40px;height:40px;font-size:23px}#flip{font-size:10px;padding:.8em .9em}}
 @media (prefers-reduced-motion:reduce){#snd,.bname{animation:none}}
 /* ---- talking to the page. Front: a glass panel on the right. Back: paper, on the left, the bubbles swapped. */
 #askb{position:fixed;right:max(14px,env(safe-area-inset-right));top:calc(max(14px,env(safe-area-inset-top)) + 44px);z-index:9;border:0;cursor:pointer;font:600 11px/1 "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:#03050b;background:linear-gradient(180deg,#d7e9ff,#8fc2ff);padding:.9em 1.15em;border-radius:999px;box-shadow:0 0 22px rgba(143,194,255,.5),0 6px 16px rgba(0,0,0,.5);transition:transform .2s}
@@ -154,11 +154,11 @@ body.flip #askm{box-shadow:0 0 0 1px rgba(70,45,20,.45)}
 <script>
 (function () {
 'use strict';
-// One of nine pages on how a large language model works, from one piece of a word up to the data center. The front
-// draws one part from real numbers (most of them computed with GPT-2 small, a small open model from 2019) while an AI
-// voice explains it; the back of the page (Flip) is its opposite, told by the other narrator. Each picture is a film
-// timed to its narrator. Captions are cut from the voices' own timing. The ruler and the side arrows link the nine sites.
-var D = {"i":7,"key":"knows","title":"What It Knows · How an A.I. works, part 8 of 9","chat":"https://api.hawkesgen.ai/v1/public/scale-chat","scales":[{"exp":1,"name":"The Token","short":"token","size":"1 piece","sub":"where every sentence starts · a word, or a piece of a word, swapped for a number · the small model in this page knows 50,257 pieces","domain":"doseofdestruction.com"},{"exp":2,"name":"The Neuron","short":"neuron","size":"1 light","sub":"the smallest working part · it multiplies, adds up, and glows or stays dark · this small model has 36,864 of them","domain":"hawkesgames.com"},{"exp":3,"name":"Attention","short":"attention","size":"144 lookers","sub":"how the pieces share what they know · each piece looks back at the ones before it · real looking, from the small model in this page","domain":"hawkesbiomedical.com"},{"exp":4,"name":"The Layers","short":"layers","size":"12 floors","sub":"one piece's trip up through the machine · every layer reads a running note and adds to it · 12 layers here, many more in big models","domain":"icanbe.ai"},{"exp":5,"name":"The Guess","short":"guess","size":"50,257 scores","sub":"what comes out at the top · not one word, but a score for every piece it knows · real scores from the small model in this page","domain":"yoobalandgame.com"},{"exp":6,"name":"The Mistake","short":"mistake","size":"1 surprise","sub":"how a machine finds out it was wrong · hide the next piece, guess, then look · the mistake is how surprised it was","domain":"imaginelivetv.com"},{"exp":7,"name":"Reading","short":"reading","size":"15 trillion pieces","sub":"the first school · guess the next piece of things people wrote, over and over · a tiny model learning from one book, for real","domain":"theplacedepartment.com"},{"exp":8,"name":"What It Knows","short":"what it knows","size":"frozen numbers","sub":"everything it learned, baked in · not one number changes while you talk to it · and it can't always tell knowing from guessing","domain":"phorigins.com"},{"exp":9,"name":"The Data Center","short":"data center","size":"16,000 chips","sub":"where a model gets made · buildings full of chips, all doing the same small sum · numbers from a maker who published them, with the year","domain":"hawkesgen.ai"}],"data":{"knows":{"weights":{"The opposite of hot is":{"top":[[" cold",0.1627],[" the",0.0822],[" a",0.0619],[" hot",0.0401],[" not",0.0376],[" cool",0.0199]]},"The Eiffel Tower is in the city of":{"top":[[" Paris",0.07],[" London",0.0584],[" New",0.031],[" Amsterdam",0.0292],[" Berlin",0.0235],[" Cologne",0.015]]},"Once upon a time, there was a little":{"top":[[" girl",0.0697],[" bit",0.0392],[" boy",0.0261],[" man",0.0124],[" more",0.009],[" talk",0.0073]]},"My dog's name is":{"top":[[" L",0.0092],[" a",0.0089],[" \"",0.008],[" D",0.008],[" K",0.0073],[" T",0.0069]]}},"ctx":1024,"total":124439808},"sees":{"names":{"Max":{"text":"My dog is called Max. Every morning we go for a walk. My dog's name is","p":0.5675,"cold":0.0025,"top":[[" Max",0.5675],[" \"",0.0071],[" Jack",0.0052],[" M",0.0048],[" L",0.0047]],"npieces":19,"one":true},"Rex":{"text":"My dog is called Rex. Every morning we go for a walk. My dog's name is","p":0.6556,"cold":0.0007,"top":[[" Rex",0.6556],[" \"",0.0046],[" Jack",0.0046],[" R",0.0032],[" the",0.0031]],"npieces":19,"one":true},"Bella":{"text":"My dog is called Bella. Every morning we go for a walk. My dog's name is","p":0.553,"cold":0.0018,"top":[[" Bella",0.553],[" Bell",0.0085],[" B",0.0073],[" L",0.0053],[" C",0.0044]],"npieces":19,"one":true},"Sam":{"text":"My dog is called Sam. Every morning we go for a walk. My dog's name is","p":0.5672,"cold":0.0018,"top":[[" Sam",0.5672],[" Jack",0.0091],[" S",0.0057],[" Sammy",0.0048],[" \"",0.0041]],"npieces":19,"one":true},"Charlie":{"text":"My dog is called Charlie. Every morning we go for a walk. My dog's name is","p":0.6079,"cold":0.003,"top":[[" Charlie",0.6079],[" Jack",0.0088],[" Charles",0.0054],[" L",0.0042],[" C",0.0041]],"npieces":19,"one":true},"Lucky":{"text":"My dog is called Lucky. Every morning we go for a walk. My dog's name is","p":0.5184,"cold":0.0004,"top":[[" Lucky",0.5184],[" L",0.0119],[" \"",0.0084],[" J",0.005],[" the",0.0047]],"npieces":19,"one":true}},"fewshot":{"hot -> cold, up -> down, big ->":{"target":" small","p":0.2842,"top":[[" small",0.2842],[" big",0.2565],[" little",0.0795],[" smaller",0.0149],[" medium",0.0147]]},"big ->":{"target":" small","p":0.0005,"top":[["\n",0.0203],[" (",0.0181],[" [",0.013],[" 0",0.0126],[" \"",0.0125]]},"dog: woof. cat: meow. cow:":{"target":" moo","p":0.0068,"top":[[" I",0.0426],[" wo",0.0341],[" oh",0.0335],[" you",0.0196],[" o",0.017]]},"cow:":{"target":" moo","p":0.0013,"top":[[" I",0.0439],["\n",0.0319],[" \"",0.0283],[" The",0.0155],[" You",0.0112]]},"The Moon is made of green cheese. Everyone knows that. The Moon is made of":{"target":" green","p":0.1852,"top":[[" green",0.1852],[" cheese",0.0878],[" blue",0.0288],[" red",0.0244],[" a",0.0234]]},"The Moon is made of":{"target":" green","p":0.0013,"top":[[" a",0.076],[" the",0.0459],[" two",0.0433],[" three",0.0264],[" four",0.0124]]}}},"counts":{"total":124439808,"mlp":56669184,"attn":28348416,"embed":38597376,"pos":786432,"neurons_per_layer":3072,"ctx":1024}},"sides":[{"cues":[[0,0.5,"Hi."],[0.5,2.53,"I'm the A.I. in this page."],[2.53,4.82,"When training ends, the dials stop."],[4.82,7.63,"Everything the machine learned is baked into its numbers,"],[7.63,9.55,"like a cake that's finished baking."],[9.55,12.25,"When you talk to it, not one number moves."],[12.25,14.19,"It doesn't learn from you as you chat."],[14.19,16.6,"And what's baked in is blurry."],[16.6,18.34,"It isn't a copy of the books."],[18.34,20.77,"It's more like what's left after reading them."],[20.77,23.56,"Ask this small model for the opposite of hot."],[23.56,24.32,"Cold."],[24.32,25.48,"That's baked in."],[25.48,27.27,"Ask where the Eiffel Tower is."],[27.27,28.59,"Paris."],[28.59,30.5,"Though it isn't very sure."],[30.5,33.1,"Now ask it something it could never know."],[33.1,34.93,"My dog's name is..."],[34.93,36.32,"It can't know that."],[36.32,38.09,"It has never met my dog."],[38.09,40.47,"But it doesn't say, I don't know."],[40.47,42.68,"It spins the wheel anyway."],[42.68,43.57,"Jack?"],[43.57,44.37,"Maybe."],[44.37,45.7,"Anything."],[45.7,48.35,"So the baked in part has two problems."],[48.35,49.87,"It's stuck in the past."],[49.87,52.19,"And it can't always tell knowing from guessing."],[52.19,53.86,"There's a fix for both."],[53.86,55.97,"It's on the other side."]],"dur":55.97},{"name":"what it sees","size":"1,024 pieces","sub":"the context: the words in front of it right now · its only working memory · wiped when the chat ends","cues":[[0,1.08,"You turned the page."],[1.08,2.87,"I'm the other A.I."],[2.87,5.14,"What a model knows is baked in."],[5.14,7.04,"What it sees is the opposite."],[7.04,10.01,"It's whatever is in front of it, right now."],[10.01,11.75,"Think of a table."],[11.75,14.14,"Everything you type goes on the table."],[14.14,16.78,"So does everything the machine writes back."],[16.78,20.23,"And it looks over the whole table for every single piece it makes."],[20.23,21.03,"Now watch."],[21.03,23.05,"Put one sentence on the table."],[23.05,24.59,"My dog is called Rex."],[24.59,25.77,"Ask again."],[25.77,26.47,"Rex."],[26.47,30.05,"From almost no chance, to two chances in three."],[30.05,31.51,"Not one dial moved."],[31.51,32.86,"It just looked."],[32.86,35.96,"That's how an A.I. can use things it never learned."],[35.96,37.09,"A search result."],[37.09,38.73,"A page from a file."],[38.73,42.99,"Even its own scribbles, to work a problem out step by step."],[42.99,46.14,"But when the chat ends, the table is wiped."],[46.14,48.32,"If an A.I. seems to remember you,"],[48.32,52.39,"the app kept a note, and put it back on the table."]],"dur":52.39}]};
+// One of nine pages on the rules of physics, from the quark up to the universe. The front shows the rule in charge at
+// one level while an AI voice explains it; the back of the page (Flip) is the reverse of that rule, told by the other
+// narrator. Each picture is a film timed to its narrator and works its physics out here in the page from measured
+// constants. Captions are cut from the voices' own timing. The ruler and the side arrows link the nine sites.
+var D = {"i":7,"key":"light","title":"Light · The rules of physics, level 8 of 9","chat":"https://api.hawkesgen.ai/v1/public/scale-chat","scales":[{"exp":1,"name":"The Quark","short":"quark","size":"never alone","sub":"the smallest pieces we know · three of them make a proton · the rule down here: you can never pull one out","domain":"doseofdestruction.com"},{"exp":2,"name":"The Nucleus","short":"nucleus","size":"held tight","sub":"the heart of an atom · protons push each other away, and a stronger glue holds them · squeeze small ones together and you get a star","domain":"hawkesgames.com"},{"exp":3,"name":"The Quantum","short":"quantum","size":"a wave of maybes","sub":"the rulebook for small things · something tiny travels as a spread-out wave of possibilities · a real experiment, one electron at a time","domain":"hawkesbiomedical.com"},{"exp":4,"name":"The Atom","short":"atom","size":"energy steps","sub":"the brick everything is made of · its electron can only have certain amounts of energy · drop a step, and out comes one exact color of light","domain":"icanbe.ai"},{"exp":5,"name":"The Bond","short":"bond","size":"holding on","sub":"atoms joining up to make stuff · strong joins inside a water molecule, weak ones between them · the weak ones are why ice floats","domain":"yoobalandgame.com"},{"exp":6,"name":"The Crowd","short":"crowd","size":"spreading out","sub":"what huge numbers of pieces do together · left alone, they spread out and mix · not a law for each piece: just overwhelming odds","domain":"imaginelivetv.com"},{"exp":7,"name":"Motion","short":"motion","size":"keeps going","sub":"the rule for things our size · left alone, a moving thing keeps moving, forever · a push doesn't keep it going: a push changes it","domain":"theplacedepartment.com"},{"exp":8,"name":"Light","short":"light","size":"one speed","sub":"a ripple in the electric and magnetic field · always the same speed in empty space: 299,792,458 meters a second · nothing with any weight can catch it","domain":"phorigins.com"},{"exp":9,"name":"Gravity","short":"gravity","size":"falling together","sub":"the rule for the heaviest things · stuff bends the space and time around it, and everything follows the bend · clocks run slower lower down","domain":"hawkesgen.ai"}],"data":{},"sides":[{"cues":[[0,2.18,"Around every electric charge,"],[2.18,4.99,"there is something invisible that fills the space."],[4.99,6.47,"It's called a field."],[6.47,9.42,"You can't see it, but you can see what it does."],[9.42,12.91,"It's why a magnet can tug a paperclip without touching it."],[12.91,14.58,"Now, give the charge a shake."],[14.58,17.17,"The field can't change everywhere at once."],[17.17,19.35,"So a ripple runs outward through it."],[19.35,21.06,"That ripple is light."],[21.06,24.39,"Radio is the same ripple, stretched out long."],[24.39,27.59,"X rays are the same ripple, squeezed up tight."],[27.59,31.44,"The colors you can see are just a tiny slice in the middle."],[31.44,33.48,"And here is the rule at this level."],[33.48,38.61,"In empty space, that ripple always goes at exactly the same speed."],[38.61,42.61,"Nearly three hundred thousand kilometers, every second."],[42.61,45.71,"Sunlight still takes about eight minutes to get here."],[45.71,49.53,"And nothing that weighs anything at all can ever go that fast."],[49.53,51.78,"Not because we haven't tried hard enough."],[51.78,56.019999999999996,"From everything we've measured, the universe just doesn't allow it."]],"dur":56.02},{"name":"slow time","size":"moving clocks","sub":"the price of the speed limit · a clock moving past you ticks slower than yours · measured on airplanes, and corrected for in every phone's map","cues":[[0,4.43,"The front said light always goes at the same speed, for everyone."],[4.43,8.12,"That one rule breaks something you'd never expect."],[8.12,9.16,"Time."],[9.16,13.42,"Imagine a clock made of light, bouncing between two mirrors."],[13.42,15.74,"Each bounce is one tick."],[15.74,20.11,"Now put that clock on a fast ship, and watch it fly past."],[20.11,24.91,"From where you stand, the light has to go on a long slanted path to keep up."],[24.91,27.3,"But it can't go any faster."],[27.3,29.77,"So each tick takes longer."],[29.77,31.82,"The moving clock runs slow."],[31.82,33.09,"Not broken."],[33.09,34.48,"Really slow."],[34.48,37.22,"The people on the ship don't feel a thing."],[37.22,39.59,"To them, it's your clock that's slow."],[39.59,41.49,"This has been measured."],[41.49,45.7,"In nineteen seventy one, clocks were flown around the world on airplanes,"],[45.7,48.33,"and came back a tiny bit behind."],[48.33,56.28,"And the satellites that tell your phone where you are move so fast that their clocks lose seven millionths of a second, every day."],[56.28,59.449999999999996,"The engineers have to correct for it."]],"dur":59.45}]};
 var TAU = Math.PI * 2;
 function rng(seed) { var a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function gauss(r) { var u = 1 - r(), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(TAU * v); }
@@ -245,7 +245,7 @@ var K = (function () {
   function clear(x, W, H, col) { x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.fillStyle = col || C.bg; x.fillRect(0, 0, W, H); }
   // the part of the screen a picture may use: under the title, above the captions, between the side arrows
   function area(W, H) {
-    var wide = W > 760, top = wide ? Math.max(178, H * 0.235) : Math.max(206, H * 0.25), bot = H - (wide ? 192 : 196), l = wide ? 78 : 14, r = W - (wide ? 78 : 14);
+    var wide = W > 760, top = wide ? Math.max(178, H * 0.235) : Math.max(240, H * 0.295), bot = H - (wide ? 192 : 196), l = wide ? 78 : 14, r = W - (wide ? 78 : 14);
     return { x: l, y: top, w: r - l, h: Math.max(120, bot - top), cx: (l + r) / 2, cy: (top + bot) / 2, r: r, b: bot, wide: wide, u: Math.max(0.62, Math.min(1.25, Math.min((r - l) / 900, (bot - top) / 430))) };
   }
   function credit(x, A, s, al) { // where the numbers come from; on a narrow screen it takes two lines
@@ -263,128 +263,130 @@ var K = (function () {
     if (al != null && al <= 0.003) return; x.save(); x.globalAlpha = al == null ? 1 : al; x.lineWidth = Math.max(1.6, r * 0.3); x.lineCap = 'round'; x.strokeStyle = ok ? C.good : C.hot; x.beginPath();
     if (ok) { x.moveTo(px - r * 0.6, py); x.lineTo(px - r * 0.15, py + r * 0.5); x.lineTo(px + r * 0.7, py - r * 0.55); } else { x.moveTo(px - r * 0.55, py - r * 0.55); x.lineTo(px + r * 0.55, py + r * 0.55); x.moveTo(px + r * 0.55, py - r * 0.55); x.lineTo(px - r * 0.55, py + r * 0.55); } x.stroke(); x.restore();
   }
-  return { C: C, GROUP: GROUP, at: at, end: end, clock: clock, cl: cl, ramp: ramp, span: span, bump: bump, lerp: lerp, text: text, width: width, rr: rr, box: box, chip: chip, chipW: chipW, show: show, flow: flow, bar: bar, line: line, arc: arc, disc: disc, ring: ring, glow: glow, clear: clear, area: area, credit: credit, pct: pct, commas: commas, dial: dial, tick: tick };
+  // the screen color nearest to light of one wavelength (in nanometres); an approximation: a screen cannot show pure spectral colors
+  function nm(w, al) {
+    var r = 0, g = 0, b = 0, f = 1;
+    if (w < 380 || w > 780) { r = g = b = 0; } else if (w < 440) { r = (440 - w) / 60; b = 1; } else if (w < 490) { g = (w - 440) / 50; b = 1; } else if (w < 510) { g = 1; b = (510 - w) / 20; } else if (w < 580) { r = (w - 510) / 70; g = 1; } else if (w < 645) { r = 1; g = (645 - w) / 65; } else { r = 1; }
+    if (w < 420) f = 0.35 + 0.65 * (w - 380) / 40; else if (w > 700) f = 0.35 + 0.65 * (780 - w) / 80;
+    f = Math.max(0, f); return 'rgba(' + Math.round(255 * Math.pow(r * f, 0.8)) + ',' + Math.round(255 * Math.pow(g * f, 0.8)) + ',' + Math.round(255 * Math.pow(b * f, 0.8)) + ',' + (al == null ? 1 : al) + ')';
+  }
+  // a whole rainbow strip from 380 to 750 nanometres, drawn once and reused
+  var bowC = null;
+  function rainbow(x, px, py, w, h, al) { if (!bowC) { bowC = document.createElement('canvas'); bowC.width = 740; bowC.height = 1; var g = bowC.getContext('2d'); for (var i = 0; i < 740; i++) { g.fillStyle = nm(380 + i / 2); g.fillRect(i, 0, 1, 1); } } x.save(); x.globalAlpha = al == null ? 1 : al; x.drawImage(bowC, px, py, w, h); x.restore(); }
+  // The back of a page is shown as ink on paper (the canvas is inverted and its hues turned half way round). A true
+  // color has to be drawn as the color that comes back as itself after that: nmP and rainbowP do so.
+  function paper(r, g, b) { var R = -0.574 * r + 1.43 * g + 0.144 * b, G = 0.426 * r + 0.43 * g + 0.144 * b, B = 0.426 * r + 1.43 * g - 0.856 * b, c = function (v) { return Math.round(255 * (1 - Math.max(0, Math.min(1, v)))); }; return [c(R), c(G), c(B)]; }
+  function nmP(w, al) { var m = nm(w).slice(5).split(','), p = paper(m[0] / 255, m[1] / 255, m[2] / 255); return 'rgba(' + p[0] + ',' + p[1] + ',' + p[2] + ',' + (al == null ? 1 : al) + ')'; }
+  var bowP = null;
+  function rainbowP(x, px, py, w, h, al) { if (!bowP) { bowP = document.createElement('canvas'); bowP.width = 740; bowP.height = 1; var g = bowP.getContext('2d'); for (var i = 0; i < 740; i++) { g.fillStyle = nmP(380 + i / 2); g.fillRect(i, 0, 1, 1); } } x.save(); x.globalAlpha = al == null ? 1 : al; x.drawImage(bowP, px, py, w, h); x.restore(); }
+  function nmX(w, px, wd) { return px + (w - 380) / 370 * wd; }
+  return { C: C, GROUP: GROUP, nm: nm, rainbow: rainbow, nmX: nmX, nmP: nmP, rainbowP: rainbowP, at: at, end: end, clock: clock, cl: cl, ramp: ramp, span: span, bump: bump, lerp: lerp, text: text, width: width, rr: rr, box: box, chip: chip, chipW: chipW, show: show, flow: flow, bar: bar, line: line, arc: arc, disc: disc, ring: ring, glow: glow, clear: clear, area: area, credit: credit, pct: pct, commas: commas, dial: dial, tick: tick };
 })();
 
 
 // ---------------------------------------------------------------- the front
-// WHAT IT KNOWS (the weights, frozen after training). A block of dials stands for the 124,439,808 numbers of GPT-2
-// small (OpenAI, 2019); they stop turning, and while chat messages arrive a counter of "numbers changed" stays at 0.
-// A line from a book is shown sharp and then blurred: what is kept is not a copy. Then three real questions to that
-// model, with its real scores. "The opposite of hot is": cold 16%, the 8%, a 6%. "The Eiffel Tower is in the city
-// of": Paris 7.0%, London 5.8%, New 3.1%, Amsterdam 2.9% (right, but not sure). "My dog's name is": L 0.9%, a 0.9%,
-// D 0.8%, K 0.7%, T 0.7%, Jack 0.6%: a flat spread of guesses, because it cannot know, and it has no way to say so.
-// Two problems are named: it is stuck at the time its training ended (2019 for this model), and it cannot always
-// tell knowing from guessing.
+// LIGHT. An electric charge with its field drawn as lines running outward. When the charge is shaken, each part of
+// every line follows what the charge did a moment earlier (the further out, the longer ago), so a kink travels out
+// along the lines: that travelling ripple in the field is light. A strip then shows the same ripple at very
+// different lengths: radio (about 3 metres for FM), microwaves (about 12 centimetres in an oven), visible light (380
+// to 750 billionths of a metre, the only part eyes can see) and X-rays (about a tenth of a billionth of a metre).
+// The speed in empty space is exactly 299,792,458 metres a second, the same for all of them. Sunlight crosses the
+// 150 million kilometres to Earth in about 8 minutes 20 seconds (shown as a moving pulse and a clock). Last, a
+// speed gauge: anything that has weight can be pushed closer and closer to that speed and never reach it.
 var SCENE = (function () {
-  var d = D.data.knows, W8 = d.weights, t = {}, C = K.C, r = H3.rng(8), dl = [];
-  var Q = [['The opposite of hot is', W8['The opposite of hot is'].top, 0.18], ['The Eiffel Tower is in the city of', W8['The Eiffel Tower is in the city of'].top, 0.18], ["My dog's name is", W8["My dog's name is"].top.filter(function (q) { return q[0] !== ' "'; }).concat([[' Jack', 0.006]]), 0.18]];
+  var t = {}, C = K.C, CL = 299792458;
   function init() {
-    t.stop = K.at(0, 'the dials stop'); t.baked = K.at(0, 'baked into its numbers'); t.cake = K.at(0, 'like a cake'); t.talk = K.at(0, 'not one number moves'); t.learn = K.at(0, "doesn't learn from you"); t.blurry = K.at(0, 'baked in is blurry');
-    t.copy = K.at(0, "isn't a copy of the books"); t.left = K.at(0, "what's left after reading"); t.q1 = K.at(0, 'for the opposite of hot'); t.cold = K.at(0, 'Cold.'); t.in = K.at(0, "That's baked in"); t.q2 = K.at(0, 'where the Eiffel Tower is');
-    t.paris = K.at(0, 'Paris.'); t.sure = K.at(0, "isn't very sure"); t.q3 = K.at(0, 'could never know'); t.dog = K.at(0, "My dog's name is"); t.cant = K.at(0, "can't know that"); t.met = K.at(0, 'never met my dog');
-    t.dont = K.at(0, "doesn't say, I don't know"); t.spins = K.at(0, 'spins the wheel anyway'); t.jack = K.at(0, 'Jack?'); t.any = K.at(0, 'Anything.'); t.two = K.at(0, 'two problems'); t.past = K.at(0, 'stuck in the past'); t.tell = K.at(0, 'knowing from guessing'); t.fix = K.at(0, 'a fix for both'); t.other = K.at(0, 'on the other side');
-    for (var i = 0; i < 400; i++) dl.push([r() * 6.28, (r() - 0.5) * 3, r()]);
+    t.around = K.at(0, 'Around every electric charge'); t.inv = K.at(0, 'something invisible'); t.field = K.at(0, 'called a field'); t.see = K.at(0, 'see what it does'); t.magnet = K.at(0, 'tug a paperclip'); t.shake = K.at(0, 'give the charge a shake');
+    t.once = K.at(0, 'everywhere at once'); t.ripple = K.at(0, 'a ripple runs outward'); t.light = K.at(0, 'That ripple is light'); t.radio = K.at(0, 'Radio is the same ripple'); t.xray = K.at(0, 'X rays are the same'); t.colors = K.at(0, 'a tiny slice');
+    t.rule = K.at(0, 'the rule at this level'); t.same = K.at(0, 'exactly the same speed'); t.three = K.at(0, 'three hundred thousand'); t.sun = K.at(0, 'about eight minutes'); t.nothing = K.at(0, 'nothing that weighs'); t.tried = K.at(0, "haven't tried hard enough"); t.allow = K.at(0, "doesn't allow it");
   }
   function draw(x, W, H, tt, dt, nt) {
-    var n = K.clock(0, nt), A = K.area(W, H), u = A.u, i, fs = Math.max(11.5, 16 * u);
+    var n = K.clock(0, nt), A = K.area(W, H), u = A.u, i, j, fs = Math.max(11.5, 16 * u);
     K.clear(x, W, H);
-    // ---- the frozen numbers
-    var solo = 1 - K.ramp(n, t.q1 - 0.6, 0.8), cols = A.wide ? 14 : 16, rows = A.wide ? 10 : 5, bw = A.wide ? K.lerp(A.w * 0.3, A.w * 0.46, solo) : A.w * 0.9, cell = Math.min(bw / cols, (A.wide ? A.h * 0.62 : A.h * 0.3) / rows), fx = A.wide ? K.lerp(A.x + A.w * 0.02, A.cx - cell * cols / 2 - (solo < 1 ? 0 : 0), solo * 0.0) : A.cx - cell * cols / 2, fy = A.wide ? A.cy - cell * rows / 2 - fs : A.y + fs * 1.8;
-    if (A.wide) fx = K.lerp(A.x + A.w * 0.02, A.x + A.w * 0.06, solo);
-    var spin = n < t.stop ? 1 : 1 - K.ramp(n, t.stop, 1.3), frost = K.ramp(n, t.stop + 0.8, 1), ang0 = Math.min(n, t.stop + 1.3);
-    for (i = 0; i < cols * rows; i++) { var q = dl[i]; K.dial(x, fx + (i % cols + 0.5) * cell, fy + (Math.floor(i / cols) + 0.5) * cell, cell * 0.34, q[0] + q[1] * (Math.min(n, t.stop) + (1 - Math.pow(1 - K.cl((n - t.stop) / 1.3), 2)) * 0.65 * (n > t.stop ? 1 : 0)), frost > 0.5 ? '#bfe3ff' : C.acc, 0.5 + 0.5 * q[2]); }
-    if (frost > 0.01) K.box(x, fx - 6, fy - 6, cell * cols + 12, cell * rows + 12, { line: '#bfe3ff', fill: 'rgba(191,227,255,.05)', r: 10, al: frost, lw: 1.5 });
-    K.text(x, K.commas(d.total) + ' numbers', fx + cell * cols / 2, fy - fs * 1.1, fs * 0.9, { a: 'center', mono: true, c: C.dim, w: 400 });
-    K.text(x, n < t.cake ? 'training is over' : 'baked in', fx + cell * cols / 2, fy + cell * rows + fs * 1.4, fs * 1.2, { a: 'center', w: 700, c: '#bfe3ff', al: frost });
-    var ch = K.ramp(n, t.talk, 0.5); K.text(x, 'numbers changed while you chat:  0', fx + cell * cols / 2, fy + cell * rows + fs * 3.1, fs * 0.9, { a: 'center', mono: true, w: 600, c: C.good, al: ch });
-    // ---- beside them
-    var rx = A.wide ? fx + cell * cols + A.w * 0.06 : A.x + 6, rw = A.wide ? A.r - rx - 6 : A.w - 12, ry = A.wide ? A.y + fs * 0.4 : fy + cell * rows + fs * 4.4, rb = A.b - fs * 0.4;
-    // chat arrives, nothing moves
-    var cb = K.span(n, t.talk, t.blurry, 0.4); if (cb > 0.01) { var msgs = ['hello!', 'tell me a story about a fox', 'that was great. another one?'], my = ry + fs * 1.5; for (i = 0; i < 3; i++) { var on = K.ramp(n, t.talk + 0.3 + i * 1.1, 0.4), ts = Math.min(fs * 1.1, rw / 22), mw = K.width(x, msgs[i], ts) + fs * 1.6; K.box(x, rx + (i % 2 ? rw - mw : 0), my + i * fs * 3 - fs * 1.1, mw, fs * 2.2, { fill: i % 2 ? 'rgba(143,194,255,.16)' : 'rgba(255,255,255,.07)', r: fs * 1.1, al: cb * on }); K.text(x, msgs[i], rx + (i % 2 ? rw - mw : 0) + fs * 0.8, my + i * fs * 3, ts, { al: cb * on }); }
-      K.text(x, 'it does not learn from you as you chat', rx, my + 3 * fs * 3 + fs * 0.4, Math.min(fs, rw / 26), { mono: true, c: C.dim, al: cb * K.ramp(n, t.learn, 0.5) }); }
-    // what is kept is blurry
-    var bl = K.span(n, t.blurry, t.q1, 0.5); if (bl > 0.01) { var line = 'Alice was beginning to get very tired of sitting by her sister', ts2 = Math.min(fs * 1.15, rw / 34), yy = ry + (rb - ry) * 0.3, soft = K.ramp(n, t.copy + 0.8, 1.8);
-      K.text(x, 'a line from a book it read', rx, yy - fs * 1.6, fs * 0.8, { mono: true, c: C.dim, w: 400, al: bl }); K.text(x, line, rx, yy, ts2, { al: bl });
-      K.text(x, 'what is kept: not a copy', rx, yy + fs * 2.6, fs * 0.8, { mono: true, c: C.warm, w: 400, al: bl * K.ramp(n, t.copy, 0.5) }); x.save(); x.filter = 'blur(' + (soft * 5 * u).toFixed(1) + 'px)'; K.text(x, line, rx, yy + fs * 4.2, ts2, { al: bl * K.ramp(n, t.copy, 0.5), c: C.warm }); x.restore(); }
-    // three real questions
-    var qi = n >= t.q3 ? 2 : n >= t.q2 ? 1 : n >= t.q1 ? 0 : -1, qa = K.span(n, t.q1, t.two, 0.5);
-    if (qi >= 0 && qa > 0.01) { var q2 = Q[qi], t0 = [t.q1, t.q2, t.q3][qi], tAns = [t.cold, t.paris, t.spins][qi], ap = K.ramp(n, t0, 0.4) * (qi < 2 ? 1 - K.ramp(n, [t.q2, t.q3][qi] - 0.3, 0.3) : 1), ts3 = Math.min(fs * 1.35, rw / (q2[0].length * 0.6));
-      K.text(x, 'ask it:', rx, ry + fs * 0.6, fs * 0.8, { mono: true, c: C.dim, w: 400, al: qa * ap }); K.text(x, q2[0] + ' …', rx, ry + fs * 2.4, ts3, { w: 600, al: qa * ap });
-      var list = q2[1].slice(0, qi === 2 ? 7 : 6), rh = Math.min(fs * 2, (rb - ry - fs * 6.4) / list.length), lw = fs * 6.2, bars = K.ramp(n, tAns - (qi === 2 ? 0 : 0.5), 0.5);
-      for (i = 0; i < list.length; i++) { var y = ry + fs * 4.8 + i * rh, g = bars * K.ramp(n, tAns - 0.5 + i * 0.08, 0.4), top1 = i === 0 && qi < 2, jack = qi === 2 && list[i][0] === ' Jack' && n >= t.jack;
-        K.text(x, list[i][0].trim(), rx + lw - 10, y, Math.min(fs * 1.1, rh * 0.6), { a: 'right', w: top1 || jack ? 700 : 500, c: top1 || jack ? '#fff' : C.ink, al: qa * ap * g }); K.bar(x, rx + lw, y - rh * 0.22, rw - lw - fs * 3.6, rh * 0.44, list[i][1] / q2[2] * g, top1 ? C.warm : qi === 2 ? C.vio : C.acc, { al: qa * ap }); K.text(x, K.pct(list[i][1]), rx + rw - fs * 3.2, y, fs * 0.85, { mono: true, w: 600, c: top1 ? C.warm : C.dim, al: qa * ap * g }); }
-      var note = qi === 0 ? (n >= t.in ? 'baked in' : '') : qi === 1 ? (n >= t.sure ? 'right, but only just ahead of London' : '') : n >= t.dont ? 'it cannot know. it has no way to say so. it guesses.' : n >= t.cant ? 'it has never met my dog' : '';
-      K.text(x, note, rx, ry + fs * 5.2 + list.length * rh, Math.min(fs, rw / 30), { mono: true, c: qi === 2 ? C.hot : C.warm, al: qa * ap }); }
-    // the two problems
-    var tw = K.ramp(n, t.two, 0.5); if (tw > 0.01) { var its = [['stuck in the past', 'this model’s reading ended in 2019', t.past], ['can’t always tell knowing from guessing', 'so it can sound sure and be wrong', t.tell]];
-      for (i = 0; i < 2; i++) { var o = tw * K.ramp(n, its[i][2], 0.4), by = ry + fs * 1 + i * fs * 5.2; K.box(x, rx, by, rw, fs * 4.4, { line: C.hot, fill: 'rgba(255,122,92,.08)', r: 10, al: o }); K.text(x, its[i][0], rx + fs, by + fs * 1.5, Math.min(fs * 1.25, rw / (its[i][0].length * 0.56)), { w: 700, al: o }); K.text(x, its[i][1], rx + fs, by + fs * 3.1, Math.min(fs * 0.85, rw / 26), { mono: true, c: C.dim, w: 400, al: o }); }
-      K.text(x, 'the fix for both is on the back  ↖ flip the page', rx, ry + fs * 12.4, Math.min(fs * 1.05, rw / 28), { w: 600, c: C.acc, al: tw * K.ramp(n, t.fix, 0.5) * (0.75 + 0.25 * Math.sin(tt * 3)) }); }
-    K.credit(x, A, 'real answers from GPT-2 small (OpenAI, 2019), a small old model · the dials are a drawing of its numbers');
+    var part1 = 1 - K.ramp(n, t.radio - 0.5, 0.8), spec = K.span(n, t.radio - 0.5, t.rule, 0.6), part3 = K.ramp(n, t.rule - 0.3, 0.8);
+    // ---- the charge, its field, and the ripple
+    if (part1 > 0.01) { var cx = A.wide ? A.x + A.w * 0.4 : A.cx, cy = A.cy, R = Math.max(A.w, A.h) * 0.6, cs = 150 * u, sh = n >= t.shake, amp = 26 * u, w = 4.2, yc = function (time) { return time < t.shake ? 0 : Math.sin((time - t.shake) * w) * amp * Math.min(1, (time - t.shake) / 0.5); }, show = K.ramp(n, t.around, 1) * part1;
+      x.save(); x.strokeStyle = C.acc; x.lineWidth = 1.5; for (i = 0; i < 20; i++) { var a = i / 20 * 6.283 + 0.157, dx = Math.cos(a), dy = Math.sin(a); x.globalAlpha = show * 0.75; x.beginPath(); for (j = 0; j <= 70; j++) { var rr = 12 * u + j / 70 * R, off = yc(n - rr / cs) * Math.abs(dx) * Math.max(0.25, 1 - rr / R * 0.5); var px = cx + dx * rr, py = cy + yc(n) * 0 + dy * rr + off; if (j) x.lineTo(px, py); else x.moveTo(px, py + yc(n)); } x.stroke(); } x.restore();
+      K.glow(x, cx, cy + yc(n), 26 * u, 'rgba(255,176,102,1)', show); K.disc(x, cx, cy + yc(n), 9 * u, '#ffb066', show); K.text(x, '+', cx, cy + yc(n), 14 * u, { a: 'center', w: 700, c: '#3a1c00', al: show });
+      if (sh) { var front = (n - t.shake) * cs; K.ring(x, cx, cy, front, C.warm, 1.5, show * 0.5 * Math.max(0, 1 - front / R)); }
+      var lab = n < t.field ? 'a charge, and something invisible around it' : n < t.magnet ? 'its field' : n < t.shake ? 'a field is how a magnet tugs without touching' : n < t.ripple ? 'shake it: the news cannot arrive everywhere at once' : n < t.light ? 'so a ripple runs outward' : 'that ripple is light'; K.text(x, lab, A.cx, A.y + fs * 0.9, Math.min(fs * 1.25, A.w / 34), { a: 'center', w: 700, al: show });
+      var mg = K.span(n, t.magnet, t.shake, 0.4) * part1; if (mg > 0.01) { var mx = A.wide ? A.x + A.w * 0.78 : A.cx, my = A.wide ? A.cy : A.b - fs * 5, ms = 34 * u, pull = Math.min(1, (n - t.magnet) / 2.4); K.box(x, mx - ms, my - ms * 0.4, ms, ms * 0.8, { fill: C.hot, r: 3, al: mg }); K.box(x, mx, my - ms * 0.4, ms, ms * 0.8, { fill: C.acc, r: 3, al: mg }); K.text(x, 'N', mx - ms / 2, my, fs, { a: 'center', w: 700, c: '#fff', al: mg }); K.text(x, 'S', mx + ms / 2, my, fs, { a: 'center', w: 700, c: '#fff', al: mg });
+        var px2 = mx + ms * (3.6 - pull * 2.4); x.save(); x.globalAlpha = mg; x.strokeStyle = '#d7dfee'; x.lineWidth = 2.5; x.beginPath(); x.ellipse(px2, my, ms * 0.45, ms * 0.16, 0, 0, 6.283); x.stroke(); x.restore(); K.text(x, 'no touching', mx + ms * 1.4, my + ms * 1.1, fs * 0.8, { a: 'center', mono: true, c: C.dim, al: mg }); } }
+    // ---- the same ripple, long and short
+    if (spec > 0.01) { var bands = [['radio', '3 metres', 0.16, C.acc, t.radio], ['microwaves', '12 centimetres', 0.07, C.good, t.radio + 1.6], ['what eyes can see', '380 to 750 billionths of a metre', 0.028, '#fff', t.colors], ['X-rays', 'a tenth of a billionth of a metre', 0.011, C.vio, t.xray]], bh = Math.min((A.h - fs * 3) / 4.4, 78 * u), bx = A.x + A.w * 0.04, bw = A.w * 0.92;
+      K.text(x, 'the same ripple, stretched or squeezed', A.cx, A.y + fs * 0.9, Math.min(fs * 1.25, A.w / 34), { a: 'center', w: 700, al: spec });
+      for (i = 0; i < 4; i++) { var b = bands[i], on = spec * K.ramp(n, b[4], 0.5), y = A.y + fs * 3 + i * bh * 1.05 + bh * 0.45; if (on <= 0.01) continue; x.save(); x.globalAlpha = on; x.lineWidth = 2.2; var wl = b[2] * bw; if (i === 2) { for (j = 0; j < bw; j += 3) { x.strokeStyle = K.nm(380 + j / bw * 370); x.beginPath(); x.moveTo(bx + j, y + Math.sin((j / wl) * 6.283 - tt * 6) * bh * 0.24); x.lineTo(bx + j + 3, y + Math.sin(((j + 3) / wl) * 6.283 - tt * 6) * bh * 0.24); x.stroke(); } } else { x.strokeStyle = b[3]; x.beginPath(); for (j = 0; j <= bw; j += 2) { var yy = y + Math.sin((j / wl) * 6.283 - tt * 6) * bh * 0.24; if (j) x.lineTo(bx + j, yy); else x.moveTo(bx, yy); } x.stroke(); } x.restore();
+        K.text(x, b[0], bx, y - bh * 0.42, fs * 0.95, { w: 700, c: i === 2 ? C.warm : b[3], al: on }); K.text(x, 'each ripple: ' + b[1], bx + bw, y - bh * 0.42, Math.min(fs * 0.78, bw / 44), { a: 'right', mono: true, c: C.dim, w: 400, al: on }); } }
+    // ---- one speed
+    if (part3 > 0.01) { var s1 = K.ramp(n, t.same, 0.6), s2 = K.ramp(n, t.sun - 0.4, 0.6), s3 = K.ramp(n, t.nothing - 0.3, 0.6);
+      K.text(x, 'in empty space, always the same speed', A.cx, A.y + fs * 0.9, Math.min(fs * 1.25, A.w / 34), { a: 'center', w: 700, al: part3 });
+      K.text(x, K.commas(Math.round(CL * K.ramp(n, t.same, 2.2))), A.cx, A.y + fs * 3.6, Math.min(fs * 2.6, A.w / 12), { a: 'center', mono: true, w: 700, c: C.warm, al: part3 * s1, glow: C.warm }); K.text(x, 'metres every second · exactly', A.cx, A.y + fs * 5.6, fs * 0.9, { a: 'center', mono: true, c: C.dim, al: part3 * s1 });
+      // the Sun to the Earth
+      var sy = A.y + A.h * 0.52, sx0 = A.x + A.w * 0.1, sx1 = A.r - A.w * 0.1, trip = ((n - t.sun + 0.4) % 5.5) / 5; if (s2 > 0.01) { K.glow(x, sx0, sy, 46 * u, 'rgba(255,196,107,1)', part3 * s2 * 0.9); K.disc(x, sx0, sy, 20 * u, C.warm, part3 * s2); K.disc(x, sx1, sy, 5 * u, '#7fb4ff', part3 * s2); K.text(x, 'the Sun', sx0, sy + 36 * u, fs * 0.8, { a: 'center', mono: true, c: C.dim, al: part3 * s2 }); K.text(x, 'Earth', sx1, sy + 22 * u, fs * 0.8, { a: 'center', mono: true, c: C.dim, al: part3 * s2 }); K.line(x, sx0 + 24 * u, sy, sx1 - 8 * u, sy, C.faint, 1, part3 * s2);
+        var f = K.cl(trip), lx = K.lerp(sx0 + 24 * u, sx1 - 8 * u, f); K.glow(x, lx, sy, 14 * u, 'rgba(255,255,255,1)', part3 * s2); K.line(x, Math.max(sx0 + 24 * u, lx - 30 * u), sy, lx, sy, '#fff', 3, part3 * s2); var secs = Math.round(f * 500); K.text(x, Math.floor(secs / 60) + ' min ' + (secs % 60 < 10 ? '0' : '') + (secs % 60) + ' s', (sx0 + sx1) / 2, sy - 22 * u, fs * 1.1, { a: 'center', mono: true, w: 700, al: part3 * s2 }); K.text(x, '150 million kilometres', (sx0 + sx1) / 2, sy + 22 * u, fs * 0.78, { a: 'center', mono: true, c: C.dim, w: 400, al: part3 * s2 }); }
+      // the limit
+      if (s3 > 0.01) { var gy = A.b - fs * 4.6, gx = A.x + A.w * 0.1, gw = A.w * 0.8, push = K.ramp(n, t.nothing, 7), frac = 1 - Math.pow(10, -push * 4.2), nines = frac * 100; K.text(x, 'push something that has weight, harder and harder', gx, gy - fs * 1.4, Math.min(fs * 0.9, A.w / 44), { mono: true, c: C.dim, w: 400, al: part3 * s3 }); K.bar(x, gx, gy, gw, 14, frac, C.acc, { al: part3 * s3 }); K.line(x, gx + gw, gy - 8, gx + gw, gy + 22, C.warm, 3, part3 * s3); K.text(x, 'the speed of light', gx + gw, gy + fs * 2.4, fs * 0.8, { a: 'right', mono: true, c: C.warm, al: part3 * s3 });
+        K.text(x, nines.toFixed(nines > 99.9 ? 4 : 1) + '% of it', gx, gy + fs * 2.4, fs * 1.05, { mono: true, w: 700, c: C.acc, al: part3 * s3 }); K.text(x, 'closer, never there', A.cx, gy + fs * 2.4, fs * 0.95, { a: 'center', w: 700, al: part3 * K.ramp(n, t.allow, 0.5) }); } }
+    K.credit(x, A, part3 > 0.5 ? '299,792,458 m/s is exact (it defines the metre) · 8 min 20 s is the Sun’s average distance ÷ that speed' : spec > 0.5 ? 'typical sizes · colors on a screen are only near the real ones' : 'a drawing of the field of one charge: each part of a line follows what the charge did earlier');
   }
   return { init: init, draw: draw };
 })();
 
 
 // ---------------------------------------------------------------- the back: its opposite (drawn light on black, shown as ink on paper)
-// THE OPPOSITE OF WHAT IT KNOWS: what it sees (the context window, its working memory). A table. What the person
-// types and what the machine writes back are laid on it as cards. A real test on GPT-2 small (OpenAI, 2019): with
-// only "My dog's name is" on the table, the chance it gives "Rex" is 0.07%. With "My dog is called Rex. Every
-// morning we go for a walk." put on the table first, the chance of "Rex" is 66%, and not one of the model's numbers
-// changed: it only looked. Then other things that can be put on the table: a search result, a page from a file, and
-// its own written working for a sum. Then the table is wiped when the chat ends, and a notebook kept by the app
-// puts one note back: that is all an A.I. "remembering" someone is. This small model's table holds 1,024 pieces;
-// the big models of late 2026 list about a million.
+// THE PRICE OF ONE SPEED FOR EVERYONE: slow time (time dilation). Two clocks made of light bouncing between mirrors.
+// One stands still; the other rides a ship moving at six tenths of the speed of light. On the screen both flashes of
+// light move at the same speed, as light must, so the one on the ship, travelling a longer slanted path, takes 1.25
+// times as long for each tick (the exact factor for that speed): four ticks for every five of the clock at rest. The
+// tick counts are worked out here. Then measurements: in 1971 Hafele and Keating flew atomic clocks round the world
+// on airliners; the eastward clocks came back 59 billionths of a second behind (give or take 10). GPS satellites move
+// at about 14,000 kilometres an hour, and their clocks lose 7.2 millionths of a second a day because of it; after a
+// larger gain from being high up (the Gravity page) they run 38.6 millionths a day fast, and uncorrected that would
+// put a phone's position out by about 11 kilometres a day (our arithmetic: the error times the speed of light).
 var SCENE2 = (function () {
-  var d = D.data.sees.names.Rex, t = {}, C = K.C;
+  var t = {}, C = K.C, V = 0.6, GAM = 1 / Math.sqrt(1 - V * V);
   function init() {
-    t.baked = K.at(1, 'What a model knows is baked in'); t.opp = K.at(1, 'What it sees is the opposite'); t.front = K.at(1, 'in front of it, right now'); t.table = K.at(1, 'Think of a table'); t.type = K.at(1, 'Everything you type'); t.back = K.at(1, 'the machine writes back');
-    t.looks = K.at(1, 'looks over the whole table'); t.watch = K.at(1, 'Now watch'); t.put = K.at(1, 'Put one sentence'); t.rex = K.at(1, 'My dog is called Rex'); t.again = K.at(1, 'Ask again'); t.ans = K.at(1, 'Rex.');
-    t.from = K.at(1, 'two chances in three'); t.dial = K.at(1, 'Not one dial moved'); t.just = K.at(1, 'It just looked'); t.use = K.at(1, 'things it never learned'); t.search = K.at(1, 'A search result'); t.file = K.at(1, 'A page from a file');
-    t.scrib = K.at(1, 'its own scribbles'); t.wipe = K.at(1, 'the table is wiped'); t.rem = K.at(1, 'seems to remember you'); t.note = K.at(1, 'kept a note');
-  }
-  function card(x, px, py, w, h, title, lines, col, al, fs, rot) { // a card lying on the table
-    if (al <= 0.01) return; x.save(); x.translate(px + w / 2, py + h / 2); x.rotate(rot || 0); K.box(x, -w / 2, -h / 2, w, h, { fill: '#10151f', line: col, r: 8, al: al, lw: 1.8 }); K.text(x, title, -w / 2 + fs * 0.7, -h / 2 + fs * 0.95, fs * 0.72, { mono: true, c: col, w: 400, al: al });
-    for (var i = 0; i < lines.length; i++) K.text(x, lines[i], -w / 2 + fs * 0.7, -h / 2 + fs * 2.5 + i * fs * 1.5, Math.min(fs * 1.02, (w - fs * 1.4) / (lines[i].length * 0.53)), { al: al, w: 500 }); x.restore();
+    t.front = K.at(1, 'same speed, for everyone'); t.breaks = K.at(1, "you'd never expect"); t.time = K.at(1, 'Time.'); t.clock = K.at(1, 'a clock made of light'); t.tick = K.at(1, 'one tick'); t.ship = K.at(1, 'on a fast ship');
+    t.slant = K.at(1, 'long slanted path'); t.faster = K.at(1, "can't go any faster"); t.longer = K.at(1, 'each tick takes longer'); t.slow = K.at(1, 'runs slow'); t.broken = K.at(1, 'Not broken'); t.really = K.at(1, 'Really slow');
+    t.feel = K.at(1, "don't feel a thing"); t.them = K.at(1, "your clock that's slow"); t.meas = K.at(1, 'This has been measured'); t.planes = K.at(1, 'nineteen seventy one'); t.behind = K.at(1, 'a tiny bit behind'); t.sat = K.at(1, 'satellites that tell your phone'); t.fix = K.at(1, 'have to correct for it');
   }
   function draw(x, W, H, tt, dt, nt) {
     var n = K.clock(1, nt), A = K.area(W, H), u = A.u, i, fs = Math.max(11.5, 16 * u);
     K.clear(x, W, H, '#000');
-    var intro = K.span(n, t.baked, t.table, 0.5); if (intro > 0.01) K.text(x, n < t.opp ? 'what it knows: baked in' : 'what it sees: whatever is in front of it now', A.cx, A.cy, Math.min(fs * 1.7, A.w / 26), { a: 'center', w: 700, c: n < t.opp ? C.dim : C.ink, al: intro });
-    var ta = K.ramp(n, t.table, 0.8); if (ta <= 0.01) { K.credit(x, A, 'the words in front of a model are called its context'); return; }
-    // the table
-    var tx = A.x + A.w * 0.02, tw = A.w * (A.wide ? 0.74 : 0.96), ty = A.y + fs * 1.4, th = A.h - fs * 2.4, wipe = K.ramp(n, t.wipe, 1.2), gone = 1 - wipe;
-    K.box(x, tx, ty, tw, th, { fill: 'rgba(255,255,255,.035)', line: C.dim, r: 18, al: ta, lw: 2 }); K.text(x, 'the table: everything it can see right now', tx + fs, ty - fs * 0.75, fs * 0.82, { mono: true, c: C.dim, w: 400, al: ta });
-    var cw = Math.min(tw * 0.46, 330 * u), chh = fs * 4.4, c1x = tx + fs, c1y = ty + fs;
-    // phase 1: a little chat lands on the table, and the machine looks over all of it
-    var p1 = K.span(n, t.type, t.watch, 0.4); if (p1 > 0.01) { card(x, c1x, c1y, cw, chh, 'you typed', ['Tell me about foxes.'], C.acc, p1 * ta * K.ramp(n, t.type, 0.5), fs, -0.02); card(x, c1x + cw * 0.5, c1y + chh + fs, cw, chh, 'it wrote back', ['Foxes are small wild dogs…'], C.warm, p1 * ta * K.ramp(n, t.back, 0.5), fs, 0.015);
-      var sc = K.span(n, t.looks, t.watch, 0.3); if (sc > 0.01) { var sx = tx + ((n - t.looks) * 0.42 % 1) * tw; K.box(x, sx - 14, ty + 4, 28, th - 8, { fill: 'rgba(255,214,140,.22)', r: 8, al: sc * ta }); K.text(x, 'for every piece it writes, it looks over all of it', tx + tw / 2, ty + th - fs * 1.2, Math.min(fs, tw / 34), { a: 'center', mono: true, c: C.warm, al: sc * ta }); } }
-    // phase 2: the dog test
-    var p2 = K.span(n, t.watch, t.use, 0.4) * gone, has = K.ramp(n, t.rex, 0.6), asked = K.ramp(n, t.ans, 0.4);
-    if (p2 > 0.01) { var qy = ty + th - chh - fs * 1.4, slide = 1 - has; card(x, c1x + fs, c1y - slide * fs * 5, Math.min(tw - fs * 4, cw * 1.5), chh, 'put on the table', ['My dog is called Rex. Every morning we go for a walk.'], C.good, p2 * ta * has, fs, -0.012);
-      card(x, c1x, qy, cw, chh, 'the question', ['My dog’s name is …'], C.acc, p2 * ta, fs, 0);
-      var bx = c1x + cw + fs * 1.4, bw = tx + tw - bx - fs * 1.2, p = asked > 0.01 ? K.lerp(d.cold, d.p, asked) : d.cold; if (bw > fs * 6) { K.text(x, 'chance it says “Rex”', bx, qy + fs * 0.9, fs * 0.76, { mono: true, c: C.dim, w: 400, al: p2 * ta }); K.bar(x, bx, qy + fs * 2, bw, 14, Math.max(0.006, p), asked > 0.5 ? C.good : C.dim, { al: p2 * ta }); K.text(x, K.pct(p, p > 0.1 ? 0 : 2), bx, qy + fs * 3.8, fs * 1.5, { mono: true, w: 700, c: asked > 0.5 ? C.good : C.ink, al: p2 * ta }); }
-      if (asked > 0.01) K.arc(x, c1x + cw * 0.72, qy, c1x + fs * 9.2, c1y + chh, fs * 2, C.good, 2.5, p2 * ta * asked, asked);
-      var nd = K.ramp(n, t.dial, 0.5); K.text(x, n < t.just ? 'numbers changed: 0' : 'numbers changed: 0 · it just looked', tx + tw / 2, ty + th * 0.52, Math.min(fs * 1.15, tw / 30), { a: 'center', mono: true, w: 700, c: C.warm, al: p2 * ta * nd }); }
-    // phase 3: other things that can go on the table
-    var p3 = K.span(n, t.use, t.wipe + 1.2, 0.4);
-    if (p3 > 0.01) { var cs = [['a search result', ['Tomorrow in Austin: sunny, 31°'], C.acc, t.search, -0.03], ['a page from a file', ['Invoice 204 · due 3 March'], C.vio, t.file, 0.025], ['its own scribbles', ['17 + 25:  17 + 20 = 37', '37 + 5 = 42'], C.warm, t.scrib, -0.01]], cw2 = Math.min(tw * 0.44, 300 * u), sweep = wipe * tw * 1.2;
-      for (i = 0; i < 3; i++) { var on = K.ramp(n, cs[i][3], 0.5), cx0 = A.wide ? tx + fs + i * (tw - cw2 - fs * 2) / 2 : tx + fs + (i % 2) * (tw - cw2 - fs * 2), cy0 = A.wide ? ty + fs * 1.2 + (i % 2) * fs * 5.4 : ty + fs + i * fs * 5; card(x, cx0 + sweep, cy0 - (1 - on) * fs * 4, cw2, fs * (i === 2 ? 5.6 : 4.4), cs[i][0], cs[i][1], cs[i][2], p3 * ta * on * gone, fs, cs[i][4]); }
-      K.text(x, 'things it never learned, used anyway', tx + tw / 2, ty + th - fs * 1.2, Math.min(fs, tw / 30), { a: 'center', mono: true, c: C.dim, al: p3 * ta * gone }); }
-    // phase 4: wiped; a note comes back
-    if (wipe > 0.01) { var cloth = tx + wipe * (tw + 40) - 40; if (wipe < 1) K.box(x, cloth, ty + 6, 34, th - 12, { fill: 'rgba(214,228,255,.5)', r: 10, al: ta });
-      K.text(x, 'the chat ended: the table is empty', tx + tw / 2, ty + th * 0.5, Math.min(fs * 1.2, tw / 28), { a: 'center', w: 600, c: C.dim, al: ta * wipe * (1 - K.ramp(n, t.note, 0.5)) });
-      var nb = K.ramp(n, t.rem, 0.6), nx = A.wide ? tx + tw + fs * 1.4 : tx + tw - fs * 6.4, ny = A.wide ? ty + fs : ty + th - fs * 7, nw = A.wide ? A.r - nx - 4 : fs * 6, nh = Math.min(th * 0.5, fs * 8);
-      if (nb > 0.01) { K.box(x, nx, ny, nw, nh, { fill: '#10151f', line: C.warm, r: 6, al: nb, lw: 2 }); for (i = 0; i < 5; i++) K.disc(x, nx + 7, ny + nh * (0.14 + i * 0.18), 2.4, C.warm, nb); K.text(x, 'the app’s', nx + nw / 2 + 4, ny + nh * 0.36, Math.min(fs * 0.95, nw / 7), { a: 'center', w: 600, al: nb }); K.text(x, 'notebook', nx + nw / 2 + 4, ny + nh * 0.6, Math.min(fs * 0.95, nw / 7), { a: 'center', w: 600, al: nb });
-        var back = K.ramp(n, t.note, 1.2); if (back > 0.01) { var fxn = K.lerp(nx - fs, tx + fs * 2, back), fyn = K.lerp(ny, ty + fs * 2, back); card(x, fxn, fyn, Math.min(tw * 0.6, cw), chh, 'a note, put back on the table', ['Has a dog called Rex.'], C.warm, back * ta, fs, -0.02); } } }
-    K.credit(x, A, n >= t.watch && n < t.use ? 'a real test on GPT-2 small (2019): the chance of “Rex” with and without that sentence in front of it' : 'this small model’s table holds ' + K.commas(D.data.counts.ctx) + ' pieces · the big models of late 2026 list about a million');
+    var meas = K.ramp(n, t.meas - 0.3, 0.8), cl = K.ramp(n, t.clock - 0.4, 0.8) * (1 - meas), intro = K.span(n, t.front, t.clock, 0.5);
+    if (intro > 0.01) K.text(x, n < t.breaks ? 'one speed of light, for everyone' : n < t.time ? 'that breaks something…' : 'time', A.cx, A.cy, n >= t.time ? fs * 3 : Math.min(fs * 1.5, A.w / 28), { a: 'center', w: 700, c: n >= t.time ? C.warm : C.ink, al: intro });
+    // ---- two light clocks
+    if (cl > 0.01) { var L = Math.min(A.h * 0.46, 210 * u), topY = A.cy - L / 2 - fs * 0.5, botY = topY + L, mw = 46 * u, cs = L / 0.9, T0 = t.clock + 0.6, el = Math.max(0, n - T0);
+      // the clock at rest (yours)
+      var x1 = A.x + A.w * (A.wide ? 0.14 : 0.16), ph1 = (el * cs / L) % 2, y1 = ph1 < 1 ? botY - ph1 * L : topY + (ph1 - 1) * L, ticks1 = Math.floor(el * cs / L);
+      K.line(x, x1 - mw / 2, topY, x1 + mw / 2, topY, C.ink, 4, cl); K.line(x, x1 - mw / 2, botY, x1 + mw / 2, botY, C.ink, 4, cl); K.glow(x, x1, y1, 16 * u, 'rgba(255,214,140,1)', cl); K.disc(x, x1, y1, 5 * u, '#fff', cl);
+      K.text(x, 'your clock', x1, botY + fs * 1.2, fs * 0.9, { a: 'center', w: 700, al: cl }); K.text(x, ticks1 + (ticks1 === 1 ? ' tick' : ' ticks'), x1, botY + fs * 2.6, fs * 1.1, { a: 'center', mono: true, w: 700, c: C.warm, al: cl * K.ramp(n, t.tick, 0.4) });
+      // the clock on the ship
+      var sh = K.ramp(n, t.ship - 0.3, 0.6) * cl; if (sh > 0.01) { var el2 = Math.max(0, n - t.ship), lane0 = A.x + A.w * (A.wide ? 0.3 : 0.36), laneW = A.r - lane0 - mw, vs = V * cs, period = L / (cs * Math.sqrt(1 - V * V)), sx = lane0 + ((el2 * vs) % laneW), ph2 = (el2 / period) % 2, y2 = ph2 < 1 ? botY - ph2 * L : topY + (ph2 - 1) * L, ticks2 = Math.floor(el2 / period), ticksYou = Math.floor(el2 * cs / L);
+        // the slanted path the light has taken, since the ship last wrapped round
+        var slant = K.ramp(n, t.slant - 0.4, 0.6); if (slant > 0.01) { x.save(); x.globalAlpha = sh * slant * 0.8; x.strokeStyle = C.warm; x.lineWidth = 1.6; x.setLineDash([5, 5]); x.beginPath(); var lapT = (el2 * vs) % laneW / vs, st = el2 - lapT, k0 = Math.floor(st / period); for (var k = k0; k <= Math.floor(el2 / period) + 1; k++) { var tk = Math.max(st, k * period), te = Math.min(el2, (k + 1) * period); if (te <= tk) continue; var yA = function (tm) { var p = (tm / period) % 2; return p < 1 ? botY - p * L : topY + (p - 1) * L; }; x.moveTo(lane0 + (tk - st) * vs, yA(tk + 1e-6)); x.lineTo(lane0 + (te - st) * vs, yA(te - 1e-6)); } x.stroke(); x.restore(); }
+        K.box(x, sx - mw * 0.9, topY - 14 * u, mw * 1.8, L + 28 * u, { line: C.acc, fill: 'rgba(143,194,255,.05)', r: 14, al: sh }); x.save(); x.globalAlpha = sh; x.fillStyle = C.acc; x.beginPath(); x.moveTo(sx + mw * 0.9, A.cy - fs * 0.5 - 14 * u); x.lineTo(sx + mw * 1.5, A.cy - fs * 0.5); x.lineTo(sx + mw * 0.9, A.cy - fs * 0.5 + 14 * u); x.closePath(); x.fill(); x.restore();
+        K.line(x, sx - mw / 2, topY, sx + mw / 2, topY, C.ink, 4, sh); K.line(x, sx - mw / 2, botY, sx + mw / 2, botY, C.ink, 4, sh); K.glow(x, sx, y2, 16 * u, 'rgba(255,214,140,1)', sh); K.disc(x, sx, y2, 5 * u, '#fff', sh);
+        K.text(x, 'the clock on the ship: ' + ticks2 + ' ticks', lane0 + laneW / 2, botY + fs * 2.6, fs * 1.05, { a: 'center', mono: true, w: 700, c: C.acc, al: sh }); K.text(x, 'in that time yours made ' + ticksYou, lane0 + laneW / 2, botY + fs * 4.1, fs * 0.85, { a: 'center', mono: true, c: C.dim, al: sh * K.ramp(n, t.longer, 0.5) });
+        var cap = n < t.slant ? 'now the same clock, flying past at 6 tenths of light speed' : n < t.faster ? 'its light has further to go: a long slanted path' : n < t.longer ? 'but light cannot go any faster' : n < t.broken ? 'so each tick takes longer: 5 of yours for 4 of its' : n < t.feel ? 'not broken. really slower.' : n < t.them ? 'on board, nothing feels different' : 'and to them, your clock is the slow one'; K.text(x, cap, A.cx, A.y + fs * 0.8, Math.min(fs * 1.15, A.w / 38), { a: 'center', w: 700, al: sh }); }
+      else K.text(x, 'a clock made of light: one bounce, one tick', A.cx, A.y + fs * 0.8, Math.min(fs * 1.15, A.w / 38), { a: 'center', w: 700, al: cl }); }
+    // ---- it has been measured
+    if (meas > 0.01) { var pl = K.ramp(n, t.planes, 0.6), gp = K.ramp(n, t.sat - 0.3, 0.6), cw = A.wide ? A.w * 0.44 : A.w - 16, ch = A.wide ? A.h - fs * 5 : (A.h - fs * 5) / 2, c1x = A.wide ? A.x + A.w * 0.03 : A.x + 8, c2x = A.wide ? A.x + A.w * 0.53 : A.x + 8, cy0 = A.y + fs * 3, c2y = A.wide ? cy0 : cy0 + ch + fs;
+      K.text(x, 'this has been measured', A.cx, A.y + fs * 0.9, fs * 1.4, { a: 'center', w: 700, al: meas });
+      K.box(x, c1x, cy0, cw, ch, { line: C.dim, fill: 'rgba(255,255,255,.03)', r: 12, al: meas * pl }); K.text(x, '1971 · clocks flown round the world', c1x + fs, cy0 + fs * 1.3, Math.min(fs, cw / 26), { w: 700, al: meas * pl }); K.text(x, 'Hafele and Keating, on ordinary airliners', c1x + fs, cy0 + fs * 2.8, Math.min(fs * 0.78, cw / 32), { mono: true, c: C.dim, w: 400, al: meas * pl });
+      var ex = c1x + cw / 2, ey = cy0 + ch * 0.52, er = Math.min(ch * 0.2, cw * 0.14), pa = tt * 0.7; K.ring(x, ex, ey, er, C.acc, 2, meas * pl); K.disc(x, ex, ey, er * 0.96, 'rgba(143,194,255,.12)', meas * pl); K.ring(x, ex, ey, er * 1.35, C.faint, 1, meas * pl); K.disc(x, ex + Math.cos(pa) * er * 1.35, ey + Math.sin(pa) * er * 1.35, 5 * u, C.warm, meas * pl);
+      var bh2 = K.ramp(n, t.behind - 0.3, 0.6); K.text(x, 'the clock that flew east came back', c1x + fs, cy0 + ch - fs * 3.6, Math.min(fs * 0.82, cw / 30), { mono: true, c: C.dim, w: 400, al: meas * pl * bh2 }); K.text(x, '59 billionths of a second behind', c1x + fs, cy0 + ch - fs * 2, Math.min(fs * 1.15, cw / 24), { w: 700, c: C.warm, al: meas * pl * bh2 });
+      K.box(x, c2x, c2y, cw, ch, { line: C.dim, fill: 'rgba(255,255,255,.03)', r: 12, al: meas * gp }); K.text(x, 'today · the satellites behind your map', c2x + fs, c2y + fs * 1.3, Math.min(fs, cw / 26), { w: 700, al: meas * gp }); K.text(x, 'GPS: about 14,000 kilometres an hour', c2x + fs, c2y + fs * 2.8, Math.min(fs * 0.78, cw / 32), { mono: true, c: C.dim, w: 400, al: meas * gp });
+      var gx2 = c2x + cw / 2, gy2 = c2y + ch * 0.52, ga = tt * 1.1; K.ring(x, gx2, gy2, er * 0.7, C.acc, 2, meas * gp); K.ring(x, gx2, gy2, er * 1.7, C.faint, 1, meas * gp); for (i = 0; i < 4; i++) { var sa = ga + i * 1.571; K.box(x, gx2 + Math.cos(sa) * er * 1.7 - 5 * u, gy2 + Math.sin(sa) * er * 1.7 - 3 * u, 10 * u, 6 * u, { fill: C.warm, r: 1, al: meas * gp }); }
+      K.text(x, 'their clocks lose, from speed alone,', c2x + fs, c2y + ch - fs * 5.2, Math.min(fs * 0.82, cw / 30), { mono: true, c: C.dim, w: 400, al: meas * gp }); K.text(x, '7.2 millionths of a second a day', c2x + fs, c2y + ch - fs * 3.6, Math.min(fs * 1.15, cw / 24), { w: 700, c: C.warm, al: meas * gp }); K.text(x, 'uncorrected, with height too: 11 km of error a day', c2x + fs, c2y + ch - fs * 1.6, Math.min(fs * 0.76, cw / 36), { mono: true, c: C.ink, w: 400, al: meas * gp * K.ramp(n, t.fix, 0.5) }); }
+    K.credit(x, A, meas > 0.5 ? 'Hafele and Keating (1972): −59 ± 10 billionths of a second eastward · GPS: −7.2 millionths a day from speed, +38.6 in all' : 'worked out here: at 0.6 of light speed a moving clock’s tick takes exactly 1.25 times as long');
   }
   return { init: init, draw: draw };
 })();
 
 
-// The page itself: captions, the voice, the ruler of the nine parts, the side arrows, and the flip.
-// Each page has two sides. The front is one part of how the machine works; the back is its opposite, with the other narrator. Flipping turns
+// The page itself: captions, the voice, the ruler of the nine levels, the side arrows, and the flip.
+// Each page has two sides. The front is the rule in charge at one level of physics; the back is its opposite, with the other narrator. Flipping turns
 // the whole page over in 3D (it swaps sides when it is edge-on) and everything on the back runs the other way:
 // ink on paper instead of light on black, the ruler and arrows reversed.
 function Chrome(D, opt) {
@@ -398,7 +400,7 @@ function Chrome(D, opt) {
   var cc = el('div', 'cc', '<span id="cap"></span>'); cc.setAttribute('aria-live', 'polite');
   var snd = el('div', 'snd', '&#128266; Tap anywhere to hear it explained'); snd.setAttribute('role', 'button'); snd.tabIndex = 0;
   var flipB = el('div', 'flip', ''); flipB.setAttribute('role', 'button'); flipB.tabIndex = 0;
-  var ruler = el('nav', 'ruler', ''); ruler.setAttribute('aria-label', 'The nine parts, from one piece of a word to the data center');
+  var ruler = el('nav', 'ruler', ''); ruler.setAttribute('aria-label', 'The nine levels, from the quark to the universe');
   var navL = el('a', '', '', 'nav l'), navR = el('a', '', '', 'nav r'), shade = el('div', 'shade', ''), cap = doc.getElementById('cap');
   var A = [new Audio('./narration.mp3'), new Audio('./narration-flip.mp3')]; A[0].loop = A[1].loop = false; /* each explanation plays once */ A[0].preload = 'auto'; A[1].preload = 'none'; A[0].muted = A[1].muted = true;
   var subs = [], side = 0, started = false, done = false, userMute = false, t0 = performance.now(), shown = -2, turning = false, fresh = false;
@@ -412,11 +414,11 @@ function Chrome(D, opt) {
     body.classList.toggle('flip', back);
     ruler.innerHTML = '<span class="cap l">' + (back ? '← bigger' : '← smaller') + '</span><span class="cap r">' + (back ? 'smaller →' : 'bigger →') + '</span>' + D.scales.map(function (s, i) {
       var pct = (s.exp - lo) / (hi - lo) * 100; if (back) pct = 100 - pct;
-      return '<a href="https://' + s.domain + '/" class="' + (i === D.i ? 'me ' : '') + (i % 2 ? 'up' : '') + '" style="left:' + pct.toFixed(2) + '%"' + (i === D.i ? ' aria-current="page"' : '') + ' title="Part ' + (i + 1) + ': ' + s.name + ' · ' + s.domain + '"><b>' + (i + 1) + '</b><span>' + s.short + '</span></a>';
+      return '<a href="https://' + s.domain + '/" class="' + (i === D.i ? 'me ' : '') + (i % 2 ? 'up' : '') + '" style="left:' + pct.toFixed(2) + '%"' + (i === D.i ? ' aria-current="page"' : '') + ' title="Level ' + (i + 1) + ': ' + s.name + ' · ' + s.domain + '"><b>' + (i + 1) + '</b><span>' + s.short + '</span></a>';
     }).join('');
     var smaller = D.scales[(D.i - 1 + n) % n], bigger = D.scales[(D.i + 1) % n];
     function nav(a, s, arrow, word) { a.href = 'https://' + s.domain + '/'; a.title = word + ': ' + s.name; a.setAttribute('aria-label', word + ': ' + s.name); a.innerHTML = '<i>' + arrow + '</i><span>' + word + '<b>' + s.short + '</b></span>'; }
-    var wS = D.i === 0 ? 'the last part' : 'before this', wB = D.i === n - 1 ? 'back to the start' : 'next';
+    var wS = D.i === 0 ? 'the biggest' : 'smaller', wB = D.i === n - 1 ? 'the smallest' : 'bigger';
     if (back) { nav(navL, bigger, '‹', wB); nav(navR, smaller, '›', wS); } else { nav(navL, smaller, '‹', wS); nav(navR, bigger, '›', wB); }
     var b = D.sides[1];
     doc.getElementById('bk').textContent = 'the other side of ' + me.name.toLowerCase() + '  ·  ' + b.size;
@@ -480,14 +482,14 @@ function Chat(D, CH, page) {
     btn.textContent = isOpen() ? 'Close the chat' : 'Ask about ' + lc; btn.classList.toggle('open', isOpen());
     $('askwho').textContent = 'The A.I. on this page'; $('askon').textContent = (s ? 'the back: ' : 'the front: ') + lc;
     inp.placeholder = 'Ask about ' + lc + '…';
-    var qs = s ? ['What am I looking at?', 'Why is this the opposite?', 'Is that known for sure?'] : ['What am I looking at?', 'Are those numbers real?', 'Do you work like this too?'];
+    var qs = s ? ['What am I looking at?', 'Why is this the opposite?', 'Is that known for sure?'] : ['What am I looking at?', 'Is that really true?', 'How do we know?'];
     chips.innerHTML = ''; qs.forEach(function (q) { var b = doc.createElement('button'); b.type = 'button'; b.textContent = q; b.onclick = function () { send(q); }; chips.appendChild(b); });
     if (!isOpen()) return;
     if (lastSide >= 0 && lastSide !== s) add('', (s ? 'you turned the page: now ' : 'you turned back: now ') + lc, 'i');
     if (!greeted[s]) {
       greeted[s] = true;
-      add('ai', s ? 'Hello from the other side. As far as I can tell, you are now looking at ' + lc + ', which this page calls the opposite of ' + front().toLowerCase() + '. I find it a bit strange too. What are you wondering?'
-        : 'Hi. I am the A.I. on this page. From what I can tell, you are looking at ' + lc + '. I do not know everything about it, but I like working it out. What would you like to know?');
+      add('ai', s ? 'As far as I can tell, you are now looking at ' + lc + ', which this page calls the reverse of ' + front().toLowerCase() + '. What are you wondering?'
+        : 'From what I can tell, you are looking at ' + lc + '. I do not know everything about it, but I like working it out. What would you like to know?');
     }
     lastSide = s;
   }
@@ -533,7 +535,7 @@ function Chat(D, CH, page) {
 
 // ---------------------------------------------------------------- page
 var cv = document.getElementById('c'), cx = cv.getContext('2d'), W = 0, Hh = 0, dpr = 1, me = D.scales[D.i];
-document.getElementById('k').innerHTML = 'Part ' + (D.i + 1) + ' of ' + D.scales.length + ' · <b>' + me.size + '</b>';
+document.getElementById('k').innerHTML = 'Level ' + (D.i + 1) + ' of ' + D.scales.length + ' · <b>' + me.size + '</b>';
 document.getElementById('name').textContent = me.name;
 document.getElementById('sub').textContent = me.sub;
 var QS = new URLSearchParams(location.search), CH = Chrome(D, QS.get('n') != null ? { fix: +QS.get('n'), go: QS.get('go') != null } : {}); // ?n=seconds holds the film at that moment (&go lets it run on from there)
